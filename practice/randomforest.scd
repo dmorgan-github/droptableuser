@@ -1,6 +1,4 @@
 (
-//~bus = Bus.audio(s,2);
-
 ~strategies = (
 
 	fooId: 0,
@@ -70,7 +68,7 @@ SynthDef(\c, {arg out, amp=0.1, freq=440, sustain=0.01, pan, click=0;
 	OffsetOut.ar(out, Pan2.ar(snd * env, pan));
 }, \ir ! 5).add;
 
-SynthDef(\reverb_ef, {arg amp=1, lPos=0, mix=0.085, revTime=1.8, preDel=0.1, in, out;
+SynthDef(\reverb, {arg amp=1, lPos=0, mix=0.085, revTime=1.8, preDel=0.1, in, out;
 
 	var sig, verbSig, totalSig, outSig;
 	mix = mix.clip(0,1);
@@ -208,13 +206,13 @@ app.process2 = {arg self, tempo;
 s.waitForBoot({
 
 	var tempo = TempoClock(10/60);
-	Synth(\reverb_ef, [\in, ~bus, \out, 0, \mix, 0.7]);
+	~bus = ~bus ? Bus.audio(s,2);
+	Synth(\reverb, [\in, ~bus, \out, 0, \mix, 0.7]);
 	Synth(\delay, [\in, ~bus, \out, 0]);
 	//s.stopRecording();
 	r{
 		//s.prepareForRecord('/Users/dmorgan/5.aiff');
 		//s.record();
-
 		app.process1(tempo);
 		tempo.sched(4, {
 			app.process2(tempo);
