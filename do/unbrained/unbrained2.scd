@@ -99,8 +99,21 @@
 		Ndef(sndbufId, {DC.ar(sndbuf);});
 		Ndef(envbufId, {DC.ar(-1);});
 
-		granulator = (
+		Ndef(ndefId).ar(2);
+		Ndef(ndefId).source = {arg amp = 0.5;
+			GrainBuf.ar(2,
+				trigger:Ndef(trigId).ar,
+				dur:Ndef(durId).ar,
+				sndbuf:Ndef(sndbufId).ar,
+				rate:Ndef(rateId).ar,
+				pos:Ndef(startId).ar,
+				pan:Ndef(panId).ar,
+				envbufnum:Ndef(envbufId).ar,
+				mul:amp
+				);
+		};
 
+		granulator = (
 			setTrig: {arg self, obj;
 				Ndef(trigId, obj);
 			},
@@ -122,22 +135,7 @@
 			setEnvbuf: {arg self, obj;
 				Ndef(envbufId, obj);
 			},
-			asProxy: {arg self;
-				Ndef(ndefId).ar(2);
-				Ndef(ndefId).source = {arg amp = 0.5;
-					GrainBuf.ar(2,
-						trigger:Ndef(trigId).ar,
-						dur:Ndef(durId).ar,
-						sndbuf:Ndef(sndbufId).ar,
-						rate:Ndef(rateId).ar,
-						pos:Ndef(startId).ar,
-						pan:Ndef(panId).ar,
-						envbufnum:Ndef(envbufId).ar,
-						mul:amp
-					);
-				};
-				Ndef(ndefId);
-			}
+			proxy: Ndef(ndefId)
 		);
 		granulator;
 	}
@@ -333,21 +331,20 @@
 	};
 };
 
-~freeze = {arg freeze = 1;
+~freeze = {arg rate = 1;
 
 	{arg in;
-
 		var chain1, chain2, inp, frozen, outp;
-		var rate = LFNoise1.ar(freeze).range(0, 1).round;
-
-		inp    = in.asArray;//In.ar( 0, 2 ).asArray;
+		var freeze = LFNoise1.ar(rate).range(0, 1).round;
+		inp    = in;//.asArray;//In.ar( 0, 2 ).asArray;
 		chain1 = FFT( LocalBuf( 2048 ! 2 ), inp );
-		chain1 = PV_MagFreeze( chain1, rate );
+		chain1 = PV_MagFreeze( chain1, freeze );
 		chain2 = FFT( LocalBuf( 2048 ! 2 ), WhiteNoise.ar( 1 ! 2 ));
 		chain1 = PV_CopyPhase( chain1, chain2 );
-		frozen = IFFT( chain1 ).asArray;
-		outp   = (0..1).collect({ arg ch; Select.ar( rate, [ inp[ ch ], frozen[ ch ]])});
-		outp;
+		//frozen = IFFT( chain1 ).asArray;
+		//outp   = (0..1).collect({ arg ch; Select.ar( rate, [ inp[ ch ], frozen[ ch ]])});
+		//outp;
+		IFFT(chain1);
 	};
 };
 
@@ -784,133 +781,147 @@ z = Buffer.sendCollection(s, Env.linen.discretize, 1);
 
 ~samplesLib.ls();
 ~samplesLib.load("unchained.aiff", {arg buf; a = buf;});
+~samplesLib.load("pianocello.mono", {arg buf; b = buf;});
 
 
 /******************************************
 Gran 1
 *******************************************/
+
+q = ();
+
 (
-i = ~granulator.init_new("gran1", a);
-i.setTrig({
+q.gran1 = ~granulator.init_new("gran1", a);
+q.gran1.setTrig({
 	Impulse.ar(5.5)
 });
-i.setDur({
-	//SinOsc.ar(2).range(0.3, 0.6);
-	DC.ar(0.7)
+q.gran1.setDur({
+	//DC.ar(0.7)
+	LFNoise1.ar(1).range(0.4, 0.7)
 });
-i.setStart( {
-	//WhiteNoise.ar().range(0.6, 0.8)
-	LFNoise1.ar(5).range(0.63, 0.8)
+q.gran1.setStart( {
+	LFNoise1.ar(5).range(0.65, 0.8)
 } );
-i.setRate ( {
+q.gran1.setRate ( {
 	DC.ar(1)
 } );
-i.setEnvbuf({
+q.gran1.setEnvbuf({
 	DC.ar(-1)
 });
-i.setPan({
-	LFNoise1.ar(0.1).range(-0.6, 0.6);
+q.gran1.setPan({
+	LFNoise1.ar(0.1).range(-0.7, 0.7);
 });
-j = i.asProxy();
-j.fadeTime = 1;
-j.set(\amp, 0.3);
-j[1] = \filter -> ~threeChan.(lov:0.3, midv:0.9, hiv:1);
+q.gran1.proxy.fadeTime = 1;
+q.gran1.proxy.set(\amp, 0.3);
+q.gran1.proxy[1] = \filter -> ~threeChan.(lov:0.5, midv:0.9, hiv:1);
 
-//j.play;
-//j.stop(10)
-)
+//q.gran1.proxy.play;
+//q.gran2.proxy.stop(5);
 
-/******************************************
-Gran 3
-*******************************************/
-(
+/****************************************************/
+/****************************************************/
+
 b = { Buffer.alloc(s,2048,1) }.dup;
-m = ~granulator.init_new("gran3", a);
-m.setTrig({
-	Impulse.ar(5)
+q.gran2 = ~granulator.init_new("gran2", a);
+q.gran2.setTrig({
+	Dust2.ar(5)
 });
-m.setDur({
+q.gran2.setDur({
 	LFNoise1.ar(4).range(1, 2)
 });
-m.setStart( {
-	LFPulse.ar(SinOsc.ar(2).range(1,3)).range(0.6, 0.8)
+q.gran2.setStart( {
+	LFNoise.ar(2).range(0.6, 0.8);
 } );
-m.setRate ( {
+q.gran2.setRate ( {
 	DC.ar(1)
-	//LFNoise1.ar(2).range(0., 1)
+	//LFNoise1.ar(2).range(0.5, 1.5)
 } );
-m.setEnvbuf({
+q.gran2.setEnvbuf({
 	DC.ar(-1);
 });
-m.setPan({
+q.gran2.setPan({
 	LFNoise1.ar(0.1).range(-0.3, 0.3);
 });
-n = m.asProxy();
-n.set(\amp, 0.6);
+q.gran2.proxy.set(\amp, 0.1);
+q.gran2.proxy[1] = \filter -> ~freeze.();
+q.gran2.proxy[2] = \filter -> ~reverb1.();
+q.gran2.proxy[3] = \filter -> ~echo.(decay:2.5);
+q.gran2.proxy[4] = \filter -> ~threeChan.(xover1:500, threshold: 0.1, slope: 0, lov:0.2, midv:0.8, hiv:0.5);
 
-n[1] = \filter -> {arg in;
+//q.gran2.proxy.play;
+//q.gran2.proxy.stop;
 
-	var chain1, chain2, inp, frozen, outp;
-	var freeze = LFNoise1.ar(1).range(0,1).round;
+/****************************************************/
+/****************************************************/
 
-	inp = in;
-	chain1 = FFT( LocalBuf( 2048 ! 2 ), inp );
-	chain1 = PV_MagFreeze( chain1, freeze );
-	chain2 = FFT( LocalBuf( 2048 ! 2 ), WhiteNoise.ar( 1 ! 2 ));
-	chain1 = PV_CopyPhase( chain1, chain2 );
-	//frozen = IFFT( chain1 ).asArray;
-
-	//outp   = (0..1).collect({ arg ch; Select.ar( freeze, [ inp[ ch ], frozen[ ch ]])});
-	//outp;
-	//frozen;
-	IFFT( chain1 );
-};
-
-n[2] = \filter -> ~reverb1.();
-n[3] = \filter -> ~echo.(decay:2.5);
-n[4] = \filter -> ~threeChan.(xover1:500, threshold: 0.1, slope: 0, lov:0.3, midv:0.8, hiv:0.5);
-
-
-~str.(~threeChan);
-//n.play;
-//n.stop;
-)
-
-
-/******************************************
-Gran 5
-*******************************************/
-(
-q = ~granulator.init_new("gran5", a);
-q.setTrig({
+q.gran3 = ~granulator.init_new("gran5", a);
+q.gran3.setTrig({
 	Impulse.ar(LFSaw.ar(2).range(1,10))
-	//Dust.ar(LFSaw.ar(2).range(3,10))
 });
-q.setDur({
+q.gran3.setDur({
 	LFPulse.ar(1).range(0.2,2)
 });
-q.setStart( {
+q.gran3.setStart( {
 	LFSaw.ar(2).range(0.01, 0.02)
 });
-q.setRate ( {
+q.gran3.setRate ( {
 	DC.ar(1)
 } );
-q.setEnvbuf({
+q.gran3.setEnvbuf({
 	DC.ar(-1)
 });
-q.setPan({
+q.gran3.setPan({
 	DC.ar(0);
 });
-t = q.asProxy();
-t.fadeTime = 1;
-t[1] = \filter -> ~echo.();
-t[2] = \filter -> ~threeChan.(lov:1, midv:0.9, hiv:1);
+q.gran3.proxy.set(\amp, 0.5);
+q.gran3.proxy.fadeTime = 1;
+q.gran3.proxy[1] = \filter -> ~echo.();
+q.gran3.proxy[2] = \filter -> ~threeChan.(lov:1, midv:0.9, hiv:1);
+//q.gran3.proxy.play;
 
-t.set(\amp, 0.8);
-//t.play;
-)
+/****************************************************/
+/****************************************************/
 
-FreqScope.new
+q.gran4 = ~granulator.init_new("gran4", a);
+q.gran4.setTrig({
+	Dust.ar(SinOsc.ar(1).range(0.2, 1));
+});
+q.gran4.setDur({
+	LFNoise1.ar(1).range(0.3,3)
+});
+q.gran4.setStart( {
+	LFNoise1.ar(2).range(0.0001, 0.05)
+});
+q.gran4.setRate ( {
+	//DC.ar(1)
+	LFNoise1.ar(1).range(0.7, 1);
+} );
+
+/*
+d = List.new();
+10.do({
+	Buffer.sendCollection(s, Env.xyc({ [1.0.rand, 1.0.rand, -4.rand2] } ! 16, \exp).discretize, 1,
+		action:{arg buf;
+			d.add(DC.ar(buf.bufnum))
+		}
+	);
+});
+*/
+q.gran4.setEnvbuf({
+	Select.ar( TRand.ar(0, d.size(), Impulse.ar(3)).round, d);
+});
+
+q.gran4.setPan({
+	DC.ar(0);
+});
+
+//Env.xyc([[1, 1.0.rand, -4.rand2], { [0.1.rand, 1.0.rand, -4.rand2] } ! 16], \exp).plot
+
+q.gran4.proxy.set(\amp, 0.5);
+q.gran4.proxy.fadeTime = 1;
+q.gran4.proxy[1] = \filter -> ~reverb1.();
+q.gran4.proxy[2] = \filter -> ~threeChan.(lov:1, midv:0.9, hiv:1);
+//q.gran4.proxy.play;
 
 //s.prepareForRecord("/Users/dmorgan/supercollider/do/unbrained/unbrained3.aiff");
 //s.record();
@@ -919,38 +930,19 @@ FreqScope.new
 //s.record();
 Tdef(\main, {
 
-	t.stop(5);
-	t.play;
-	10.wait;
-
-	Tdef(\a, {
-		loop({
-			n.play;
-			10.wait;
-			n.stop(5);
-			10.wait;
-		});
-	}).play;
-
+	q.gran2.proxy.play;
 	20.wait;
-	j.play;
+	q.gran4.proxy.play;
+	20.wait;
+	q.gran4.proxy.stop(3);
+	q.gran3.proxy.play;
 	30.wait;
-	j.stop(10);
-	10.wait;
-	t.stop(5);
-	15.wait;
+	q.gran1.proxy.play;
+	20.wait;
 
-	j.fadeTime = 2;
-	j.play;
-	i.setDur({ LFPulse.ar(0.01).range(0.5, 1); });
-	i.setRate ( { LFNoise1.ar(2).range(0.5, 1); } );
-	i.setPan ( { DC.ar(0) } );
-	5.wait;
-	j.stop(7);
-
-	10.wait;
-	n.stop(5);
-	Tdef(\a).stop
+	q.gran1.proxy.stop(3);
+	q.gran3.proxy.stop(15);
+	q.gran2.proxy.stop(37);
 
 }).play;
 )
