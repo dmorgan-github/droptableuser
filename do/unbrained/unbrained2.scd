@@ -336,14 +336,11 @@
 	{arg in;
 		var chain1, chain2, inp, frozen, outp;
 		var freeze = LFNoise1.ar(rate).range(0, 1).round;
-		inp    = in;//.asArray;//In.ar( 0, 2 ).asArray;
+		inp    = in;
 		chain1 = FFT( LocalBuf( 2048 ! 2 ), inp );
 		chain1 = PV_MagFreeze( chain1, freeze );
 		chain2 = FFT( LocalBuf( 2048 ! 2 ), WhiteNoise.ar( 1 ! 2 ));
 		chain1 = PV_CopyPhase( chain1, chain2 );
-		//frozen = IFFT( chain1 ).asArray;
-		//outp   = (0..1).collect({ arg ch; Select.ar( rate, [ inp[ ch ], frozen[ ch ]])});
-		//outp;
 		IFFT(chain1);
 	};
 };
@@ -417,6 +414,59 @@
 	}
 };
 
+~pvBinShiftLFO = {arg stretch=[1,0,1], shift=[1,0,1];
+
+	{arg in;
+		var audio = in;
+		var chain;
+		chain = FFT(LocalBuf(2048 ! 2), audio);
+		chain = PV_BinShift(chain,
+			LFNoise1.ar(stretch[0]).range(stretch[1], stretch[2]),
+			LFNoise1.ar(shift[0]).range(shift[1], shift[2]));
+		IFFT(chain);
+	};
+};
+
+~pvMagSmear = {arg threshold=1.0, gain=1.5;
+	{arg in;
+		var audio = in;
+		var chain;
+		chain = FFT(LocalBuf(2048 ! 2), audio);
+		chain = PV_MagSmear(chain, threshold );
+		IFFT(chain) * gain;
+	};
+};
+
+~pvMagSmearLFO = {arg threshold=[1,0,1], gain=1.5;
+	{arg in;
+		var audio = in;
+		var chain;
+		chain = FFT(LocalBuf(2048 ! 2), audio);
+		chain = PV_MagSmear(chain, LFNoise1.ar(threshold[0]).range(threshold[1], threshold[2]) );
+		IFFT(chain) * gain;
+	};
+};
+
+~pvMagShift = {arg stretch=1.0,shift=0.0;
+	{arg in;
+		var audio = in;
+		var chain;
+		chain = FFT(LocalBuf(2048 ! 2), audio);
+		chain = PV_MagShift(chain, stretch, shift );
+		IFFT(chain);
+	};
+};
+
+~pvMagSquared = {
+	{arg in;
+		var audio = in;
+		var chain;
+		chain = FFT(LocalBuf(2048 ! 2), audio);
+		chain = PV_MagSquared(chain);
+		IFFT(chain);
+	};
+};
+
 ~stereo2Exc = {arg microDelay = 0.2, maxDelay=0.2, ffreq=1000, drive=5.0, panDepth=0.05, lfo=1.0, decay=0.1, thru=0.0;
 	{arg in;
 
@@ -446,275 +496,12 @@
 	}
 };
 
-~build1 = { arg func,audio,buffs;
-	if(audio.numChannels == 2,{
-		Array.fill(2,{ arg i;
-			func.value(buffs.at(i),audio.at(i))
-		})
-	},{
-		func.value(buffs.at(0),audio)
-	})
-};
-
-~pvMagAbove = {arg threshold=32.0;
-	{arg in;
-		var audio = in;
-		var chain;
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain = PV_MagAbove(chain, threshold );
-		IFFT(chain);
-	};
-};
-
-~pvMagBelow = {arg threshold=1.0;
-	{arg in;
-		var audio = in;
-		var chain;
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain = PV_MagBelow(chain, threshold );
-		IFFT(chain);
-	};
-};
-
-~pvMagClip = {arg threshold=1.0,gain=1.5;
-	{arg in;
-		var audio = in;
-		var chain;
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain = PV_MagBelow(chain, threshold );
-		IFFT(chain) * gain;
-	};
-};
-
-~pvMagSmear = {arg threshold=1.0,gain=1.5;
-	{arg in;
-		var audio = in;
-		var chain;
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain = PV_MagSmear(chain, threshold );
-		IFFT(chain) * gain;
-	};
-};
-
-~pvBinShift = {arg stretch=1.0,shift=0.0;
-	{arg in;
-		var audio = in;
-		var chain;
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain = PV_BinShift(chain, stretch,shift );
-		IFFT(chain);
-	};
-};
-
-~pvMagShift = {arg stretch=1.0,shift=0.0;
-	{arg in;
-		var audio = in;
-		var chain;
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain = PV_MagShift(chain, stretch,shift );
-		IFFT(chain);
-	};
-};
-
-~pvMagSquared = {
-	{arg in;
-		var audio = in;
-		var chain;
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain = PV_MagSquared(chain);
-		IFFT(chain);
-	};
-};
-
-~pvBrickWall = {arg wipe=0.0,fftbuffl,fftbuffr;
-	{arg in;
-		var audio = in;
-		~build1.value({ arg buff,audio;
-			var chain;
-			chain = FFT(buff.bufnumIr, audio);
-			chain = PV_BrickWall(chain, wipe );
-			IFFT(chain);
-		},audio,[fftbuffl,fftbuffr]);
-	};
-};
-
-~pvBinWipe = {arg audio2,wipe=0.0;
-	{arg in;
-		var audio = in;
-		var chain,chain2;
-		var maxc;
-		maxc = max(audio.numChannels,audio2.numChannels);
-		audio2 = NumChannels.ar(audio2,maxc);
-		audio = NumChannels.ar(audio,maxc);
-
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain2 = FFT(LocalBuf(2048,1), audio2 );
-		chain = PV_BinWipe(chain,chain2, wipe );
-		IFFT(chain);
-	};
-};
-
-~pvMagMul = {arg audio2;
-	{arg in;
-		var audio = in;
-		var chain,chain2;
-		var maxc;
-		maxc = max(audio.numChannels,audio2.numChannels);
-		audio2 = NumChannels.ar(audio2,maxc);
-		audio = NumChannels.ar(audio,maxc);
-
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain2 = FFT(LocalBuf(2048,1), audio2 );
-		chain = PV_MagMul(chain,chain2 );
-		IFFT(chain);
-	};
-};
-
-~pvCopyPhase = {arg audio2;
-	{arg in;
-		var audio = in;
-		var chain,chain2;
-		var maxc;
-		maxc = max(audio.numChannels,audio2.numChannels);
-		audio2 = NumChannels.ar(audio2,maxc);
-		audio = NumChannels.ar(audio,maxc);
-
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain2 = FFT(LocalBuf(2048,1), audio2 );
-		chain = PV_CopyPhase(chain,chain2 );
-		IFFT(chain);
-	};
-};
-
-~pvMax = {arg audio2;
-	{arg in;
-		var audio = in;
-		var chain,chain2;
-		var maxc;
-		maxc = max(audio.numChannels,audio2.numChannels);
-		audio2 = NumChannels.ar(audio2,maxc);
-		audio = NumChannels.ar(audio,maxc);
-
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain2 = FFT(LocalBuf(2048,1), audio2 );
-		chain = PV_Max(chain,chain2 );
-		IFFT(chain);
-	};
-};
-
-~pvMin = {arg audio2;
-	{arg in;
-		var audio = in;
-		var chain,chain2;
-		var maxc;
-		maxc = max(audio.numChannels,audio2.numChannels);
-		audio2 = NumChannels.ar(audio2,maxc);
-		audio = NumChannels.ar(audio,maxc);
-
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain2 = FFT(LocalBuf(2048,1), audio2 );
-		chain = PV_Min(chain,chain2 );
-		IFFT(chain);
-	};
-};
-
-~pvRandComb = {arg wipe=0.0, trig=0.0;
-	{arg in;
-		var audio = in;
-		var chain;
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain = PV_RandComb(chain, wipe,trig );
-		IFFT(chain);
-	};
-};
-
-~pvRectComb = {arg numTeeth=0.0,phase=0.0,width=0.5;
-	{arg in;
-		var audio = in;
-		var chain;
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain = PV_RectComb(chain, numTeeth,phase,width );
-		IFFT(chain);
-	};
-};
-
-// left channel issue ??
-~pvRectComb2 = {arg audio2,numTeeth=0.0,phase=0.0,width=0.5;
-	{arg in;
-		var audio = in;
-		var chain,chain2;
-		var maxc;
-		maxc = max(audio.numChannels,audio2.numChannels);
-		audio2 = NumChannels.ar(audio2,maxc);
-		audio = NumChannels.ar(audio,maxc);
-
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain2 = FFT(LocalBuf(2048,1), audio2);
-		chain = PV_RectComb2(chain, chain2,numTeeth,phase,width );
-		IFFT(chain);
-	};
-};
-
-~pvRandWipe = {arg audio2,wipe=0.0,trig=0.0;
-	{arg in;
-		var audio = in;
-		var chain,chain2;
-		var maxc;
-		maxc = max(audio.numChannels,audio2.numChannels);
-		audio2 = NumChannels.ar(audio2,maxc);
-		audio = NumChannels.ar(audio,maxc);
-
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain2 = FFT(LocalBuf(2048,1), audio2);
-		chain = PV_RandWipe(chain, chain2,wipe,trig);
-		IFFT(chain);
-	};
-};
-
-~pvDiffuser = {arg trig;
-	{arg in;
-		var audio = in;
-		var chain;
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain = PV_Diffuser(chain, trig);
-		IFFT(chain);
-	};
-};
-
-~pvMagFreeze = {arg freeze=0.0, fftbuffl, fftbuffr;
-	{arg in;
-		var audio = in;
-		// this can be done in faster stereo
-		~build1.value({ arg fftbuff,audio;
-			var chain;
-			chain = FFT(LocalBuf(2048,1), audio);
-			chain = PV_MagFreeze(chain, freeze);
-			IFFT(chain);
-		},audio,[fftbuffl,fftbuffr]);
-	};
-};
-
-~pvMagNoise = {
-	{arg in;
-		var audio = in;
-		var chain;
-		chain = FFT(LocalBuf(2048,1), audio);
-		chain = PV_MagNoise(chain);
-		IFFT(chain);
-	};
-};
 
 ~leakLimBPF = {arg coef=0.8,ffreq=1000,rq=0.5,fboost=0.2;
 	{arg in=0.0;
 		var audio = in;
 		audio = LeakDC.ar(audio,coef);
 		Limiter.ar( (audio + BPF.ar(audio,ffreq,rq,fboost)), 0.999);
-	};
-};
-
-~limiter = {arg level = 1, dur = 0.01;
-	{arg in;
-		Limiter.ar(LeakDC.ar(in), level, dur);
 	};
 };
 
@@ -781,7 +568,18 @@ z = Buffer.sendCollection(s, Env.linen.discretize, 1);
 
 ~samplesLib.ls();
 ~samplesLib.load("unchained.aiff", {arg buf; a = buf;});
-~samplesLib.load("pianocello.mono", {arg buf; b = buf;});
+~samplesLib.load("tibet.mono", {arg buf; c = buf;});
+
+/*
+d = List.new();
+10.do({
+	Buffer.sendCollection(s, Env.xyc({ [1.0.rand, 1.0.rand, -4.rand2] } ! 16, \exp).discretize, 1,
+		action:{arg buf;
+			d.add(DC.ar(buf.bufnum))
+		}
+	);
+});
+*/
 
 
 /******************************************
@@ -790,14 +588,12 @@ Gran 1
 
 q = ();
 
-(
 q.gran1 = ~granulator.init_new("gran1", a);
 q.gran1.setTrig({
-	Impulse.ar(5.5)
+	Dust.ar(0.5);
 });
 q.gran1.setDur({
-	//DC.ar(0.7)
-	LFNoise1.ar(1).range(0.4, 0.7)
+	LFNoise1.ar(1).range(2, 3)
 });
 q.gran1.setStart( {
 	LFNoise1.ar(5).range(0.65, 0.8)
@@ -806,17 +602,31 @@ q.gran1.setRate ( {
 	DC.ar(1)
 } );
 q.gran1.setEnvbuf({
-	DC.ar(-1)
+	Select.ar( TRand.ar(0, d.size(), Impulse.ar(3)).round, d);
 });
 q.gran1.setPan({
-	LFNoise1.ar(0.1).range(-0.7, 0.7);
+	LFNoise1.ar(1).range(-0.7, 0.7);
 });
 q.gran1.proxy.fadeTime = 1;
-q.gran1.proxy.set(\amp, 0.3);
-q.gran1.proxy[1] = \filter -> ~threeChan.(lov:0.5, midv:0.9, hiv:1);
+q.gran1.proxy.set(\amp, 0.4);
+//q.gran1.proxy[1] = nil\filter -> ~pvBinShiftLFO.(shift:[0.1, 1, 3], stretch:[0.1, 0.9, 1.1]);
+q.gran1.proxy[1] = \filter -> ~pvMagSmearLFO.(threshold:[0.1, 12, 16]);
+q.gran1.proxy[2] = \filter -> {arg in;
+
+	var audio = in;
+	var chain,chain2;
+	var maxc;
+	var audio2 = PlayBuf.ar(1, c.bufnum, loop:1);
+
+	chain = FFT(LocalBuf(2048 ! 2), audio);
+	chain2 = FFT(LocalBuf(2048 ! 2), audio2 );
+	chain = PV_CopyPhase(chain2, chain );
+	(in) + IFFT(chain);
+};
+q.gran1.proxy[3] = \filter -> ~threeChan.(lov:0.5, midv:0.9, hiv:1);
 
 //q.gran1.proxy.play;
-//q.gran2.proxy.stop(5);
+//q.gran1.proxy.stop(15);
 
 /****************************************************/
 /****************************************************/
@@ -830,7 +640,7 @@ q.gran2.setDur({
 	LFNoise1.ar(4).range(1, 2)
 });
 q.gran2.setStart( {
-	LFNoise.ar(2).range(0.6, 0.8);
+	LFNoise1.ar(2).range(0.6, 0.8);
 } );
 q.gran2.setRate ( {
 	DC.ar(1)
@@ -840,9 +650,9 @@ q.gran2.setEnvbuf({
 	DC.ar(-1);
 });
 q.gran2.setPan({
-	LFNoise1.ar(0.1).range(-0.3, 0.3);
+	LFNoise1.ar(1).range(-1, 1);
 });
-q.gran2.proxy.set(\amp, 0.1);
+q.gran2.proxy.set(\amp, 0.4);
 q.gran2.proxy[1] = \filter -> ~freeze.();
 q.gran2.proxy[2] = \filter -> ~reverb1.();
 q.gran2.proxy[3] = \filter -> ~echo.(decay:2.5);
@@ -873,11 +683,12 @@ q.gran3.setEnvbuf({
 q.gran3.setPan({
 	DC.ar(0);
 });
-q.gran3.proxy.set(\amp, 0.5);
+q.gran3.proxy.set(\amp, 0.6);
 q.gran3.proxy.fadeTime = 1;
 q.gran3.proxy[1] = \filter -> ~echo.();
 q.gran3.proxy[2] = \filter -> ~threeChan.(lov:1, midv:0.9, hiv:1);
 //q.gran3.proxy.play;
+//q.gran3.proxy.stop;
 
 /****************************************************/
 /****************************************************/
@@ -893,20 +704,10 @@ q.gran4.setStart( {
 	LFNoise1.ar(2).range(0.0001, 0.05)
 });
 q.gran4.setRate ( {
-	//DC.ar(1)
-	LFNoise1.ar(1).range(0.7, 1);
+	DC.ar(1)
+	//LFNoise1.ar(1).range(0.7, 1);
 } );
 
-/*
-d = List.new();
-10.do({
-	Buffer.sendCollection(s, Env.xyc({ [1.0.rand, 1.0.rand, -4.rand2] } ! 16, \exp).discretize, 1,
-		action:{arg buf;
-			d.add(DC.ar(buf.bufnum))
-		}
-	);
-});
-*/
 q.gran4.setEnvbuf({
 	Select.ar( TRand.ar(0, d.size(), Impulse.ar(3)).round, d);
 });
@@ -922,27 +723,25 @@ q.gran4.proxy.fadeTime = 1;
 q.gran4.proxy[1] = \filter -> ~reverb1.();
 q.gran4.proxy[2] = \filter -> ~threeChan.(lov:1, midv:0.9, hiv:1);
 //q.gran4.proxy.play;
+//q.gran4.proxy.stop
 
-//s.prepareForRecord("/Users/dmorgan/supercollider/do/unbrained/unbrained3.aiff");
+//s.prepareForRecord("/Users/dmorgan/supercollider/do/unbrained/unbrained4b.aiff");
 //s.record();
 //s.stopRecording();
 (
-//s.record();
+s.record();
 Tdef(\main, {
 
-	q.gran2.proxy.play;
-	20.wait;
-	q.gran4.proxy.play;
-	20.wait;
-	q.gran4.proxy.stop(3);
 	q.gran3.proxy.play;
-	30.wait;
+	45.wait;
 	q.gran1.proxy.play;
-	20.wait;
-
-	q.gran1.proxy.stop(3);
-	q.gran3.proxy.stop(15);
-	q.gran2.proxy.stop(37);
+	45.wait;
+	q.gran1.proxy.stop(15);
+	q.gran2.proxy.play;
+	90.wait;
+	q.gran3.proxy.stop(10);
+	30.wait;
+	q.gran2.proxy.stop(20);
 
 }).play;
 )
