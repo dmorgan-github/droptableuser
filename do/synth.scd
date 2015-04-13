@@ -35,9 +35,9 @@
 };
 
 /*************************************************
-~samplesLib
+~samples
 *************************************************/
-~samplesLib = (
+~samples = (
 
 	default_dir: "/Users/dmorgan/supercollider/samples/",
 	samples_list: nil,
@@ -79,10 +79,22 @@
 			i = i + 1;
 		});
 
-		if (path.notNil, {
-			Buffer.read(s, path:path, action:action);
-		}, {
-			"Sample not found".error;
+		if (self.at(name.asSymbol).isNil, {
+			if (path.notNil, {
+				if (action.notNil, {
+					format("loading %", name).postln;
+					Buffer.read(s, path:path, action:action);
+				}, {
+					format("loading %", name).postln;
+					Buffer.read(s, path:path, action:{arg buf;
+						self.put(name.asSymbol, buf);
+					});
+				});
+			}, {
+				"Sample not found".error;
+			});
+		},{
+			format("Sample already loaded -> %", name).postln;
 		});
 	}
 );
@@ -317,6 +329,26 @@ fx
 	}
 };
 
+~dissonator = {
+	{arg in;
+		var mix = 1.0;
+		var filterfreqs = Array.geom(23, 60, 2**(1/3));
+		var rq = ((2**(1/3)) - 1) / (2**(1/6));
+		var width = 2**(1/6);
+		var fmin = filterfreqs / width;
+		var fmax = filterfreqs * width;
+		var g = { |f| 2.27 * (f**0.477) };
+		var snd, mod;
+		snd = in;
+		snd = BPF.ar(snd, filterfreqs, rq);
+		mod = SinOsc.ar(0.5 * g.value((0.2*fmin) + (0.8*fmax)));
+		mod = (1 - mix) + (mix * mod);
+		snd = snd * mod;
+		snd = Mix(snd);
+		snd;
+	};
+};
+
 ~combsAllpasses = {arg delay=0.1, decay=15, combs=7, maxDelay=0.5, allpasses=4, allpassDecay=1;
 	{arg in;
 		var audio = in;
@@ -416,20 +448,22 @@ fx
 		var chain = FFT( LocalBuf( 2048 ! 2 ), in);
 		chain = PV_Freeze( chain, freeze ); //SC3 plugin
 		IFFT(chain);
-
-		/*
-		var chain1, chain2, inp, frozen, outp;
-		inp    = in;
-		chain1 = FFT( LocalBuf( 2048 ! 2 ), inp );
-		chain1 = PV_MagFreeze( chain1, freeze );
-		chain2 = FFT( LocalBuf( 2048 ! 2 ), WhiteNoise.ar( 1 ! 2 ));
-		chain1 = PV_CopyPhase( chain1, chain2 );
-
-		//outp =
-		//Select.ar(freeze, [in, IFFT(chain1)]);
-		IFFT(chain1);
-		*/
 	};
+};
+
+~pvCopyPhase = {
+	/*
+	var chain1, chain2, inp, frozen, outp;
+	inp    = in;
+	chain1 = FFT( LocalBuf( 2048 ! 2 ), inp );
+	chain1 = PV_MagFreeze( chain1, freeze );
+	chain2 = FFT( LocalBuf( 2048 ! 2 ), WhiteNoise.ar( 1 ! 2 ));
+	chain1 = PV_CopyPhase( chain1, chain2 );
+
+	//outp =
+	//Select.ar(freeze, [in, IFFT(chain1)]);
+	IFFT(chain1);
+	*/
 };
 
 ~pvBinShiftLFO = {arg stretch=[1,0,1], shift=[1,0,1];
@@ -522,7 +556,20 @@ fx
 	};
 };
 
-~threeChan = {arg xover1=400, xover2=9000, lov=1.0, midv=1.0, hiv=1.0, threshold=0.5, slope=0.5, drive=1.0;
+~compress = {arg ratio=3, threshdb=8, attackTime=0.016, relaxTime=0.05;
+	{arg in;
+
+		Compander.ar(2*in,
+			in,
+			(threshdb.neg).dbamp,
+			1.0,
+			ratio.reciprocal,
+			attackTime,
+			relaxTime);
+	};
+};
+
+~threeChan = {arg xover1=400, xover2=9000, lov=1.0, midv=1.0, hiv=1.0, ratio=3, threshdb=8, drive=1.0;
 
 	{arg in;
 		var audio = in;
@@ -540,17 +587,16 @@ fx
 			[ lo, mid, hi ];
 		};
 
-		var comp = {arg audio=0.0, threshold=0.5, slope=0.5, clampTime=0.1, relaxTime=0.3;
-			Compander.ar(audio, Mono(audio).max(0.0001), threshold, 1.0 , slope, clampTime, relaxTime);
-		};
+		var compFunc = ~compress.value(ratio:ratio, threshdb:threshdb);
 
 		var lo,mid,hi;
 		#lo,mid,hi = lomidhi.value(audio, xover1, xover2, lov, midv, hiv);
 
 		audio = Mix.new([lo,mid,hi]);
-		audio = comp.value(audio,threshold,slope);
+		audio = compFunc.value(audio);
 
 		Limiter.ar(audio * drive);
 	};
 };
+
 )
