@@ -64,6 +64,7 @@
 		var i = 0;
 		var path = nil;
 		var found = false;
+		var buf = nil;
 
 		if (self.samples_list.isNil, {
 			self.ls();
@@ -86,22 +87,24 @@
 					Buffer.read(s, path:path, action:action);
 				}, {
 					format("loading %", name).postln;
-					Buffer.read(s, path:path, action:{arg buf;
-						self.put(name.asSymbol, buf);
-					});
+					buf = Buffer.read(s, path:path);
+					self.put(name.asSymbol, buf);
 				});
 			}, {
 				"Sample not found".error;
 			});
 		},{
 			format("Sample already loaded -> %", name).postln;
+			buf = self[name.asSymbol];
 		});
+		buf;
 	}
 );
 
 /*************************************************
 ~grainbuf
 *************************************************/
+
 ~grainbuf = {arg id, sndbuf;
 	var granulatorId = "grainbuf:" ++ id;
 	var granulator;
@@ -586,6 +589,24 @@ fx
 			hi = if(higain == 1.0,{hi},{hi*higain});
 			[ lo, mid, hi ];
 		};
+
+		/*
+		input = BLowShelf.ar(input, *frdb[0][[0,2,1]].lag(0.1));
+        input = BPeakEQ.ar(input, *frdb[1][[0,2,1]].lag(0.1));
+        input = BPeakEQ.ar(input, *frdb[2][[0,2,1]].lag(0.1));
+        input = BPeakEQ.ar(input, *frdb[3][[0,2,1]].lag(0.1));
+        input = BHiShelf.ar(input, *frdb[4][[0,2,1]].lag(0.1));
+        input = RemoveBadValues.ar(input);
+
+		frpresets = [// x_ = cannot delete or modify
+            'x_flat', [[100, 0, 1], [250, 0, 1], [1000, 0, 1], [3500, 0, 1],
+                [6000, 0, 1]],
+            'x_loudness', [[78.0, 7.5, 0.65], [250, 0, 1], [890.0, -9.5, 3.55],
+                [2800.0, 3.5, 1.54], [7400.0, 7.0, 1.0]],
+            'x_telephone', [[600.0, -22.0, 0.7], [250, 0, 1], [1200.0, -2.0, 0.5],
+                [1800.0, 1.0, 0.5], [4000.0, -22.0, 0.7]]
+        ];
+		*/
 
 		var compFunc = ~compress.value(ratio:ratio, threshdb:threshdb);
 
