@@ -1,43 +1,23 @@
 (
 ~events = (
 
-	eventsDict: Dictionary.new(),
-
-	on: {arg self, event, func;
-		var ary = self.eventsDict.at(event);
-		if (ary.isNil, {
-			ary = Array.new(100);
-			ary.add(func);
-			self.eventsDict.put(event, ary);
-		}, {
-			ary.add(func);
-		});
+	on: {arg self, event, listener, func;
+		NotificationCenter.register(self, event, listener, func);
 	},
 
 	trigger: {arg self, event, data = Dictionary.new();
-		var keys = self.eventsDict.keys();
-		keys.do({arg item, i;
-			if (item == event) {
-				var ary = self.eventsDict.at(item);
-				ary.do({arg f;
-					f.value(data);
-				});
-			};
-		});
+		NotificationCenter.notify(self, event, data);
 	},
 
-	off: {arg self;
-		var keys = self.eventsDict.keys();
-		keys.do({arg item, i;
-			self.eventsDict.removeAt(item);
-		});
+	drop: {
+		NotificationCenter.clear;
 	}
 );
 )
 
 (
-~events.off();
-~events.on('a', {"a".postln;});
+~events.on('a', "a", {"a".postln;});
+~events.on('a', "b", {"b".postln;});
 ~events.trigger('a');
 )
 

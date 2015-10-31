@@ -1,17 +1,15 @@
 (
 
-SynthDef.new(\piano, {arg freq = 440, amp = 0.5;
+SynthDef.new(\piano, {arg freq = 440, amp = 0.5, out = 0;
 	var osc = MdaPiano.ar(freq);
 	var env = EnvGen.kr(Env.linen, doneAction:2);
-	Out.ar(0, osc * env * amp);
+	Out.ar(out, osc * env * amp);
 }).add;
 
 ~harms = {arg parent, vals, width, height, cb;
 
 	var thumbWidth = width/21.3;
 	vals = vals ? (0..19).collect({arg num; (num+1).reciprocal});
-
-	"Here".postln;
 
 	MultiSliderView(parent, width@height)
 	.size_(20)
@@ -144,6 +142,7 @@ SynthDef.new(\piano, {arg freq = 440, amp = 0.5;
 				freq = (rootNote * ratio) * (2 ** octave);
 			});
 		});
+
 		if (freq > 0, {
 			cb.value(freq, num);
 			freq.postln;
@@ -183,79 +182,139 @@ SynthDef.new(\piano, {arg freq = 440, amp = 0.5;
 	});
 };
 
-/*
-~drum = {arg parent, width, height, cb;
+~kb = {arg synth, out = 0, group;
 
-	var cv;
-	var letterWidth;
-	var fontFamily = "Courier New";
-	var fontSize = 12;
-
-	var cache = Dictionary.new;
-	var keyMap = List.new();
-
-	keyMap.add("w" -> 0);
-	keyMap.add("e" -> 1);
-	keyMap.add("r" -> 2);
-	keyMap.add("t" -> 3);
-	keyMap.add("y" -> 4);
-	keyMap.add("u" -> 5);
-	keyMap.add("i" -> 6);
-	keyMap.add("o" -> 7);
-	keyMap.add("s" -> 8);
-	keyMap.add("d" -> 9);
-	keyMap.add("f" -> 10);
-	keyMap.add("g" -> 11);
-	keyMap.add("h" -> 12);
-	keyMap.add("j" -> 13);
-	keyMap.add("k" -> 14);
-	keyMap.add("l" -> 15);
-
-	cv = CompositeView(parent, width@height);
-	cv.decorator_(FlowLayout(cv.bounds));
-
-	letterWidth = cv.bounds.width / 23;
-	keyMap.do({arg item, i;
-		var st;
-		st = StaticText.new(cv, letterWidth@30 )
-		.string_(item.key)
-		.stringColor_(Color.white)
-		.font_(Font(fontFamily, fontSize));
-		cache.add(item.key -> st );
+	if (group.isNil, {
+		group = s;
 	});
 
-	parent.view.mouseUpAction = {arg self, obj;
-		parent.view.focus;
-	};
+	//Window.closeAll;
+	{
+		var paddingX = 5;
+		var paddingY = 5;
+		var height = 300;
+		var width = 500;
+		var top = Window.screenBounds.height - height;
+		var left = Window.screenBounds.width - width;
 
-	parent.view.keyDownAction = {arg self, obj;
+		var win = Window("Wave Shaper", Rect(left, top, width + (paddingX * 3), height + (paddingY * 2)));
+		var view = win.view;
 
-		var val = nil;
-		keyMap.do({arg item;
-			if (item.key == obj.asString, {
-				val = item.value;
-				cache.at(item.key).stringColor_(Color.green);
-			});
+		view.decorator_(FlowLayout(view.bounds, paddingX@paddingY));
+		win.background_(Color.black);
+		win.alpha = 0.8;
+		win.front;
+		win.alwaysOnTop_(true);
+		~keyboard.(win, 65.40639132515;, width, 200, {arg freq;
+			Synth.head(group, synth.asSymbol, [freq:freq, out:out]);
 		});
-
-		if (val.isNil.not, {
-			cb.value(val);
-		});
-	};
-
-	parent.view.keyUpAction = {arg self, obj;
-		var freq = 0;
-		var val = nil;
-		keyMap.do({arg item;
-			if (item.key == obj.asString, {
-				val = item.value;
-				cache.at(item.key).stringColor_(Color.white);
-			});
-		});
-	};
-
+	}.value;
 };
-*/
 
+~hrm = {arg cb;
+
+	//Window.closeAll;
+	{
+		var paddingX = 5;
+		var paddingY = 5;
+		var height = 300;
+		var width = 500;
+		var top = Window.screenBounds.height - height;
+		var left = Window.screenBounds.width - width;
+
+		var win = Window("Wave Shaper", Rect(left, top, width + (paddingX * 3), height + (paddingY * 2)));
+		var view = win.view;
+
+		view.decorator_(FlowLayout(view.bounds, paddingX@paddingY));
+		win.background_(Color.black);
+		win.alpha = 0.8;
+		win.front;
+		win.alwaysOnTop_(true);
+		~harms.(win, nil, width, 200, {arg harms;
+			cb.value(harms);
+		});
+	}.value;
+};
+
+~tappr = {
+
+	var paddingX = 5;
+	var paddingY = 5;
+	var height = 300;
+	var width = 1000;
+	var top = Window.screenBounds.height - height;
+	var left = Window.screenBounds.width - width;
+
+	var win = Window("tappr", Rect(left, top, width + (paddingX * 3), height + (paddingY * 2)));
+	var view = win.view;
+
+	view.decorator_(FlowLayout(view.bounds, paddingX@paddingY));
+	win.background_(Color.black);
+	win.alpha = 0.8;
+	win.front;
+	win.alwaysOnTop_(true);
+
+	{
+		var parent = win, width = 1000, height = 800;
+
+		var cv;
+		var letterWidth = 10;
+		var fontFamily = "Courier New";
+		var fontSize = 12;
+		var list;
+		var map = ();
+
+		cv = CompositeView(parent, width@height);
+		cv.decorator_(FlowLayout(cv.bounds));
+
+		~samples.ls();
+		list = ~samples.samples_list.asArray;
+
+		"asdfghjkl".do({arg char;
+
+			var letter = char.asString;
+			var st = StaticText.new(cv, letterWidth@30 )
+			.string_(letter)
+			.stringColor_(Color.white)
+			.font_(Font(fontFamily, fontSize))
+			.mouseUpAction_({arg self;
+
+				var val = map[letter.asSymbol];
+				if (val.isNil.not, {
+					val.path.postln;
+				});
+			});
+
+			PopUpMenu.new(cv, 800@30 )
+			.items_(list)
+			.action_({arg item;
+				map[letter.asSymbol] = Buffer.read(Server.default, item.item);
+			});
+
+			cv.decorator.nextLine;
+		});
+
+		parent.view.mouseUpAction = {arg self, obj;
+			parent.view.focus;
+		};
+
+		parent.view.keyDownAction = {arg self, obj;
+
+			var freq = 0;
+			var val = nil;
+			var num = 0;
+			val = map[obj.asSymbol];
+			if (val.isNil.not, {
+				val.play;
+			});
+		};
+
+		parent.view.keyUpAction = {arg self, obj;
+			var freq = 0;
+			var val = nil;
+		};
+
+	}.value;
+};
 
 )

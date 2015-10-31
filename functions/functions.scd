@@ -1,4 +1,34 @@
 (
+~synths = {
+
+	SynthDescLib.global.synthDescs.do { |desc|
+        if(desc.def.notNil) {
+                "\nSynthDef %\n".postf(desc.name.asCompileString);
+                desc.def.func.postcs;
+        };
+	};
+};
+
+~events = (
+
+	on: {arg self, event, obj, func;
+		NotificationCenter.register(self, event, obj, func);
+	},
+
+	trigger: {arg self, event, data = Dictionary.new(), defer = nil;
+
+		if (defer.isNil, {
+			NotificationCenter.notify(self, event, data);
+		}, {
+			{NotificationCenter.notify(self, event, data);}.defer(defer);
+		});
+	},
+
+	drop: {
+		NotificationCenter.clear;
+	}
+);
+
 ~sawAmps = {arg topPartial = 20;
 	(1..topPartial).reciprocal;
 };
@@ -17,11 +47,6 @@
 ~triangleSignal = {arg size, topPartial = 20;
 	Signal.sineFill(size, ~triangleAmps.(topPartial:topPartial));
 };
-
-SynthDef.new(\mix, {arg out, pan = 0, amp = 0.5;
-	var audio = NumChannels.ar(In.ar(out), 1);
-	Out.ar(0, Pan2.ar(audio * amp, pan));
-}).add;
 
 /*************************************************
 ~samples
@@ -90,114 +115,6 @@ SynthDef.new(\mix, {arg out, pan = 0, amp = 0.5;
 	}
 );
 
-//s.freeAll;
-//s.queryAllNodes;
-//s.newBusAllocators;
-//grp.deepFree;
-/*************************************************
-~synth factory method
-*************************************************/
-~synth = {arg id, func;
-	var synthId = id.asSymbol;
-	SynthDef(synthId, {arg out;
-		var sig = SynthDef.wrap(func);
-		OffsetOut.ar(out, NumChannels.ar(sig,1));
-	}).add;
-};
-
-/*************************************************
-~filter factory method
-*************************************************/
-~filter = {arg id, func;
-	var synthId = id.asSymbol;
-	SynthDef.new(synthId, {arg out, dryWet = 0;
-		var in = In.ar(out);
-		var fx = in;
-		var env = EnvGate.new;
-
-		fx = SynthDef.wrap(func, nil, fx);
-		in = XFade2.ar(in, fx, dryWet); // -1, 1
-		XOut.ar(out, env, in);
-	}).add;
-};
-
-~ctrls = ();
-~ctrl = {arg synth, prop, func;
-
-	var id = (synth.defName ++ prop ++ synth.nodeID.asString).asSymbol;
-	var bus, ctrl;
-
-	if (~ctrls[id].isNil, {
-		~ctrls[id] = ();
-		~ctrls[id].bus = Bus.control(s, 1);
-	}, {
-		if (~ctrls[id].ctrl.isPlaying, {
-			~ctrls[id].ctrl.free;
-		});
-	});
-
-	bus = ~ctrls[id].bus;
-	ctrl = SynthDef.new(id, {arg out;
-		var sig = SynthDef.wrap(func);
-		Out.kr(out, sig);
-	}).play(args:[\out, bus]);
-
-	NodeWatcher.register(ctrl);
-	~ctrls[id].ctrl = ctrl;
-
-	synth.map(prop, bus.index);
-	ctrl;
-};
-
-/*************************************************
-~instr
-*************************************************/
-~instrs = ();
-~instr = {arg id ... synths;
-
-	var grp, bus, instr;
-	id = id.asSymbol;
-
-	if (~instrs[id].notNil, {
-		if (~instrs[id].grp.isPlaying, {
-			~instrs[id].grp.deepFree;
-			~instrs[id].grp = Group.new;
-		}, {
-			~instrs[id].grp = Group.new;
-		});
-		NodeWatcher.register(~instrs[id].grp);
-		instr = ~instrs[id];
-	}, {
-		instr = (
-			id: id,
-			grp: Group.new,
-			bus: Bus.audio(s,2)
-		);
-		~instrs[id] = instr;
-		NodeWatcher.register(~instrs[id].grp);
-	});
-
-	grp = instr.grp;
-	bus = instr.bus;
-
-	synths.do({arg synth, i;
-		var name = synth.asSymbol;
-		if (i == 0, {
-			instr.plays = {arg self ... args;
-				var list = args.asList;
-				list.add(\out);
-				list.add(bus.index);
-				Synth.head(grp, name, list.flatten);
-			};
-		}, {
-			instr[name] = Synth.tail(grp, name, [\out, bus]);
-		});
-	});
-
-	instr[\mix] = Synth.tail(grp, \mix, [\out, bus]);
-	instr;
-};
-
 ~toCps = {arg str;
 	var degrees = (\c:0, \d:2, \e:4, \f:5, \g:7, \a:9, \b:11);
 	var val = str.separate;
@@ -207,93 +124,31 @@ SynthDef.new(\mix, {arg out, pan = 0, amp = 0.5;
 	if (str.endsWith("#"), { midinote = midinote + 1});
 	if (str.endsWith("b"), { midinote = midinote - 1});
 	midinote.midicps;
-};
 
-~toSeq = {arg str;
-	str.split($ ).collect({arg item;
-		var result = nil;
-		if ( (item == "").not, {
-			result = ~toCps.(item);
-		} );
-		result;
-	});
-};
+	/*
+	(
+		// build a table of note names
+		var table = ();
+		value {
+			var semitones = [0, 2, 4, 5, 7, 9, 11];
+			var naturalNoteNames = ["c", "d", "e", "f", "g", "a", "b"];
 
-/*************************************************
-~stepper
-*************************************************/
-~stepper = {arg id, init, steps = 16, waitBefore = false, repeat = inf;
+			(0..9).do {|o|
+				naturalNoteNames.do {|c, i|
+					var n = (o + 1) * 12 + semitones[i];
+					table[(c ++ o).asSymbol] = n;
+					table[(c ++ "s"  ++ o).asSymbol] = n + 1;
+					table[(c ++ "ss" ++ o).asSymbol] = n + 2;
+					table[(c ++ "b"  ++ o).asSymbol] = n - 1;
+					table[(c ++ "bb" ++ o).asSymbol] = n - 2;
+				};
+			};
+		};
 
-	var tdefId = id.asSymbol;
-	Tdef(tdefId).envir = (
-		dur: {1;},
-		steps: List.newClear(steps)
-	);
-
-	waitBefore = ((waitBefore == \waitBefore).or(waitBefore));
-	if ((repeat == inf).not, {
-		repeat = steps * repeat;
-	});
-	Tdef(tdefId).quant = 1;
-	Tdef(tdefId, {arg envir;
-
-		init.(envir);
-		repeat.do({arg i;
-			var index = i%envir.steps.size();
-			var func = envir.steps[index];
-
-			var w = envir.dur();
-			w = w + [rrand(0.0001, 0.0008), 0, rrand(0.0001, 0.0008).neg].choose;
-
-			if (waitBefore,{w.wait;});
-			if (func.notNil, {
-				func.();
-			});
-			if (waitBefore.not,{w.wait;});
-		});
-	});
-};
-
-~phrase = {arg id, instr, steps, dur = 1 ... args;
-
-	if (dur.isNumber, {
-		var num = dur;
-		dur = {num};
-	});
-
-	~stepper.(id, {arg envir;
-		args.do({arg item;
-			var index = item.key;
-			var funcArgs = item.value;
-			envir.dur = dur;
-			envir.steps[index] = {instr.plays(funcArgs)};
-		});
-	}, steps, false, inf);
-};
-
-~freqGrid = {arg id, instr, dur, seq;
-
-	id = id.asSymbol;
-	Tdef(id, {arg envir;
-		var index = 0;
-		envir.seq = seq;
-		envir.dur = dur;
-		inf.do({arg i;
-			var freq;
-			var size = envir.seq.size();
-			var w = envir.dur();
-			w = w + [rrand(0.0001, 0.0008), 0, rrand(0.0001, 0.0008).neg].choose;
-
-			if ((index >= size), {index = 0});
-			freq = envir.seq[index];
-
-			if (freq.notNil, {
-				instr.plays(\freq, freq);
-			});
-			index = index + 1;
-			w.wait;
-		});
-	});
+		// translate note names to midi keys
+		table.atAll(#[c4, e4, gs4, c5, e5, gs5, c6])
+	)
+	*/
 };
 
 )

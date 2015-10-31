@@ -1,10 +1,14 @@
 (
-~markov = {arg matrix;
+~markov = {arg matrix, first = nil;
 
 	Routine({
 
-		//var node = matrix[0].choose;
-		var node = matrix.choose;
+		var node;
+		if (first == nil, {
+			node = matrix.choose
+		}, {
+			node = matrix[first];
+		});
 		node[0].value().yield;
 		while({node[1].notNil}, {
 
@@ -40,42 +44,15 @@
 	});
 };
 
-~constrainToSize = {arg m, limit;
-
-	var result = List.new;
-	while({result.size < limit}, {
-		var val = m.next();
-		result.add(val);
-	});
-	result;
-};
-
-~constrainToTally = {arg m, limit;
-
-	var tally = 0;
-	var result = List.new;
-	var continue = true;
-	var val = m.next();
-
-	result.add(val);
-	tally = tally + val;
-	while({continue}, {
-		val = m.next();
-		tally = tally + val;
-		if (tally > limit, {
-			var diff = tally - limit;
-			val = val - diff;
-			if (val > 0, {
-				result.add(val);
-			});
-			continue = false;
-		}, {
-			result.add(val);
-		});
-	});
-	result;
-};
-
+/*
+Lindenmayer
+a = ~rewrite.("AC", Dictionary[
+	"A" -> {"ABC"},
+	"B" -> {"AB"},
+	"C" -> {"BCD"},
+	"D" -> {"CD"}
+], 5 );
+*/
 ~rewrite = {arg context, rules, level = 1;
 
 	if (level > 0, {
@@ -83,8 +60,8 @@
 		var result = "";
 		context.do({arg val;
 
-			var rule = rules.at(val.asString);
-			result = result ++ rule.value(val.asString);
+			var rule = rules.at(val.value.asString);
+			result = result ++ rule.value(val.value.asString);
 		});
 		~rewrite.(result, rules, level - 1);
 	}, {
@@ -92,6 +69,3 @@
 	});
 };
 )
-
-//Quarks.gui
-//ContextSnake
