@@ -9,25 +9,52 @@
 	};
 };
 
-~events = (
+~recordBuses = {arg buses, path;
 
-	on: {arg self, event, obj, func;
-		NotificationCenter.register(self, event, obj, func);
-	},
+	var recHeaderFormat = "aiff";
+	var recSampleFormat = "int24";
 
-	trigger: {arg self, event, data = Dictionary.new(), defer = nil;
+	var bufs = buses.collect({arg b, i;
 
-		if (defer.isNil, {
-			NotificationCenter.notify(self, event, data);
-		}, {
-			{NotificationCenter.notify(self, event, data);}.defer(defer);
+		Buffer.alloc(s, 65536, 1, {arg buf;
+
+			var chanNum = "", chanPath;
+			chanNum = "_" ++ i;
+			chanPath = path ++ chanNum ++ "." ++ recHeaderFormat;
+			chanPath.debug("Preparing:");
+			buf.writeMsg(chanPath,
+				recHeaderFormat, recSampleFormat, 0, 0, true);
 		});
-	},
+	});
 
-	drop: {
-		NotificationCenter.clear;
-	}
-);
+	SynthDef(\diskout, {
+
+		bufs.collect({arg buf, i;
+
+			var bus = buses[i];
+			DiskOut.ar(buf, In.ar(bus, 1));
+		});
+
+	}).play(target:s, addAction:\addToTail);
+
+	bufs;
+};
+
+~events = IdentityDictionary.new(know:true);
+~events[\on] = {arg self, event, obj, func;
+	NotificationCenter.register(self, event, obj, func);
+};
+~events[\trigger] = {arg self, event, data = Dictionary.new(), defer = nil;
+
+	if (defer.isNil, {
+		NotificationCenter.notify(self, event, data);
+	}, {
+		{NotificationCenter.notify(self, event, data);}.defer(defer);
+	});
+};
+~events[\drop] = {
+	NotificationCenter.clear;
+};
 
 ~sawAmps = {arg topPartial = 20;
 	(1..topPartial).reciprocal;
@@ -48,107 +75,38 @@
 	Signal.sineFill(size, ~triangleAmps.(topPartial:topPartial));
 };
 
-/*************************************************
-~samples
-*************************************************/
-~samples = (
+~slcr2 = {arg tempo, beats = 8, dur = 1, amp = 0.1, buf;
 
-	default_dir: "/Users/david/projects/droptableuser/samples/",
-	samples_list: nil,
-	ls: {arg self, path;
+	// set tempo if none provided
+	var tmpo = tempo? TempoClock.default.tempo;
 
-		var folder;
-		if (path.isNil, {
-			path = self.default_dir;
-		});
+	// length in seconds of sample
+	var len = buf.numFrames/buf.sampleRate;
+	// beats per second
+	var bps = beats/len;
+	// rate adjusted to tempo
+	var rate = tmpo/bps;
 
-		self.samples_list = List.new;
-		folder = PathName.new(path);
-		"---------------------------".postln;
-		folder.filesDo {arg path;
-			path.fullPath.postln;
-			self.samples_list.add(path.fullPath);
-        };
-		"---------------------------".postln;
-	},
+	// multiply into eigth note events
+	var events = beats * 2;
+	// frames per event
+	var fpe = buf.numFrames/events;
 
-	load: {arg self, name, action;
-
-		var len = 0;
-		var i = 0;
-		var path = nil;
-		var found = false;
-		var buf = nil;
-
-		if (self.samples_list.isNil, {
-			self.ls();
-		});
-
-		len = self.samples_list.size();
-		while( {(found == false) && (i < len)}, {
-			var p = self.samples_list.at(i);
-			if ( p.containsi(name), {
-				path = p;
-				found = true;
-			});
-			i = i + 1;
-		});
-
-		if (self.at(name.asSymbol).isNil, {
-			if (path.notNil, {
-				if (action.notNil, {
-					format("loading %", name).postln;
-					Buffer.read(s, path:path, action:action);
-				}, {
-					format("loading %", name).postln;
-					buf = Buffer.read(s, path:path);
-					self.put(name.asSymbol, buf);
-				});
-			}, {
-				"Sample not found".error;
-			});
-		},{
-			format("Sample already loaded -> %", name).postln;
-			buf = self[name.asSymbol];
-		});
-		buf;
-	}
-);
-
-~toCps = {arg str;
-	var degrees = (\c:0, \d:2, \e:4, \f:5, \g:7, \a:9, \b:11);
-	var val = str.separate;
-	var note = val[0].asSymbol;
-	var octave = val[1].asInteger;
-	var midinote = (24 + degrees[note]) + ((12 * octave) - 12);
-	if (str.endsWith("#"), { midinote = midinote + 1});
-	if (str.endsWith("b"), { midinote = midinote - 1});
-	midinote.midicps;
-
-	/*
-	(
-		// build a table of note names
-		var table = ();
-		value {
-			var semitones = [0, 2, 4, 5, 7, 9, 11];
-			var naturalNoteNames = ["c", "d", "e", "f", "g", "a", "b"];
-
-			(0..9).do {|o|
-				naturalNoteNames.do {|c, i|
-					var n = (o + 1) * 12 + semitones[i];
-					table[(c ++ o).asSymbol] = n;
-					table[(c ++ "s"  ++ o).asSymbol] = n + 1;
-					table[(c ++ "ss" ++ o).asSymbol] = n + 2;
-					table[(c ++ "b"  ++ o).asSymbol] = n - 1;
-					table[(c ++ "bb" ++ o).asSymbol] = n - 2;
-				};
-			};
-		};
-
-		// translate note names to midi keys
-		table.atAll(#[c4, e4, gs4, c5, e5, gs5, c6])
-	)
-	*/
+	// return the pmono to be played
+	// more complicated strategies for startPos and dur can be set up
+	Pmono(\smplr_m,
+		\startPos, Pfuncn({ rrand(0, events-1) * fpe; }, inf),
+		\t_trig, 1,
+		\buf, buf,
+		\rate, rate,
+		\amp, Pexprand(0.7, 1, inf) * amp,
+		\loop, 1
+	);
 };
+//TempoClock.default.tempo_(2);
+//~bobobuf = Buffer.read(s, "/Users/david/Desktop/bbcut2 sounds/break");
+//~bobobuf = Buffer.read(s, "/Users/david/Downloads/5647__pushtobreak__91elfy21.aif");
+//~bobobuf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/linndrum/reallinn.wav");
+//~slcr2.(tempo:2, beats: 8, amp: 0.3, buf:~bobobuf).play;
 
 )
