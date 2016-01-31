@@ -40,22 +40,6 @@
 	bufs;
 };
 
-~events = IdentityDictionary.new(know:true);
-~events[\on] = {arg self, event, obj, func;
-	NotificationCenter.register(self, event, obj, func);
-};
-~events[\trigger] = {arg self, event, data = Dictionary.new(), defer = nil;
-
-	if (defer.isNil, {
-		NotificationCenter.notify(self, event, data);
-	}, {
-		{NotificationCenter.notify(self, event, data);}.defer(defer);
-	});
-};
-~events[\drop] = {
-	NotificationCenter.clear;
-};
-
 ~sawAmps = {arg topPartial = 20;
 	(1..topPartial).reciprocal;
 };
@@ -75,7 +59,7 @@
 	Signal.sineFill(size, ~triangleAmps.(topPartial:topPartial));
 };
 
-~slcr2 = {arg tempo, beats = 8, dur = 1, amp = 0.1, buf;
+~slcr = {arg tempo, beats = 8, dur = 1, amp = 0.1, buf;
 
 	// set tempo if none provided
 	var tmpo = tempo? TempoClock.default.tempo;
@@ -103,10 +87,5 @@
 		\loop, 1
 	);
 };
-//TempoClock.default.tempo_(2);
-//~bobobuf = Buffer.read(s, "/Users/david/Desktop/bbcut2 sounds/break");
-//~bobobuf = Buffer.read(s, "/Users/david/Downloads/5647__pushtobreak__91elfy21.aif");
-//~bobobuf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/linndrum/reallinn.wav");
-//~slcr2.(tempo:2, beats: 8, amp: 0.3, buf:~bobobuf).play;
 
 )
