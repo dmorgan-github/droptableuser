@@ -1,11 +1,5 @@
 (
 
-SynthDef.new(\piano, {arg freq = 440, amp = 0.5, out = 0;
-	var osc = MdaPiano.ar(freq);
-	var env = EnvGen.kr(Env.linen, doneAction:2);
-	Out.ar(out, osc * env * amp);
-}).add;
-
 ~harms = {arg parent, vals, width, height, cb;
 
 	var thumbWidth = width/21.3;
@@ -227,87 +221,6 @@ SynthDef.new(\piano, {arg freq = 440, amp = 0.5, out = 0;
 		~harms.(win, vals, width, 200, {arg harms;
 			cb.value(harms);
 		});
-	}.value;
-};
-
-~tappr = {
-
-	var paddingX = 5;
-	var paddingY = 5;
-	var height = 300;
-	var width = 1000;
-	var top = Window.screenBounds.height - height;
-	var left = Window.screenBounds.width - width;
-
-	var win = Window("tappr", Rect(left, top, width + (paddingX * 3), height + (paddingY * 2)));
-	var view = win.view;
-
-	view.decorator_(FlowLayout(view.bounds, paddingX@paddingY));
-	win.background_(Color.black);
-	win.alpha = 0.8;
-	win.front;
-	win.alwaysOnTop_(true);
-
-	{
-		var parent = win, width = 1000, height = 800;
-
-		var cv;
-		var letterWidth = 10;
-		var fontFamily = "Courier New";
-		var fontSize = 12;
-		var list;
-		var map = ();
-
-		cv = CompositeView(parent, width@height);
-		cv.decorator_(FlowLayout(cv.bounds));
-
-		~samples.ls();
-		list = ~samples.samples_list.asArray;
-
-		"asdfghjkl".do({arg char;
-
-			var letter = char.asString;
-			var st = StaticText.new(cv, letterWidth@30 )
-			.string_(letter)
-			.stringColor_(Color.white)
-			.font_(Font(fontFamily, fontSize))
-			.mouseUpAction_({arg self;
-
-				var val = map[letter.asSymbol];
-				if (val.isNil.not, {
-					val.path.postln;
-				});
-			});
-
-			PopUpMenu.new(cv, 800@30 )
-			.items_(list)
-			.action_({arg item;
-				map[letter.asSymbol] = Buffer.read(Server.default, item.item);
-			});
-
-			cv.decorator.nextLine;
-		});
-
-		parent.view.mouseUpAction = {arg self, obj;
-			parent.view.focus;
-		};
-
-		parent.view.keyDownAction = {arg self, obj;
-
-			var freq = 0;
-			var val = nil;
-			var num = 0;
-			val = map[obj.asSymbol];
-			if (val.isNil.not, {
-				val.play;
-			});
-		};
-
-		parent.view.keyUpAction = {arg self, obj;
-			var freq = 0;
-			var val = nil;
-		};
-
 	}.value;
 };
 

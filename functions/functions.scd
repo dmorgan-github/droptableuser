@@ -88,4 +88,7 @@
 	);
 };
 
+//b = Buffer.read(s, "/Users/david/Desktop/bbcut2 sounds/break")
+//~slcr.(tempo:2, buf:b, amp: 0.2).play
+
 )

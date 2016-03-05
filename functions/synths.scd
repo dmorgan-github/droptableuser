@@ -13,6 +13,13 @@
 	}).add;
 };
 
+SynthDef.new(\piano, {arg freq = 440, amp = 0.5, out = 0;
+	var sig = MdaPiano.ar(freq);
+	var env = EnvGen.kr(Env.linen, doneAction:2);
+	sig = sig * env * amp;
+	OffsetOut.ar(out, Splay.ar(sig));
+}).add;
+
 SynthDef(\smplr_m, {arg startPos = 0, buf, rate = 1, loop = 1,
 	atk = 0.001, rel = 1, curve = -4,
 	t_trig = 1, gate = 1, amp = 0.5, out = 0, pan = 0;
