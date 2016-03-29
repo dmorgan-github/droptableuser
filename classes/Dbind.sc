@@ -33,6 +33,8 @@ Dbind {
 
 	var <>monitor;
 
+	var <>trace;
+
 	var <>obj;
 
 	classvar <>all;
@@ -63,10 +65,13 @@ Dbind {
 				SynthDef(instrument, {arg amp = 0.5, out = 0, pan = 0, gate = 1;
 
 					var sig = SynthDef.wrap(dict[\synth]);
-					sig = LeakDC.ar(sig) * amp;
-					Env.asr().kr(gate: gate, doneAction:2);
+					sig = LeakDC.ar(sig)  * amp;
+					//sig = Normalizer.ar(sig);
+					// add env to handle releasing the synth
+					Env.asr(attackTime:0.0001).kr(gate: gate, doneAction:2);
+
+					// TODO: should be able to configure different panning/stereo options, etc.
 					OffsetOut.ar(out, Pan2.ar(sig, pan));
-					//OffsetOut.ar(out, Splay.ar(sig) );
 				}).add;
 			});
 		});
@@ -79,7 +84,12 @@ Dbind {
 		// update if config passed in
 		if (hasConfig, {
 
+			// Does this make sense?
+			//res.reset;
+
 			res.setMonitor(dict[\monitor] ? true);
+
+			res.setTrace(dict[\trace] ? false);
 
 			// TODO: when pattern is set here
 			// it should not call set. this needs to reset
@@ -175,7 +185,15 @@ Dbind {
 
 	play {
 
-		this.pdef.play;
+		// TODO: using trace loses reference to pdef
+		// calling play repeatedly creates new patterns
+		// which will overlap. may need a new pattern class
+		// to allow the ability to toggle trace
+		if (this.trace) {
+			this.pdef.trace.play;
+		} {
+			this.pdef.play;
+		}
 	}
 
 	stop {
@@ -246,9 +264,147 @@ Dbind {
 		});
 	}
 
+	setTrace {arg val;
+
+		this.trace = val;
+	}
+
 	*hasGlobalDictionary { ^true }
 
 	*initClass {
 		all = IdentityDictionary.new;
 	}
 }
+
+DslcrPhrase {
+
+	var <wholebeats;
+
+	var <upbeats;
+
+	var <downbeats;
+
+	var <backbeats;
+
+	var <count;
+
+	var <slices;
+
+	var <beats;
+
+	var <cumulative;
+
+	var <delta;
+
+	*new {arg cumulative, count, slices, beats, wholebeats, upbeats, downbeats, backbeats, delta;
+
+		^super.new.prInit(cumulative, count, slices, beats, wholebeats, upbeats, downbeats, backbeats, delta);
+	}
+
+	prInit {arg pCumulative, pCount, pSlices, pBeats, pWholebeats, pUpbeats, pDownbeats, pBackbeats, pDelta;
+
+		cumulative = pCumulative;
+		count = pCount;
+		slices = pSlices;
+		beats = pBeats;
+		wholebeats = pWholebeats;
+		upbeats = pUpbeats;
+		downbeats = pDownbeats;
+		backbeats = pBackbeats;
+		delta = pDelta;
+		^this;
+	}
+}
+
+DslcrSlice {
+
+	var <delta;
+	var <slice;
+	var <dir;
+	var <amp;
+
+	*new {arg delta, slice, dir, amp;
+
+		^super.new.prInit(delta, slice, dir, amp);
+	}
+
+	prInit {arg delta, slice, dir, amp;
+
+		this.delta = delta;
+		this.slice = slice;
+		this.dir = dir;
+		this.amp = amp;
+	}
+}
+
+Dslcr {
+
+	*build {arg key, buf, beats = 8, beatDiv = 2, sliceMaker, amp = 0.1, clock = TempoClock.default;
+
+		// buffer info
+		var numFrames = buf.numFrames;
+		var sampleRate = buf.sampleRate;
+
+		// length in seconds of sample
+		var len = numFrames/sampleRate;
+
+		// beats per second
+		var bps = beats/len;
+
+		// number of slices
+		var slices = beats * beatDiv;
+
+		// frames per slice
+		var fps = numFrames/slices;
+
+		// info about phrase beats
+		var wholebeats = (0..slices-1).select({arg item; item.even } );
+		var upbeats = (0..slices-1).select({arg item; item.odd } );
+		var downbeats = wholebeats.select({arg item, i; i.even  });
+		var backbeats = wholebeats.select({arg item, i; i.odd  });
+		var delta = (slices/beats).reciprocal;
+
+		// yields slice data to the pattern
+		var rtn = Routine({
+
+			var queue = LinkedList.new;
+			var count = 0;
+			var cumulative = List.new;
+
+			inf.do({arg i;
+
+				var event;
+				var phrase;
+				var phrasePos = count % beats;
+
+				if (phrasePos.equalWithPrecision(0.1)) {
+					cumulative = List.new;
+				};
+
+				if (queue.isEmpty) {
+					phrase = DslcrPhrase(cumulative, count, slices, beats, wholebeats, upbeats, downbeats, backbeats, delta);
+					sliceMaker.value(phrase, queue);
+				};
+
+				event = queue.popFirst;
+				count = count + event[\delta];
+				cumulative.add(event);
+				[event[\delta], event[\slice] * fps, event[\dir]].yield;
+			});
+		});
+
+		^Dbind(key.asSymbol, {arg config;
+			config.synth = \smplr_m;
+			config.pattern = [
+				[\delta, \startPos, \dir], rtn,
+				\buf, buf,
+				\rate, Pfunc({ clock.tempo }) / bps * Pkey(\dir),
+				\amp, amp,
+				\dur, Pfunc({ clock.beatDur }) * Pkey(\delta),
+				\curve, -4 * Pkey(\dir)
+			]
+		});
+	}
+}
+
+

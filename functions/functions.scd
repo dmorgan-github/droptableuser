@@ -78,17 +78,18 @@
 
 	// return the pmono to be played
 	// more complicated strategies for startPos and dur can be set up
-	Pmono(\smplr_m,
+	Pbind(\instrument, \smplr_m2,
 		\startPos, Pfuncn({ rrand(0, events-1) * fpe; }, inf),
 		\t_trig, 1,
 		\buf, buf,
 		\rate, rate,
 		\amp, Pexprand(0.7, 1, inf) * amp,
-		\loop, 1
+		\loop, 1,
+		\dur, 0.5
 	);
 };
 
 //b = Buffer.read(s, "/Users/david/Desktop/bbcut2 sounds/break")
-//~slcr.(tempo:2, buf:b, amp: 0.2).play
+//~slcr.(tempo:2, beats:8, buf:b, amp: 0.2).play
 
 )
