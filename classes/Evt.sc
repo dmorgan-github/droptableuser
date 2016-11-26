@@ -8,12 +8,12 @@ Evt {
 		NotificationCenter.unregister(this, event, obj);
 	}
 
-	*trigger {arg event, data = Dictionary.new, defer = nil;
-		if (defer.isNil, {
-			NotificationCenter.notify(this, event, data);
-		}, {
-			{NotificationCenter.notify(this, event, data);}.defer(defer);
-		});
+	*trigger {arg event, data = Dictionary.new;
+		var me = this;
+		{
+			event.debug("trigger");
+			NotificationCenter.notify(me, event, data);
+		}.fork(quant:0.0);
 	}
 
 	*clear {

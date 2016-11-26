@@ -19,44 +19,108 @@ App : IdentityDictionary {
 		^res;
 	}
 
-	*makeSynth {arg key, func, type = \pan, env = \gate;
+	*monoDevice {arg synth, node = nil;
 
-		if (env == \gate) {
+		var obj = IdentityDictionary.new(know: true);
 
-			SynthDef(key.asSymbol, {arg amp = 0.1, out = 0, pan = 0, gate = 1;
-				var sig = SynthDef.wrap(func);
-				sig = LeakDC.ar(sig) * amp;
-				EnvGate.new(gate: gate);
+		var id = (synth ++ '_' ++ obj.identityHash.abs).asSymbol;
 
-				if (type == \pan) {
-					OffsetOut.ar(out, Pan2.ar(sig, pan));
-				} {
-					OffsetOut.ar(out, Splay.ar(sig));
-				};
-			}).add;
+		var pattern = PbindProxy.new(\trig, 1, \amp, 0.1);
 
-		} {
+		var myNode = node ? NodeProxy.new(
+			server: Server.default,
+			rate: \audio,
+			numChannels: 2);
 
-			SynthDef(key.asSymbol, {arg amp = 0.1, out = 0, pan = 0;
-				var sig = SynthDef.wrap(func);
-				sig = LeakDC.ar(sig) * amp;
-				DetectSilence.ar(sig, doneAction:2);
+		var player = DevicePatternProxy.new(
+		    Pproto({
+				myNode.rebuild.play(fadeTime:myNode.fadeTime);
+				~group = myNode.group;
+				~out = myNode.bus;
+				[id, ~group, ~out].debug("playing mono device");
 
-				if (type == \pan) {
-					OffsetOut.ar(out, Pan2.ar(sig, pan));
-				} {
-					OffsetOut.ar(out, Splay.ar(sig));
-				};
-			}).add;
+			}, Pchain(Pmono(synth), pattern))
+		);
+
+		var kill = {arg self, fadeTime;
+
+			var myFadeTime = fadeTime ? myNode.fadeTime;
+
+			id.debug("kill");
+			myNode.clear(myFadeTime);
+
+			{
+				player.stop;
+				id.debug("player stopped");
+
+			}.defer(myFadeTime + 0.01);
 		};
 
+		player.addDependant({arg target, key;
+			key.debug("player event");
+			obj.changed(key, \player, id, target);
+		});
+
+		myNode.addDependant({arg target, key;
+			key.debug("node event");
+			obj.changed(key, \node, id, target);
+		});
+
+		pattern.addDependant({arg target, key;
+			key.debug("pattern event");
+			obj.changed(key, \pattern, id, target);
+		});
+
+		obj.put(\snth, synth);
+		obj.put(\pattern, pattern);
+		obj.put(\node, myNode);
+		obj.put(\player, player);
+		obj.put(\kill, kill);
+		obj.put(\id, id);
+		^obj;
 	}
 
-	*makeRetrigEnv {arg key, levels, times, curves, gate, releaseNode = nil, timeScale = 1, levelScale = 1;
+	*polyDevice {arg synth, node = nil;
+
+		var pattern = PbindProxy.new(\instrument, synth, \amp, 0.1);//.quant_(quant);
+
+		var myNode = node ? NodeProxy.new(
+			server: Server.default,
+			rate: \audio,
+			numChannels: 2);
+
+		var player = EventPatternProxy.new(
+			Pproto({
+				synth.debug("playing poly device");
+				myNode.rebuild.play(fadeTime:myNode.fadeTime);
+				~group = myNode.group;
+				~out = myNode.bus;
+			}, pattern)
+		);
+
+		var obj = IdentityDictionary.new(know: true);
+
+		myNode.addDependant({arg obj, key;
+			if (key == \stop) {
+				synth.debug("stop");
+			};
+			if (key == \play) {
+				synth.debug("play");
+			}
+		});
+
+		obj.put(\pattern, pattern);
+		obj.put(\node, myNode);
+		obj.put(\player, player);
+		^obj;
+	}
+
+	*envControl {arg key, levels, times, curves, gate, releaseNode = nil, timeScale = 1, levelScale = 1;
 
 		var num = 1e-6;
 		var timeScaleKey = (key ++ 'timeScale').asSymbol;
 		var levelScaleKey = (key ++ 'levelScale').asSymbol;
+
 		var gateCtrl = {
 
 			var rtn = gate;
@@ -86,43 +150,101 @@ App : IdentityDictionary {
 			NamedControl.kr(name, val);
 		});
 
-		^EnvGen.kr(Env(levels, times, curves, releaseNode),
+		timeScale = if (timeScale.isNumber) {NamedControl.kr(timeScaleKey, timeScale)} {timeScale};
+		levelScale = if (levelScale.isNumber) {NamedControl.kr(levelScaleKey, levelScale)} {levelScale}
+
+		^EnvGen.ar(Env(levels, times, curves, releaseNode),
 			gate: gateCtrl,
-			levelScale: NamedControl.kr(levelScaleKey, levelScale),
-			timeScale: NamedControl.kr(timeScaleKey, timeScale) );
+			levelScale: levelScale,
+			timeScale: timeScale
+		);
 	}
 
-	*makeRetrigAmpEnv {arg atk, sus, rel, curve1, curve2, gate, releaseNode = nil;
+	*envPerc {arg trig = 1, doneAction = 0;
 
-		var num = 1e-6;
+		var env = EnvGen.ar(Env([0,0,1,0],
+			[1e-6, \atk.kr(0.01), \rel.kr(0.99)],
+			curve: [\curve.kr(-4)]
+		), gate: trig, levelScale: \amp.kr(0.1), timeScale: \sustain.kr(1), doneAction: doneAction );
 
-		var key = \e;
+		^env;
+	}
 
-		var levels, times, curves;
+	*envAsr {arg trig = 1, doneAction = 0;
 
-		var gateCtrl = {
-			var rtn = gate;
-			if (rtn.isNil) {
-				var name = (key ++ "gate").asSymbol;
-				rtn = NamedControl.kr(name, 1);
+		var env = EnvGen.ar(Env([0,0,1,0.7,0],
+			[1e-6, \atk.kr(0.01), \sus.kr(1), \rel.kr(1)],
+			curve: [\curve1.kr(-4), \curve2.kr(-4)]
+		), gate: trig, levelScale: \amp.kr(0.1), timeScale: \sustain.kr(1), doneAction: doneAction );
+
+		^env;
+	}
+
+	*defaultOut {arg server;
+
+		server.options.numOutputBusChannels = 2;
+		server.options.outDevice_("Built-in Output");
+		server.options.inDevice_("Built-in Microph");
+		server.reboot;
+	}
+
+	*soundflowerOut {arg server, numOutputBusChannels = 16;
+
+		// check volume control in task bar
+		// check volume in midi
+		// check volume in sound preferences
+		server.options.numOutputBusChannels = numOutputBusChannels;
+		server.options.inDevice_("Built-in Microph");
+		server.options.outDevice_("Soundflower (64ch)");
+		server.reboot;
+	}
+
+	*nodeTree {
+
+		var interval = 0.3;
+		var onClose;
+		var window = Window.new("Node Tree", Rect(128, 64, 250, 300), scroll:true).alwaysOnTop_(true).front;
+		window.view.hasHorizontalScroller_(false).background_(Color.gray(0.9)).alpha_(0.8);
+		onClose = Server.default.plotTreeView(interval, window.view, { defer {window.close}; });
+		window.onClose = {
+			onClose.value;
+		};
+	}
+
+	*serverMeter {
+
+		Server.default.meter.window.alwaysOnTop_(true).alpha_(0.8);
+		/*
+		var numIns = 2, numOuts = 8;
+		var window = Window.new(Server.default.name ++ " levels (dBFS)",
+			Rect(5, 305, ServerMeterView.getWidth(numIns, numOuts), ServerMeterView.height),
+			false);
+
+		var meterView = ServerMeterView(Server.default, window, 0@0, numIns, numOuts);
+		meterView.view.keyDownAction_( { arg view, char, modifiers;
+			if(modifiers & 16515072 == 0) {
+				case
+				{char === 27.asAscii } { window.close };
 			};
-			rtn;
+		});
 
-		}.value;
+		window.front;
 
-		levels = [0,0,1,0.7,0];
-		times = [num, \atk.kr(atk), \sus.kr(sus), \rel.kr(rel)];
-		curves = [0, \ecurve1.kr(curve1), 0, \ecurve2.kr(curve2)];
-
-		^EnvGen.ar(Env(levels, times, curves), gate: gateCtrl, timeScale: NamedControl.kr(\dur, 1) );
+		*/
 	}
 
-	*makeFreq {
+	*scope {
 
-		var lag = \lag.kr(0.0);
-		var freq = \freq.kr(440).lag(lag);
-		var dtune = \dtune.kr(0.1);
-		^freq + [0, dtune];
+		var scope;
+		var win = Window.new("Scope", Rect(20, 20, 263, 263)).alwaysOnTop_(true).alpha_(0.8);
+		win.view.decorator = FlowLayout(win.view.bounds);
+		scope = Stethoscope.new(Server.default, view:win.view);
+		win.onClose = { scope.free }; // don't forget this
+		win.front;
+	}
+
+	*freqScope {
+		FreqScope.new(400, 250, 0, server: Server.default).window.alwaysOnTop_(true).alpha_(0.8);
 	}
 
 	prInit{arg prKey, server;
@@ -130,5 +252,26 @@ App : IdentityDictionary {
 		bufs = BufEnvir(server);
 		all.put(prKey, this);
 		^this;
+	}
+}
+
+
+// this isn't meant to be used directly
+DevicePatternProxy : EventPatternProxy {
+
+	play {arg argClock, protoEvent, quant, doReset=false;
+
+		// if stop is called the player will be destroyed
+		var hasPlayer = player.isNil.not;
+
+		super.play(argClock, protoEvent, quant, doReset);
+
+		// if a player already exists assume we have previously
+		// added the event listener and won't re-add it
+		if (hasPlayer.not) {
+			player.addDependant({arg obj, key;
+				this.changed(key);
+			});
+		}
 	}
 }

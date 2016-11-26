@@ -88,6 +88,7 @@ PphraseManager {
 
 Pslcr {
 
+	// "http://swiki.hfbk-hamburg.de/MusicTechnology/763"
 	*build {arg buf, beats, beatDiv, phraseMaker, clock = TempoClock.default;
 
 		var rtn = Routine({
