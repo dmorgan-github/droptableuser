@@ -1,21 +1,5 @@
 (
 
-~harms = {arg parent, vals, width, height, cb;
-
-	var thumbWidth = width/21.3;
-	vals = vals ? (0..19).collect({arg num; (num+1).reciprocal});
-
-	MultiSliderView(parent, width@height)
-	.size_(20)
-	.value_(vals)
-	.drawLines_(false)
-	.isFilled_(true)
-	.thumbSize_(thumbWidth)
-	.action_({arg ctrl;
-		cb.value(ctrl.value);
-	});
-};
-
 ~env = {arg parent, width, height, env, min, max, cb;
 
 	var ctrlWidth = 28;
@@ -63,99 +47,6 @@
 	});
 };
 
-~keyboard = {arg parent, rootNote, width, height, cb;
-
-	var cv;
-	var letterWidth;
-	var defaultScaleRatios = [1, 1.1892071150009, 1.3348398541699, 1.4142135623731, 1.4983070768767, 1.781797436280 ];
-	var scaleRatios = defaultScaleRatios;
-	var fontFamily = "Courier New";
-	var fontSize = 12;
-	var freqText;
-
-	var cache = Dictionary.new;
-	var keyMap = List.new();
-
-	keyMap.add("r" -> 0);
-	keyMap.add("e" -> 1);
-	keyMap.add("w" -> 2);
-	keyMap.add("q" -> 3);
-	keyMap.add("a" -> 4);
-	keyMap.add("s" -> 5);
-
-	keyMap.add("d" -> 10);
-	keyMap.add("f" -> 11);
-	keyMap.add("g" -> 12);
-	keyMap.add("h" -> 13);
-	keyMap.add("j" -> 14);
-	keyMap.add("k" -> 15);
-
-	keyMap.add("l" -> 20);
-	keyMap.add(";" -> 21);
-	keyMap.add("'" -> 22);
-	keyMap.add("]" -> 23);
-	keyMap.add("[" -> 24);
-	keyMap.add("p" -> 25);
-
-	keyMap.add("o" -> 30);
-
-	cv = CompositeView(parent, width@height);
-	cv.decorator_(FlowLayout(cv.bounds));
-
-	letterWidth = cv.bounds.width / 23;
-	keyMap.do({arg item;
-		var st = StaticText.new(cv, letterWidth@30 )
-		.string_(item.key)
-		.stringColor_(Color.white)
-		.font_(Font(fontFamily, fontSize));
-		cache.add(item.key -> st );
-	});
-
-	parent.view.mouseUpAction = {arg self, obj;
-		parent.view.focus;
-	};
-
-	parent.view.keyDownAction = {arg self, obj;
-
-		var freq = 0;
-		var val = nil;
-		var num = 0;
-		keyMap.do({arg item, i;
-			if (item.key == obj.asString, {
-				val = item.value;
-				cache.at(item.key).stringColor_(Color.green);
-				num = i;
-			});
-		});
-
-		if (val.isNil.not, {
-			var index = val % 10;
-			var octave = (val/10).floor;
-			var ratio = scaleRatios[index];
-			if (ratio.isNil.not, {
-				freq = (rootNote * ratio) * (2 ** octave);
-			});
-		});
-
-		if (freq > 0, {
-			cb.value(freq, num);
-			freq.postln;
-		});
-	};
-
-	parent.view.keyUpAction = {arg self, obj;
-		var freq = 0;
-		var val = nil;
-		keyMap.do({arg item;
-			if (item.key == obj.asString, {
-				val = item.value;
-				cache.at(item.key).stringColor_(Color.white);
-			});
-		});
-
-	};
-};
-
 ~slider = {arg parent, val, width, height, cb;
 
 	var ctrlWidth = 35;
@@ -176,53 +67,6 @@
 	});
 };
 
-~kb = {arg func;
-
-	//Window.closeAll;
-	{
-		var paddingX = 5;
-		var paddingY = 5;
-		var height = 300;
-		var width = 500;
-		var top = Window.screenBounds.height - height;
-		var left = Window.screenBounds.width - width;
-
-		var win = Window("Wave Shaper", Rect(left, top, width + (paddingX * 3), height + (paddingY * 2)));
-		var view = win.view;
-
-		view.decorator_(FlowLayout(view.bounds, paddingX@paddingY));
-		win.background_(Color.black);
-		win.alpha = 0.8;
-		win.front;
-		win.alwaysOnTop_(true);
-		~keyboard.(win, 65.40639132515;, width, 200, func);
-	}.value;
-};
-
-~hrm = {arg cb, vals;
-
-	//Window.closeAll;
-	{
-		var paddingX = 5;
-		var paddingY = 5;
-		var height = 300;
-		var width = 500;
-		var top = Window.screenBounds.height - height;
-		var left = Window.screenBounds.width - width;
-
-		var win = Window("Wave Shaper", Rect(left, top, width + (paddingX * 3), height + (paddingY * 2)));
-		var view = win.view;
-
-		view.decorator_(FlowLayout(view.bounds, paddingX@paddingY));
-		win.background_(Color.black);
-		win.alpha = 0.8;
-		win.front;
-		win.alwaysOnTop_(true);
-		~harms.(win, vals, width, 200, {arg harms;
-			cb.value(harms);
-		});
-	}.value;
-};
 
 /**
     Sample browser

@@ -23,7 +23,7 @@ var intervals = [
 	"octave"
 ];
 
-~set_interval = {arg choices;
+~set_interval_chromatic = {arg choices;
 
 	var dir = [1,-1].choose;
 	var interval = choices.choose;
@@ -37,6 +37,23 @@ var intervals = [
 	freq2 = freq1 + (interval * dir);
 
 	[freq1, freq2].debug;
+
+	nil;
+};
+
+~set_interval_scale = {
+
+	var dir = [1,-1].choose;
+
+	if (dir < 0) {
+		freq1 = middle_c + 12;
+	} {
+		freq1 = middle_c;
+	};
+
+	freq2 = notes.choose;
+
+	//[freq1, freq2].debug;
 
 	nil;
 };
@@ -115,7 +132,8 @@ var intervals = [
 
 	//~choose.(limit, f1);
 	var interval = choices.choose;
-	~set_interval.(interval);
+	//~set_interval_chromatic.(interval);
+	~set_interval_scale.();
 	~play.();
 };
 )
@@ -124,7 +142,7 @@ var intervals = [
 ~play.();
 ~play_scale.();
 
-~check_notes.(\C3, \G3);
+~check_notes.(\C4, 'G3');
 
 
 

@@ -15,10 +15,10 @@ var func = {arg level = 1, max = 4;
 	});
 
 	if (level < max) {
-		func.value(level + 1);
+		func.value(level + 1, max);
 	};
 };
-func.value(1, 4);
+func.value(1, 6);
 result.debug;
 )
 

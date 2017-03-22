@@ -9,6 +9,34 @@
 	};
 };
 
+/*
+~defaultOut = {
+	s.options.numOutputBusChannels = 2;
+	s.options.outDevice_("Built-in Output");
+	s.options.inDevice_("Built-in Microph");
+	s.reboot;
+};
+
+~soundflowerOut = {
+	s.options.numOutputBusChannels = 16;
+	s.options.inDevice_("Built-in Microph");
+	s.options.outDevice_("Soundflower (64ch)");
+	s.reboot;
+};
+*/
+
+~record = {arg key, func, dur;
+	s.prepareForRecord("".resolveRelative  ++ key ++ "_" ++ Date.getDate().asSortableString()  ++ ".aiff");
+	s.record();
+	func.value;
+	if (dur.isNil.not) {
+
+		{
+			s.stopRecording();
+		}.defer(dur);
+	};
+};
+
 ~recordBuses = {arg buses, path;
 
 	var recHeaderFormat = "aiff";
@@ -59,37 +87,20 @@
 	Signal.sineFill(size, ~triangleAmps.(topPartial:topPartial));
 };
 
-~slcr = {arg tempo, beats = 8, dur = 1, amp = 0.1, buf;
+Event.addEventType(\nbind, {arg server;
 
-	// set tempo if none provided
-	var tmpo = tempo? TempoClock.default.tempo;
+	var id = (currentEnvironment[\ndef] ? currentEnvironment[\instrument]).asSymbol;
+	var type = \note;
 
-	// length in seconds of sample
-	var len = buf.numFrames/buf.sampleRate;
-	// beats per second
-	var bps = beats/len;
-	// rate adjusted to tempo
-	var rate = tmpo/bps;
+	if (Ndef(id).isPlaying.not) {
+		Ndef(id).play;
+	};
 
-	// multiply into eigth note events
-	var events = beats * 2;
-	// frames per event
-	var fpe = buf.numFrames/events;
+	~type = type;
+	~group = Ndef(id).group;
+	~out = Ndef(id).bus;
 
-	// return the pmono to be played
-	// more complicated strategies for startPos and dur can be set up
-	Pbind(\instrument, \smplr_m2,
-		\startPos, Pfuncn({ rrand(0, events-1) * fpe; }, inf),
-		\t_trig, 1,
-		\buf, buf,
-		\rate, rate,
-		\amp, Pexprand(0.7, 1, inf) * amp,
-		\loop, 1,
-		\dur, 0.5
-	);
-};
-
-//b = Buffer.read(s, "/Users/david/Desktop/bbcut2 sounds/break")
-//~slcr.(tempo:2, beats:8, buf:b, amp: 0.2).play
+    currentEnvironment.play;
+});
 
 )
