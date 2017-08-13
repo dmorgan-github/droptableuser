@@ -1,14 +1,24 @@
 (
 func: {arg in;
 	WaveLoss.ar(in,
-		\drop.kr.range(\drop_min.kr(1), \drop_max.kr(50)),
-		\outof.kr.range(\outof_min.kr(1), \outof_max.kr(100)),
-		\mode.kr.range(\mode_min.kr(1), \mode_max.kr(2))
+		[\dropL.kr.range(\dropL_min.kr(1), \dropL_max.kr(50)),
+			\dropR.kr.range(\dropR_min.kr(1), \dropR_max.kr(50))],
+		[\outofL.kr.range(\outofL_min.kr(1), \outofL_max.kr(100)),
+			\outofR.kr.range(\outofR_min.kr(1), \outofR_max.kr(100))
+		],
+		[\modeL.kr.range(\modeL_min.kr(1), \modeL_max.kr(2)),
+			\modeR.kr.range(\modeR_min.kr(1), \modeR_max.kr(2))
+		]
 	);
 },
 specs: (
-	drop: [1,50,\lin,1,20],
-	outof: [1,100,\lin,1,40],
-	mode: [1,2,\lin,1,1]
+	dropL: [1,50,\lin,1,20],
+	dropR: [1,50,\lin,1,20],
+
+	outofL: [1,100,\lin,1,40],
+	outofR: [1,100,\lin,1,40],
+
+	modeL: [1,2,\lin,1,1],
+	modeR: [1,2,\lin,1,1]
 )
 )

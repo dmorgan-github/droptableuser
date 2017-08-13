@@ -1,6 +1,6 @@
 (
 var path = "/Users/david/projects/droptableuser/apps/surface/";
-var viewsPath = "/Users/david/projects/droptableuser/apps/surface/views/";
+var viewsPath = path ++ "views/";
 
 var browse = {arg path;
 
@@ -52,6 +52,7 @@ var loadView = {arg file;
 	var view, count = 1, viewPath;
 	var envir = currentEnvironment;
 	var objName = PathName(file).fileNameWithoutExtension;
+	var util = File.open(path ++ "funcs.scd", "r").readAllString.interpret;
 
 	envir.keysValuesDo({arg k,v;
 		if (v.class == NodeProxy and: k.asString.beginsWith(objName) )  {
@@ -62,19 +63,16 @@ var loadView = {arg file;
 	objName = (objName ++ count.asString).asSymbol;
 	viewPath = findView.(file);
 
-	viewPath.isNil.postln;
-
 	if (viewPath.isNil) {
 		var viewObj = File.open(file, "r").readAllString.interpret;
-		view = viewObj[\view].(objName, envir);
+		view = viewObj[\view].(objName, envir, util);
 	} {
 		var viewObj = File.open(viewPath, "r").readAllString.interpret;
 		var obj = File.open(file, "r").readAllString.interpret;
-		view = viewObj[\view].(objName, envir, obj);
+		view = viewObj[\view].(objName, envir, obj, util);
 	};
 
-	//view.front;
-
+	view.front;
 };
 
 var show = {arg path;

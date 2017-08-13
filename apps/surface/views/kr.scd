@@ -1,7 +1,7 @@
 (
 view: {arg name, envir, config;
 
-	var view, subview;
+	var view, subview, presets;
 	var font = Font("Courrier New", 10);
 	var height = 20;
 	var status = StaticText().font_(font).string_("");
@@ -13,10 +13,10 @@ view: {arg name, envir, config;
 		var func = config[\func];
 
 		node[0] = func;
-		specs.keysValuesDo({arg k,v;
+		specs.sortedKeysValuesDo({arg k,v;
 
 			var layout = HLayout();
-			var nb = NumberBox();
+			var nb = NumberBox().decimals_(3);
 			var slider = Slider();
 			var lfostack = StackLayout();
 
@@ -118,7 +118,7 @@ view: {arg name, envir, config;
 				).mode_(\stackAll).index_(1)
 			);
 			layout.add(
-				nb.minWidth_(25).font_(font).action_({arg ctrl;
+				nb.minWidth_(30).font_(font).action_({arg ctrl;
 					slider.valueAction_(v.asSpec.unmap(ctrl.value))
 				})
 				.value_(v.asSpec.default)
@@ -128,7 +128,55 @@ view: {arg name, envir, config;
 		view;
 	};
 
+	var presetsView = {arg node, config;
+
+		var view = View().layout_(HLayout().margins_(2).spacing_(2));
+		var presets = Array.fill(20, {nil});
+		var buttons = List.new;
+		var lastActive = -1;
+
+		20.do({arg i;
+
+			var button = Button().fixedSize_(10@10)
+			.states_( [ ["", nil, Color.white ], ["", nil, Color.blue] ] )
+			.action_({arg ctrl;
+
+				var val = ctrl.value;
+				if (presets[i].isNil) {
+					// setting preset for first time
+					presets[i] = node.getKeysValues;
+					buttons[i].states = [ ["", nil, Color.blue] ];
+				} {
+					if (lastActive == i) {
+						// updating preset
+						presets[i] = node.getKeysValues;
+					} {
+						// changing to new preset
+						var myPresets = presets[i];
+						myPresets.do({arg kv;
+							node.set(kv[0], kv[1]);
+						});
+					}
+				};
+
+				lastActive = i;
+			});
+
+			if (config[\presets].isNil.not) {
+				presets[i] = config[\presets][i];
+				button.states_( [["", nil, Color.blue]] );
+			};
+
+			buttons.add(button);
+			view.layout.add(button);
+		});
+
+		view;
+	};
+
 	envir[name] = NodeProxy.control;
+
+	presets = presetsView.(envir[name], config);
 	view = View().layout_(VLayout().margins_(2).spacing_(2))
 	.onClose_({
 		envir[name].clear;
@@ -137,10 +185,12 @@ view: {arg name, envir, config;
 	view.layout.add(HLayout(
 		StaticText().string_(name).font_(font),
 		Button()
-		.maxWidth_(10)
-		.maxHeight_(10)
+		.fixedSize_(30@height)
+		.font_(font)
+		.string_("doc")
 		.mouseDownAction_({arg ctrl; envir[name].document; })
 	));
+	view.layout.add(presets);
 
 	subview = controlsView.(envir[name], config);
 	view.layout.add(subview);

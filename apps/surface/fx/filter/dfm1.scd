@@ -2,7 +2,7 @@
 func: {arg in;
 
 	DFM1.ar(in,
-		\freq.kr.range(\freq_min.kr(20), \freq_max.kr(20000)),
+		\freq.kr.range(\freq_min.kr(20), \freq_max.kr(20000)).lag(0.1),
 		\res.kr.range(\res_min.kr(0.01), \res_max.kr(4)),
 		\inputgain.kr.range(\inputgain_min.kr(0.1), \inputgain_max.kr(2)),
 		\type.kr.range(\type_min.kr(0), \type_max.kr(1)),

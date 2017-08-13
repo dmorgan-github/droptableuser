@@ -4,8 +4,8 @@ func: {arg in;
 	var hi = \hi.kr.range(\hi_min.kr(0), \hi_max.kr(1));
 	in.wrap(lo, hi);
 },
-specs: [
+specs: (
 	lo: [-1, 0, \lin, 0, -1],
 	hi: [0, 1, \lin, 0, 1]
-]
+)
 )

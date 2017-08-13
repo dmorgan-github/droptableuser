@@ -4,6 +4,6 @@ func: {arg in;
 	Limiter.ar(in, level, 0.01);
 },
 specs: (
-	level: [0, 1, \lin, 0, 1]
+	level: [0, 1, \lin, 0, 0.8]
 )
 )

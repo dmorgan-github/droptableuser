@@ -39,6 +39,21 @@ view: {arg name, envir;
 		);
 
 		view.layout.add(
+
+			Slider()
+			.orientation_(\horizontal)
+			.thumbSize_(10)
+			.fixedSize_(50@height)
+			.font_(font)
+			.value_(1.linlin(0.1, 8, 0, 1))
+			.action_({arg ctrl;
+				var val = ctrl.value.linlin(0, 1, 0.1, 8);
+				envir[name].fadeTime = val;
+				status.string_("fadetime: " ++ val.asString);
+			})
+		);
+
+		view.layout.add(
 			Button()
 			.fixedSize_(30@height)
 			.states_([ ["play"], ["stop"] ])
@@ -75,6 +90,7 @@ view: {arg name, envir;
 
 	// Node
 	envir[name] = NodeProxy.audio;
+	envir[name].fadeTime = 1;
 	envir[name][0] = {
 
 		var lo = \lo.kr(0);
@@ -98,7 +114,7 @@ view: {arg name, envir;
 		.value_(1.linlin(0.1,4,0,1))
 	);
 	view.layout.add(status);
-	view.front;
+	view;
 };
 )
 

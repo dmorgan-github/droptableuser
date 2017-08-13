@@ -27,7 +27,7 @@ SynthDef(\sinfb, {
 
 	var sig = SinOscFB.ar(freq, \fb.kr(0.7));
 
-	var env = Env.perc.kr(timeScale:dur, doneAction:2);
+	var env = Env.perc(attackTime: \atk.kr(0.01), releaseTime:\rel.kr(1)).kr(timeScale:dur, doneAction:2);
 
 	sig = sig * env * AmpCompA.ar(freq) * \amp.kr(0.1);
 

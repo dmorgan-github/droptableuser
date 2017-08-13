@@ -1,12 +1,19 @@
 (
 func: {arg in;
 	Squiz.ar(in,
-		pitchratio: \pitchratio.kr.range(\pitchratio_min.kr(1), \pitchratio_max.kr(6)),
-		zcperchunk: \zcperchunk.kr.range(\zcperchunk_min.kr(1), \zcperchunk_max.kr(6))
+		pitchratio: [\pitchratioL.kr.range(\pitchratioL_min.kr(1), \pitchratioL_max.kr(6)),
+			\pitchratioR.kr.range(\pitchratioR_min.kr(1), \pitchratioR_max.kr(6))
+		],
+		zcperchunk: [\zcperchunkL.kr.range(\zcperchunkL_min.kr(1), \zcperchunkL_max.kr(6)),
+			\zcperchunkR.kr.range(\zcperchunkR_min.kr(1), \zcperchunkR_max.kr(6))
+		]
 	);
 },
 specs: (
-	pitchratio: [1, 6, \lin, 0, 2],
-	zcperchunk: [1, 6, \lin, 0, 1]
+	pitchratioL: [1, 6, \lin, 0, 2],
+	pitchratioR: [1, 6, \lin, 0, 2],
+
+	zcperchunkL: [1, 6, \lin, 0, 1],
+	zcperchunkR: [1, 6, \lin, 0, 1]
 )
 )

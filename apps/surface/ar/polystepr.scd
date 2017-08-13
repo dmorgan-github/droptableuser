@@ -1,9 +1,8 @@
 (
-(
 view: {arg name, envir;
 
 	var node = NodeProxy.audio.quant_(1.0);
-	var instrument;
+	var instrument, scale = \minor;
 	var height = 20;
 	var seq = (0..7).collect({ (0..15).collect( { 0 }  ) });
 
@@ -17,16 +16,17 @@ view: {arg name, envir;
 		});
 
 		PbindProxy(
-			\instrument, instrument.asSymbol,
+			\instrument, Pfunc({instrument.asSymbol}),
 			\vol, 0,
 			[\degree, \amp], rtn * Ptuple([1, Pkey(\vol)], inf),
 			\mtranspose, 0,
 			\stretch, 1,
+			\scale, Pfunc({Scale.at(scale.asSymbol)}),
 			\delta, 1/(i+1),
 			\fb, 0.9,
-			\dur, Pkey(\delta),
-			\octave, 4,
-			\scale, Scale.minor
+			\dur_mul, 1,
+			\dur, Pkey(\delta) * Pkey(\dur_mul) * Pfunc({thisThread.clock.beatDur}),
+			\octave, 4
 		)
 	};
 
@@ -79,11 +79,11 @@ view: {arg name, envir;
 
 		8.do({arg i;
 			ampDur.layout.add(
-				Slider2D().fixedWidth_(40@40).action_({arg ctrl;
+				Slider2D().fixedWidth_(60@60).action_({arg ctrl;
 
 					var y = ctrl.y;
 					var x = ctrl.x;
-					var dur = x.linlin(0,1,0.1,4);
+					var dur = x.linlin(0,1,0.01,16);
 
 					8.do({arg n;
 						var id = ((8 * n) + i);
@@ -92,7 +92,7 @@ view: {arg name, envir;
 						}
 					});
 
-				}), 0, i
+				}).step_(0.0001).setXY(1.linlin(0.01,16,0,1),0.1), 0, i
 			);
 		});
 		view.layout.add(ampDur);
@@ -127,6 +127,25 @@ view: {arg name, envir;
 			.action_({arg ctrl; instrument = ctrl.value; status.string_(instrument)})
 			.font_(font),
 
+			PopUpMenu()
+			.items_(Scale.names)
+			.font_(font)
+			.action_({arg ctrl;
+				scale = ctrl.item; status.string_(scale)
+			}),
+
+			Slider()
+			.orientation_(\horizontal)
+			.thumbSize_(10)
+			.fixedSize_(50@height)
+			.font_(font)
+			.value_(1.linlin(0.1, 8, 0, 1))
+			.action_({arg ctrl;
+				var val = ctrl.value.linlin(0, 1, 0.1, 8);
+				node.fadeTime = val;
+				status.string_("fadetime: " ++ val.asString);
+			}),
+
 			Button()
 			.fixedSize_(30@height)
 			.states_([ ["play"], ["stop"] ])
@@ -148,12 +167,16 @@ view: {arg name, envir;
 		)
 	);
 
+	node.fadeTime = 1;
 	envir[name] = node;
 	view.layout.add(stepGrid.());
 	view.layout.add(partGrid.());
 	view.layout.add(status);
-	view.front
+	view.onClose_({
+		node.clear;
+		node = nil;
+	});
+	view;
 };
-)[\view].(\polystepr1, currentEnvironment);
-
 )
+
