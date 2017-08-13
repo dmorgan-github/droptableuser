@@ -16,7 +16,8 @@ specsView: {arg specs, node, envir, mainView, status;
 
 		// what is the right way to handle this?
 		var spec = v.asSpec;
-		var mapped = spec.default.linlin(spec.minval, spec.maxval, -1, 1);
+		var mapped = spec.unmap(spec.default).linlin(0,1,-1,1);
+		node.set(k, mapped);
 
 		layout.add(
 
@@ -85,8 +86,7 @@ specsView: {arg specs, node, envir, mainView, status;
 		);
 
 		NotificationCenter.register(mainView, k, slider, {arg val;
-			var mapped = val.linlin(-1, 1, 0, 1 );
-			slider.valueAction_(v.asSpec.unmap(mapped));
+			slider.valueAction_(val.linlin(-1,1,0,1));
 		});
 
 		layout.add(
@@ -106,8 +106,8 @@ specsView: {arg specs, node, envir, mainView, status;
 				.background_(Color.white.alpha_(0.0))
 				.action_({arg ctrl;
 					// Not sure if this is best way to set values
-					var val = ctrl.value.linlin(0,1,-1,1);
-					node.set(k.asSymbol, val);
+					var val = ctrl.value;
+					node.set(k.asSymbol, val.linlin(0,1,-1,1));
 					nb.value_(v.asSpec.map(ctrl.value));
 				})
 				.value_(v.asSpec.unmap(v.asSpec.default))
@@ -161,6 +161,7 @@ presetsView: {arg node, config, mainView;
 				}
 			};
 
+			//presets.postln;
 			lastActive = i;
 		});
 
