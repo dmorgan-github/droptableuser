@@ -26,7 +26,7 @@ func: {arg in;
 	in = BPeakEQ.ar(in, freq2, freq2rs, freq2db);
 	in = BPeakEQ.ar(in, freq3, freq3rs, freq3db);
 	in = BHiShelf.ar(in, freqhi, freqhirs, freqhidb);
-	RemoveBadValues.ar(in);
+	LeakDC.ar( RemoveBadValues.ar(in) );
 },
 specs: (
 	freqlo: [30, 250, \lin, 0, 100],

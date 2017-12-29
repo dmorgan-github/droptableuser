@@ -17,7 +17,7 @@ GVerb.ar(
 (
 func: {arg in;
 
-	GVerb.ar(Mix.ar(in),
+	var sig = GVerb.ar(Mix.ar(in),
 		400, //\roomsize.kr.range(\roomsize_min.kr(1), \roomsize_max.kr(300)),
 		[\revtimeL.kr.range(\revtimeL_min.kr(0.1), \revtimeL_max.kr(1000)),
 			\revtimeR.kr.range(\revtimeR_min.kr(0.1), \revtimeR_max.kr(1000))],
@@ -27,9 +27,7 @@ func: {arg in;
 		[\inputbwL.kr.range(\inputbwL_min.kr(0), \inputbwL_max.kr(1)),
 			\inputbwR.kr.range(\inputbwR_min.kr(0), \inputbwR_max.kr(1))
 		],
-		[\spreadL.kr.range(\spreadL_min.kr(0), \spreadL_max.kr(100)),
-			\spreadR.kr.range(\spreadR_min.kr(0), \spreadR_max.kr(100))
-		],
+		\spread.kr.range(\spread_min.kr(0), \spread_max.kr(100)),
 		/*drylevel:*/ 0,
 		[\earlyreflevelL.kr.range(\earlyreflevelL_min.kr(0.1), \earlyreflevelL_max.kr(1)),
 			\earlyreflevelR.kr.range(\earlyreflevelR_min.kr(0.1), \earlyreflevelR_max.kr(1))
@@ -39,6 +37,8 @@ func: {arg in;
 		],
 		maxroomsize: 401
 	);
+
+	LeakDC.ar(sig);
 },
 specs: (
 
@@ -51,8 +51,7 @@ specs: (
 	inputbwL: [0, 1, \lin, 0, 0.75],
 	inputbwR: [0, 1, \lin, 0, 0.75],
 
-	spreadL: [0, 100, \lin, 0, 50],
-	spreadR: [0, 100, \lin, 0, 50],
+	spread: [0, 100, \lin, 0, 50],
 
 	earlyreflevelL: [0.1, 1, \lin, 0, 0.07943282347242],
 	earlyreflevelR: [0.1, 1, \lin, 0, 0.07943282347242],

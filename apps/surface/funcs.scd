@@ -23,7 +23,9 @@ specsView: {arg specs, node, envir, mainView, status;
 
 			stack.add(
 				TextField()
-				.fixedSize_(60@height)
+				//.fixedSize_(60@height)
+				.minWidth_(60)
+				.maxHeight_(height)
 				.font_(font)
 				.action_({arg ctrl;
 
@@ -59,7 +61,9 @@ specsView: {arg specs, node, envir, mainView, status;
 
 			stack.add(
 				RangeSlider()
-				.fixedSize_(60@height)
+				//.fixedSize_(60@height)
+				.minWidth_(60)
+				.maxHeight_(height)
 				.background_(Color.white.alpha_(0))
 				.orientation_(\horizontal)
 				.mouseUpAction_({arg view,x,y,mod;
@@ -95,13 +99,15 @@ specsView: {arg specs, node, envir, mainView, status;
 				StaticText()
 				.string_(k)
 				.font_(font.bold_(true))
-				.minWidth_(50)
+				.minWidth_(100)
 				.align_(\center),
 
 				slider
 				.orientation_(\horizontal)
 				.thumbSize_(10)
-				.fixedSize_(100@height)
+				.minWidth_(100)
+				.maxHeight_(height)
+				//.fixedSize_(100@height)
 				.font_(font)
 				.background_(Color.white.alpha_(0.0))
 				.action_({arg ctrl;
@@ -236,9 +242,9 @@ playView: {arg name, node, status;
 		.string_("play")
 		.action_({arg ctrl;
 			if (ctrl.value == 1) {
-				node.play;
+				node.play(fadeTime:node.fadeTime);
 			} {
-				node.stop;
+				node.stop(fadeTime:node.fadeTime);
 			}
 		})
 	);

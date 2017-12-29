@@ -1,7 +1,7 @@
 (
 func: {arg in;
 
-	JPverb.ar(in,
+	var sig = JPverb.ar(in,
 		t60: [\t60L.kr.range(\t60L_min.kr(0.1), \t60L_max.kr(60)),
 			\t60R.kr.range(\t60R_min.kr(0.1), \t60R_max.kr(60))
 		],
@@ -36,6 +36,8 @@ func: {arg in;
 			\highcutR.kr.range(\highcutR_min.kr(1000), \highcutR_max.kr(10000))
 		]
 	);
+
+	LeakDC.ar(sig);
 },
 specs: (
 	t60L: [0.1, 60, \lin, 0.01, 1],

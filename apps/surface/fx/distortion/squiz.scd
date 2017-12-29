@@ -1,6 +1,6 @@
 (
 func: {arg in;
-	Squiz.ar(in,
+	var sig = Squiz.ar(in,
 		pitchratio: [\pitchratioL.kr.range(\pitchratioL_min.kr(1), \pitchratioL_max.kr(6)),
 			\pitchratioR.kr.range(\pitchratioR_min.kr(1), \pitchratioR_max.kr(6))
 		],
@@ -8,6 +8,7 @@ func: {arg in;
 			\zcperchunkR.kr.range(\zcperchunkR_min.kr(1), \zcperchunkR_max.kr(6))
 		]
 	);
+	LeakDC.ar(sig);
 },
 specs: (
 	pitchratioL: [1, 6, \lin, 0, 2],

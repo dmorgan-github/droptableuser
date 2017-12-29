@@ -1,6 +1,6 @@
 (
 func: {arg in;
-	WaveLoss.ar(in,
+	var sig = WaveLoss.ar(in,
 		[\dropL.kr.range(\dropL_min.kr(1), \dropL_max.kr(50)),
 			\dropR.kr.range(\dropR_min.kr(1), \dropR_max.kr(50))],
 		[\outofL.kr.range(\outofL_min.kr(1), \outofL_max.kr(100)),
@@ -10,6 +10,7 @@ func: {arg in;
 			\modeR.kr.range(\modeR_min.kr(1), \modeR_max.kr(2))
 		]
 	);
+	LeakDC.ar(sig);
 },
 specs: (
 	dropL: [1,50,\lin,1,20],

@@ -6,7 +6,7 @@ func: {arg in;
 	var chain = FFT( { LocalBuf(512) } ! 2, in);
 	chain = PV_BinShift(chain, stretch, shift, interp: 1);
 	chain = IFFT(chain);
-	chain;
+	LeakDC.ar(chain);
 },
 specs: (
 	stretch: [0.01, 8, \lin, 0, 1],

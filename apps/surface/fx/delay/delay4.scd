@@ -10,7 +10,8 @@ func: {arg in;
 	var delay2 = DelayC.ar(in, dt2, dt2);
 	var delay3 = DelayC.ar(in, dt3, dt3);
 	var delay4 = DelayC.ar(in, dt4, dt4);
-	delay1 + delay2 + delay3 + delay4;
+
+	LeakDC.ar( delay1 + delay2 + delay3 + delay4 );
 },
 
 specs: (

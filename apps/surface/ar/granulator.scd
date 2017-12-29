@@ -6,7 +6,7 @@ view: {arg name, envir, util;
 	var envbuf = Buffer.sendCollection(s, Signal.hanningWindow(windowSize), 1);
 	var node = NodeProxy.new;
 
-	var onEnvChange = {arg self, val;
+	var onEnvChange = {arg val;
 
 		case
 		{val == "hann"} {
@@ -53,7 +53,6 @@ view: {arg name, envir, util;
 		pitch: [0.1, 4, \lin, 0, 1],
 		pan: [-1, 1, \lin, 0, 0],
 		pos: [0, 1, \lin, 0, 0],
-		lfo: [0.01, 20,\lin, 0, 1],
 		grainamp: [0.1,1,\lin, 0, 1],
 		reverse: [0,1,\lin, 0, 0]
 	);
@@ -66,10 +65,10 @@ view: {arg name, envir, util;
 			node = nil;
 		});
 		var soundFileView;
+		var font = Font("Courrier New", 10);
 		var bufpath = StaticText().string_("").font_(font);
 		var bufdur = "";
 		var height = 20;
-		var font = Font("Courrier New", 10);
 		var status = StaticText().font_(font).string_("");
 
 		var menuView = {
@@ -137,6 +136,16 @@ view: {arg name, envir, util;
 		main.layout.add(menuView.());
 		main.layout.add(util[\presetsView].(node, (), main));
 		main.layout.add(waveView.());
+
+		main.layout.add(PopUpMenu()
+			.font_(font)
+			.items_(["hann", "hamming", "welch", "blackman", "rectangle", "perc", "triangle"])
+			.action_({arg ctrl;
+				onEnvChange.(ctrl.item);
+			})
+			.value_(0)
+		);
+
 		main.layout.add(util[\specsView].(specs, node, envir, main, status));
 		main.layout.add(status);
 		main;
@@ -148,9 +157,9 @@ view: {arg name, envir, util;
 		var pos = \pos.kr.range(\pos_min.kr(0), \pos_max.kr(1));
 		var graindur = \graindur.kr.range(\graindur_min.kr(0.001), \graindur_max.kr(8));
 		var rate = \rate.kr.range(\rate_min.kr(0.1), \rate_max.kr(200));
-		var pitch = \pitch.kr.range(\pitch_min.kr(0.1), \pitch_max.kr(r));
+		var pitch = \pitch.kr.range(\pitch_min.kr(0.1), \pitch_max.kr(4));
 		var envbuf = \envbuf.kr(-1).lag(0.01);
-		var pan = \pan.kr(0).range(\pan_min.kr(-1), \pan_max.kr(1));
+		var pan = \pan.kr.range(\pan_min.kr(-1), \pan_max.kr(1));
 		var grainamp = \grainamp.kr.range(\grainamp_min.kr(0), \grainamp_max.kr(1));
 		var impulse = Impulse.kr(rate);
 		var amp = Dwhite(grainamp, 1, inf);
@@ -171,9 +180,9 @@ view: {arg name, envir, util;
 		);
 
 		sig;
-		sig = Splay.ar(sig) * \amp.kr(0.1);
-		sig;
 	};
+
+	envbuf.set(\envbuf, envbuf);
 
 	envir[name] = node;
 	view.();

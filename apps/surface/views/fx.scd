@@ -6,6 +6,14 @@ view: {arg name, envir, config, util;
 	var height = 20;
 	var status = StaticText().font_(font).string_("");
 	var filterSlot = 100;
+	var func = {
+
+		var func = config[\func];
+		if ( func.argNames[0] == \self ) {
+			func = config[\func].value(config);
+		};
+		func;
+	};
 
 	var inputsView = {arg node;
 
@@ -15,17 +23,44 @@ view: {arg name, envir, config, util;
 
 			view.layout.add(
 				HLayout(
-					TextField()
-					.fixedSize_(60@height)
+					PopUpMenu()
+					.maxHeight_(height)
+					.allowsReselection_(true)
+					.mouseDownAction_({arg ctrl;
+
+						var result = List.new;
+						var list = envir.sortedKeysValuesDo({arg k,v;
+							if (v.class == NodeProxy) {
+
+								if (v.rate == \audio){
+									result.add(k);
+								}
+							}
+						});
+						ctrl.items_([""] ++ result);
+					})
 					.font_(font)
 					.action_({arg ctrl;
-						var val = ctrl.value;
-						if ( envir[val.asSymbol].isNil) {
-							var msg = "node " + val + " does not exit";
-							status.string_("node " + val + " does not exit");
-							msg.error;
+
+						var val = ctrl.item.asString;//ctrl.value;
+						var split = val.split($:);
+						var name = split[0];
+
+						if (name.isNil or: (name == "") ) {
+							node.removeAt(i, node.fadeTime);
 						} {
-							node[i] = { envir[val.asSymbol].ar * (\vol_ ++ i).asSymbol.kr(1) };
+
+							if ( envir[name.asSymbol].isNil) {
+								var msg = "node " + name + " does not exit";
+								status.string_("node " + name + " does not exit");
+								msg.error;
+							} {
+								if (split.size > 1) {
+									node[i] = { envir[name.asSymbol].ar[split[1].asInt] * (\vol_ ++ i).asSymbol.kr(1) };
+								} {
+									node[i] = { envir[name.asSymbol].ar * (\vol_ ++ i).asSymbol.kr(1) };
+								};
+							}
 						}
 					}),
 
@@ -46,11 +81,17 @@ view: {arg name, envir, config, util;
 
 	envir[name] = NodeProxy.audio;
 	envir[name].fadeTime = 1;
-	envir[name][filterSlot] = \filter -> config[\func];
+
+	config[\init].value(config);
+	envir[name][filterSlot] = \filter -> func.value;
 	mainView = View().layout_(VLayout().margins_(2).spacing_(2))
 	.onClose_({
-		envir[name].clear;
-		envir[name] = nil;
+		envir[name].clear(envir[name].fadeTime);
+		{
+			"destroy: ".debug(name);
+			config[\destroy].value(config);
+			envir[name] = nil;
+		}.defer(envir[name].fadeTime + 1);
 	});
 
 	inputs = inputsView.(envir[name]);

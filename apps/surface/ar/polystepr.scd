@@ -3,6 +3,7 @@ view: {arg name, envir;
 
 	var node = NodeProxy.audio.quant_(1.0);
 	var instrument, scale = \minor;
+	var octave = 5;
 	var height = 20;
 	var seq = (0..7).collect({ (0..15).collect( { 0 }  ) });
 
@@ -18,15 +19,13 @@ view: {arg name, envir;
 		PbindProxy(
 			\instrument, Pfunc({instrument.asSymbol}),
 			\vol, 0,
+			\scale, Pfunc({Scale.at(scale.asSymbol)}),
+			\octave, Pfunc({octave}),
 			[\degree, \amp], rtn * Ptuple([1, Pkey(\vol)], inf),
 			\mtranspose, 0,
-			\stretch, 1,
-			\scale, Pfunc({Scale.at(scale.asSymbol)}),
 			\delta, 1/(i+1),
-			\fb, 0.9,
 			\dur_mul, 1,
-			\dur, Pkey(\delta) * Pkey(\dur_mul) * Pfunc({thisThread.clock.beatDur}),
-			\octave, 4
+			\dur, Pkey(\delta) * Pkey(\dur_mul) * Pfunc({thisThread.clock.beatDur})
 		)
 	};
 
@@ -44,7 +43,7 @@ view: {arg name, envir;
 
 	var cellOff = {arg y, x;
 		var id = ((8 * y) + x);
-		node[id].set(\vol, 0);
+		node[id] = nil;
 	};
 
 	var font = Font("Courrier New", 10);
@@ -58,7 +57,7 @@ view: {arg name, envir;
 			16.do({arg n;
 				view.layout.add(
 					Button()
-					.fixedSize_(20@20)
+					//.fixedSize_(20@20)
 					.states_([ ["", "", Color.grey], ["", nil, Color.white] ])
 					.action_({arg ctrl;
 						seq[7-i][n] = ctrl.value;
@@ -79,7 +78,7 @@ view: {arg name, envir;
 
 		8.do({arg i;
 			ampDur.layout.add(
-				Slider2D().fixedWidth_(60@60).action_({arg ctrl;
+				Slider2D().action_({arg ctrl;
 
 					var y = ctrl.y;
 					var x = ctrl.x;
@@ -92,7 +91,9 @@ view: {arg name, envir;
 						}
 					});
 
-				}).step_(0.0001).setXY(1.linlin(0.01,16,0,1),0.1), 0, i
+				})
+				//.step_(0.0001)
+				.setXY(1.linlin(0.01,16,0,1),0.1), 0, i
 			);
 		});
 		view.layout.add(ampDur);
@@ -101,7 +102,7 @@ view: {arg name, envir;
 			8.do({arg n;
 				grid.layout.add(
 					Button()
-					.fixedSize_(40@20)
+					//.fixedSize_(40@20)
 					.states_([ ["", "", Color.grey], ["", nil, Color.white] ])
 					.action_({arg ctrl;
 						if (ctrl.value == 1) {
@@ -124,6 +125,7 @@ view: {arg name, envir;
 		HLayout(
 
 			TextField()
+			.minWidth_(100)
 			.action_({arg ctrl; instrument = ctrl.value; status.string_(instrument)})
 			.font_(font),
 
@@ -137,7 +139,7 @@ view: {arg name, envir;
 			Slider()
 			.orientation_(\horizontal)
 			.thumbSize_(10)
-			.fixedSize_(50@height)
+			.minWidth_(50)
 			.font_(font)
 			.value_(1.linlin(0.1, 8, 0, 1))
 			.action_({arg ctrl;
@@ -146,8 +148,16 @@ view: {arg name, envir;
 				status.string_("fadetime: " ++ val.asString);
 			}),
 
+			PopUpMenu()
+			.items_([8,7,6,5,4,3,2,1])
+			.font_(font)
+			.value_(3)
+			.action_({arg ctrl;
+				octave = ctrl.item;
+			}),
+
 			Button()
-			.fixedSize_(30@height)
+			//.fixedSize_(30@height)
 			.states_([ ["play"], ["stop"] ])
 			.font_(font)
 			.string_("play")
@@ -160,21 +170,31 @@ view: {arg name, envir;
 			}),
 
 			Button()
-			.fixedSize_(30@height)
+			//.fixedSize_(30@height)
 			.font_(font)
 			.string_("doc")
-			.mouseDownAction_({arg ctrl; node.document; })
+			.mouseDownAction_({arg ctrl;
+				node.document;
+				seq.asCompileString.postln;
+			})
 		)
 	);
 
+
+
 	node.fadeTime = 1;
 	envir[name] = node;
+
+	view.fixedWidth_(400);
 	view.layout.add(stepGrid.());
 	view.layout.add(partGrid.());
 	view.layout.add(status);
 	view.onClose_({
-		node.clear;
-		node = nil;
+		node.clear(fadeTime:node.fadeTime);
+		{
+			node = nil;
+			envir[name] = nil;
+		}.defer(node.fadeTime + 1);
 	});
 	view;
 };

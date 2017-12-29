@@ -1,6 +1,6 @@
 (
 func: {arg in;
-	Greyhole.ar(in,
+	var sig = Greyhole.ar(in,
 		[\delayTimeL.kr.range(\delayTimeL_min.kr(0.1), \delayTimeL_max.kr(60)).lag(0.1),
 			\delayTimeR.kr.range(\delayTimeR_min.kr(0.1), \delayTimeR_max.kr(60)).lag(0.1)],
 		[\dampL.kr.range(\dampL_min.kr(0), \dampL_max.kr(1)),
@@ -15,7 +15,9 @@ func: {arg in;
 			\modDepthR.kr.range(\modDepthR_min.kr(0), \modDepthR_max.kr(1))],
 		[\modFreqL.kr.range(\modFreqL_min.kr(0), \modFreqL_max.kr(10)),
 			\modFreqR.kr.range(\modFreqR_min.kr(0), \modFreqR_max.kr(10))]
-	)
+	);
+
+	LeakDC.ar(sig);
 },
 specs: (
 	delayTimeL: [0.1, 60, \lin, 0, 2],

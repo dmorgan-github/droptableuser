@@ -6,10 +6,12 @@ func: {arg in;
 	//	\rq.kr.range(\rq_min.kr(0), \rq_max.kr(1))
 	//)
 
-	BBandPass.ar(in,
+	var sig = BBandPass.ar(in,
 		\freq.kr.range(\freq_min.kr(20), \freq_max.kr(20000)).clip(20, 20000),
 		\bw.kr.range(\bw_min.kr(0), \bw_ma.kr(10))
-	)
+	);
+
+	LeakDC.ar(sig);
 },
 specs: (
 	freq: [20, 20000, \lin, 0, 1000],

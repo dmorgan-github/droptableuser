@@ -1,6 +1,7 @@
 (
 func: {arg in;
-	Decimator.ar(in,
+
+	var sig = Decimator.ar(in,
 		rate: 44100 * [\ratemulL.kr.range(\ratemulL_min.kr(0.1), \ratemulL_max.kr(1)),
 			\ratemulR.kr.range(\ratemulR_min.kr(0.1), \ratemulR_max.kr(1))
 		],
@@ -8,6 +9,8 @@ func: {arg in;
 			\bitsR.kr.range(\bitsR_min.kr(2), \bitsR_max.kr(24))
 		]
 	);
+
+	LeakDC.ar(sig);
 },
 specs: (
 	ratemulL: [0.1, 1, \lin, 0, 1],
