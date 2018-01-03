@@ -1,3 +1,6 @@
+
+
+
 (
 //////////////////////////////////
 // retrigerable line
@@ -43,6 +46,22 @@
 		var env = Env.perc(atk_in,rel_in,curve:curve_in).kr(gate:trig, timeScale:ts_in);
 		func.(env);
 	};
+};
+
+~tatkrel = {arg start = 0, peak = 1, end = 0, atk = 0.01, rel = 1, curve = 0, ts = 1, func = {arg env;env;};
+
+	{
+		var trig = \trig.tr;
+		var curve_in = \curve.kr(curve);
+		var start_in = \start.kr(start);
+		var end_in = \end.kr(end);
+		var peak_in = \peak.kr(peak);
+		var atk_in = \atk.kr(atk);
+		var rel_in = \rel.kr(rel);
+		var ts_in = \ts.kr(ts);
+		var env = Env([start_in, peak_in, end_in],[atk_in,rel_in],curve_in).kr(gate:trig, timeScale:ts_in);
+		func.(env);
+	}
 };
 
 ~env_editor = {
