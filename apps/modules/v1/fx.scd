@@ -17,6 +17,7 @@
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	};
 };
+Library.put(\modules, \fx, \gran, ~gran);
 
 ~granulator = {arg chans = 1;
 
@@ -85,5 +86,70 @@
 		XFade2.ar(in, out, wet.linlin(0,1,-1,1));
 	}
 };
+Library.put(\modules, \fx, \granulator, ~granulator);
+
+// TGrains2
+
+~pitch_shift = {arg chans = 1, windowsize = 0.2, pitchratio = 1, pitchdisp = 0, timedisp = 0;
+
+	{
+		var in = \in.ar(0.dup(chans));
+		var fx = PitchShift.ar(in,
+			\windowsize.kr(windowsize),
+			\pitchratio.kr(pitchratio),
+			\pitchdisp.kr(pitchdisp),
+			\timedisp.kr(timedisp)
+		);
+		var wet = \wet.kr(1);
+		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
+	};
+};
+Library.put(\modules, \fx, \pitch_shift, ~pitch_shift);
+
+~freq_shift = {arg chans = 1, freq = 0, phase = 0;
+
+	{
+		var in = \in.ar(0.dup(chans));
+		var fx = FreqShift.ar(in,
+			\freq.kr(freq),
+			\phase.kr(0)
+		);
+		var wet = \wet.kr(1);
+		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
+	};
+};
+Library.put(\modules, \fx, \freq_shift, ~freq_shift);
+
+/*
+# 1767 C* ChorusI - Mono chorus/flanger
+> a: in (-1 to 1)
+> k: t (ms) (2.5 to 40)
+> k: width (ms) (0.5 to 10)
+> k: rate (Hz) (0 to 5)
+> k: blend (0 to 1)
+> k: feedforward (0 to 1)
+> k: feedback (0 to 1)
+< a: out
+*/
+~chorus = {arg chans = 2;
+
+	{
+		var wet, fx, sig;
+		var in = \in.ar(0.dup(chans));
+		fx = LADSPA.ar(1, 1767,
+			in,
+			\t.kr(30),
+			\width.kr(1.5),
+			\rate.kr(2.5),
+			1,
+			\fwd.kr(0.8),
+			\fb.kr(0.2)
+		);
+		wet = \wet.kr(1);
+		XFade2.ar(in, LeakDC.ar(fx), wet.linlin(0,1,-1,1));
+	};
+};
+
+Library.put(\modules, \fx, \chorus, ~chorus);
 
 )

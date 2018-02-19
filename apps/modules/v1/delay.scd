@@ -30,6 +30,7 @@
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	};
 };
+Library.put(\modules, \delay, \greyhole, ~greyhole);
 
 /*
 2.31  Delayorama (delayorama, 1402)
@@ -73,7 +74,7 @@ The level of delayed sound mixed into the output.
 	{
 		var in = \in.ar(0.dup(chans));
 		var fx = if (lr) {
-			LADSPA.ar(1, 1402,
+			LADSPA.ar(chans, 1402,
 				RandSeed.ir(1000),
 				[\inputgainL.kr(0),
 					\inputgainR.kr(0)
@@ -106,7 +107,7 @@ The level of delayed sound mixed into the output.
 				in
 			);
 		} {
-			LADSPA.ar(1, 1402,
+			LADSPA.ar(chans, 1402,
 				RandSeed.ir(1000),
 				\inputgain.kr(0),
 				\feedback.kr(30),
@@ -125,6 +126,7 @@ The level of delayed sound mixed into the output.
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	};
 };
+Library.put(\modules, \delay, \delayorama, ~delayorama);
 
 ~rnd_delay = {arg chans = 1, rate = 13, lr = false;
 
@@ -139,6 +141,7 @@ The level of delayed sound mixed into the output.
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	};
 };
+Library.put(\modules, \delay, \rnd_delay, ~rnd_delay);
 
 ~feedback = {arg chans = 1, tempo = 1, decay = 0.3, delay = 0.375;
 
@@ -152,6 +155,7 @@ The level of delayed sound mixed into the output.
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	};
 };
+Library.put(\modules, \delay, \feedback, ~feedback);
 
 ~comb_long = {arg chans = 1, maxdelay = 8, num = 4;
 
@@ -168,5 +172,44 @@ The level of delayed sound mixed into the output.
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	}
 };
+Library.put(\modules, \delay, \comb_long, ~comb_long);
+
+~delay = {arg chans = 1, delay = 0.2;
+	{
+		var in = \in.ar(0.dup(chans));
+		var fx = DelayC.ar(in, delay, \delay.kr(delay));
+		var wet = \wet.kr(1);
+		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
+	}
+};
+Library.put(\modules, \delay, \delay, ~delay);
+
+/*
+# 1605 Reverse Delay (5s max)
+> a: Input
+< a: Output
+> k: Delay Time (s) (0 to 5)
+> k: Dry Level (dB) (-70 to 0)
+> k: Wet Level (dB) (-70 to 0)
+> k: Feedback (0 to 1)
+> k: Crossfade samples (0 to 5000)
+*/
+~reversedelay = {arg chans = 1, delay = 1, fb = 0.5, crossfade = 250;
+
+	{
+		var in = \in.ar(0.dup(chans));
+		var fx = LADSPA.ar(1, 1605,
+			in,
+			\delay.kr(delay),
+			-70.dbamp,
+			0.dbamp,
+			\fb.kr(fb),
+			\crossfade.kr(crossfade)
+		);
+		var wet = \wet.kr(1);
+		XFade2.ar(in, LeakDC.ar(fx), wet.linlin(0,1,-1,1));
+	};
+};
+Library.put(\modules, \delay, \reversedelay, ~reversedelay);
 
 )

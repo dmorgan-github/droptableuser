@@ -1,57 +1,57 @@
-
-
-
 (
 //////////////////////////////////
 // retrigerable line
-~tline = {arg start = [1], end = [1], dur = [1], ts = [1], curve = [0], func = {arg env;env};
+~tline = {arg trig = [0], start = [1], end = [1], dur = [1], ts = [1], curve = [0], func = {arg env;env};
 	{
-		var trig = \trig.tr;
+		var trig_in = \trig.kr(trig);
 		var ts_in = \ts.kr(ts);
 		var start_in = \start.kr(start);
 		var end_in = \end.kr(end);
 		var dur_in = \dur.kr(dur);
 		var curve_in = \curve.kr(curve);
-		var env = Env([start_in,start_in,end_in],[0,dur_in],curve_in).kr(gate:trig, timeScale:ts_in);
+		var env = Env([start_in,start_in,end_in],[0,dur_in],curve_in).kr(gate:trig_in, timeScale:ts_in);
 		func.(env);
 	};
 };
+Library.put(\modules, \env, \tline, ~tline);
 
 //////////////////////////////////
 // retrigerable linen env
-~tlinen = {arg atk = 0.01, sus = 1, rel = 1, curve = (-4), ts = 1, func = {arg env;env};
+~tlinen = {arg trig = [0], atk = 0.01, sus = 1, rel = 1, curve = (-4), ts = 1, func = {arg env;env};
 
 	{
-		var trig = \trig.tr;
+		var trig_in = \trig.kr(trig);
 		var ts_in = \ts.kr(ts);
 		var atk_in = \atk.kr(atk);
 		var sus_in = \sus.kr(sus);
 		var rel_in = \rel.kr(rel);
 		var curve_in = \curve.kr(curve);
-		var env = Env.linen(atk_in,sus_in,rel_in,curve:curve_in).kr(gate:trig, timeScale:ts_in);
+		var env = Env.linen(atk_in,sus_in,rel_in,curve:curve_in).kr(gate:trig_in, timeScale:ts_in);
 		func.(env);
 	};
 };
+Library.put(\modules, \env, \tlinen, ~tlinen);
 
 //////////////////////////////////
 // retrigerable perc env
-~tperc = {arg atk = 0.01, rel = 1, curve = (-4), ts = 1, func = {arg env;env};
+~tperc = {arg trig = [0], atk = 0.01, rel = 1, curve = (-4), ts = 1, func = {arg env;env};
 
 	{
-		var trig = \trig.tr;
+		var trig_in = \trig.kr(trig);
 		var ts_in = \ts.kr(ts);
 		var atk_in = \atk.kr(atk);
 		var rel_in = \rel.kr(rel);
 		var curve_in = \curve.kr(curve);
-		var env = Env.perc(atk_in,rel_in,curve:curve_in).kr(gate:trig, timeScale:ts_in);
+		var env = Env.perc(atk_in,rel_in,curve:curve_in).kr(gate:trig_in, timeScale:ts_in);
 		func.(env);
 	};
 };
+Library.put(\modules, \env, \tperc, ~tperc);
 
-~tatkrel = {arg start = 0, peak = 1, end = 0, atk = 0.01, rel = 1, curve = 0, ts = 1, func = {arg env;env;};
+~tatkrel = {arg trig = [0], start = 0, peak = 1, end = 0, atk = 0.01, rel = 1, curve = 0, ts = 1, func = {arg env;env;};
 
 	{
-		var trig = \trig.tr;
+		var trig_in = \trig.kr(trig);
 		var curve_in = \curve.kr(curve);
 		var start_in = \start.kr(start);
 		var end_in = \end.kr(end);
@@ -59,10 +59,11 @@
 		var atk_in = \atk.kr(atk);
 		var rel_in = \rel.kr(rel);
 		var ts_in = \ts.kr(ts);
-		var env = Env([start_in, peak_in, end_in],[atk_in,rel_in],curve_in).kr(gate:trig, timeScale:ts_in);
+		var env = Env([start_in, peak_in, end_in],[atk_in,rel_in],curve_in).kr(gate:trig_in, timeScale:ts_in);
 		func.(env);
 	}
 };
+Library.put(\modules, \env, \tatkrel, ~tatkrel);
 
 ~env_editor = {
 
@@ -159,6 +160,7 @@
 	);
 	obj;
 };
+Library.put(\modules, \env, \env_editor, ~env_editor);
 
 )
 

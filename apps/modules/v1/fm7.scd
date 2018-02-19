@@ -289,7 +289,7 @@
 	algos[num];
 };
 
-~fm7 = {arg algo = 0;
+~fm7 = {arg algo = 0, func = {arg sig;sig;};
 
 	{
 		var freq = Vibrato.ar(K2A.ar(\freq.kr(432).lag(\lag.kr(0.0))),
@@ -316,9 +316,11 @@
 
 		var sig = FM7.ar(ctrls, ~mods.(mods.value.postln)).slice(mods.key.postln);
 
-		sig * AmpCompA.kr(freq) * \amp.kr(0);
+		//sig * AmpCompA.kr(freq) * \amp.kr(0);
+		func.(sig * AmpCompA.kr(freq) * \amp.kr(0));
 	}
 };
 
-)
+Library.put(\modules, \synth, \fm7, ~fm7);
 
+)

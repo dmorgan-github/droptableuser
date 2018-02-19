@@ -23,6 +23,13 @@
 			var id = dest.key.asSymbol;//~find_id.(dest);
 			var func = currentEnvironment[dest.value.asSymbol];
 
+			if (dest.class == Symbol) {
+				id = dest.key.asSymbol;//~find_id.(dest);
+				func = currentEnvironment[dest.value.asSymbol];
+			} {
+				func = dest;
+			};
+
 			self.ps[id.asSymbol] = func.(chans:node.numChannels);
 			self.ps[id.asSymbol].set(\in, node, \wet, wet);
 			self.ps[id.asSymbol].play;

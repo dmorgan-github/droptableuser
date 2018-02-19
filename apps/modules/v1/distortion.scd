@@ -18,12 +18,13 @@
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	}
 };
+Library.put(\modules, \dist, \squiz, ~squiz);
 
 ~waveloss = {arg chans = 1, drop = 20, outof = 40, lr = false;
 
 	{
 		var in = \in.ar(0.dup(chans));
-		var fx = if () {
+		var fx = if (lr) {
 			WaveLoss.ar(in,
 				[\dropL.kr(drop),\dropR.kr(drop)],
 				[\outofL.kr(outof),\outofR.kr(outof)]
@@ -38,12 +39,13 @@
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	}
 };
+Library.put(\modules, \dist, \waveloss, ~waveloss);
 
-~disintegrator = {arg chans = 1, prob = 0.5, mult = 0, lf = false;
+~disintegrator = {arg chans = 1, prob = 0.5, mult = 0, lr = false;
 
 	{
 		var in = \in.ar(0.dup(chans));
-		var fx = if () {
+		var fx = if (lr) {
 			Disintegrator.ar(in,
 				[\probL.kr(prob),\probR.kr(prob)],
 				[\multL.kr(mult),\multR.kr(mult)]
@@ -58,6 +60,7 @@
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	}
 };
+Library.put(\modules, \dist, \disintegrator, ~disintegrator);
 
 ~decimator = {arg chans = 1, rate = 44100, bits = 24, lr = false;
 
@@ -78,6 +81,7 @@
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	}
 };
+Library.put(\modules, \dist, \decimator, ~decimator);
 
 /*
 # 1408 Barry's Satan Maximiser
@@ -90,7 +94,7 @@
 
 	{
 		var in = \in.ar(0.dup(chans));
-		var fx = if () {
+		var fx = if (lr) {
 			LADSPA.ar(1, 1408,
 				[\decayL.kr(decay), \decayR.kr(decay)],
 				[\kneepointL.kr(kneepoint), \kneepointR.kr(kneepoint)],
@@ -107,5 +111,6 @@
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	}
 };
+Library.put(\modules, \dist, \barrys, ~barrys);
 
 )

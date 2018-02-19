@@ -17,6 +17,7 @@
 		sig;
 	};
 };
+Library.put(\modules, \fundamental, \lfo, ~lfo);
 
 ~varlag = {
 
@@ -25,12 +26,15 @@
 		VarLag.kr(val, \dur.kr(0.1), \curve.kr(0), \warp.kr(5));
 	}
 };
+Library.put(\modules, \fundamental, \varlag, ~varlag);
 
-~splay = {arg chans = 1;
+~splay = {arg chans = 1, node;
+
 	{
 		Splay.ar(\in.ar(0.dup(chans)));
 	};
 };
+Library.put(\modules, \fundamental, \splay, ~splay);
 
 ~sum = {arg chans;
 	{
@@ -38,12 +42,14 @@
 		in.sum!2
 	}
 };
+Library.put(\modules, \fundamental, \sum, ~sum);
 
 ~pan = {arg chans = 1;
 	{
 		Pan2.ar(\in.ar(0.dup(chans)), \pan.kr(0));
 	};
 };
+Library.put(\modules, \fundamental, \pan, ~pan);
 
 ~rotate = {arg chans = 1;
 
@@ -54,21 +60,7 @@
 		[x,y];
 	};
 };
+Library.put(\modules, \fundamental, \rotate, ~rotate);
 
-~pitchshift = {arg chans = 1, windowSize=0.2, pitchRatio=1, pitchDispersion=0, timeDispersion=0;
-
-	{
-		var in = \in.ar(0.dup(chans));
-		var windowSize_in = windowSize;
-		var pitchRatio_in = \pitchRatio.kr(pitchRatio);
-		var pitchDispersion_in = \pitchDispersion.kr(pitchDispersion);
-		var timeDispersion_in = \timeDispersion.kr(timeDispersion);
-		var fx = PitchShift.ar(in, windowSize_in, pitchRatio_in, pitchDispersion_in, timeDispersion_in);
-		var wet = \wet.kr(1);
-		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
-	}
-};
 
 )
-
-PL

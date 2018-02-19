@@ -10,6 +10,7 @@
 		a + b + c + d;
 	};
 };
+Library.put(\modules, \generator, \glitch1, ~glitch1);
 
 ~ikeda = {
 
@@ -27,6 +28,7 @@
 		}!2;
 	}
 };
+Library.put(\modules, \generator, \ikeda, ~ikeda);
 
 ~drone1 = {
 
@@ -36,6 +38,6 @@
 		SmoothFoldS.ar(source, -0.1, 0.1, SinOsc.kr(0.05, [0, pi]).range(0.1, 1))
 	}
 };
-
+Library.put(\modules, \generator, \drone1, ~drone1);
 
 )

@@ -1,5 +1,5 @@
 (
-~gverb = {arg roomsize = 20, chans = 2, revtime = 3, damp = 0.5,
+~gverb = {arg chans = 2, roomsize = 20, revtime = 3, damp = 0.5,
 	bw = 0.5, spread = 15, dry = 1, earlyreflevel = 0.7, taillevel = 0.5, lr = false;
 	{
 
@@ -29,6 +29,7 @@
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	};
 };
+Library.put(\modules, \reverb, \gverb, ~gverb);
 
 ~jpverb = {arg chans = 1, t60 = 1, damp = 0, size = 1, earlyDif = 0.707,
 	modDepth = 0.1, modFreq = 2, low = 1, mid = 1, high = 1, lowcut = 500, highcut = 2000, lr = false;
@@ -68,4 +69,5 @@
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	}
 };
+Library.put(\modules, \reverb, \jpverb, ~jpverb);
 )
