@@ -19,6 +19,34 @@ App : IdentityDictionary {
 		^res;
 	}
 
+	*record {
+		Server.default.record(Document.current.path ++ "-" ++ Date.getDate.asSortableString ++ ".aiff");
+	}
+
+	*recordVersion {
+		var date = Date.getDate.asSortableString;
+		var current_doc = Document.current;
+		var current_path = current_doc.path;
+		var dirname = current_path ++ "-" ++ date;
+
+		if (File.exists(dirname).not) {
+			File.mkdir(dirname);
+		};
+
+		Document.openDocuments.do({arg doc;
+			var file_name = PathName(doc.title);
+			var path = dirname ++ "/" ++ file_name.fileNameWithoutExtension ++ "-" ++ date ++ "." ++ file_name.extension;
+			var content = doc.string;
+			var file = File(path, "w");
+			path.debug("writing...");
+			file.write(content);
+			file.close();
+		});
+
+		Server.default.record(dirname ++ "/" ++ current_doc.title ++ "-" ++ date ++ ".aiff");
+	}
+
+	/*
 	*monoDevice {arg synth, node = nil;
 
 		var obj = IdentityDictionary.new(know: true);
@@ -179,10 +207,11 @@ App : IdentityDictionary {
 
 		^env;
 	}
+	*/
 
-	*defaultOut {arg server;
+	*defaultOut {arg server, numOutputBusChannels = 8;
 
-		server.options.numOutputBusChannels = 2;
+		server.options.numOutputBusChannels = numOutputBusChannels;
 		server.options.outDevice_("Built-in Output");
 		server.options.inDevice_("Built-in Microph");
 		server.reboot;
@@ -193,6 +222,7 @@ App : IdentityDictionary {
 		// check volume control in task bar
 		// check volume in midi
 		// check volume in sound preferences
+		// check that both Soundflower (64ch) and Soundflower (2ch) are not muted
 		server.options.numOutputBusChannels = numOutputBusChannels;
 		server.options.inDevice_("Built-in Microph");
 		server.options.outDevice_("Soundflower (64ch)");
