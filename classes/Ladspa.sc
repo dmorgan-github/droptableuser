@@ -6,14 +6,15 @@ Barrys {
 	> a: Input
 	< a: Output
 	*/
-	*ar {arg in, nChans = 1, decay = 25, kneepoint = -50
+	*ar {arg in, nChans = 1, decay = 25, kneepoint = -50;
+
 		^LADSPA.ar(nChans, 1408,
 			decay,
 			kneepoint,
 			in
 		);
 	}
-};
+}
 
 Delayorama {
 
@@ -55,8 +56,8 @@ Delayorama {
 	The level of delayed sound mixed into the output.
 	*/
 
-	*ar {arg in, nChans = 1, inputgain = 0, feedback = 30, numtaps, = 1, firstdelay = 1,
-		delayrange = 1, delaychange. = 1, delayrandom = 30, ampchange = 0.5, amprand = 50, wet = 1;
+	*ar {arg in, nChans = 1, inputgain = 0, feedback = 30, numtaps = 1, firstdelay = 1,
+		delayrange = 1, delaychange = 1, delayrandom = 30, ampchange = 0.5, amprand = 50, wet = 1;
 
 		^LADSPA.ar(nChans, 1402,
 			RandSeed.ir(1000),
@@ -73,5 +74,5 @@ Delayorama {
 			in
 		);
 	}
-};
+}
 
