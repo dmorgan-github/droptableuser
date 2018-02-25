@@ -1,6 +1,5 @@
-
-~grain_buf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/perc2/misc/metal tray hit with medium tail.wav");
-
+/////////////////////////////////
+// envelope buffers
 (
 var blackman = {arg size = 2048;
 
@@ -29,50 +28,21 @@ var windowSize = 1024;
 );
 )
 
-/*
-(
-~granulator = {arg buf;
+/////////////////////////////////
+// buffers
+~grain_buf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/vox/OpenPathMusic44V5/child-imitate-owl.wav");
+~grain_buf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/perc2/misc/metal tray hit with medium tail.wav");
+~grain_buf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/vox/OpenPathMusic44V5/voice-womanMA-37.wav");
+~grain_buf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/foley/papercrumple.mono.aiff");
 
-	{
-		//middle C is the original playback rate
-        //\rate, (nn-60).midiratio
-		var trig = \trig.tr;
-		var buf_in = \buf.kr(buf);
-		var pos = \pos.kr(0.1);
-		var graindur = \graindur.kr(0.5);
-		var rate = \rate.kr(1);
-		var envbuf = \envbuf.kr(-1).lag(0.01);
-		var pan = \pan.kr(0);
-		var grainamp = \grainamp.kr(1);
+/////////////////////////////////
+// patch
+~gran = ProxySpace.new(s);
+~gran.quant = 1.0;
 
-		var amp = Dwhite(grainamp.clip(0,1), 1, inf);
-		var panValue = Dwhite(pan.neg, pan, inf);//SinOsc.kr(10).range(pan.neg,pan);
-		var reverse = \reverse.kr(0);
-		var rev = Dwrand([-1,1], [reverse,1-reverse], inf);
+~gran[\grain_trig] = {Impulse.kr( LFNoise2.kr(1/8).range(1,4) )};
 
-		var sig = GrainBufJ.ar(2,
-			trig,
-			dur: graindur,
-			sndbuf: buf_in,
-			rate: rate * rev,
-			pos: pos,
-			loop: 0,
-			interp: 4,
-			grainAmp: amp,
-			pan: panValue,
-			envbufnum: envbuf
-		);
-
-		sig;
-	};
-};
-)
-*/
-
-~p[\grain_trig] = {Impulse.kr(\rate.kr(1))};
-~p[\grain_trig].gui
-
-(~p[\grain_env] = {
+(~gran[\grain_env] = {
 	Demand.kr(Dust.kr(1), 0, Drand([
 		~envbuf[\welch].bufnum,
 		~envbuf[\perc].bufnum,
@@ -81,34 +51,76 @@ var windowSize = 1024;
 	], inf));
 });
 
-~p[\grain_pos] = ~lfo.(wave:\noise, freq:1/4, min:0, max:1);
-~p[\grain_rate] = {Demand.kr(Dust.kr(1), 0, Drand([0.75, 1, 1.25, 2], inf));};
+~gran[\grain_pos] = {LFDNoise3.kr(1/4).range(0,1);};// ~lfo.(wave:\noise, freq:1/4, min:0, max:1);
+//~gran[\grain_rate] = {Demand.kr(Dust.kr(1), 0, Drand([0.75, 1, 1.25, 2], inf));};
+~gran[\grain_rate] = {Demand.kr(Dust.kr(1), 0, Drand(Scale.kumoi.ratios, inf) );};
 
-~p[\grain][0] = ~grainsynth.(buf:~grain_buf);
-(~p[\grain].set(\trig, ~p[\grain_trig],
-	\envbuf, ~p[\grain_env],
-	\pos, ~p[\grain_pos],
-	\rate, ~p[\grain_rate] )
+/////////////////////////////////
+// synth
+(~gran[\snd][0] = {
+
+	//middle C is the original playback rate
+	//\rate, (nn-60).midiratio
+	var trig = \trig.tr;
+	var buf_in = \buf.kr(0);
+	var pos = \pos.kr(0.1);
+	var graindur = \graindur.kr(0.5);
+	var rate = \rate.kr(1);
+	var envbuf = \envbuf.kr(-1).lag(0.01);
+	var pan = \pan.kr(0);
+	var grainamp = \grainamp.kr(1);
+
+	var amp = Dwhite(grainamp.clip(0,1), 1, inf);
+	var panValue = Dwhite(pan.neg, pan, inf);
+	var reverse = \reverse.kr(0);
+	var rev = Dwrand([-1,1], [reverse,1-reverse], inf);
+
+	var sig = GrainBufJ.ar(2,
+		trig,
+		dur: graindur,
+		sndbuf: buf_in,
+		rate: rate * rev,
+		pos: pos,
+		loop: 0,
+		interp: 4,
+		grainAmp: amp,
+		pan: panValue,
+		envbufnum: envbuf
+	);
+
+	Splay.ar(sig);
+})
+
+/////////////////////////////////
+// settings
+(~gran[\snd].set(
+	\buf, ~grain_buf,
+	\trig, ~gran[\grain_trig],
+	\envbuf, ~gran[\grain_env],
+	\pos, ~gran[\grain_pos],
+	\rate, ~gran[\grain_rate],
+	\reverse, 0.5
 )
-~p[\grain].play;
-~p[\grain].stop
+)
 
-~p[\grain_verb] = ~jpverb.(chans:~p[\grain].numChannels);
-~p[\grain_verb] <<> ~p[\grain];
-~p[\grain_verb].set(\wet, 0.6, \t60, 20, \size, 3)
-~p[\grain_verb].play
-~p[\grain_verb].vol = 3;
-~p[\grain_verb].stop
+/////////////////////////////////
+// fx
+(~gran[\snd][4] = \filter -> {arg in;
+	JPverb.ar(in, t60:20, size:3);
+})
+(~gran[\snd][50] = \filter -> {arg in;
+	Limiter.ar(in, 0.7)
+})
+~gran[\snd].set(\wet4, 0.6)
 
-~p[\grain_sum] = ~splay.(chans:~p[\grain_verb].numChannels);
-~p[\grain_sum] <<> ~p[\grain_verb]
+/////////////////////////////////
+// play
+~gran[\snd].play;
+~gran[\snd].stop;
+~gran[\snd].vol = 1;
 
-~p[\grain_delay] = ~delayorama.(chans:~p[\grain_sum].numChannels);
-~p[\grain_delay] <<> ~p[\grain_sum];
-~p[\grain_delay].play
-~p[\grain_delay].gui
 
-App.recordVersion
+
 
 
 

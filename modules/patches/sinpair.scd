@@ -1,12 +1,46 @@
-~h = ~ps_helper.(~p);
+/////////////////////////////////
+// synth
+(
+~anasine = {arg freq = [432], amp = [0], func = {arg sig;sig};
 
-(~p[\pairseq][0] = {
+	{
+		var freq_in = Vibrato.ar(K2A.ar(\freq.kr(freq).lag(\lag.kr(0.0))),
+			\vrate.kr(6),
+			\vdepth.kr(0.0),
+			\vdelay.kr(0),
+			\vonset.kr(0),
+			\vrateVar.kr(0.04),
+			\vdepthVar.kr(0.1)
+		);
+
+		// try to model a more analog sound
+		var sig = Mix.fill(4,{
+			//between 1 +- 0.01
+			var freqmult = 1+SinOsc.ar(LFNoise1.kr(rrand(0.25,0.5),4,5),pi.rand,0.01);
+			SinOsc.ar(freq_in * (freqmult), pi.rand);
+		});
+
+		sig = sig + VarSaw.ar(freq_in, mul: LFDNoise3.kr(0.25).range(0.1,0.4) );
+
+		sig = sig * AmpCompA.kr(freq_in) * \amp.kr(amp);
+
+		Splay.ar(sig);
+	}
+};
+)
+
+/////////////////////////////////
+// patch
+~sinpair = ProxySpace.new(s);
+~sinpair.quant = 1.0;
+
+(~sinpair[\pairseq][0] = {
 	var trig = \trig.tr;
 	var freq = \freq.kr;
 	var freq2 = \freq2.kr;
 	[trig, freq, freq2];
 })
-(~p[\pairseq][4] = \set -> Pbind(
+(~sinpair[\pairseq][4] = \set -> Pbind(
 
 	\trig, 1,
 
@@ -34,52 +68,74 @@
 	})
 ));
 
+/////////////////////////////////
+// 1
+~sinpair[\sinpair1][0] = ~anasine.();
+~sinpair[\sinpair1].set(\vdepth, 0.001, \vrate, 2, \vrateVar, 0.5, \vdepthVar, 0.5)
 
-~p[\sinpair1][0] = ~anasine.();
-~p[\sinpair1].set(\vdepth, 0.001, \vrate, 2, \vrateVar, 0.5, \vdepthVar, 0.5)
-~p[\sinpair2][0] = ~anasine.();
-~p[\sinpair2].set(\vdepth, 0.01, \vrate, 3, \vrateVar, 0.1, \vdepthVar, 0.3)
+/////////////////////////////////
+// 2
+~sinpair[\sinpair2][0] = ~anasine.();
+~sinpair[\sinpair2].set(\vdepth, 0.01, \vrate, 3, \vrateVar, 0.1, \vdepthVar, 0.3)
 
-~p[\pairtrig] = {~p[\pairseq].kr[0]};
+/////////////////////////////////
+// trig
+~sinpair[\pairtrig] = {~sinpair[\pairseq].kr[0]};
 
-~p[\pairenv1] = ~tlinen.();
-~p[\pairenv1].set(\atk, 2, \sus, 2, \rel, 1)
-~p[\pairenv1].set(\trig, ~p[\pairtrig]);
+/////////////////////////////////
+// env 1
+(~sinpair[\pairenv1] = {
+	var trig_in = ~sinpair[\pairtrig];
+	var ts_in = 1;
+	var atk_in = 2;
+	var sus_in = 2;
+	var rel_in = 1;
+	var curve_in = -4;
+	var ls_in = 1;
+	var env = Env.linen(atk_in,sus_in,rel_in,curve:curve_in).kr(gate:trig_in, timeScale:ts_in, mul:ls_in);
+	env;
+})
 
-~p[\pairenv2] = ~tlinen.();
-~p[\pairenv2].set(\atk, 1, \sus, 1, \rel, 1)
-~p[\pairenv2].set(\trig, ~p[\pairtrig]);
+/////////////////////////////////
+// env 2
+(~sinpair[\pairenv2] = {
+	var trig_in = ~sinpair[\pairtrig];
+	var ts_in = 1;
+	var atk_in = 1;
+	var sus_in = 1;
+	var rel_in = 1;
+	var curve_in = -4;
+	var ls_in = 1;
+	var env = Env.linen(atk_in,sus_in,rel_in,curve:curve_in).kr(gate:trig_in, timeScale:ts_in, mul:ls_in);
+	env;
+});
 
-~p[\pairfreq1] = {~p[\pairseq].kr[1]}
-~p[\pairfreq2] = {~p[\pairseq].kr[2]};
+/////////////////////////////////
+//
+~sinpair[\pairfreq1] = {~sinpair[\pairseq].kr[1]}
+~sinpair[\pairfreq2] = {~sinpair[\pairseq].kr[2]};
 
-~p[\sinpair1].set(\freq, ~p[\pairfreq1], \amp, ~p[\pairenv1]);
-~p[\sinpair2].set(\freq, ~p[\pairfreq2], \amp, ~p[\pairenv2]);
+~sinpair[\sinpair1].set(\freq, ~sinpair[\pairfreq1], \amp, ~sinpair[\pairenv1]);
+~sinpair[\sinpair2].set(\freq, ~sinpair[\pairfreq2], \amp, ~sinpair[\pairenv2]);
 
-~p[\pairmix][0] = {~p[\sinpair1]};
-~p[\pairmix][1] = {~p[\sinpair2]};
+~sinpair[\mix][0] = {~sinpair[\sinpair1]};
+~sinpair[\mix][1] = {~sinpair[\sinpair2]};
 
+/////////////////////////////////
+// fx
+(~sinpair[\mix][4] = \filter -> {arg in;
+	JPverb.ar(in, t60:10, size:5);
+});
+~sinpair[\mix].set(\wet4, 0.5);
 
-~p[\paisum] = ~splay.(chans:~p[\pairmix].numChannels);
-~p[\paisum] <<> ~p[\pairmix];
-
-//~jpverb.def.sourceCode
-~p[\pairverb] = ~jpverb.(chans:~p[\paisum].numChannels);
-~p[\pairverb] <<> ~p[\paisum];
-~p[\pairverb].set(\wet, 0.5, \t60, 10, \size, 10)
-~p[\pairverb].play(fadeTime:5);
-~p[\pairverb].stop(fadeTime:5);
-~p[\pairverb].vol = 0.3;
-
-~waveloss.def.sourceCode
-~p[\dist] = ~waveloss.(chans:~p[\pairverb].numChannels);
-~p[\dist] <<> ~p[\pairverb];
-~p[\dist].set(\wet, 0.5);
-~p[\dist].vol = 0.03
-~p[\dist].play
+/////////////////////////////////
+// play
+~sinpair[\mix].play
+~sinpair[\mix].stop
+~sinpair[\mix].vol = 0.1
 
 
-App.recordVersion;
-s.stopRecording
+
+
 
 

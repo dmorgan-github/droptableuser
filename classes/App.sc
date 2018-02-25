@@ -25,7 +25,7 @@ App {
 
 		{
 			var file_name = PathName(current_doc.title);
-			var path = dirname ++ "/" ++ file_name.fileNameWithoutExtension ++ "-" ++ date ++ "." ++ file_name.extension;
+			var path = dirname ++ "/" ++ file_name.fileName;
 			var content = current_doc.string;
 			var file = File(path, "w");
 			path.debug("writing...");
@@ -54,7 +54,7 @@ App {
 
 		Document.openDocuments.do({arg doc;
 			var file_name = PathName(doc.title);
-			var path = dirname ++ "/" ++ file_name.fileNameWithoutExtension ++ "-" ++ date ++ "." ++ file_name.extension;
+			var path = dirname ++ "/" ++ file_name.fileName;
 			var content = doc.string;
 			var file = File(path, "w");
 			path.debug("writing...");

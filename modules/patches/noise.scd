@@ -1,33 +1,36 @@
 
-~noise_buf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/windows-system-samples/clbcatq.wav");
-~p[\oneshot] = ~oneshot.(buf:~noise_buf);
-~p[\oneshot].set(\trig, 1, \rate, 0.07, \start, 0.1, \end, 0.10241);
-~p[\oneshot].play;
+~os = ProxySpace.new(s);
+~os.quant = 1.0;
 
-~p[\oneshot_verb] = ~jpverb.(chans:~p[\oneshot].numChannels);
-~p[\oneshot_verb] <<> ~p[\oneshot]
-~p[\oneshot_verb].set(\wet, 0.6);
-~p[\oneshot_verb].play
-~p[\oneshot_verb].vol = 0.3
+~noise_buf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/windows-system-samples/clbcatq.wav");
+~os[\oneshot] = ~oneshot.(buf:~noise_buf);
+~os[\oneshot].set(\trig, 1, \rate, 0.07, \start, 0.1, \end, 0.10241);
+~os[\oneshot].play;
+
+~os[\oneshot_verb] = ~jpverb.(chans:~p[\oneshot].numChannels);
+~os[\oneshot_verb] <<> ~os[\oneshot]
+~os[\oneshot_verb].set(\wet, 0.6);
+~os[\oneshot_verb].play
+~os[\oneshot_verb].vol = 0.3
 
 (
-~p[\phase] = {
+~os[\phase] = {
 	LFNoise1.ar(0.05) * BufFrames.ir(~noise_buf);
 };
 )
 
 
-~p[\bufrd] = ~bufrd.(buf:~noise_buf);
-~p[\bufrd].set(\phase, ~p[\phase]);
-~p[\bufrd].play
-~p[\bufrd].stop(fadeTime:10)
-~p[\bufrd].vol = 0.3
+~os[\bufrd] = ~bufrd.(buf:~noise_buf);
+~os[\bufrd].set(\phase, ~os[\phase]);
+~os[\bufrd].play
+~os[\bufrd].stop(fadeTime:10)
+~os[\bufrd].vol = 0.3
 
-~p[\bufrd_verb] = ~jpverb.(chans:~p[\bufrd].numChannels);
-~p[\bufrd_verb] <<> ~p[\bufrd]
-~p[\bufrd_verb].set(\wet, 0.3);
-~p[\bufrd_verb].play(fadeTime:5);
-~p[\bufrd_verb].stop(fadeTime:10);
-~p[\bufrd_verb].vol = 0.05
+~os[\bufrd_verb] = ~jpverb.(chans:~os[\bufrd].numChannels);
+~os[\bufrd_verb] <<> ~os[\bufrd]
+~os[\bufrd_verb].set(\wet, 0.3);
+~os[\bufrd_verb].play(fadeTime:5);
+~os[\bufrd_verb].stop(fadeTime:10);
+~os[\bufrd_verb].vol = 0.05
 
 

@@ -28,8 +28,6 @@ SynthDef(\ethereal_pad, {
 
 	sig = Splay.ar(sig) * \amp.kr(0.1) * AmpCompA.kr(freq);
 
-	//sig = JPverb.ar(sig);
-
 	DetectSilence.ar(sig, time:0.5, doneAction:2);
 
 	Out.ar(\out.kr(0), sig);
@@ -37,15 +35,18 @@ SynthDef(\ethereal_pad, {
 }).add
 )
 
-~p = ProxySpace.new(s);
+~epad = ProxySpace.new(s);
+~epad.quant = 1.0;
 (
-~p[\eth_pad] = Pbind(
+~epad[\snd] = Pbind(
 	\instrument, \ethereal_pad,
 	\freq, Pseq([
-		['F2', 'D3'].namecps,
-		['B2b', 'G3'].namecps,
-		['E3', 'B2b'].namecps,
-		['E2b', 'G3'].namecps
+		//['F2', 'D3'].namecps,
+		//['B2b', 'G3'].namecps,
+		//['E3', 'B2b'].namecps,
+		//['E2b', 'G3'].namecps
+		['C2', 'A3', 'E3', 'B4'].namecps,
+		['D2', 'F3', 'G3', 'A3'].namecps
 	], inf),
 	\delta, 4,
 	\fb, Pwhite(0.5, 0.6),
@@ -54,15 +55,15 @@ SynthDef(\ethereal_pad, {
 )
 )
 
-~p[\eth_pad].play;
-~p[\eth_pad].stop;
+~epad[\snd].play;
+~epad[\snd].stop(fadeTime:5);
+~epad[\snd].vol = 0.3
 
-~p[\eth_pad_verb] = ~jpverb.(chans:~p[\eth_pad].numChannels);
-~p[\eth_pad_verb] <<> ~p[\eth_pad];
-~p[\eth_pad_verb].set(\t60, 10, \size, 5)
-~p[\eth_pad_verb].play
-~p[\eth_pad_verb].stop(fadeTime:10);
-~p[\eth_pad_verb].vol = 0.4
+(~epad[\snd][4] = \filter -> {arg in;
+	JPverb.ar(in, t60:10, size:5);
+})
+~epad[\snd].set(\wet4, 0.9)
+
 
 
 
