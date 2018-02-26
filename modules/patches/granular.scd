@@ -39,6 +39,7 @@ var windowSize = 1024;
 // patch
 ~gran = ProxySpace.new(s);
 ~gran.quant = 1.0;
+~gran.clock = TempoClock.default;
 
 ~gran[\grain_trig] = {Impulse.kr( LFNoise2.kr(1/8).range(1,4) )};
 
@@ -115,9 +116,9 @@ var windowSize = 1024;
 
 /////////////////////////////////
 // play
-~gran[\snd].play;
-~gran[\snd].stop;
-~gran[\snd].vol = 1;
+~gran[\snd].play(fadeTime:10);
+~gran[\snd].stop(fadeTime:10);
+~gran[\snd].vol = 0.3;
 
 
 

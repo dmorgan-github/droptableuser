@@ -16,11 +16,11 @@
 		// try to model a more analog sound
 		var sig = Mix.fill(4,{
 			//between 1 +- 0.01
-			var freqmult = 1+SinOsc.ar(LFNoise1.kr(rrand(0.25,0.5),4,5),pi.rand,0.01);
+			var freqmult = 1 + SinOsc.ar(LFNoise1.kr(rrand(0.25,0.5),4,5), pi.rand,0.01);
 			SinOsc.ar(freq_in * (freqmult), pi.rand);
 		});
 
-		sig = sig + VarSaw.ar(freq_in, mul: LFDNoise3.kr(0.25).range(0.1,0.4) );
+		//sig = sig + VarSaw.ar(freq_in, mul: LFDNoise3.kr(0.25).range(0.1,0.4) );
 
 		sig = sig * AmpCompA.kr(freq_in) * \amp.kr(amp);
 
@@ -32,7 +32,8 @@
 /////////////////////////////////
 // patch
 ~sinpair = ProxySpace.new(s);
-~sinpair.quant = 1.0;
+~sinpair.quant = 4.0;
+~sinpair.clock = TempoClock.default;
 
 (~sinpair[\pairseq][0] = {
 	var trig = \trig.tr;
@@ -44,7 +45,7 @@
 
 	\trig, 1,
 
-	\delta, 8,
+	\delta, 16,
 
 	\degree, Pbrown(0, 5, 1, inf),
 
@@ -126,13 +127,19 @@
 (~sinpair[\mix][4] = \filter -> {arg in;
 	JPverb.ar(in, t60:10, size:5);
 });
-~sinpair[\mix].set(\wet4, 0.5);
+
+(~sinpair[\mix][6] = \filter -> {arg in;
+	var sig = in;//Squiz.ar(in);
+	Greyhole.ar(sig);
+})
+
+~sinpair[\mix].set(\wet4, 0.5, \wet6, 0.7);
 
 /////////////////////////////////
 // play
 ~sinpair[\mix].play
 ~sinpair[\mix].stop
-~sinpair[\mix].vol = 0.1
+~sinpair[\mix].vol = 0.2
 
 
 

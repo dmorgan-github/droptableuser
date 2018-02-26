@@ -1,5 +1,6 @@
 ~res = ProxySpace.new(s);
-~res.quant = 1.0;
+~res.quant = 4.0;
+~res.clock = TempoClock.default;
 
 /////////////////////////////////
 // main sequencer
@@ -96,7 +97,7 @@
 
 	\freq, ~res[\freq],
 	\vdepth, 0.001,
-	\lag, 0.0012,
+	\lag, 0.012,
 
 	\f0, 1.02340,
 	\f1, ~res[\fl1],
@@ -156,7 +157,7 @@
 ~res[\snd2].gui
 ~res[\snd2].play(out:0, fadeTime:5);
 ~res[\snd2].stop(fadeTime:25);
-~res[\snd2].vol = 0.05;
+~res[\snd2].vol = 0.02
 
 /////////////////////////////////
 // fork the sound
