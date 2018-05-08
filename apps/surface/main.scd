@@ -1,6 +1,7 @@
 (
 var path = "/Users/david/projects/droptableuser/apps/surface/";
 var viewsPath = path ++ "views/";
+var foo = Font.setDefault(Font("Courier New", 10));
 
 var browse = {arg path;
 
@@ -65,6 +66,7 @@ var loadView = {arg file;
 	var objName = PathName(file).fileNameWithoutExtension;
 	var util = File.open(path ++ "funcs.scd", "r").readAllString.interpret;
 	var win;
+	var status = StaticText().string_("").font_(Font().size_(9));
 
 	envir.keysValuesDo({arg k,v;
 		if (v.class == NodeProxy and: k.asString.beginsWith(objName) )  {
@@ -80,14 +82,20 @@ var loadView = {arg file;
 		view = viewObj[\view].(objName, envir, util);
 	} {
 		var viewObj = File.open(viewPath, "r").readAllString.interpret;
+		// the data object
 		var obj = File.open(file, "r").readAllString.interpret;
 		view = viewObj[\view].(objName, envir, obj, util);
 	};
 
 	win = View().layout_(VLayout().spacing_(1).margins_(1)).palette_(QPalette.dark).name_(objName);
-	win.layout.add(alwaysOnTop.(win));
 
+	NotificationCenter.register(view, \status, win, {arg msg;
+		status.string_(msg);
+	});
+
+	win.layout.add(alwaysOnTop.(win));
 	win.layout.add(view);
+	win.layout.add(status);
 	win.front;
 };
 

@@ -2,9 +2,7 @@
 view: {arg name, envir, config, util;
 
 	var mainView, horizontalView, inputs, controls, presets;
-	var font = Font("Courrier New", 10);
 	var height = 20;
-	var status = StaticText().font_(font).string_("");
 	var filterSlot = 100;
 	var func = {
 
@@ -19,7 +17,7 @@ view: {arg name, envir, config, util;
 
 		var view = View().layout_(HLayout().margins_(2).spacing_(2)).background_(Color.rand);
 
-		2.do({arg i;
+		1.do({arg i;
 
 			view.layout.add(
 				HLayout(
@@ -39,7 +37,7 @@ view: {arg name, envir, config, util;
 						});
 						ctrl.items_([""] ++ result);
 					})
-					.font_(font.size_(8))
+					.font_(Font().size_(8))
 					.action_({arg ctrl;
 
 						var val = ctrl.item.asString;
@@ -52,23 +50,23 @@ view: {arg name, envir, config, util;
 
 							if ( envir[name.asSymbol].isNil) {
 								var msg = "node " + name + " does not exit";
-								status.string_("node " + name + " does not exit");
+								NotificationCenter.notify(mainView, \status, msg);
 								msg.error;
 							} {
 
 								if (i == 0) {
 									node[i] = {
-										var sig = envir[name.asSymbol].ar[0];
+										var sig = envir[name.asSymbol].ar;
 										sig = Pan2.ar(sig, (\pan_ ++ i).asSymbol.kr(-1));
 										sig * (\vol_ ++ i).asSymbol.kr(1)
 									};
-								} {
-									node[i] = {
-										var sig = envir[name.asSymbol].ar.wrapAt(1);
-										sig = Pan2.ar(sig, (\pan_ ++ i).asSymbol.kr(1));
-										sig * (\vol_ ++ i).asSymbol.kr(1)
-									};
-								};
+								} //{
+								//	node[i] = {
+								//		var sig = envir[name.asSymbol].ar.wrapAt(1);
+								//		sig = Pan2.ar(sig, (\pan_ ++ i).asSymbol.kr(1));
+								//		sig * (\vol_ ++ i).asSymbol.kr(1)
+								//	};
+								//};
 							}
 						}
 					}),
@@ -137,18 +135,17 @@ view: {arg name, envir, config, util;
 	});
 
 	inputs = inputsView.(envir[name]);
-	controls = util[\specsView].(name, config[\specs], envir[name], envir, mainView, status);
+	controls = util[\specsView].(name, config[\specs], envir[name], envir, mainView);
 	presets = util[\presetsView].(envir[name], config, mainView);
 
 	horizontalView = View().layout_(HLayout().margins_(2).spacing_(2));
 	horizontalView.layout.add(controls);
 
 	// main
-	mainView.layout.add(util[\playView].(name, envir[name], status));
+	mainView.layout.add(util[\playView].(name, envir[name], mainView));
 	mainView.layout.add(presets);
 	mainView.layout.add(inputs);
 	mainView.layout.add(horizontalView);
-	mainView.layout.add(status);
 
 	mainView;
 };

@@ -46,9 +46,8 @@ view: {arg name, envir;
 		node[id] = nil;
 	};
 
-	var font = Font("Courrier New", 10);
 	var view = View().layout_(VLayout().margins_(2).spacing_(2));
-	var status = StaticText().font_(font).string_("");
+	var status = StaticText().string_("");
 
 	var stepGrid = {
 		var view = View().layout_(GridLayout().margins_(2).spacing_(2));
@@ -120,18 +119,16 @@ view: {arg name, envir;
 		view;
 	};
 
-	view.layout.add(StaticText().string_(name).font_(font));
+	view.layout.add(StaticText().string_(name));
 	view.layout.add(
 		HLayout(
 
 			TextField()
 			.minWidth_(100)
-			.action_({arg ctrl; instrument = ctrl.value; status.string_(instrument)})
-			.font_(font),
+			.action_({arg ctrl; instrument = ctrl.value; status.string_(instrument)}),
 
 			PopUpMenu()
 			.items_(Scale.names)
-			.font_(font)
 			.action_({arg ctrl;
 				scale = ctrl.item; status.string_(scale)
 			}),
@@ -140,7 +137,6 @@ view: {arg name, envir;
 			.orientation_(\horizontal)
 			.thumbSize_(10)
 			.minWidth_(50)
-			.font_(font)
 			.value_(1.linlin(0.1, 8, 0, 1))
 			.action_({arg ctrl;
 				var val = ctrl.value.linlin(0, 1, 0.1, 8);
@@ -150,7 +146,6 @@ view: {arg name, envir;
 
 			PopUpMenu()
 			.items_([8,7,6,5,4,3,2,1])
-			.font_(font)
 			.value_(3)
 			.action_({arg ctrl;
 				octave = ctrl.item;
@@ -159,7 +154,6 @@ view: {arg name, envir;
 			Button()
 			//.fixedSize_(30@height)
 			.states_([ ["play"], ["stop"] ])
-			.font_(font)
 			.string_("play")
 			.action_({arg ctrl;
 				if (ctrl.value == 1) {
@@ -171,7 +165,6 @@ view: {arg name, envir;
 
 			Button()
 			//.fixedSize_(30@height)
-			.font_(font)
 			.string_("doc")
 			.mouseDownAction_({arg ctrl;
 				node.document;

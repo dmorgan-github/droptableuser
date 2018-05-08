@@ -1,5 +1,4 @@
 {
-
 	var getProxyList = {arg envir, node, specKey;
 
 		var result = List.new;
@@ -26,12 +25,11 @@
 
 	(
 		getProxyList: getProxyList,
-		specsView: {arg name, specs, node, envir, mainView, status;
+		specsView: {arg name, specs, node, envir, containerView;
 
 			var mappers = ();
 			var view = View()
 			.layout_(VLayout().margins_(1).spacing_(1))
-			//.background_(Color.rand)
 			.onClose_({
 				specs.keysDo({arg key;
 					node.unset(key);
@@ -49,74 +47,83 @@
 				var slider = Slider();
 				var stack = StackLayout();
 				var height = 20;
-				var font = Font("Courier New", 10);
 
 				var specKey = k.asSymbol;
-				var spec = v.asSpec;
+				var spec = if (v == \buf) {\buf} {v.asSpec};
 
 				if (mappers[k].isNil) {
 					mappers[k] = NodeProxy();
 				};
 
-				mappers[k][0] = { \val.kr.range(\min.kr(spec.minval), \max.kr(spec.maxval)); };
-				mappers[k].set(\val, spec.default.linlin(spec.minval, spec.maxval, -1, 1));
-				node.set(k, mappers[k]);
+				if (spec == \buf) {
+					mappers[k][0] = { \val.kr; };
+					mappers[k].set(\val, 0);
+					node.set(k, mappers[k]);
+				} {
+					mappers[k][0] = { \val.kr.range(\min.kr(spec.minval), \max.kr(spec.maxval)); };
+					mappers[k].set(\val, spec.default.linlin(spec.minval, spec.maxval, -1, 1));
+					node.set(k, mappers[k]);
+				};
 
 				layout.add(
 
-					PopUpMenu()
-					.maxHeight_(height * 0.8)
-					.allowsReselection_(true)
-					.mouseDownAction_({arg ctrl;
+					if (spec == \buf) {
 
-						var result = getProxyList.(envir, node, specKey);
-						/*
-						envir.sortedKeysValuesDo({arg k,v;
+					} {
+						PopUpMenu()
+						.maxHeight_(height * 0.8)
+						.allowsReselection_(true)
+						.mouseDownAction_({arg ctrl;
 
-						if (v.class == NodeProxy) {
+							var result = getProxyList.(envir, node, specKey);
+							/*
+							envir.sortedKeysValuesDo({arg k,v;
 
-						var rate = node.controlNames
-						.select({arg cn; cn.name == specKey})
-						.collect({arg cn; cn.rate})[0];
+							if (v.class == NodeProxy) {
 
-						if (v.rate == rate || rate.isNil){
-						result.add(k);
-						if (v.numChannels > 1) {
-						v.numChannels.do({arg i;
-						result.add(k ++ ":" ++ i);
-						});
-						};
-						}
-						}
-						});
-						*/
-						ctrl.items_([""] ++ result);
-					})
-					.font_(font.size_(8))
-					.action_({arg ctrl;
+							var rate = node.controlNames
+							.select({arg cn; cn.name == specKey})
+							.collect({arg cn; cn.rate})[0];
 
-						var val = ctrl.item.asString;
-						var split = val.split($:);
-						var name = split[0];
-
-						if (name.isNil or: (name == "") ) {
-							slider.enabled_(true);
-							rs.enabled_(false);
-							mappers[k].set(val, spec.map(slider.value).linlin(spec.minval, spec.maxval,-1,1))
-
-						} {
-							var lfo, name;
-							val = val.asSymbol;
-							lfo = envir[val];
-							if (lfo.isNil.not) {
-								slider.enabled_(false);
-								rs.enabled_(true);
-								mappers[k].set(\val, lfo);
-							} {
-								status.string_("node % doesn't exist in environment".format(val));
+							if (v.rate == rate || rate.isNil){
+							result.add(k);
+							if (v.numChannels > 1) {
+							v.numChannels.do({arg i;
+							result.add(k ++ ":" ++ i);
+							});
+							};
 							}
-						};
-					});
+							}
+							});
+							*/
+							ctrl.items_([""] ++ result);
+						})
+						.font_(Font().size_(8))
+						.action_({arg ctrl;
+
+							var val = ctrl.item.asString;
+							var split = val.split($:);
+							var name = split[0];
+
+							if (name.isNil or: (name == "") ) {
+								slider.enabled_(true);
+								rs.enabled_(false);
+								mappers[k].set(val, spec.map(slider.value).linlin(spec.minval, spec.maxval,-1,1));
+							} {
+								var lfo, name;
+								val = val.asSymbol;
+								lfo = envir[val];
+								if (lfo.isNil.not) {
+									slider.enabled_(false);
+									rs.enabled_(true);
+									mappers[k].set(\val, lfo);
+								} {
+									var msg = "node % doesn't exist in environment".format(val);
+									NotificationCenter.notify(containerView, \status, msg);
+								}
+							};
+						});
+					}
 				);
 
 				///////////////////////////////////
@@ -200,7 +207,7 @@
 				);
 				*/
 
-				//NotificationCenter.register(mainView, k, slider, {arg val;
+				//NotificationCenter.register(containerView, k, slider, {arg val;
 				//	slider.valueAction_(val.linlin(-1,1,0,1));
 				//});
 
@@ -209,7 +216,7 @@
 					StackLayout(
 						StaticText()
 						.string_(k)
-						.font_(font.bold_(true))
+						.font_(Font().bold_(true))
 						.minWidth_(100)
 						.align_(\center),
 
@@ -218,11 +225,13 @@
 						.thumbSize_(10)
 						.minWidth_(100)
 						.maxHeight_(height)
-						.font_(font)
 						.background_(Color.white.alpha_(0.0))
 						.action_({arg ctrl;
+
 							var val = spec.map(ctrl.value);
+							var msg = k ++ " " ++ val;
 							mappers[k].set(\val, val.linlin(spec.minval, spec.maxval, -1, 1));
+							NotificationCenter.notify(containerView, \status, msg);
 						})
 						.value_(v.asSpec.unmap(v.asSpec.default))
 
@@ -293,25 +302,24 @@
 			view;
 		},
 
-		playView: {arg name, node, status;
+		playView: {arg name, node, containerView;
 
 			var height = 20;
-			var font = Font("Courrier New", 10);
 			var wetKey = ("wet" ++ 100).asSymbol;
 			var view = View().layout_(HLayout().margins_(2).spacing_(2));
 
-			view.layout.add(StaticText().string_(name).font_(font));
+			view.layout.add(StaticText().string_(name));
 
 			view.layout.add(
 				Slider()
 				.orientation_(\horizontal)
 				.thumbSize_(10)
 				.fixedSize_(50@height)
-				.font_(font)
 				.value_(1.linlin(0,4,0,1))
 				.action_({arg ctrl;
+
 					var val = ctrl.value.linlin(0,1,0,4);
-					status.string_("vol: " ++ val.asString);
+					NotificationCenter.notify(containerView, \status, "vol: " ++ val.asString);
 					node.vol = val;
 				})
 			);
@@ -321,12 +329,11 @@
 				.orientation_(\horizontal)
 				.thumbSize_(10)
 				.fixedSize_(50@height)
-				.font_(font)
 				.value_(1.linlin(0.1, 8, 0, 1))
 				.action_({arg ctrl;
 					var val = ctrl.value.linlin(0, 1, 0.1, 8);
 					node.fadeTime = val;
-					status.string_("fadetime: " ++ val.asString);
+					NotificationCenter.notify(containerView, \status, "fadetime: " ++ val.asString);
 				})
 			);
 
@@ -336,11 +343,10 @@
 				.orientation_(\horizontal)
 				.thumbSize_(10)
 				.fixedSize_(50@height)
-				.font_(font)
 				.value_(1)
 				.action_({arg ctrl;
 					node.set(wetKey, ctrl.value);
-					status.string_("wet: " ++ ctrl.value.asString);
+					NotificationCenter.notify(containerView, \status, "wet: " ++ ctrl.value.asString);
 				})
 			);
 
@@ -348,7 +354,6 @@
 				Button()
 				.fixedSize_(30@height)
 				.states_([ ["play"], ["stop"] ])
-				.font_(font)
 				.string_("play")
 				.action_({arg ctrl;
 					if (ctrl.value == 1) {
@@ -362,7 +367,6 @@
 			view.layout.add(
 				Button()
 				.fixedSize_(30@height)
-				.font_(font)
 				.string_("doc")
 				.mouseDownAction_({arg ctrl; node.document; })
 			);
@@ -373,3 +377,6 @@
 	);//[\playView].( \bobo, (), View()).front;
 
 }.();
+
+
+

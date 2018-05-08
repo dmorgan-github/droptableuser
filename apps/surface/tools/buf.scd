@@ -1,4 +1,4 @@
-{
+
 ~recorder = {arg dur, src, buf=nil, bufnum=nil;
 
 	var numChannels = src.numChannels;
@@ -70,18 +70,6 @@
 
 ~bufs = ~bufs ? ();
 
-~bufferView = {
-
-	var sfv = SoundFileView()
-	.background_(Color.gray(0.3));
-
-	sfv.timeCursorOn = true;
-	sfv.timeCursorColor = Color.blue(alpha:0.5);
-	sfv.setSelectionColor(0, Color.blue(alpha:0.5));
-	sfv.gridResolution = 0.0;
-	sfv;
-};
-
 ~bufManager = {
 
 	var soundIn = NodeProxy.audio(s, 1).source_({
@@ -96,6 +84,18 @@
 	var view = View()
 	.layout_(VLayout().spacing_(0).margins_(0));
 
+	var bufferView = {
+
+		var sfv = SoundFileView()
+		.background_(Color.gray(0.3));
+
+		sfv.timeCursorOn = true;
+		sfv.timeCursorColor = Color.blue(alpha:0.5);
+		sfv.setSelectionColor(0, Color.blue(alpha:0.5));
+		sfv.gridResolution = 0.0;
+		sfv;
+	};
+
 	var addRow = {
 
 		var rec_buf;
@@ -104,7 +104,7 @@
 
 		var key = ('buf' ++ bufnum).asSymbol;
 
-		var sfv = ~bufferView.();
+		var sfv = bufferView.();
 
 		var durBox = NumberBox()
 		.fixedWidth_(35)
@@ -178,8 +178,6 @@
 			updatePlot.(buf);
 		};
 
-		var row, controls;
-
 		var play = Button().states_([
 			[">"],
 			["||"]
@@ -248,10 +246,15 @@
 			});
 		});
 
-		row = View().layout_(
+		var row = View().layout_(
 
 			VLayout (
 				HLayout(
+
+					StaticText()
+					.string_(bufnum)
+					.font_(font)
+					.maxWidth_(25),
 
 					TextField()
 					.value_(key)
@@ -279,9 +282,10 @@
 
 						row.remove();
 						onRowRemove.value();
+
 						{
-							var sizeHint = view.sizeHint;
-							view.resizeTo(sizeHint.width, sizeHint.height);
+							//var sizeHint = view.sizeHint;
+							//view.resizeTo(sizeHint.width, sizeHint.height);
 							if (view.children.size == 0) {
 								addRow.();
 							}
@@ -304,23 +308,14 @@
 
 	addRow.();
 
-	/*
-	win.layout.add(Button().states_([ ["__"], ["--"]]).action_({arg ctrl;
-		if (ctrl.value == 1) {
-			win.alwaysOnTop = false;
-		}{
-			win.alwaysOnTop = true;
-		}
-	})
-	.fixedSize_(15)
-	.font_(font));
-	*/
-
 	win.layout.add(view);
 	win;//.alwaysOnTop_(true).front;
 };
 
-	(view:~bufManager.())
 
+{
+	(view:~bufManager.())
 }.()
+
+
 

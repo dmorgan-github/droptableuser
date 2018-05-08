@@ -65,20 +65,18 @@ view: {arg name, envir, util;
 			node = nil;
 		});
 		var soundFileView;
-		var font = Font("Courrier New", 10);
-		var bufpath = StaticText().string_("").font_(font);
+		var bufpath = StaticText().string_("");
 		var bufdur = "";
 		var height = 20;
-		var status = StaticText().font_(font).string_("");
+		var status = StaticText().string_("");
 
 		var menuView = {
 
 			var view = View().layout_(HLayout().margins_(2).spacing_(2));
-			view.layout.add(util[\playView].(name, node, status));
+			view.layout.add(util[\playView].(name, node, main));
 
 			view.layout.add(Button()
 				.string_("open")
-				.font_(font)
 				.action_({
 					Dialog.openPanel(
 						okFunc: {arg path;
@@ -138,7 +136,6 @@ view: {arg name, envir, util;
 		main.layout.add(waveView.());
 
 		main.layout.add(PopUpMenu()
-			.font_(font)
 			.items_(["hann", "hamming", "welch", "blackman", "rectangle", "perc", "triangle"])
 			.action_({arg ctrl;
 				onEnvChange.(ctrl.item);
@@ -146,7 +143,7 @@ view: {arg name, envir, util;
 			.value_(0)
 		);
 
-		main.layout.add(util[\specsView].(specs, node, envir, main, status));
+		main.layout.add(util[\specsView].(specs, node, envir, main));
 		main.layout.add(status);
 		main;
 	};

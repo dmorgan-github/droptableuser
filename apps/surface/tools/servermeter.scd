@@ -12,7 +12,7 @@ view: {arg name, envir;
 
 	view.layout.add(StaticText()
 		.string_(s.options.inDevice ++ " | " ++ s.options.outDevice)
-		.font_(Font("Courrier New", 10)).maxHeight_(20));
+		.maxHeight_(20));
 	view.layout.add(smv.view);
 	view;
 }

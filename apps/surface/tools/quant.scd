@@ -1,7 +1,6 @@
 (
 view: {arg name, envir, util;
 
-	var font = Font("Courrier New", 10);
 	var node = NodeProxy.control;
 	var view = View().layout_(VLayout().margins_(2).spacing_(2)).onClose_({
 		envir[name].free;
@@ -22,7 +21,6 @@ view: {arg name, envir, util;
 
 	view.layout.add(
 		PopUpMenu()
-		.font_(font)
 		.mouseDownAction_({arg ctrl;
 			var result = util[\getProxyList].(envir, node, \trig);
 			ctrl.items_([""] ++ result);

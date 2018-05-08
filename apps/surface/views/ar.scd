@@ -2,9 +2,7 @@
 view: {arg name, envir, config, util;
 
 	var mainView, horizontalView, inputs, controls, presets;
-	var font = Font("Courrier New", 10);
 	var height = 20;
-	var status = StaticText().font_(font).string_("");
 	var filterSlot = 100;
 	var func = {
 
@@ -32,17 +30,16 @@ view: {arg name, envir, config, util;
 		}.defer(envir[name].fadeTime + 1);
 	});
 
-	controls = util[\specsView].(name, config[\specs], envir[name], envir, mainView, status);
+	controls = util[\specsView].(name, config[\specs], envir[name], envir, mainView);
 	presets = util[\presetsView].(envir[name], config, mainView);
 
 	horizontalView = View().layout_(HLayout().margins_(2).spacing_(2));
 	horizontalView.layout.add(controls);
 
 	// main
-	mainView.layout.add(util[\playView].(name, envir[name], status));
+	mainView.layout.add(util[\playView].(name, envir[name], mainView));
 	mainView.layout.add(presets);
 	mainView.layout.add(horizontalView);
-	mainView.layout.add(status);
 
 	mainView;
 };

@@ -4,14 +4,13 @@ view: {arg name, envir;
 	var node = NodeProxy.audio.quant_(1.0);
 	var buf = Buffer.sendCollection(s, Env.perc.discretize(1024), 1);
 
-	var font = Font("Courrier New", 10);
 	var height = 20;
 	var view = View().layout_(VLayout().margins_(2).spacing_(2)).onClose_({
 		node.stop;
 		node.clear;
 		buf.free;
 	});
-	var status = StaticText().font_(font).string_("");
+	var status = StaticText().string_("");
 
 	var main = {
 
@@ -103,7 +102,7 @@ view: {arg name, envir;
 		view;
 	};
 
-	view.layout.add(StaticText().string_(name).font_(font));
+	view.layout.add(StaticText().string_(name));
 	view.layout.add(
 		HLayout(
 
@@ -113,7 +112,6 @@ view: {arg name, envir;
 			.orientation_(\horizontal)
 			.thumbSize_(10)
 			.fixedSize_(50@height)
-			.font_(font)
 			.value_(1.linlin(0.1, 8, 0, 1))
 			.action_({arg ctrl;
 				var val = ctrl.value.linlin(0, 1, 0.1, 8);
@@ -124,7 +122,6 @@ view: {arg name, envir;
 			Button()
 			.fixedSize_(30@height)
 			.states_([ ["play"], ["stop"] ])
-			.font_(font)
 			.string_("play")
 			.action_({arg ctrl;
 				if (ctrl.value == 1) {
@@ -136,7 +133,6 @@ view: {arg name, envir;
 
 			Button()
 			.fixedSize_(30@height)
-			.font_(font)
 			.string_("doc")
 			.mouseDownAction_({arg ctrl; node.document; })
 		)
