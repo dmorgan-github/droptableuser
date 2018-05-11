@@ -49,16 +49,16 @@
 				var height = 20;
 
 				var specKey = k.asSymbol;
-				var spec = if (v == \buf) {\buf} {v.asSpec};
+				var spec = if (v == \set) {\set} {v.asSpec};
 
 				if (mappers[k].isNil) {
 					mappers[k] = NodeProxy();
 				};
 
-				if (spec == \buf) {
-					mappers[k][0] = { \val.kr; };
-					mappers[k].set(\val, 0);
-					node.set(k, mappers[k]);
+				if (spec == \set) {
+					//mappers[k][0] = { \val.kr; };
+					//mappers[k].set(\val, 0);
+					//node.set(k, nil);
 				} {
 					mappers[k][0] = { \val.kr.range(\min.kr(spec.minval), \max.kr(spec.maxval)); };
 					mappers[k].set(\val, spec.default.linlin(spec.minval, spec.maxval, -1, 1));
@@ -70,182 +70,106 @@
 					if (spec == \buf) {
 
 					} {
-						PopUpMenu()
-						.maxHeight_(height * 0.8)
-						.allowsReselection_(true)
-						.mouseDownAction_({arg ctrl;
 
-							var result = getProxyList.(envir, node, specKey);
-							/*
-							envir.sortedKeysValuesDo({arg k,v;
+						var dragSink, button;
 
-							if (v.class == NodeProxy) {
-
-							var rate = node.controlNames
-							.select({arg cn; cn.name == specKey})
-							.collect({arg cn; cn.rate})[0];
-
-							if (v.rate == rate || rate.isNil){
-							result.add(k);
-							if (v.numChannels > 1) {
-							v.numChannels.do({arg i;
-							result.add(k ++ ":" ++ i);
-							});
-							};
-							}
-							}
-							});
-							*/
-							ctrl.items_([""] ++ result);
-						})
-						.font_(Font().size_(8))
-						.action_({arg ctrl;
-
-							var val = ctrl.item.asString;
-							var split = val.split($:);
-							var name = split[0];
-
-							if (name.isNil or: (name == "") ) {
-								slider.enabled_(true);
-								rs.enabled_(false);
-								mappers[k].set(val, spec.map(slider.value).linlin(spec.minval, spec.maxval,-1,1));
+						button = Button()
+						.fixedSize_(8)
+						.states_([ ["x"] ])
+						.font_(Font().size_(9))
+						.action_({
+							dragSink.string = "";
+							slider.enabled_(true);
+							rs.enabled_(false);
+							if (spec == \set) {
+								node.set(specKey, nil);
 							} {
-								var lfo, name;
-								val = val.asSymbol;
-								lfo = envir[val];
-								if (lfo.isNil.not) {
-									slider.enabled_(false);
-									rs.enabled_(true);
-									mappers[k].set(\val, lfo);
-								} {
-									var msg = "node % doesn't exist in environment".format(val);
-									NotificationCenter.notify(containerView, \status, msg);
-								}
+								mappers[k].set(\val, spec.map(slider.value).linlin(spec.minval, spec.maxval,-1,1));
 							};
-						});
+
+							button.enabled = false;
+						})
+						.enabled_(false);
+
+						dragSink = DragSink()
+						.string_("<-  ")
+						.background_(Color.clear)
+						.canReceiveDragHandler_({
+							var obj = View.currentDrag;
+							var node = obj[\node];
+							(node.rate == \control);
+						})
+						.receiveDragHandler_({arg v;
+
+							var obj = View.currentDrag.value;
+							var lfo = obj[\node];
+							var name = obj[\name];
+
+							if (lfo.isNil.not) {
+								slider.enabled_(false);
+								rs.enabled_(true);
+								if (spec == \set) {
+									node.set(specKey, lfo);
+								} {
+									mappers[k].set(\val, lfo);
+								};
+
+								v.string = name;
+								button.enabled = true;
+							} {
+								var msg = "node % doesn't exist in environment".format(name);
+								NotificationCenter.notify(containerView, \status, msg);
+								button.enabled = false;
+							}
+						})
+						.maxHeight_(35)
+						.minWidth_(35);
+
+						HLayout(
+							dragSink, button
+						);
 					}
 				);
 
 				///////////////////////////////////
-				layout.add(
-					rs.action_({arg ctrl;
-						var min = spec.map(ctrl.lo);
-						var max = spec.map(ctrl.hi);
-						mappers[k].set(\min, min, \max, max);
-					})
-				);
-
-				/*
-				layout.add(
-
-				stack.add(
-				TextField()
-				//.fixedSize_(60@height)
-				.minWidth_(60)
-				.maxHeight_(height)
-				.font_(font)
-				.action_({arg ctrl;
-
-				var val = ctrl.value;
-				if (val.size > 0) {
-
-				var lfo, name;
-				val = val.asSymbol;
-				lfo = envir[val];
-				if (lfo.isNil.not) {
-				slider.enabled_(false);
-				nb.enabled_(false);
-				node.set(k,lfo);
-				} {
-				status.string_("node % doesn't exist in environment".format(val));
-				}
-				} {
-				slider.enabled_(true);
-				nb.enabled_(true);
-				node.unmap(k)
-				}
-				})
-				.mouseUpAction_({arg view,x,y,mod;
-
-				// alt 524288
-				if (mod == 524288) {
-				stack.index = 1;
-				} {
-				status.string_("alt + click to set range");
-				}
-				});
-				);
-
-				stack.add(
-				RangeSlider()
-				//.fixedSize_(60@height)
-				.minWidth_(60)
-				.maxHeight_(height)
-				.background_(Color.white.alpha_(0))
-				.orientation_(\horizontal)
-				.mouseUpAction_({arg view,x,y,mod;
-
-				// alt 524288
-				if (mod == 524288) {
-				stack.index = 0;
-				} {
-				status.string_(view.lo.trunc(0.001).asString ++ " : " + view.hi.trunc(0.001).asString);
-				}
-				})
-				.action_({arg ctrl;
-				var spec = v.asSpec;
-				var lo = spec.map(ctrl.lo);
-				var hi = spec.map(ctrl.hi);
-				var key_lo = (k ++ '_min').asSymbol;
-				var key_hi = (k ++ '_max').asSymbol;
-				node.set(key_lo, lo, key_hi, hi);
-				status.string_(lo.asString ++ " : " + hi.asString);
-				})
-				.lo_(v.asSpec.unmap(v.asSpec.minval))
-				.hi_(v.asSpec.unmap(v.asSpec.maxval))
-				);
-				);
-				*/
-
-				//NotificationCenter.register(containerView, k, slider, {arg val;
-				//	slider.valueAction_(val.linlin(-1,1,0,1));
-				//});
-
-				layout.add(
-
-					StackLayout(
-						StaticText()
-						.string_(k)
-						.font_(Font().bold_(true))
-						.minWidth_(100)
-						.align_(\center),
-
-						slider
-						.orientation_(\horizontal)
-						.thumbSize_(10)
-						.minWidth_(100)
-						.maxHeight_(height)
-						.background_(Color.white.alpha_(0.0))
-						.action_({arg ctrl;
-
-							var val = spec.map(ctrl.value);
-							var msg = k ++ " " ++ val;
-							mappers[k].set(\val, val.linlin(spec.minval, spec.maxval, -1, 1));
+				if (spec != \set) {
+					layout.add(
+						rs.action_({arg ctrl;
+							var min = spec.map(ctrl.lo);
+							var max = spec.map(ctrl.hi);
+							var msg = "min: " ++ min ++ "; max: " ++ max;
+							mappers[k].set(\min, min, \max, max);
 							NotificationCenter.notify(containerView, \status, msg);
 						})
-						.value_(v.asSpec.unmap(v.asSpec.default))
+					);
 
-					).mode_(\stackAll).index_(1)
-				);
+					layout.add(
 
-				/*
-				layout.add(
-				nb.fixedSize_(40@height).font_(font).action_({arg ctrl;
-				slider.valueAction_(v.asSpec.unmap(ctrl.value))
-				})
-				.value_(v.asSpec.default)
-				);
-				*/
+						StackLayout(
+							StaticText()
+							.string_(k)
+							.font_(Font().bold_(true))
+							.minWidth_(100)
+							.align_(\center),
+
+							slider
+							.orientation_(\horizontal)
+							.thumbSize_(10)
+							.minWidth_(100)
+							.maxHeight_(height)
+							.background_(Color.white.alpha_(0.0))
+							.action_({arg ctrl;
+
+								var val = spec.map(ctrl.value);
+								var msg = k ++ " " ++ val;
+								mappers[k].set(\val, val.linlin(spec.minval, spec.maxval, -1, 1));
+								NotificationCenter.notify(containerView, \status, msg);
+							})
+							.value_(v.asSpec.unmap(v.asSpec.default))
+
+						).mode_(\stackAll).index_(1)
+					);
+				};
 
 				view.layout.add(layout);
 
@@ -369,6 +293,54 @@
 				.fixedSize_(30@height)
 				.string_("doc")
 				.mouseDownAction_({arg ctrl; node.document; })
+			);
+
+			view;
+		},
+
+		inputsView: {arg node, mainView;
+
+			var view = View().layout_(HLayout().margins_(2).spacing_(2)).background_(Color.rand);
+			var dragSink, button;
+
+			button = Button()
+			.fixedSize_(8)
+			.states_([ ["x"] ])
+			.font_(Font().size_(9))
+			.action_({
+				dragSink.string = "";
+				button.enabled = false;
+			})
+			.enabled_(false);
+
+			dragSink = DragSink()
+			.string_("<-  ")
+			.background_(Color.clear)
+			.canReceiveDragHandler_({
+				var obj = View.currentDrag;
+				var node = obj[\node];
+				(node.rate == \audio);
+			})
+			.receiveDragHandler_({arg v;
+
+				var obj = View.currentDrag.value;
+				var input = obj[\node];
+				var name = obj[\name];
+				var msg = "inuput: " ++ name;
+				v.string = name;
+
+				node[0] = {
+					var sig = input.ar;
+					sig * \vol.kr(1)
+				};
+
+				NotificationCenter.notify(mainView, \status, msg);
+			})
+			.maxHeight_(35)
+			.minWidth_(35);
+
+			view.layout.add(
+				HLayout(dragSink, button,nil)
 			);
 
 			view;

@@ -5,14 +5,15 @@ view: {arg objName, envir, util;
 	var specs;
 	var playView, specsView;
 
-	var node = NodeProxy.audio(s, 2).source_({
+	var node = NodeProxy.audio(s, 1).source_({
 		var buf = \buf.kr();
 		var sig = PlayBufCF.ar(1, buf, rate:\rate.kr(1), trigger:1, startPos:0, loop:1);
 		var env = Env.asr.kr(gate:1);
-		Splay.ar(sig) * env
+		sig * env;
 	});
 
 	specs = (
+		buf: \set,
 		rate: [0.1, 4, \lin, 0, 1]
 	);
 
@@ -21,10 +22,8 @@ view: {arg objName, envir, util;
 	specsView = util[\specsView].(objName, specs, node, envir, view);
 
 	view.layout.add(playView);
-	view.layout.add(NumberBox().action_({arg ctrl;
-		node.set(\buf, 60);
-	}).normalColor_(Color.white));
 	view.layout.add(specsView);
 	view;
 }
 )
+

@@ -67,6 +67,7 @@ var loadView = {arg file;
 	var util = File.open(path ++ "funcs.scd", "r").readAllString.interpret;
 	var win;
 	var status = StaticText().string_("").font_(Font().size_(9));
+	//var node;
 
 	envir.keysValuesDo({arg k,v;
 		if (v.class == NodeProxy and: k.asString.beginsWith(objName) )  {
@@ -93,7 +94,21 @@ var loadView = {arg file;
 		status.string_(msg);
 	});
 
-	win.layout.add(alwaysOnTop.(win));
+	win.layout.add(
+		HLayout(alwaysOnTop.(win),
+			nil,
+			if (envir[objName] != nil) {
+				DragSource()
+				.background_(Color.clear)
+				.object_((node:envir[objName],name:objName))
+				.string_("-->")
+				.maxWidth_(30)
+				.minWidth_(30)
+				.align_(\right)
+			}
+		)
+	);
+
 	win.layout.add(view);
 	win.layout.add(status);
 	win.front;

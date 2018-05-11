@@ -3,7 +3,6 @@ view: {arg name, envir, config, util;
 
 	var view, subview, presets;
 	var height = 20;
-	var status = StaticText().string_("");
 
 	envir[name] = NodeProxy.control;
 	envir[name].fadeTime = 1;
@@ -27,7 +26,6 @@ view: {arg name, envir, config, util;
 
 	view.layout.add(presets);
 	view.layout.add(subview);
-	view.layout.add(status);
 	view;
 };
 )

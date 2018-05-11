@@ -246,6 +246,14 @@
 			});
 		});
 
+		var output = DragSource()
+		.background_(Color.clear)
+		.object_((node:NodeProxy.control.source_({DC.kr(bufnum)}),name:key))
+		.string_("-->")
+		.maxWidth_(30)
+		.minWidth_(30)
+		.align_(\right);
+
 		var row = View().layout_(
 
 			VLayout (
@@ -296,7 +304,8 @@
 					rec,
 					overdub,
 					play,
-					file
+					file,
+					output
 
 				).spacing_(1).margins_(1),
 				sfv

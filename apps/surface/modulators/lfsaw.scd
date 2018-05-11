@@ -4,6 +4,6 @@ func: {
 	LFSaw.kr(freq);
 },
 specs: (
-	freq: [0.001, 80, \lin, 0, 1]
+	freq: [1/256, 80, \lin, 0, 1]
 )
 )
