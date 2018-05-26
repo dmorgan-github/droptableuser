@@ -25,6 +25,7 @@
 
 	(
 		getProxyList: getProxyList,
+
 		specsView: {arg name, specs, node, envir, containerView;
 
 			var mappers = ();
@@ -56,9 +57,7 @@
 				};
 
 				if (spec == \set) {
-					//mappers[k][0] = { \val.kr; };
-					//mappers[k].set(\val, 0);
-					//node.set(k, nil);
+
 				} {
 					mappers[k][0] = { \val.kr.range(\min.kr(spec.minval), \max.kr(spec.maxval)); };
 					mappers[k].set(\val, spec.default.linlin(spec.minval, spec.maxval, -1, 1));
@@ -92,7 +91,7 @@
 						.enabled_(false);
 
 						dragSink = DragSink()
-						.string_("<-  ")
+						.string_("<-  " ++ k)
 						.background_(Color.clear)
 						.canReceiveDragHandler_({
 							var obj = View.currentDrag;
@@ -295,6 +294,101 @@
 				.mouseDownAction_({arg ctrl; node.document; })
 			);
 
+			view;
+		},
+
+		multiInputsView: {arg node, mainView;
+
+			var view = View().layout_(VLayout().spacing_(1).margins_(1));
+
+			//~bobo.objects.indices.lastIndexForWhich({arg i; i < 100;})
+
+			var addRow = {
+
+				var row = View().layout_(HLayout().spacing_(1).margins_(1));
+
+				var dragSink;
+
+				var num = -1;
+
+				var name;
+
+				dragSink = DragSink()
+				.string_("<-  ")
+				.background_(Color.clear)
+				.canReceiveDragHandler_({
+					var obj = View.currentDrag;
+					var node = obj[\node];
+					(node.rate == \audio);
+				})
+				.receiveDragHandler_({arg v;
+
+					var obj = View.currentDrag.value;
+					var input = obj[\node];
+					var msg;
+
+					name = obj[\name];
+					msg = "inuput: " ++ name;
+					v.string = name;
+
+					if (num < 0) {
+						num = node.objects.indices.select({arg val; val < 100}).last ? num;
+						num = num + 1;
+					};
+
+					node[num] = \mix -> { input.ar; };
+					//node[num].set(('mix' ++ num).asSymbol, 1);
+					NotificationCenter.notify(mainView, \status, msg);
+				})
+				.fixedHeight_(20)
+				.minWidth_(100); // width gets jacked up
+
+				row.layout.add(dragSink);
+
+				row.layout.add(Slider()
+					.fixedHeight_(20)
+					.minWidth_(35)
+					.orientation_(\horizontal)
+					.action_({arg ctrl;
+						var val = ctrl.value;
+						var msg = "";
+						if (num >= 0) {
+							var key = ('mix' ++ num).asSymbol;
+							node.set(key, val);
+
+							msg = "mix % %".format(name, val);
+							NotificationCenter.notify(mainView, \status, msg);
+						}
+					}).valueAction_(1)
+				);
+
+				row.layout.add(Button().string_("+").action_({
+					addRow.();
+				}).fixedSize_(20));
+
+				row.layout.add(Button().string_("-").action_({
+
+					row.remove();
+					if (num >= 0) {
+
+						var msg = "remove %".format(name);
+						node[num] = nil;
+						NotificationCenter.notify(mainView, \status, msg);
+					};
+
+					if (view.children.size == 0) {
+						addRow.();
+					};
+
+					{
+						var sizeHint = view.sizeHint;
+						view.resizeTo(sizeHint.width, sizeHint.height)
+					}.defer(0.001)
+
+				}).fixedSize_(20));
+				view.layout.add(row);
+			};
+			addRow.();
 			view;
 		},
 

@@ -70,7 +70,7 @@
 
 ~bufs = ~bufs ? ();
 
-~bufManager = {
+~bufManager = {arg objName, envir, util;
 
 	var soundIn = NodeProxy.audio(s, 1).source_({
 		Mix.ar(SoundIn.ar([0,1]));
@@ -112,8 +112,15 @@
 		.stringColor_(Color.white)
 		.normalColor_(Color.white)
 		.action_({arg ctrl;
+			var dur = ctrl.value;
+			var buf;
 			rec.enabled = true;
 			overdub.enabled = true;
+
+			NotificationCenter.notify(win, \status, "alloc: " ++ key);
+			// allocate a buffer
+			buf = Buffer.alloc(s, dur * s.sampleRate, 1, bufnum:bufnum);
+			~bufs[key] = buf
 		});
 
 		var updatePlot = {arg buf;
@@ -248,7 +255,7 @@
 
 		var output = DragSource()
 		.background_(Color.clear)
-		.object_((node:NodeProxy.control.source_({DC.kr(bufnum)}),name:key))
+		.object_((node:NodeProxy.control.source_({DC.kr(bufnum)}),name:key, bufnum:bufnum))
 		.string_("-->")
 		.maxWidth_(30)
 		.minWidth_(30)
@@ -305,6 +312,10 @@
 					overdub,
 					play,
 					file,
+					Button().string_("zero").action_({
+						~bufs[key].zero;
+						NotificationCenter.notify(win, \status, "zero: " ++ key);
+					}),
 					output
 
 				).spacing_(1).margins_(1),
@@ -318,13 +329,13 @@
 	addRow.();
 
 	win.layout.add(view);
-	win;//.alwaysOnTop_(true).front;
+
+	win.onClose_({
+		"destroy: ".debug(objName);
+	});
 };
 
-
 {
-	(view:~bufManager.())
+	(view:~bufManager)
 }.()
-
-
 

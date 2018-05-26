@@ -1,20 +1,17 @@
 (
 func: {arg in;
 
-	//BPF.ar(in,
-	//	\freq.kr.range(\freq_min.kr(20), \freq_max.kr(20000)).clip(20, 20000),
-	//	\rq.kr.range(\rq_min.kr(0), \rq_max.kr(1))
-	//)
-
+	var bw = \bw.kr(1);
 	var sig = BBandPass.ar(in,
-		\freq.kr(1000).clip(20, 20000),
-		\bw.kr(1)
+		\freq.kr(1200).clip(20, 20000),
+		bw,
+		mul:bw.reciprocal.sqrt
 	);
 
 	sig;
 },
 specs: (
-	freq: [20, 20000, \lin, 0, 1000],
+	freq: [20, 20000, \lin, 0, 1200],
 	bw: [0, 10.0, \lin, 0, 1]
 )
 )

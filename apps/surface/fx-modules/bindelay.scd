@@ -14,15 +14,23 @@ view: {arg objName, envir, util;
 		var pulse = Impulse.ar(0.33);
 		var chain = FFT(buf, in, 0.25);
 		chain = PV_BinDelay(chain, maxdel, \dels.kr, \fb.kr, 0.25);
-		Splay.ar(in + IFFT(chain));
+		Pan2.ar(in + IFFT(chain), \pan.kr(0));
 	})
 	.set(\dels, dels, \fb, fb);
+
+	var specs = (
+		pan: [-1,1,\lin,0,0]
+	);
 
 	var view = View().layout_(VLayout());
 
 	var playView = util[\playView].(objName, node, view);
 
-	var inputsView = util[\inputsView].(node, view);
+	//var inputsView = util[\inputsView].(node, view);
+
+	var multiInputsView = util[\multiInputsView].(node, view);
+
+	var specsView = util[\specsView].(objName, specs, node, envir, view);
 
 	var delayView = MultiSliderView().action_({arg ctrl;
 		var val = ctrl.currentvalue * maxdel;
@@ -51,9 +59,10 @@ view: {arg objName, envir, util;
 	.gap_(0);
 
 	view.layout.add(playView);
-	view.layout.add(inputsView);
+	view.layout.add(multiInputsView);
 	view.layout.add(delayView);
 	view.layout.add(fbView);
+	view.layout.add(specsView);
 
 	envir[objName] = node;
 

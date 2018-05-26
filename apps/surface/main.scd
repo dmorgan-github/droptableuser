@@ -126,7 +126,7 @@ var show = {arg path;
 	var left = Window.screenBounds.width - width;
 
 	var win = Window("Browser", Rect(left, top, width + (paddingX * 3), height + (paddingY * 2)));
-	var view = win.view.palette_(QPalette.dark).alwaysOnTop_(true);
+	var view = win.view.palette_(QPalette.dark);
 	var letterWidth = fontSize * 0.6;
 	var cv, draw;
 
@@ -136,15 +136,41 @@ var show = {arg path;
 	win.front;
 	//view.layout.add(alwaysOnTop.(view));
 
+	Button(view, 30@30)
+	.states_([ ["--"], ["__"] ]).action_({arg ctrl;
+		if (ctrl.value == 1) {
+			view.alwaysOnTop = true;
+		}{
+			view.alwaysOnTop = false;
+		}
+	}).maxSize_(15);
+
 	Button(view, 30@20)
 	.font_(Font(fontFamily, fontSize))
 	//.background_(Color.black.alpha_(0.8))
 	.states_([ ["rec"], ["stop", Color.red] ] )
 	.action_({arg ctrl; if (ctrl.value == 1) {s.record} {s.stopRecording} });
 
+	PopUpMenu(view).items_(ServerOptions.inDevices)
+	//.value_(s.options.inDevice ? "Built-in Microph")
+	.action_({arg ctrl;
+		var device = ctrl.item;
+		s.options.inDevice = device;
+		s.reboot;
+	})
+	.value_(ServerOptions.inDevices.indexOf(s.options.inDevice));
+
+	PopUpMenu(view)
+	.items_(ServerOptions.outDevices)
+	.value_(s.options.outDevice ? "Built-in Output")
+	.action_({arg ctrl;
+		var device = ctrl.item;
+		s.options.outDevice = device;
+		s.reboot
+	})
+	.value_(ServerOptions.outDevices.indexOf(s.options.outDevice));
+
 	cv = ScrollView(win, width@height)
-	//.background_(Color.black)
-	//.alpha_(0.8)
 	.autohidesScrollers_( true )
 	.hasVerticalScroller_( true )
 	.hasHorizontalScroller_( true );
@@ -159,7 +185,6 @@ var show = {arg path;
 		var files = info[1];
 		var len = path.size * letterWidth;
 		var textWidth = width * 0.9;
-		//var folder = pathName.folderName;
 
 		view.removeAll;
 		view.decorator.reset;
@@ -223,5 +248,6 @@ var show = {arg path;
 ~main.();
 
 )
+
 
 

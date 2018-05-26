@@ -6,6 +6,9 @@ func: {arg in;
 	var nodes = Array.fill(durs.size, {arg i; FbNode(1, durs[i])});
 	var sig, amps;
 
+
+	// this is wrong
+
 	nodes.do({arg node, k;
 		var sig = if (k > 0) {sigs[k-1]} {Mix.ar(in)};
 		sig = (sig * 1/3)

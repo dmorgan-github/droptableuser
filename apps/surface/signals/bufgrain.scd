@@ -1,25 +1,9 @@
 (
 view: {arg objName, envir, util;
 
-	var node = NodeProxy.audio(s, 1).filter(100, {arg in;
+	var node = NodeProxy.audio(s, 2).source_({arg in;
 
-		var buf = LocalBuf(s.sampleRate * 4, 1).clear;
-
-		var foo = {
-
-			var rec = \rec.kr(0);
-			var renv = Env.asr.kr(gate:rec);
-			var penv = Env.asr.kr(gate:rec) * \plevel.kr(0);
-
-			RecordBuf.ar(in,
-				buf,
-				recLevel:renv,
-				preLevel:penv,
-				run:rec,
-				loop:\rec_loop.kr(0),
-				trigger:\rec_trig.kr(1)
-			);
-		}.();
+		var buf = \buf.kr(0);
 
 		var trig = \trig.tr;
 		var pos = \pos.kr(0);
@@ -47,23 +31,25 @@ view: {arg objName, envir, util;
 			pan: panValue,
 			envbufnum: envbuf
 		);
-		sig;
+
+		Splay.ar(sig);
 	});
 
 	var specs = (
+		buf: \set,
 		trig: \set,
 		pos: [0,1,\lin,0,0],
 		graindur: [0,2,\lin,0,0.5],
 		rate: [0,4,\lin,0,1],
-		pan: [0,1,\lin,0,0],
+		pan: [-1,1,\lin,0,0],
 		grainamp: [0,1,\lin,0,1],
 		loop: [0,1,\lin,1,0],
-		reverse: [0,1,\lin,0,0]
+		reverse: [0,1,\lin,0,0],
+		stereo:[-1,1,\lin,0,0]
 	);
 
 	var view = View().layout_(VLayout().margins_(2).spacing_(2));
 	var playView = util[\playView].(objName, node, view);
-	var inputsView = util[\multiInputsView].(node, view);//util[\inputsView].(node, view);
 	var specsView = util[\specsView].(objName, specs, node, envir, view);
 	var buttonsView = View().layout_(HLayout(
 		Button().states_([["o"], ["||"]]).action_({arg ctrl;
@@ -83,8 +69,6 @@ view: {arg objName, envir, util;
 	).margins_(2).spacing_(2));
 
 	view.layout.add(playView);
-	view.layout.add(inputsView);
-	view.layout.add(buttonsView);
 	view.layout.add(specsView);
 
 	envir[objName] = node;

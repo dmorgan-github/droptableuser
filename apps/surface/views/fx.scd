@@ -76,7 +76,7 @@ view: {arg name, envir, config, util;
 		}.defer(envir[name].fadeTime + 1);
 	});
 
-	inputs = inputsView.(envir[name]);
+	inputs = util[\multiInputsView].(envir[name], mainView);//inputsView.(envir[name]);
 	controls = util[\specsView].(name, config[\specs], envir[name], envir, mainView);
 	presets = util[\presetsView].(envir[name], config, mainView);
 
