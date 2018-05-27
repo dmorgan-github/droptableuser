@@ -64,6 +64,12 @@ view: {arg name, envir;
 	envir[name] = node;
 	view.layout.add(mainView.());
 	view.layout.add(status);
-	view;
+	view.onClose_({
+		envir[objName].clear(envir[objName].fadeTime);
+		{
+			"destroy: ".debug(objName);
+			envir[objName] = nil;
+		}.defer(envir[objName].fadeTime + 1);
+	});
 }
 )//[\view].(\test, currentEnvironment).front;

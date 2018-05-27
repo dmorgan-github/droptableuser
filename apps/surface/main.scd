@@ -1,7 +1,12 @@
 (
 var path = "/Users/david/projects/droptableuser/apps/surface/";
 var viewsPath = path ++ "views/";
-var foo = Font.setDefault(Font("Courier New", 10));
+
+// init
+var foo = {
+	Font.setDefault(Font("Courier New", 10));
+	~bufs = ~bufs ? ();
+}.value;
 
 var browse = {arg path;
 

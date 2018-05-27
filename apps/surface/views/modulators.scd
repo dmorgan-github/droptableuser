@@ -8,10 +8,11 @@ view: {arg name, envir, config, util;
 	envir[name].fadeTime = 1;
 	envir[name][0] = config[\func];
 
-	view = View().layout_(VLayout().margins_(2).spacing_(2))
+	view = View().layout_(VLayout().margins_(2).spacing_(2)).minWidth_(250)
 	.onClose_({
 		envir[name].clear;
 		envir[name] = nil;
+		"destroy: ".debug(name);
 	});
 	view.layout.add(HLayout(
 		StaticText().string_(name),
@@ -21,11 +22,9 @@ view: {arg name, envir, config, util;
 		.mouseDownAction_({arg ctrl; envir[name].document; })
 	));
 
-	presets = util[\presetsView].(envir[name], config, view);
 	subview = util[\specsView].(name, config[\specs], envir[name], envir, view);
-
-	view.layout.add(presets);
 	view.layout.add(subview);
+
 	view;
 };
 )

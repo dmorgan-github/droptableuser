@@ -78,14 +78,12 @@ view: {arg name, envir, config, util;
 
 	inputs = util[\multiInputsView].(envir[name], mainView);//inputsView.(envir[name]);
 	controls = util[\specsView].(name, config[\specs], envir[name], envir, mainView);
-	presets = util[\presetsView].(envir[name], config, mainView);
 
 	horizontalView = View().layout_(HLayout().margins_(2).spacing_(2));
 	horizontalView.layout.add(controls);
 
 	// main
 	mainView.layout.add(util[\playView].(name, envir[name], mainView));
-	mainView.layout.add(presets);
 	mainView.layout.add(inputs);
 	mainView.layout.add(horizontalView);
 

@@ -23,7 +23,14 @@ view: {arg objName, envir, util;
 
 	view.layout.add(playView);
 	view.layout.add(specsView);
-	view;
+
+	view.onClose_({
+		envir[objName].clear(envir[objName].fadeTime);
+		{
+			"destroy: ".debug(objName);
+			envir[objName] = nil;
+		}.defer(envir[objName].fadeTime + 1);
+	});
 }
 )
 

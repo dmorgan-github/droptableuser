@@ -59,9 +59,11 @@ view:{arg objName, envir, util;
 	envir[objName] = node;
 
 	view.onClose_({
-		"destroy: ".debug(objName);
+		envir[objName].clear(envir[objName].fadeTime);
+		{
+			"destroy: ".debug(objName);
+			envir[objName] = nil;
+		}.defer(envir[objName].fadeTime + 1);
 	});
-
-	view;
 }
 )
