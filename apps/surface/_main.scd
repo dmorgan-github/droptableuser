@@ -1,11 +1,12 @@
 (
-var path = "/Users/david/projects/droptableuser/apps/surface/";
-var viewsPath = path ++ "views/";
+var rootpath = "/Users/david/projects/droptableuser/apps/surface/";
+var viewsPath = rootpath ++ "_views/";
 
 // init
 var foo = {
 	Font.setDefault(Font("Courier New", 10));
 	~bufs = ~bufs ? ();
+	nil;
 }.value;
 
 var browse = {arg path;
@@ -69,10 +70,9 @@ var loadView = {arg file;
 	var view, count = 1, viewPath;
 	var envir = currentEnvironment;
 	var objName = PathName(file).fileNameWithoutExtension;
-	var util = File.open(path ++ "funcs.scd", "r").readAllString.interpret;
+	var util = File.open(rootpath ++ "_funcs.scd", "r").readAllString.interpret;
 	var win;
 	var status = StaticText().string_("").font_(Font().size_(9));
-	//var node;
 
 	envir.keysValuesDo({arg k,v;
 		if (v.class == NodeProxy and: k.asString.beginsWith(objName) )  {
@@ -124,8 +124,7 @@ var show = {arg path;
 	var paddingX = 5;
 	var paddingY = 5;
 	var height = 250;
-	var width = 300;
-	var fontFamily = "Courier New";
+	var width = 250;
 	var fontSize = 10;
 	var top = Window.screenBounds.height - height;
 	var left = Window.screenBounds.width - width;
@@ -136,10 +135,7 @@ var show = {arg path;
 	var cv, draw;
 
 	view.decorator_(FlowLayout(view.bounds, paddingX@paddingY));
-	//win.background_(Color.black);
-	//win.alpha = 0.8;
 	win.front;
-	//view.layout.add(alwaysOnTop.(view));
 
 	Button(view, 30@30)
 	.states_([ ["--"], ["__"] ]).action_({arg ctrl;
@@ -151,8 +147,6 @@ var show = {arg path;
 	}).maxSize_(15);
 
 	Button(view, 30@20)
-	.font_(Font(fontFamily, fontSize))
-	//.background_(Color.black.alpha_(0.8))
 	.states_([ ["rec"], ["stop", Color.red] ] )
 	.action_({arg ctrl; if (ctrl.value == 1) {s.record} {s.stopRecording} });
 
@@ -162,18 +156,18 @@ var show = {arg path;
 		var device = ctrl.item;
 		s.options.inDevice = device;
 		s.reboot;
-	})
-	.value_(ServerOptions.inDevices.indexOf(s.options.inDevice));
+	});
+	//.value_(ServerOptions.inDevices.indexOf("Built-in Microph"));
 
 	PopUpMenu(view)
 	.items_(ServerOptions.outDevices)
-	.value_(s.options.outDevice ? "Built-in Output")
+	//.value_(s.options.outDevice ? "Built-in Output")
 	.action_({arg ctrl;
 		var device = ctrl.item;
 		s.options.outDevice = device;
 		s.reboot
-	})
-	.value_(ServerOptions.outDevices.indexOf(s.options.outDevice));
+	});
+	//.value_(ServerOptions.outDevices.indexOf(s.options.outDevice ? "Built-in Output"));
 
 	cv = ScrollView(win, width@height)
 	.autohidesScrollers_( true )
@@ -194,39 +188,33 @@ var show = {arg path;
 		view.removeAll;
 		view.decorator.reset;
 
-		StaticText.new(view, len@fontSize )
-		.string_(path)
-		.stringColor_(Color.white)
-		.font_(Font(fontFamily, fontSize));
-		view.decorator.nextLine;
+		if (pathName.fullPath != rootpath) {
 
-		StaticText.new(view, letterWidth@fontSize )
-		.string_("^")
-		.stringColor_(Color.white)
-		.font_(Font(fontFamily, fontSize))
-		.mouseDownAction_({
-			draw.(pathName.parentPath, view);
-		});
-		view.decorator.nextLine;
+			StaticText.new(view, letterWidth@fontSize )
+			.string_("^")
+			.stringColor_(Color.white)
+			.mouseDownAction_({
+				draw.(pathName.parentPath, view);
+			});
+			view.decorator.nextLine;
+		};
 
-		folders.do({arg path;
+		folders.select({arg p; p.folderName.beginsWith("_").not}).do({arg path;
 
 			StaticText.new(view, textWidth@fontSize )
 			.string_("> " ++ path.folderName)
 			.stringColor_(Color.white)
-			.font_(Font(fontFamily, fontSize))
 			.mouseDownAction_({
 				draw.(path.fullPath, view);
 			});
 			view.decorator.nextLine;
 		});
 
-		files.do({arg path;
+		files.select({arg p; p.fileName.beginsWith("_").not;}).do({arg path;
 
 			StaticText.new(view, letterWidth@fontSize )
 			.string_("+ ")
 			.stringColor_(Color.white)
-			.font_(Font(fontFamily, fontSize))
 			.mouseDownAction_({
 				loadView.(path.fullPath);
 			});
@@ -234,7 +222,6 @@ var show = {arg path;
 			StaticText.new(view, textWidth@fontSize )
 			.string_(path.fileName)
 			.stringColor_(Color.white)
-			.font_(Font(fontFamily, fontSize))
 			.mouseDownAction_({
 				loadView.(path.fullPath);
 			});
@@ -247,12 +234,13 @@ var show = {arg path;
 };
 
 ~main = {
-	show.(path);
+	show.(rootpath);
 };
 
 ~main.();
 
 )
+
 
 
 
