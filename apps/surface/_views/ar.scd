@@ -1,7 +1,7 @@
 (
 view: {arg name, envir, config, util;
 
-	var mainView, horizontalView, inputs, controls, presets;
+	var mainView, horizontalView, inputs, controls;
 	var height = 20;
 	var filterSlot = 100;
 	var func = {
@@ -15,7 +15,7 @@ view: {arg name, envir, config, util;
 		func;
 	};
 
-	envir[name] = NodeProxy.audio;
+	envir[name] = NodeProxy.audio(s, 2);
 	envir[name].fadeTime = 1;
 
 	config[\init].value(config);
@@ -30,6 +30,7 @@ view: {arg name, envir, config, util;
 		}.defer(envir[name].fadeTime + 1);
 	});
 
+	inputs = util[\multiInputsView].(envir[name], mainView);//inputsView.(envir[name]);
 	controls = util[\specsView].(name, config[\specs], envir[name], envir, mainView);
 
 	horizontalView = View().layout_(HLayout().margins_(2).spacing_(2));
@@ -37,6 +38,7 @@ view: {arg name, envir, config, util;
 
 	// main
 	mainView.layout.add(util[\playView].(name, envir[name], mainView));
+	mainView.layout.add(inputs);
 	mainView.layout.add(horizontalView);
 
 	mainView;

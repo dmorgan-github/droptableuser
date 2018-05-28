@@ -1,30 +1,51 @@
 {
-	var getProxyList = {arg envir, node, specKey;
-
-		var result = List.new;
-		var list = envir.sortedKeysValuesDo({arg k,v;
-
-			if (v.class == NodeProxy) {
-
-				var rate = node.controlNames
-				.select({arg cn; cn.name == specKey})
-				.collect({arg cn; cn.rate})[0];
-
-				if (v.rate == rate || rate.isNil){
-					result.add(k);
-					if (v.numChannels > 1) {
-						v.numChannels.do({arg i;
-							result.add(k ++ ":" ++ i);
-						});
-					};
-				}
-			}
-		});
-		result;
-	};
-
 	(
-		getProxyList: getProxyList,
+		eqView: {arg name, node, envir, containerView;
+
+			var view = View().layout_(VLayout().spacing_(2).margins_(2));
+
+			node.filter(110, {arg in;
+
+				var sig = in;
+
+				var lo_freq = \lo_freq.kr(100).lag(0.1);
+				var lo_db = \lo_db.kr(0).lag(0.1);
+
+				var mid_freq = \mid_freq.kr(1000).lag(0.1);
+				var mid_db = \mid_db.kr(0).lag(0.1);
+
+				var hi_freq = \hi_freq.kr(10000).lag(0.1);
+				var hi_db = \hi_db.kr(0).lag(0.1);
+
+				sig = BPeakEQ.ar(sig, lo_freq, 1, lo_db);
+				sig = BPeakEQ.ar(sig, mid_freq, 1, mid_db);
+				sig = BPeakEQ.ar(sig, hi_freq, 1, hi_db);
+				sig;
+			}).set(\wet110, 0);
+
+			view.layout.add(HLayout(
+				Slider2D().fixedSize_(45).action_({arg ctrl;
+					node.set(\lo_freq, ctrl.x.linlin(0,1,0,1000));
+					node.set(\lo_db, ctrl.y.linlin(0,1,-18,18));
+				}).x_(100.linlin(0,1000,0,1)).y_(0.linlin(-18,18,0,1)),
+
+				Slider2D().fixedSize_(45).action_({arg ctrl;
+					node.set(\mid_freq, ctrl.x.linlin(0,1,1000,10000));
+					node.set(\mid_db, ctrl.y.linlin(0,1,-18,18));
+				}).x_(1000.linlin(1000,10000,0,1)).y_(0.linlin(-18,18,0,1)),
+
+				Slider2D().fixedSize_(45).action_({arg ctrl;
+					node.set(\hi_freq, ctrl.x.linlin(0,1,10000,20000));
+					node.set(\hi_db, ctrl.y.linlin(0,1,-18,18));
+				}).x_(10000.linlin(10000,20000,0,2)).y_(0.linlin(-18,18,0,1))
+			));
+
+			view.layout.add(Slider().action_({arg ctrl;
+				node.set(\wet110, ctrl.value);
+			}).value_(0).orientation_(\horizontal));
+
+			view;
+		},
 
 		specsView: {arg name, specs, node, envir, containerView;
 
@@ -172,54 +193,6 @@
 
 				view.layout.add(layout);
 
-			});
-
-			view;
-		},
-
-		presetsView: {arg node, config, mainView;
-
-			var view = View().layout_(HLayout().margins_(2).spacing_(2));
-			var presets = Array.fill(20, {nil});
-			var buttons = List.new;
-			var lastActive = -1;
-
-			20.do({arg i;
-
-				var button = Button().fixedSize_(10@10)
-				.states_( [ ["", nil, Color.white ], ["", nil, Color.blue] ] )
-				.action_({arg ctrl;
-
-					var val = ctrl.value;
-					if (presets[i].isNil) {
-						// setting preset for first time
-						presets[i] = node.getKeysValues;
-						buttons[i].states = [ ["", nil, Color.blue] ];
-					} {
-						if (lastActive == i) {
-							// updating preset
-							presets[i] = node.getKeysValues;
-						} {
-							// changing to new preset
-							var myPresets = presets[i];
-							myPresets.do({arg kv;
-								node.set(kv[0], kv[1]);
-								NotificationCenter.notify(mainView, kv[0].asSymbol, kv[1]);
-							});
-						}
-					};
-
-					//presets.postln;
-					lastActive = i;
-				});
-
-				if (config[\presets].isNil.not) {
-					presets[i] = config[\presets][i];
-					button.states_( [["", nil, Color.blue]] );
-				};
-
-				buttons.add(button);
-				view.layout.add(button);
 			});
 
 			view;
@@ -389,54 +362,6 @@
 				view.layout.add(row);
 			};
 			addRow.();
-			view;
-		},
-
-		inputsView: {arg node, mainView;
-
-			var view = View().layout_(HLayout().margins_(2).spacing_(2)).background_(Color.rand);
-			var dragSink, button;
-
-			button = Button()
-			.fixedSize_(8)
-			.states_([ ["x"] ])
-			.font_(Font().size_(9))
-			.action_({
-				dragSink.string = "";
-				button.enabled = false;
-			})
-			.enabled_(false);
-
-			dragSink = DragSink()
-			.string_("<-  ")
-			.background_(Color.clear)
-			.canReceiveDragHandler_({
-				var obj = View.currentDrag;
-				var node = obj[\node];
-				(node.rate == \audio);
-			})
-			.receiveDragHandler_({arg v;
-
-				var obj = View.currentDrag.value;
-				var input = obj[\node];
-				var name = obj[\name];
-				var msg = "inuput: " ++ name;
-				v.string = name;
-
-				node[0] = {
-					var sig = input.ar;
-					sig * \vol.kr(1)
-				};
-
-				NotificationCenter.notify(mainView, \status, msg);
-			})
-			.maxHeight_(35)
-			.minWidth_(35);
-
-			view.layout.add(
-				HLayout(dragSink, button,nil)
-			);
-
 			view;
 		}
 

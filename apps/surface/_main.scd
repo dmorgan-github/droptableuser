@@ -1,5 +1,5 @@
 (
-var rootpath = "/Users/david/projects/droptableuser/apps/surface/";
+var rootpath = PathName(Document.current.path).parentPath;//"/Users/david/projects/droptableuser/apps/surface/";
 var viewsPath = rootpath ++ "_views/";
 
 // init
