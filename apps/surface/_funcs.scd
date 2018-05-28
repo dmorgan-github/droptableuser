@@ -203,6 +203,7 @@
 			var height = 20;
 			var wetKey = ("wet" ++ 100).asSymbol;
 			var view = View().layout_(HLayout().margins_(2).spacing_(2));
+			var outBus = 0;
 
 			view.layout.add(StaticText().string_(name));
 
@@ -247,25 +248,38 @@
 			);
 
 			view.layout.add(
+				NumberBox().action_({arg ctrl;
+					outBus = ctrl.value.asInt;
+					if (node.isPlaying) {
+						node.play(out:outBus);
+					}
+				})
+				.decimals_(0)
+				.value_(0)
+				.minWidth_(25)
+				.normalColor_(Color.white)
+			);
+
+			view.layout.add(
 				Button()
 				.fixedSize_(30@height)
 				.states_([ ["play"], ["stop"] ])
 				.string_("play")
 				.action_({arg ctrl;
 					if (ctrl.value == 1) {
-						node.play(fadeTime:node.fadeTime);
+						node.play(out:outBus, fadeTime:node.fadeTime);
 					} {
 						node.stop(fadeTime:node.fadeTime);
 					}
 				})
 			);
 
-			view.layout.add(
-				Button()
-				.fixedSize_(30@height)
-				.string_("doc")
-				.mouseDownAction_({arg ctrl; node.document; })
-			);
+			//view.layout.add(
+			//	Button()
+			//	.fixedSize_(30@height)
+			//	.string_("doc")
+			//	.mouseDownAction_({arg ctrl; node.document; })
+			//);
 
 			view;
 		},

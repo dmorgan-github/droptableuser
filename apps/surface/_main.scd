@@ -1,6 +1,7 @@
 (
 var rootpath = PathName(Document.current.path).parentPath;//"/Users/david/projects/droptableuser/apps/surface/";
 var viewsPath = rootpath ++ "_views/";
+var recorders = List.new;
 
 // init
 var foo = {
@@ -31,6 +32,40 @@ var alwaysOnTop = {arg view;
 			view.alwaysOnTop = false;
 		}
 	}).maxSize_(15);
+};
+
+var recordStems = {
+
+	currentEnvironment.keysValuesDo({arg k,v;
+		if (v.class == NodeProxy) {
+			if (v.rate == \audio) {
+				if (v.isPlaying) {
+
+					var rec = v.record(Platform.recordingsDir ++ "/" ++ k ++ ".aiff");
+					recorders.add(rec);
+				}
+			}
+		}
+	});
+
+	{
+		recorders.do({arg rec;
+			rec.unpause;
+		});
+	}.defer(1);
+
+};
+
+var stopRecordStems = {
+
+	recorders.do({arg rec;
+		rec.pause;
+		rec.close;
+		rec.free;
+		rec = nil;
+	});
+
+	recorders = List.new;
 };
 
 var findView = {arg path;
@@ -149,6 +184,16 @@ var show = {arg path;
 	Button(view, 30@20)
 	.states_([ ["rec"], ["stop", Color.red] ] )
 	.action_({arg ctrl; if (ctrl.value == 1) {s.record} {s.stopRecording} });
+
+	Button(view, 50@20)
+	.states_([ ["stems"], ["stop", Color.red] ] )
+	.action_({arg ctrl;
+		if (ctrl.value == 1) {
+			recordStems.();
+		} {
+			stopRecordStems.();
+		}
+	});
 
 	PopUpMenu(view).items_(ServerOptions.inDevices)
 	//.value_(s.options.inDevice ? "Built-in Microph")
