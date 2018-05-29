@@ -36,12 +36,18 @@ var alwaysOnTop = {arg view;
 
 var recordStems = {
 
+	var key = Date.getDate.asSortableString;
 	currentEnvironment.keysValuesDo({arg k,v;
 		if (v.class == NodeProxy) {
 			if (v.rate == \audio) {
 				if (v.isPlaying) {
 
-					var rec = v.record(Platform.recordingsDir ++ "/" ++ k ++ ".aiff");
+					var rec;
+					var folder = Platform.recordingsDir ++ "/stems/" ++ key ++ "/";
+					if (File.exists(folder).not) {
+						File.mkdir(folder)
+					};
+					rec = v.record(folder ++ k ++ ".aiff");
 					recorders.add(rec);
 				}
 			}
@@ -159,7 +165,7 @@ var show = {arg path;
 	var paddingX = 5;
 	var paddingY = 5;
 	var height = 250;
-	var width = 250;
+	var width = 300;
 	var fontSize = 10;
 	var top = Window.screenBounds.height - height;
 	var left = Window.screenBounds.width - width;
