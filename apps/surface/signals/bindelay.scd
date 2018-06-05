@@ -26,8 +26,6 @@ view: {arg objName, envir, util;
 
 	var playView = util[\playView].(objName, node, view);
 
-	//var inputsView = util[\inputsView].(node, view);
-
 	var multiInputsView = util[\multiInputsView].(node, view);
 
 	var specsView = util[\specsView].(objName, specs, node, envir, view);

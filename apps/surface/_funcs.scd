@@ -8,14 +8,14 @@
 
 				var sig = in;
 
-				var lo_freq = \lo_freq.kr(100).lag(0.1);
-				var lo_db = \lo_db.kr(0).lag(0.1);
+				var lo_freq = \lo_freq.kr(100).lag(0.2);
+				var lo_db = \lo_db.kr(0).lag(0.2);
 
-				var mid_freq = \mid_freq.kr(1000).lag(0.1);
-				var mid_db = \mid_db.kr(0).lag(0.1);
+				var mid_freq = \mid_freq.kr(1000).lag(0.2);
+				var mid_db = \mid_db.kr(0).lag(0.2);
 
-				var hi_freq = \hi_freq.kr(10000).lag(0.1);
-				var hi_db = \hi_db.kr(0).lag(0.1);
+				var hi_freq = \hi_freq.kr(10000).lag(0.2);
+				var hi_db = \hi_db.kr(0).lag(0.2);
 
 				sig = BPeakEQ.ar(sig, lo_freq, 1, lo_db);
 				sig = BPeakEQ.ar(sig, mid_freq, 1, mid_db);
@@ -25,7 +25,7 @@
 
 			view.layout.add(HLayout(
 				Slider2D().fixedSize_(45).action_({arg ctrl;
-					node.set(\lo_freq, ctrl.x.linlin(0,1,0,1000));
+					node.set(\lo_freq, ctrl.x.linlin(0,1,0.1,1000));
 					node.set(\lo_db, ctrl.y.linlin(0,1,-18,18));
 				}).x_(100.linlin(0,1000,0,1)).y_(0.linlin(-18,18,0,1)),
 
@@ -247,6 +247,7 @@
 				})
 			);
 
+			/*
 			view.layout.add(
 				NumberBox().action_({arg ctrl;
 					outBus = ctrl.value.asInt;
@@ -259,6 +260,7 @@
 				.minWidth_(25)
 				.normalColor_(Color.white)
 			);
+			*/
 
 			view.layout.add(
 				Button()
@@ -267,7 +269,7 @@
 				.string_("play")
 				.action_({arg ctrl;
 					if (ctrl.value == 1) {
-						node.play(out:outBus, fadeTime:node.fadeTime);
+						node.play(fadeTime:node.fadeTime);
 					} {
 						node.stop(fadeTime:node.fadeTime);
 					}

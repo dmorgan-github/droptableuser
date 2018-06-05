@@ -1,6 +1,35 @@
 (
 view: {arg objName, envir, util;
 
+	var blackman = {arg size = 2048;
+
+		var sig, alpha, a0, a1, a2;
+		alpha = 0.16;
+		sig = Signal.newClear(size);
+
+		a0 = 0.5*(1-alpha);
+		a1 = 0.5;
+		a2 = alpha*0.5;
+
+		sig.waveFill( { arg x, i; a0 - (a1*cos( (2*pi*x)/(size-1) ) ) + (a2*cos( (4*pi*x)/(size-1) ) )}, 0, size );
+		sig;
+	};
+
+	var windowSize = 1024;
+	var envbuf = Buffer.sendCollection(s, Signal.hanningWindow(windowSize), 1);
+
+	var envbufs = {
+		var bufs = ();
+		bufs[\hann] = envbuf;
+		bufs[\hamming] = envbuf.setn(0, Signal.hammingWindow(windowSize));
+		bufs[\welch] = envbuf.setn(0, Signal.welchWindow(windowSize));
+		bufs[\rectangle] = envbuf.setn(0, Signal.rectWindow(windowSize));
+		bufs[\perc] = envbuf.setn(0, Env.perc(windowSize));
+		bufs[\triangle] = envbuf.setn(0, Env.triangle(windowSize));
+		bufs[\blackman] = envbuf.setn(0, blackman.(windowSize));
+		bufs;
+	}.value;
+
 	var node = NodeProxy.audio(s, 2).source_({arg in;
 
 		var buf = \buf.kr(0);
@@ -33,7 +62,7 @@ view: {arg objName, envir, util;
 		);
 
 		Splay.ar(sig);
-	});
+	}).set(\envbuf, envbufs[\hann].bufnum);
 
 	var specs = (
 		buf: \set,
@@ -48,6 +77,7 @@ view: {arg objName, envir, util;
 		stereo:[-1,1,\lin,0,0]
 	);
 
+	var envkeys = envbufs.keys.asArray;
 	var view = View().layout_(VLayout().margins_(2).spacing_(2));
 	var playView = util[\playView].(objName, node, view);
 	var specsView = util[\specsView].(objName, specs, node, envir, view);
@@ -68,6 +98,9 @@ view: {arg objName, envir, util;
 		}),
 	).margins_(2).spacing_(2));
 
+	view.layout.add(PopUpMenu().items_(envkeys).action_({arg ctrl;
+		node.set(\envbuf, envbufs[ctrl.item.asSymbol].bufnum)
+	}).value_(envkeys.indexOf(\hann)));
 	view.layout.add(playView);
 	view.layout.add(specsView);
 
@@ -77,12 +110,13 @@ view: {arg objName, envir, util;
 		envir[objName].clear(envir[objName].fadeTime);
 		{
 			"destroy: ".debug(objName);
+			envbufs.do({arg k,v;
+				v.free;
+			});
 			envir[objName] = nil;
 		}.defer(envir[objName].fadeTime + 1);
 	});
 
 	view;
 };
-
 )
-

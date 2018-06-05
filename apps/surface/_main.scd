@@ -4,7 +4,8 @@ var viewsPath = rootpath ++ "_views/";
 var recorders = List.new;
 
 // init
-var foo = {
+var init = {
+	"init".postln;
 	Font.setDefault(Font("Courier New", 10));
 	~bufs = ~bufs ? ();
 	nil;
@@ -40,16 +41,13 @@ var recordStems = {
 	currentEnvironment.keysValuesDo({arg k,v;
 		if (v.class == NodeProxy) {
 			if (v.rate == \audio) {
-				if (v.isPlaying) {
-
-					var rec;
-					var folder = Platform.recordingsDir ++ "/stems/" ++ key ++ "/";
-					if (File.exists(folder).not) {
-						File.mkdir(folder)
-					};
-					rec = v.record(folder ++ k ++ ".aiff");
-					recorders.add(rec);
-				}
+				var rec;
+				var folder = Platform.recordingsDir ++ "/stems/" ++ key ++ "/";
+				if (File.exists(folder).not) {
+					File.mkdir(folder)
+				};
+				rec = v.record(folder ++ k ++ ".aiff");
+				recorders.add(rec);
 			}
 		}
 	});

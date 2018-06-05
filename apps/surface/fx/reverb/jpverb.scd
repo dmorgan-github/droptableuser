@@ -2,7 +2,7 @@
 func: {arg in;
 
 	var sig = JPverb.ar(in,
-		t60: [\t60L.kr(1), \t60R.kr(1)],
+		t60: \t60.kr(1),
 		damp: \damp.kr(0),
 		size: \size.kr(1),
 		earlyDiff: \earlyDiff.kr(0.707),
@@ -18,8 +18,7 @@ func: {arg in;
 	Splay.ar(sig, spread:\spread.kr(1), center:\center.kr(0));
 },
 specs: (
-	t60L: [0.1, 60, \lin, 0.0, 1],
-	t60R: [0.1, 60, \lin, 0.0, 1],
+	t60: [0.1, 60, \lin, 0.0, 1],
 	damp: [0, 1, \lin, 0.0, 0],
 	size: [0.5, 5, \lin, 0, 1],
 	earlyDiff: [0, 1, \lin, 0, 0.707],
