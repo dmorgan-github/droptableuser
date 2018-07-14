@@ -1,127 +1,97 @@
+~kit_player = ~grid_player.();
+
+
+
+/////////////////////////////////
+// buffers
+~bufs = ~bufs ? ();
+~bufs[\kik] = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/Roland TR-808 Normalised/BassDrum/KickDrum0001.aif");
+~bufs[\sn] = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/Roland TR-808 Normalised/SnareDrum/SnareDrum0001-2.aif");
+~bufs[\clav] = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/Roland TR-808 Normalised/Misc/Clav.aif");
+~bufs[\hiconga] = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/Roland TR-808 Normalised/Hi Conga/Hi Conga0001.aif");
+~bufs[\ch] = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/Roland TR-808 Normalised/Cls'd Hihat/Closed Hihat0001.aif");
+~bufs[\mc] =  Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/Roland TR-808 Normalised/Mid Conga/Mid Conga0001.aif");
+
+/////////////////////////////////
+// config player
+//~perc = ~grid_player.();
+~kit_player.dur = Pseq([0.25], inf).asStream;
 (
-ProxySynthDef(\oneshot, {
-
-	var buf = \buf.kr(0);
-	var rate = \rate.kr(1);
-	var start = \start.kr(0);
-	var end = \end.kr(1);
-	var curve = \curve.kr(0);
-
-	var numFrames = BufFrames.kr(buf);
-	var startFrame = start * numFrames;
-	var endFrame = end * numFrames;
-
-	var dur = (endFrame - startFrame)/BufSampleRate.kr(buf);
-	var phasor = Line.ar(startFrame, endFrame, dur * rate.reciprocal);
-	var sig = BufRd.ar(1, buf, phasor, loop:0, interpolation: 4);
-	Splay.ar(sig);
-
-}).add;
+~kit_player.events = [
+	(instrument:\oneshot, buf:~bufs[\kik], amp:0.8),
+	(instrument:\oneshot, buf:~bufs[\sn], amp:0.5, rate:1),
+	(instrument:\oneshot, buf:~bufs[\clav], amp:{rrand(0.1,0.2) * 1}, pan: -0.8, rate:0.5),
+	(instrument:\oneshot, buf:~bufs[\hiconga], amp:0.5, pan: 0.8),
+	(instrument:\oneshot, buf:~bufs[\ch], amp:0.18)
+];
 )
 
+(
+~kit_player.matrix = [
+	[1,0,0,0, 0,0,0,0, 1,0,0,0, 0,0,1,0],
+	[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
+	[0,0,0,0, 0,0,0,1, 0,0,1,0, 0,0,0,0],
+	[0,0,0,0, 0,0,0,0, 0,1,0,0, 0,0,0,0,0],
+	[0,0,1,0, 0,0,1,0, 0,0,1,0, 0,1,0,0]
+];
+)
+
+(
+~kit_player.matrix = ~kit_player.matrix.collect({arg row;
+	if (0.1.coin){
+		(0..15).collect({arg i; if (0.1.coin) {1}{0} })
+	} {
+		row
+	}
+});
+)
+
+(
+~kit_player.matrix = (0..4).collect({arg i;
+	(0..32).collect({arg j;
+		if (0.1.coin) {1} {0}
+	})
+});
+)
+
+/////////////////////////////////
+// patch
 ~gridkit = ProxySpace.new(s);
 ~gridkit.quant = 4.0;
 ~gridkit.clock = TempoClock.default;
 
-(
-~bufs = (
-	\kik: Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/Roland TR-808 Normalised/BassDrum/KickDrum0001.aif"),
-	\sn: Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/Roland TR-808 Normalised/SnareDrum/SnareDrum0001.aif"),
-	\ch: Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/Roland TR-808 Normalised/Cls'd Hihat/Closed Hihat0001.aif"),
-	\mc: Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/drums/Roland TR-808 Normalised/Mid Conga/Mid Conga0001.aif")
-);
-)
+/////////////////////////////////
+// play
+~gridkit[\snd] = ~kit_player.player;
 
-(
-~events = [
-	(instrument:\oneshot, buf:~bufs[\kik]),
-	(instrument:\oneshot, buf:~bufs[\sn]),
-	(instrument:\oneshot, buf:~bufs[\ch]),
-	(instrument:\oneshot, buf:~bufs[\mc])
-];
-)
+(~gridkit[\snd][4] = \filter -> {arg in;
 
-(
-~grid = [
-	[1,0,0,0, 1,0,0,0, 1,0,0,0, 1,0,0,0],
-	[0,0,0,0, 1,0,0,0, 0,0,0,0, 1,0,0,0],
-	[0,0,0,0, 0,0,0,0, 0,0,0,0, 0,0,0,0],
-	[0,0,0,0, 0,0,0,0, 0,1,0,0, 0,0,0,0]
-];
-)
+	var input, numsamp, power;
+	var sig = in;
 
-~dur = Pseq([0.25], inf);
+	sig = Decimator.ar(sig, 44100/8, LFDNoise3.kr(1/3).range(8,12));//}.dup(4).sum;
+    numsamp = 300;
+	power = 4;//SinOsc.kr(1/4).range(0.1, 4);
+	//sig = (RunningSum.ar(sig ** power, numsamp)/numsamp) ** (power.reciprocal);
+	sig = RunningSum.rms(sig, 20);
+	//sig = FreqShift.ar(sig, 100);
 
-(
-~process = {arg count, time;
+	sig;
+});
 
-	Plazy({
+(~gridkit[\snd].filter(6, {arg in;
+	JPverb.ar(in);
+}).set(\wet6, 0.4))
 
-		var rows = ~grid;
-		var evts = rows.collect({arg item, row;
+~gridkit[\snd].set(\wet4)
 
-			var val;
-			var event;
-			var x = (count % item.size).asInt;
-			val = item.wrapAt(count).value;
-
-			event = (isRest:true);
-			if (val > 0) {
-				var myEvent = ~events.wrapAt(row);
-				var node = ~gridkit[(\n ++ row).asSymbol];
-				//node.play;
-				myEvent[\group] = node.group;
-				myEvent[\out] = node.bus;
-				if (myEvent.isKindOf(Event) or: myEvent.isKindOf(Pattern)) {
-					event = myEvent;
-				};
-			};
-
-			Pn(event, 1);
-		});
-
-		Ppar(evts);
-	})
-};
-
-~func = {
-
-	var pattern;
-	var seq = ~dur.asStream;
-
-	Pspawner({arg sp;
-
-		inf.do({arg i;
-
-			var time = seq.next;
-			var evt = ~process.(i.asInt, time);
-			sp.par(evt);
-			sp.wait(time);
-
-		});
-	});
-};
-
-)
-
-~bobo = ~func.();
-~bobo.play(quant:4, clock:TempoClock.default);
-~bobo.stop;
+~gridkit[\snd].vol = 1;
+~gridkit[\snd].play;
+~gridkit[\snd].stop
 
 
-~gridkit[\n1][4] = \filter -> {arg in; FbC({arg fb; fb * 0.5 + in}, 0.375)};
-~gridkit[\n1].set(\wet4, 0.5)
-
-~gridkit[\mix][0] = ~gridkit[\n0];
-~gridkit[\mix][1] = ~gridkit[\n1];
-~gridkit[\mix][2] = ~gridkit[\n2];
-~gridkit[\mix][3] = ~gridkit[\n3];
-
-(~gridkit[\mix][4] = \filter -> {arg in; JPverb.ar(in)});
-~gridkit[\mix].set(\wet4, 0.4)
-
-~gridkit[\mix].play;
-~gridkit[\mix].stop;
+App.defaultOut(s);
+App.soundflowerOut(s);
 
 
 

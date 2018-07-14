@@ -5,48 +5,14 @@
 ~bass.clock = TempoClock.default;
 
 /////////////////////////////////
-// sequencer
-(~bass[\bass_seq][0] = {
-	var trig = \trig.tr;
-	var freq = \freq.kr;
-	[trig, freq];
-});
-(~bass[\bass_seq][4] = \set -> Pbind(
-	\delta, 4,
-	\trig, 1,
-	\scale, Scale.kumoi,
-	\freq, Pseq(['C1', 'C1', 'C1', 'C1', 'F1', 'F1', 'F1', 'Eb1'].namecps, inf)
-))
-
-/////////////////////////////////
-// trig
-~bass[\basstrig] = {~bass[\bass_seq].kr[0]};
-/////////////////////////////////
-// freq
-~bass[\bassfreq] = {~bass[\bass_seq].kr[1]};
-
-/////////////////////////////////
-// amp env
-(~bass[\bassenv] = {
-	var trig = ~bass[\basstrig];
-	var ts = 1;
-	var atk = 0.1;
-	var sus = 2;
-	var rel = 3;
-	var curve = 0;
-	var ls = 1;
-	var env = Env.linen(atk,sus,rel,curve:curve).kr(gate:trig, timeScale:ts, mul:ls);
-	env;
-});
-
-/////////////////////////////////
 // synth
 (~bass[\snd][0] = {
 
-	var amp = 0;
-	var freq = 432;
+	var trig = \trig.tr;
 
-	var freq_in = Vibrato.ar(K2A.ar(\freq.kr(freq).lag(\lag.kr(0.0))),
+	var trig2 = \trig2.tr;
+
+	var freq_in = Vibrato.ar(K2A.ar(\freq.kr(432).lag(\lag.kr(0.0))),
 		\vrate.kr(6),
 		\vdepth.kr(0.0),
 		\vdelay.kr(0),
@@ -56,31 +22,49 @@
 	);
 
 	var lfo = SinOsc.kr(1/4).range(0.2, 0.7);
+
 	var sig = SinOscFB.ar(freq_in * [1, 2.01], feedback:lfo);
 
-	sig = DFM1.ar(sig, SinOsc.kr([1/4, 1/3]).range(110, 440), 0.3);
+	var env = Env.linen(0.01,2,3,curve:0).kr(gate:trig);
 
-	sig = sig * AmpCompA.kr(freq_in) * \amp.kr(amp);
+	var env2 = Env.perc(attackTime:0.01,releaseTime:\dur.kr(1/8)).kr(gate:trig2);
+	// Env([0,1,0],[0,\dur.kr(1/8)], -1).kr(gate:trig2);
+
+	sig = DFM1.ar(sig, 1200, \res.kr(0.7), inputgain:1);
+
+	//sig = sig + PMOsc.ar(freq_in, freq_in * 1.1, LFDNoise3.kr(5).range(6,10), mul:0.3);// * //;// * Env.
+	//Env.xyc({ [1.0.rand, 1.0.rand, -4.rand2] } ! 16, \exp).kr(gate:trig).range(0,1);
+
+	//Shaper.ar(bufnum, audio);
+
+	sig = sig * env * AmpCompA.kr(freq_in) * \amp.kr(0.1);
+
+	sig = sig * max(env2, \switch.kr(0));
 
 	Splay.ar(sig);
 });
 
-4.reciprocal
+(~bass[\snd][2] = \set -> PatternProxy(Pbind(
+	\delta, Pseq([1,1,14], inf),
+	\trig, 1,
+	\freq, Pseq([ 'C1', 'D1'].namecps, inf),
+	//Pseq(['C1', 'C1', 'F1', 'F1', 'F1', 'Eb1','C1', 'C1'].namecps, inf), // * Pwrand([1, 2], [0.9, 0.1], inf),
+	//Pseq(['C1', 'C1', 'C1', 'C1', 'F1', 'F1', 'F1', 'Eb1'].namecps, inf),
+	\amp, 0.1
+)))
+(~bass[\snd][4] = \set -> Pbind(
+	\args, #[\trig2, \switch, \dur],
+	\trig2, 1,
+	\delta, Prand([1, 1, 1/2, 1/2, 1/2, 1/2], inf),
+	\dur, 0.8,
+	\switch, 1,
+))
 
-~bass[\snd].set(\freq, ~bass[\bassfreq], \amp, ~bass[\bassenv], \vdepth, 0.002);
-
-(~bass[\snd][1] = \filter -> {arg in;
-
-	//var drop = LFTri.kr(1/8).range(0, 10);
-	//WaveLoss.ar(in, 10);
-	//DelayC.ar(in, 1.0, LFNoise0.ar(13).range(0.0, 1.0))
-	//var trig = ~bass[\basstrig];
-	//var env = Env([1/6, 1/6, 8],[0, 1/4], 24).kr(gate:trig);
-	in * LFPulse.kr(8).range(0,1);
+(~bass[\snd][8] = \filter -> {arg in;
+	Disintegrator.ar(in, 0.8, 0.2)
 })
-~bass[\snd].set(\wet1, 1)
 
-(~bass[\snd][2] = \filter -> {arg in;
+(~bass[\snd][10] = \filter -> {arg in;
 
 	/*
 	# 1767 C* ChorusI - Mono chorus/flanger
@@ -106,16 +90,16 @@
 	LeakDC.ar(sig);
 })
 
-~bass[\snd][4] = \filter -> {arg in; JPverb.ar(in, t60:3, size:2)};
+~bass[\snd][12] = \filter -> {arg in; JPverb.ar(in, t60:1, damp:0.5, size:1)};
 
-~bass[\snd].set(\wet4, 0.5);
-
+~bass[\snd].set(\wet8, 0.4, \wet10, 0.6, \wet12, 0.3)
+~bass[\snd].set(\wet8, 0.1, \wet10, 0.5, \wet12, 0.5)
 
 /////////////////////////////////
 // play
 ~bass[\snd].gui;
-~bass[\snd].play
-~bass[\snd].stop
-~bass[\snd].vol = 0.3;
-
+~bass[\snd][2].value.reset;
+~bass[\snd].play(fadeTime:10);
+~bass[\snd].stop(fadeTime:8);
+~bass[\snd].vol = 0.5
 

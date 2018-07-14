@@ -17,7 +17,8 @@
 		var sig = Mix.fill(4,{
 			//between 1 +- 0.01
 			var freqmult = 1 + SinOsc.ar(LFNoise1.kr(rrand(0.25,0.5),4,5), pi.rand,0.01);
-			SinOsc.ar(freq_in * (freqmult), pi.rand);
+			//SinOsc.ar(freq_in * (freqmult), pi.rand);
+			SinOscFB.ar(freq_in * (freqmult), 0.5.rand);
 		});
 
 		//sig = sig + VarSaw.ar(freq_in, mul: LFDNoise3.kr(0.25).range(0.1,0.4) );
@@ -47,7 +48,7 @@
 
 	\delta, 16,
 
-	\degree, Pbrown(0, 5, 1, inf),
+	\degree, Pbrown(0, 4, 1, inf),
 
 	\vrate, 0.003,
 	\vrate2, 0.003,
@@ -72,12 +73,12 @@
 /////////////////////////////////
 // 1
 ~sinpair[\sinpair1][0] = ~anasine.();
-~sinpair[\sinpair1].set(\vdepth, 0.001, \vrate, 2, \vrateVar, 0.5, \vdepthVar, 0.5)
+~sinpair[\sinpair1].set(\vdepth, 0.01, \vrate, 4, \vrateVar, 0.5, \vdepthVar, 0.5)
 
 /////////////////////////////////
 // 2
 ~sinpair[\sinpair2][0] = ~anasine.();
-~sinpair[\sinpair2].set(\vdepth, 0.01, \vrate, 3, \vrateVar, 0.1, \vdepthVar, 0.3)
+~sinpair[\sinpair2].set(\vdepth, 0.01, \vrate, 5, \vrateVar, 0.1, \vdepthVar, 0.3)
 
 /////////////////////////////////
 // trig
@@ -91,7 +92,7 @@
 	var atk_in = 2;
 	var sus_in = 2;
 	var rel_in = 1;
-	var curve_in = -4;
+	var curve_in = 4;
 	var ls_in = 1;
 	var env = Env.linen(atk_in,sus_in,rel_in,curve:curve_in).kr(gate:trig_in, timeScale:ts_in, mul:ls_in);
 	env;
@@ -119,27 +120,32 @@
 ~sinpair[\sinpair1].set(\freq, ~sinpair[\pairfreq1], \amp, ~sinpair[\pairenv1]);
 ~sinpair[\sinpair2].set(\freq, ~sinpair[\pairfreq2], \amp, ~sinpair[\pairenv2]);
 
-~sinpair[\mix][0] = {~sinpair[\sinpair1]};
-~sinpair[\mix][1] = {~sinpair[\sinpair2]};
+
+~sinpair[\mix] = NodeProxy.audio(s, 2);
+~sinpair[\mix][1] = {~sinpair[\sinpair1]};
+~sinpair[\mix][2] = {~sinpair[\sinpair2]};
+
 
 /////////////////////////////////
 // fx
 (~sinpair[\mix][4] = \filter -> {arg in;
-	JPverb.ar(in, t60:10, size:5);
+	JPverb.ar(in, t60:10, size:5)
 });
 
 (~sinpair[\mix][6] = \filter -> {arg in;
-	var sig = in;//Squiz.ar(in);
-	Greyhole.ar(sig);
+	Greyhole.ar(in, modDepth: 0.5, modFreq: LFTri.kr(1/64).range(2, 4));
+})
+(~sinpair[\mix][8] = \filter -> {arg in;
+	WaveLoss.ar(in, LFTri.kr(1/16).range(1, 20));
 })
 
-~sinpair[\mix].set(\wet4, 0.5, \wet6, 0.7);
+~sinpair[\mix].set(\wet4, 0.5, \wet6, 0.6, \wet8, 0.0);
 
 /////////////////////////////////
 // play
-~sinpair[\mix].play
-~sinpair[\mix].stop
-~sinpair[\mix].vol = 0.2
+~sinpair[\mix].play(fadeTime:5);
+~sinpair[\mix].stop(fadeTime:5);
+~sinpair[\mix].vol = 0.1
 
 
 

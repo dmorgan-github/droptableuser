@@ -1,6 +1,7 @@
 
 ~p = ProxySpace.new(s);
 ~p.quant = 1.0;
+~p.clock = TempoClock.default;
 
 (~p[\leadseq][0] = {
 	var trig = \trig.tr;
@@ -14,7 +15,7 @@
 	\delta, 0.25,
 	\beatDur, Pfunc({thisThread.clock.beatDur;}),
 	\dur, Pkey(\delta) * Pkey(\beatDur) * 0.5,
-	\midinote, Pseq([ 60, 58, 60, 58, 65, 58, 55 ], inf)
+	\midinote, Pseq([ 60, 58, 60, 58, 65, 58, 55, 58 ], inf)
 ))
 
 ~p[\leadfreq] = {~p[\leadseq].kr[1]};
@@ -48,7 +49,7 @@
 ~p[\leadverb].set(\wet, 0.3)
 ~p[\leadverb].play
 ~p[\leadverb].stop
-~p[\leadverb].vol = 0.1
+~p[\leadverb].vol = 0.3
 
 
 App.recordVersion;
