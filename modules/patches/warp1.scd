@@ -1,8 +1,9 @@
-~buf = Buffer.read(s, "/Users/david/projects/droptableuser/workspaces/ws13/434189__greek555__ethnic-style.wav");
-"/Users/david/projects/droptableuser/samples/1channel/171326__bradovic__piano-improvisation.mono.aiff"
-"/Users/david/projects/droptableuser/workspaces/ws12/27130__pryght-one__harp.wav"
+~p = ~p ? ProxySpace.new(s, \p);
 
-~p[\warp1].mold
+~buf = Buffer.read(s, "/Users/david/projects/droptableuser/workspaces/ws13/434189__greek555__ethnic-style.wav");
+
+
+
 
 (~p[\warp1] = {
 
@@ -33,7 +34,6 @@
 
 ~p[\warp1].set(\rate, 1.midiratio, \ws, 1, \overlaps, 5, \winrand, 0.1)
 ~p[\warp1].play;
-
 
 (~p[\rev2] = {
 	var in = \in.ar([0,0]);
