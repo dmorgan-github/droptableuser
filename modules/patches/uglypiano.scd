@@ -1,6 +1,6 @@
+~p = ~p ? ProxySpace.new(s, \p);
 
-~p1 = ProxySpace.new(s);
-(~p1[\snd][0] = {
+(~p[\uglypiano][0] = {
 
 	var trig = \trig.tr;
 	var freq = \freq.kr(432);
@@ -25,7 +25,7 @@
 	sig!2 * env;
 })
 
-(~p1[\snd][4] = \set -> Pbind(
+(~p[\uglypiano][4] = \set -> Pbind(
 	\trig, 1,
 
 	\freq, Pwalk(
@@ -38,17 +38,16 @@
 ))
 
 
-~p1[\snd][6] = \filter -> {arg in; FbC({arg fb; fb * 0.7 + in}, 0.4)};
+~p[\uglypiano][6] = \filter -> {arg in; FbC({arg fb; fb * 0.7 + in}, 0.4)};
+~p[\uglypiano][8] = \filter -> {arg in; JPverb.ar(in)};
 
-~p1[\snd][8] = \filter -> {arg in; JPverb.ar(in)};
+~p[\uglypiano].set(\wet8, 0.5, \wet10, 0.4)
 
-~p1[\snd].set(\wet8, 0.5, \wet10, 0.4)
+~p[\uglypiano].gui
+~p[\uglypiano].play(fadeTime:5);
+~p[\uglypiano].stop(fadeTime:10);
 
-~p1[\snd].gui
-~p1[\snd].play(fadeTime:5);
-~p1[\snd].stop(fadeTime:10);
-
-~p1[\snd].vol = 0.1;
+~p[\uglypiano].vol = 0.1;
 
 App.recordWorkspace("ws1");
 s.stopRecording

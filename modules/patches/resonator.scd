@@ -1,16 +1,15 @@
-~res = ProxySpace.new(s);
-~res.quant = 1.0;
-~res.clock = TempoClock.default;
+~p = ~p ? ProxySpace.new(s, \p);
 
-/////////////////////////////////
+//////////////////////////////////////////////
 // resonator
-~res[\snd].clear;
-(~res[\snd][0] = {
+~p[\res].clear;
+(~p[\res][0] = {
 
 	var in = {
 		var trig = \trig.tr;
 		var env = Env([1,1,0],[0,0.05],-4).kr(gate:trig);
-		PinkNoise.ar/* Blip.ar(200, 30)*/ * env;
+		//PinkNoise.ar/* Blip.ar(200, 30)*/ * env;
+		~p[\rev2].ar * env;
 	}.();
 
 	var numFreqs = 6;
@@ -43,11 +42,10 @@
 	sig = sig * AmpCompA.kr(freq_in) * \amp.kr(0);
 
 	Mix.ar(sig)!2;
-
 });
 
 
-(~res[\snd][4] = \set -> Pbind(
+(~p[\res][4] = \set -> Pbind(
 	\trig, 1,
 	\scale, Scale.kumoi,
 	\degree, Ppatlace([Pseq([0,6], inf), Pseq([2,1,3,4], inf)], inf),
@@ -79,7 +77,7 @@
 
 ))
 
-(~res[\snd][12] = \filter -> {arg in;
+(~p[\res][12] = \filter -> {arg in;
 
 	var sig;
 	var tap1, tap2, tap3;
@@ -96,18 +94,18 @@
 	sig;
 });
 
-(~res[\snd][14] = \filter -> {arg in;
+(~p[\res][14] = \filter -> {arg in;
 	JPverb.ar(in);
 })
 
-~res[\snd].set(\wet12, 1, \wet14, 0.5)
+~p[\res].set(\wet12, 1, \wet14, 0.2)
 
-~res[\snd].play(fadeTime:4);
-~res[\snd].stop(fadeTime:10);
+~p[\res].play(fadeTime:4);
+~p[\res].stop(fadeTime:10);
 
 
 (
-~resui = {arg node;
+Fdef(\resui, {arg node;
 
 	var view = View().layout_(VLayout().margins_(0).spacing_(0));
 	view.layout.add(
@@ -127,17 +125,10 @@
 
 	);
 	view.front;
-};
-~resui.(~res[\snd]);
+});
+Fdef(\resui).(~p[\res]);
 )
 
 
 App.recordWorkspace("ws8");
 s.stopRecording
-
-(1/30).sqrt
-
-
-1.lincurve
-
-\

@@ -35,10 +35,10 @@ SynthDef(\ethereal_pad, {
 }).add
 )
 
-~epad = ProxySpace.new(s);
-~epad.quant = 1.0;
+~p = ~p ? ProxySpace.new(s, \p);
+
 (
-~epad[\snd] = Pbind(
+~p[\pad] = Pbind(
 	\instrument, \ethereal_pad,
 	\freq, Pseq([
 		//['F2', 'D3'].namecps,
@@ -55,14 +55,14 @@ SynthDef(\ethereal_pad, {
 )
 )
 
-~epad[\snd].play;
-~epad[\snd].stop(fadeTime:5);
-~epad[\snd].vol = 0.3
+~p[\pad].play;
+~p[\pad].stop(fadeTime:5);
+~p[\pad].vol = 0.1
 
-(~epad[\snd][4] = \filter -> {arg in;
+(~p[\pad][4] = \filter -> {arg in;
 	JPverb.ar(in, t60:10, size:5);
 })
-~epad[\snd].set(\wet4, 0.9)
+~p[\pad].set(\wet4, 0.9)
 
 
 
