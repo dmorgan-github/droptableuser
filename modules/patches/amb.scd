@@ -1,6 +1,8 @@
 ~p = ~p ? ProxySpace.new(s, \p);
 ~p.quant = 1.0;
 
+/////////////////////////////////////////////
+// pattern
 (~p[\amb][0] = Pbind(
 
 	\dur, 0.125,
@@ -22,13 +24,14 @@
 		})
 	})),
 	\amp, 0.3
-)
-)
+))
 
 ~p[\amb].vol = 1;
 ~p[\amb].play;
 ~p[\amb].stop;
 
+/////////////////////////////////////////////
+// delay
 (~p[\amp_del][0] = {
 	var in = \in.ar([0,0]);
 	var delayL = \delayL.kr(3).lag(0.1);
@@ -42,7 +45,8 @@
 ~p[\amp_del].play;
 ~p[\amp_del].stop;
 
-
+/////////////////////////////////////////////
+// reverb
 (~p[\amp_verb][0] = {
 
 	var in = \in.ar([0,0]);
@@ -55,11 +59,12 @@
 	fx;
 })
 
-~p[\amp_verb] <<> ~p[\amp_del];//~p[\amp_del];
+~p[\amp_verb] <<> ~p[\amp_del];
 ~p[\amp_verb].play;
 ~p[\amp_verb].stop(fadeTime:10);
 
-
+/////////////////////////////////////////////
+// eq
 (~p[\eq][0] = {
 	var in = \in.ar([0,0]);
 	var amp = \amp.kr(0.1);
@@ -72,6 +77,8 @@
 ~p[\eq].play;
 ~p[\amp_verb].vol = 0.5;
 
+/////////////////////////////////////////////
+// second delay
 (~p[\amp_del2][0] = {
 	var in = \in.ar([0,0]);
 	var fx = DelayC.ar(in, 10, 4);
@@ -131,6 +138,11 @@ Fdef(\mm_0_0, {arg ctrl, x, y, modifiers;
 	~p[\amp_del].set(\rq, y);
 	~p[\amb_mix].set(\mix1, 0.1-y);
 });
+
+Fdef(\v_2_2, {arg size;
+	var cb = {arg lo, hi; [lo, hi].postln };
+	~buf_viewer.(~buf, size, cb);
+})
 )
 
 ~grid_ui.(size:200,grid:3);
@@ -138,3 +150,4 @@ Fdef(\mm_0_0, {arg ctrl, x, y, modifiers;
 App.recordWorkspace("ws14");
 s.stopRecording
 
+~buf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/cellos.mono.aiff")

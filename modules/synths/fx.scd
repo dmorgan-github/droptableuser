@@ -17,7 +17,6 @@
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	};
 };
-Library.put(\modules, \fx, \gran, ~gran);
 
 ~granulator = {arg chans = 1;
 
@@ -86,7 +85,6 @@ Library.put(\modules, \fx, \gran, ~gran);
 		XFade2.ar(in, out, wet.linlin(0,1,-1,1));
 	}
 };
-Library.put(\modules, \fx, \granulator, ~granulator);
 
 // TGrains2
 
@@ -104,7 +102,6 @@ Library.put(\modules, \fx, \granulator, ~granulator);
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	};
 };
-Library.put(\modules, \fx, \pitch_shift, ~pitch_shift);
 
 ~freq_shift = {arg chans = 1, freq = 0, phase = 0;
 
@@ -118,7 +115,6 @@ Library.put(\modules, \fx, \pitch_shift, ~pitch_shift);
 		XFade2.ar(in, fx, wet.linlin(0,1,-1,1));
 	};
 };
-Library.put(\modules, \fx, \freq_shift, ~freq_shift);
 
 /*
 # 1767 C* ChorusI - Mono chorus/flanger
@@ -150,6 +146,5 @@ Library.put(\modules, \fx, \freq_shift, ~freq_shift);
 	};
 };
 
-Library.put(\modules, \fx, \chorus, ~chorus);
 
 )

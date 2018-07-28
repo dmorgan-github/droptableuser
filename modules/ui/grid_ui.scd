@@ -16,7 +16,7 @@
 	var uv = {arg y, x;
 
 		var key = (y.asSymbol ++ '_' ++ x.asSymbol).asSymbol;
-		var myView = Fdef(('v_' ++ key).asSymbol).value(size, size);
+		var myView = Fdef(('v_' ++ key).asSymbol).value(size);
 
 		if (myView.isNil.not) {
 			myView
@@ -99,10 +99,6 @@
 	.alwaysOnTop_(true)
 	.palette_(QPalette.dark)
 	.acceptsMouseOver_(true)
-	.mouseOverAction_({arg ctrl, x, y;
-		var key = \mo_win;
-		Fdef(key).value(ctrl, x,y);
-	})
 	.layout_(VLayout().spacing_(0.5).margins_(0.5))
 	.minWidth_(size * cols)
 	.minHeight_(size * rows);
