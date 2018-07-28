@@ -3,6 +3,7 @@
 
 (
 Ndef(\cicli){|speed=0.5|
+
 	var size = 16;
 	var nC = Dust.kr(0.05!size);
 	var dC = Dust.kr(0.1!size);
@@ -13,14 +14,16 @@ Ndef(\cicli){|speed=0.5|
 	nC = nC + CoinGate.kr(TRand.kr(0.1,1,Dust.kr(0.1)),localIn[(0..nC.size-1)]).scramble;
 	dC = dC + CoinGate.kr(TRand.kr(0.1,1,Dust.kr(0.1)),localIn[(nC.size..nC.size*2-1)]).scramble;
 
-
 	freq = Demand.kr(nC,80,Drand(80*((Scale.major.ratios*.1(2**(0..4))).flat),inf));
 	sin = SinOsc.ar(freq)*EnvGen.kr(Env.perc(0.1,2),Impulse.kr(TRand.kr(0.2,1.2,dC)*speed));
 	LocalOut.kr(nC++dC);
 	Mix(Pan2.ar(sin/sin.size*AmpCompA.kr(freq),[-1,1]))*4
+
 }.fadeTime_(0).playN([0,1]);
 )
+Ndef(\cicli).stop;
 
+5*.1(3)
 
 (
 Ndef(\cicliCtrl2){|slow=1,n_slow=1,glitch=1|
@@ -40,10 +43,11 @@ Ndef(\cicliCtrl2){|slow=1,n_slow=1,glitch=1|
 
 	LocalOut.kr(m++r);
 
-	Mix(Pan2.ar(l/l.size*AmpCompA.kr(c),[-1,1]))*4 * 0.1
+	Mix(Pan2.ar(l/l.size*AmpCompA.kr(c),[-1,1]))*4 * 0.2
 
 }.fadeTime_(0).playN([0,1]);
 )
+
 Ndef(\cicliCtrl2).stop;
 
 (

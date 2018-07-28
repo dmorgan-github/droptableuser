@@ -3,7 +3,7 @@
 
 //////////////////////////////////////////////
 // synth
-(~p[\synth][0] = {
+(~p[\monosynth1][0] = {
 
 	var trig = \trig.tr;
 	var freq_in = \freq.kr(432);
@@ -46,9 +46,9 @@
 });
 
 (
-~p[\synth][1] = \set -> Pbind(
+~p[\monosynth1][1] = \set -> Pbind(
 	\trig, 1,
-	\scale, Scale.lydian,
+	\scale, Scale.locrian,
 	\octave, Pbjorklund(3,8,inf).collect({arg val; if (val == 0) {5}{6}}),
 	[\delta, \degree], Prout({
 
@@ -74,13 +74,13 @@
 			result.next.yield;
 		});
 	}),
-	\amp, Pbjorklund(3,8, inf, 3).collect({arg val; if (val == 0) {1}{0.4}}) * 0.2,
+	\amp, 0.3//Pbjorklund(3,8, inf, 3).collect({arg val; if (val == 0) {1}{0.4}}) * 0.2,
 ))
 )
 
-~p[\synth].set(\osc1, 0.8, \osc2, 0.2, \sus, 0.02, \vdepth, 0.005, \lag, 0.01);
-~p[\synth].play(out:0);
-~p[\synth].stop;
+~p[\monosynth1].set(\osc1, 0.8, \osc2, 0.2, \sus, 0.02, \vdepth, 0.005, \lag, 0.01);
+~p[\monosynth1].play(out:0);
+~p[\monosynth1].stop;
 
 (~p[\send_del] = {
 

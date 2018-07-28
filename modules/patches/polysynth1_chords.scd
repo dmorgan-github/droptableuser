@@ -27,7 +27,8 @@ SynthDef(\polysynth1, {
 			curve:\osc1_curve.kr(-4)
 		).kr(gate:\gate.kr(1));
 
-		(sig * 2).tanh * env * \osc1.kr(0.5);
+		//(sig * 2).tanh * env * \osc1.kr(0.5);
+		sig * env * \osc1.kr(0.5);
 	};
 
 	var osc2 = {
@@ -63,7 +64,7 @@ SynthDef(\polysynth1, {
 		var res = 0.5;
 		var num = 2;
 
-		{ sig = MoogLadder.ar(sig, Line.kr(6000, 220, \osc3_rel.kr * 0.5), res ) }.dup(num);
+		{ sig = MoogLadder.ar(sig, Line.kr(6000, 220, \osc3_rel.kr), res ) }.dup(num);
 
 		sig * env * \osc3.kr(0) * (res.reciprocal.sqrt * num);
 	};
@@ -103,8 +104,8 @@ var circle = Library.at(\circle);
 	\osc3_rel, 1,
 
 	\width, 0.5,
-	\scale, Scale.lydian,
-	\dur, 0.5, //Prand([0.5, 0.25, 0.33, 1], inf),
+	\scale, Scale.major,
+	\dur, 2, //Prand([0.5, 0.25, 0.33, 1], inf),
 	\sustain, Pkey(\dur) * 1.1,
 	\legato, 1.5,
 	\octave, Prand([4,5], inf),
@@ -116,7 +117,7 @@ var circle = Library.at(\circle);
 		};
 		returnVal;
 	}),
-	\amp, 0.3
+	\amp, 0.8
 ))
 )
 ~p[\chords].play;
