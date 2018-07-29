@@ -12,6 +12,7 @@
 	\octave, 4,
 	\degree, Pstutter(Pseq([2,4,6] * 2, inf), Prout({
 		loop({
+			// it is not necessary to do it this way...
 			var seq = Pwhite(0, 12, inf).clump(10).asStream;
 			seq.next.do({arg val;
 
@@ -139,15 +140,9 @@ Fdef(\mm_0_0, {arg ctrl, x, y, modifiers;
 	~p[\amb_mix].set(\mix1, 0.1-y);
 });
 
-Fdef(\v_2_2, {arg size;
-	var cb = {arg lo, hi; [lo, hi].postln };
-	~buf_viewer.(~buf, size, cb);
-})
 )
 
 ~grid_ui.(size:200,grid:3);
 
 App.recordWorkspace("ws14");
 s.stopRecording
-
-~buf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/cellos.mono.aiff")

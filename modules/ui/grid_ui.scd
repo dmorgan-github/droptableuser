@@ -95,22 +95,32 @@
 		};
 	};
 
-	var win = View()
-	.alwaysOnTop_(true)
+	var view = View()
+	.alwaysOnTop_(false)
 	.palette_(QPalette.dark)
 	.acceptsMouseOver_(true)
 	.layout_(VLayout().spacing_(0.5).margins_(0.5))
 	.minWidth_(size * cols)
-	.minHeight_(size * rows);
+	.minHeight_(size * rows + 15);
+
+	view.layout.add(
+		Button().states_([ ["--"], ["__"] ]).action_({arg ctrl;
+			if (ctrl.value == 1) {
+				view.alwaysOnTop = true;
+			}{
+				view.alwaysOnTop = false;
+			}
+		}).maxSize_(15);
+	);
 
 	rows.do({arg i;
 		var layout = HLayout();
 		cols.do({arg j;
 			layout.add(uv.(i, j));
 		});
-		win.layout.add(layout);
+		view.layout.add(layout);
 	});
 
-	win.front;
+	view.front;
 };
 )
