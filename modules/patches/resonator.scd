@@ -8,8 +8,8 @@
 	var in = {
 		var trig = \trig.tr;
 		var env = Env([1,1,0],[0,0.05],-4).kr(gate:trig);
-		//PinkNoise.ar/* Blip.ar(200, 30)*/ * env;
-		~p[\rev2].ar * env;
+		PinkNoise.ar/* Blip.ar(200, 30)*/ * env;
+		//~p[\fx4].ar * env;
 	}.();
 
 	var numFreqs = 6;
@@ -102,6 +102,9 @@
 
 ~p[\res].play(fadeTime:4);
 ~p[\res].stop(fadeTime:10);
+
+App.recordWorkspace("ws6");
+s.stopRecording;
 
 
 (

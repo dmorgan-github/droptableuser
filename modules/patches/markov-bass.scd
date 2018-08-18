@@ -35,7 +35,7 @@ var degrees = ~pmarkov.(matrix);
 
 ~p[\bass] = Pmono(\s6,
 	\degree, degrees,
-	\scale, Scale.egyptian,
+	\scale, Scale.dorian,
 	\root, 0,
 	\octave, Prand([3, 4], inf),
 	\delta, Pseq([1, 0.5, 1, 2.5, 1, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1, 2.5, 1,1, 0.5,
@@ -49,7 +49,8 @@ var degrees = ~pmarkov.(matrix);
 	\q, Pwhite(0.09, 0.2, inf),
 	\lpf, Pgauss(1100, 200, inf),
 
-	\amp, 0.06
+	\amp, -20.dbamp
 ));
 
-~p[\bass].play
+~p[\bass].play;
+~p[\bass].stop;
