@@ -3,58 +3,20 @@ App {
 	*initClass {
 	}
 
-	*record {
-		Server.default.record(Document.current.path ++ "-" ++ Date.getDate.asSortableString ++ ".aiff");
-	}
+	*saveWorkspace {arg name = nil, folder = "~/projects/droptableuser/workspaces", rec = false;
 
-	*recordPatch {arg folder = "~/projects/droptableuser/workspaces";
-
-		var date = Date.getDate.asSortableString;
+		var workspace = name ? "%-%-%/%%".format(Date.getDate.year, Date.getDate.month, Date.getDate.day, Date.getDate.hour, Date.getDate.minute);
 		var current_doc = Document.current;
-		var current_path = folder.standardizePath ++ "/" ++ current_doc.title;
+		var current_path = folder.standardizePath ++ "/" ++ workspace;
 		var dirname;
 
 		if (File.exists(current_path).not) {
 			File.mkdir(current_path);
-		};
-
-		dirname = current_path ++ "/" ++ date;
-		if (File.exists(dirname).not) {
-			File.mkdir(dirname);
-		};
-
-		{
-			var file_name = PathName(current_doc.title);
-			var path = dirname ++ "/" ++ file_name.fileName;
-			var content = current_doc.string;
-			var file = File(path, "w");
-			path.debug("writing...");
-			file.write(content);
-			file.close();
-
-			Server.default.record(dirname ++ "/" ++ current_doc.title ++ "-" ++ date ++ ".aiff");
-		}.();
-	}
-
-	*recordWorkspace {arg name = "unknown", folder = "~/projects/droptableuser/workspaces";
-
-		var date = Date.getDate.asSortableString;
-		var current_doc = Document.current;
-		var current_path = folder.standardizePath ++ "/" ++ name;
-		var dirname;
-
-		if (File.exists(current_path).not) {
-			File.mkdir(current_path);
-		};
-
-		dirname = current_path ++ "/" ++ date;
-		if (File.exists(dirname).not) {
-			File.mkdir(dirname);
 		};
 
 		Document.openDocuments.do({arg doc;
 			var file_name = PathName(doc.title);
-			var path = dirname ++ "/" ++ file_name.fileName;
+			var path = current_path ++ "/" ++ file_name.fileName;
 			var content = doc.string;
 			var file = File(path, "w");
 			path.debug("writing...");
@@ -62,50 +24,46 @@ App {
 			file.close();
 		});
 
-		Server.default.record(dirname ++ "/" ++ current_doc.title ++ "-" ++ date ++ ".aiff");
+		if (rec) {
+			Server.default.record(current_path ++ "/SC_" ++ Date.getDate.stamp ++ ".aiff");
+		}
 	}
 
-	*recordVersion {
-		var date = Date.getDate.asSortableString;
-		var current_doc = Document.current;
-		var current_path = current_doc.path;
-		var dirname = current_path ++ "-" ++ date;
+	*guiHelper {arg proxy, name;
 
-		if (File.exists(dirname).not) {
-			File.mkdir(dirname);
-		};
+		var width = 390;
+		var rowHeight = 22;
+		var numItems = proxy.controlNames.size;
+		var view;
+		var win = Window();
+		win.addFlowLayout(2@2,2@2);
+		NdefGui(proxy, numItems:numItems, parent:win);
 
-		Document.openDocuments.do({arg doc;
-			var file_name = PathName(doc.title);
-			var path = dirname ++ "/" ++ file_name.fileNameWithoutExtension ++ "-" ++ date ++ "." ++ file_name.extension;
-			var content = doc.string;
-			var file = File(path, "w");
-			path.debug("writing...");
-			file.write(content);
-			file.close();
-		});
+		view = View().name_(name)
+		.layout_(VLayout().margins_(0).spacing_(0))
+		.minHeight_(numItems*rowHeight)
+		.minWidth_(width); // ?
 
-		Server.default.record(dirname ++ "/" ++ current_doc.title ++ "-" ++ date ++ ".aiff");
-	}
-
-	*defaultOut {arg server, numOutputBusChannels = 8;
-
-		server.options.numOutputBusChannels = numOutputBusChannels;
-		server.options.outDevice_("Built-in Output");
-		server.options.inDevice_("Built-in Microph");
-		server.reboot;
-	}
-
-	*soundflowerOut {arg server, numOutputBusChannels = 16;
-
-		// check volume control in task bar
-		// check volume in midi
-		// check volume in sound preferences
-		// check that both Soundflower (64ch) and Soundflower (2ch) are not muted
-		server.options.numOutputBusChannels = numOutputBusChannels;
-		server.options.inDevice_("Built-in Microph");
-		server.options.outDevice_("Soundflower (64ch)");
-		server.reboot;
+		view.layout.add(HLayout(
+			Button().states_([ ["_"],["-"] ]).action_({arg ctrl;
+				if (ctrl.value == 1) {
+					view.alwaysOnTop_(true)
+				}{
+					view.alwaysOnTop_(false)
+				};
+			}),
+			Button().states_([["><"],["<>"]]).action_({arg ctrl;
+				if (ctrl.value == 1) {
+					view.maxHeight = rowHeight;
+					view.minHeight = rowHeight;
+					view.resizeTo(width, rowHeight);
+				}{
+					view.minHeight = numItems*rowHeight;
+					view.maxHeight = numItems*rowHeight * 2;
+				}
+			})
+		));
+		view.layout.add(win.asView);
+		^view;
 	}
 }
-

@@ -1,5 +1,14 @@
-~p = ProxySpace.new(s);
+/////////////////////////////////////////
+// proxy space
+~p = ~p ? ProxySpace.new(s, \p);
+~p.quant = 4.0;
+~p.fadeTime = 2;
+~p.clock = TempoClock.default.tempo_(60/60);
 
+/////////////////////////////////////////
+// name
+~p[\lfomel].clear;
+~p[\lfomel].mold;
 (~p[\lfomel] = {
 
 	var lfo1 = LFPulse.kr(1/16).range(1/4,1);
@@ -33,48 +42,10 @@
 	var freq = midi.midicps;
 	var sig = SinOscFB.ar(freq.lag(0.01) * [1, 1.01], feedback: SinOsc.kr(0.1).range(0.3,0.7)) * env;
 
-	//sig = RLPF.ar(sig, env.range(880, 2200), 0.3);
-	//sig = XFade2.ar(sig, JPverb.ar(HPF.ar(sig, 100), t60:1, size:3), 0);
-	//sig = XFade2.ar(sig, WaveLoss.ar(sig), -0.1);
-	//sig = XFade2.ar(sig, Greyhole.ar(sig), -0.75);
-
 	sig;
 })
 
 ~p[\lfomel].play
 ~p[\lfomel].stop
-
-~p[\lfomel_rlpf] = ~rlpf.(chans:~p[\lfomel].numChannels);
-~p[\lfomel_rlpf] <<> ~p[\lfomel];
-//~p[\lfomel_rlpf]
-
-~p[\lfomel_revdel] = ~reversedelay.(chans:~p[\lfomel].numChannels);
-~p[\lfomel_revdel] <<> ~p[\lfomel];
-~p[\lfomel_revdel].set(\wet, 0.3, \delay, 4, \crossfade, 2000)
-~p[\lfomel_revdel].play
-~p[\lfomel_revdel].stop
-~p[\lfomel_revdel].vol = 0.1;
-~p[\lfomel_revdel].gui
-
-~p[\lfomel_verb] = ~jpverb.(chans:~p[\lfomel_revdel].numChannels);
-~p[\lfomel_verb] <<> ~p[\lfomel_revdel];
-~p[\lfomel_verb].set(\t60, 1, \size, 3, \wet, 0.4);
-~p[\lfomel_verb].play;
-~p[\lfomel_verb].stop
-
-~p[\lfomel_waveloss] = ~waveloss.(chans:~p[\lfomel_verb].numChannels);
-~p[\lfomel_waveloss] <<> ~p[\lfomel_verb];
-~p[\lfomel_waveloss].set(\wet, 0.4);
-~p[\lfomel_waveloss].play;
-~p[\lfomel_waveloss].stop;
-
-~p[\lfomel_greyhole] = ~greyhole.(chans:~p[\lfomel_waveloss].numChannels);
-~p[\lfomel_greyhole] <<> ~p[\lfomel_waveloss];
-~p[\lfomel_greyhole].set(\wet, 0.2)
-~p[\lfomel_greyhole].play(fadeTime:5);
-~p[\lfomel_greyhole].stop(fadeTime:5);
-~p[\lfomel_greyhole].vol = 0.04
-
-
-App.recordVersion
+~p[\lfomel].gui;
 

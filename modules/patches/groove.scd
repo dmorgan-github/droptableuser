@@ -1,12 +1,9 @@
 /////////////////////////////////////////
 // proxy space
-(
 ~p = ~p ? ProxySpace.new(s, \p);
 ~p.quant = 4.0;
 ~p.fadeTime = 2;
 ~p.clock = TempoClock.default.tempo_(1);
-~p.makeTempoClock
-)
 
 
 
@@ -132,9 +129,9 @@
 /////////////////////////////////////////
 // play
 ~p[\s1].play(out:0);
-~p[\fb1].play(out:2);
-~p[\fb2].play(out:4);
-~p[\fb3].play(out:6, vol:0.8);
+~p[\fb1].play(out:0);
+~p[\fb2].play(out:0);
+~p[\fb3].play(out:0);
 
 ~p[\s1].stop(fadeTime:5);
 ~p[\fb1].stop(fadeTime:5);
@@ -188,8 +185,7 @@ Pdefn(\dur, 1);
 ~p[\verb].stop;
 
 
+App.saveWorkspace
 s.meter(2,2).window.alwaysOnTop_(true);
 
-App.recordWorkspace("ws14");
-s.stopRecording
 

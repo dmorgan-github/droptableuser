@@ -1,4 +1,9 @@
+/////////////////////////////////////////
+// proxy space
 ~p = ~p ? ProxySpace.new(s, \p);
+~p.quant = 4.0;
+~p.fadeTime = 2;
+~p.clock = TempoClock.default.tempo_(60/60);
 
 //////////////////////////////////////////////
 // resonator
@@ -8,8 +13,7 @@
 	var in = {
 		var trig = \trig.tr;
 		var env = Env([1,1,0],[0,0.05],-4).kr(gate:trig);
-		PinkNoise.ar/* Blip.ar(200, 30)*/ * env;
-		//~p[\fx4].ar * env;
+		PinkNoise.ar * env;
 	}.();
 
 	var numFreqs = 6;
@@ -51,7 +55,7 @@
 	\degree, Ppatlace([Pseq([0,6], inf), Pseq([2,1,3,4], inf)], inf),
 	\ctranspose, Pstep(Pseq([0, -5, 2, -7], inf), Pseq([4,4,4,4] * 4, inf), inf),
 	\octave, 3,
-	\delta, 0.125,
+	\delta, 1,
 	\amp, Pbjorklund(7,11,inf) * 0.1,
 
 	\foo, Pseg([0, 50, 25, 0], [1, 2, 3], \lin, inf),
@@ -77,34 +81,12 @@
 
 ))
 
-(~p[\res][12] = \filter -> {arg in;
+~p[\res].play();
+~p[\res].stop();
 
-	var sig;
-	var tap1, tap2, tap3;
-	var fbNode = FbNode(2, 1.304, 4);
 
-	tap1 = BBandPass.ar( fbNode.delay(0.2), 4400, 0.5);
-	tap2 = BBandPass.ar( fbNode.delay(0.27) * 0.4, 880, 1.5);
-	tap3 = BBandPass.ar( fbNode.delay(1.303) * 0.2, 2200, 3.5);
 
-	sig = [tap2 + tap3, in + tap1];
 
-	fbNode.write(in);
-
-	sig;
-});
-
-(~p[\res][14] = \filter -> {arg in;
-	JPverb.ar(in);
-})
-
-~p[\res].set(\wet12, 1, \wet14, 0.2)
-
-~p[\res].play(fadeTime:4);
-~p[\res].stop(fadeTime:10);
-
-App.recordWorkspace("ws6");
-s.stopRecording;
 
 
 (

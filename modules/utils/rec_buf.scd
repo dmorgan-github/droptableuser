@@ -11,7 +11,7 @@ Ndef(\soundin_m, {
 Ndef(\rec_buf,{
 
 	var in = \in.ar([0,0]);
-	var buf = \buf.kr();
+	var buf = \buf.kr([0,0]);
 	RecordBuf.ar(in,
 		buf,
 		recLevel:\rlvl.kr(1),
@@ -54,3 +54,4 @@ Ndef(\rec_buf_m,{
 	view.front;
 }
 )
+

@@ -1,7 +1,7 @@
 (
 SynthDef(\sine, {
 	var freq = \freq.kr(432);
-	var sig = SinOsc.ar(freq) + VarSaw.ar(freq, mul:0.3);
+	var sig = VarSaw.ar(freq, mul:0.5);
 	var env = Env.adsr(decayTime:0.3, releaseTime:0.1, curve:-4).kr(gate:\gate.kr(1), doneAction:Done.freeSelf);
 	sig = sig * env * \amp.kr(-10.dbamp) * AmpCompA.kr(freq);
 	sig = Pan2.ar(sig, \pan.kr(0));
@@ -24,21 +24,22 @@ SynthDef(\sine, {
 
 		var pbinds = (0..[1,2].choose).collect({arg val;
 			var div = (2 ** [1,2,3]).wchoose([3,2,1].normalizeSum);
-			var dur = [2,4,8].choose;
-			[dur, {[1,2,4].choose}.dup(div)]
+			var dur = [2,3,4,8].choose;
+			[dur, {[1,2,3,4].choose}.dup(div)]
 		}).collect({arg val, i;
 
 			var size = val[1].size;
 			var degrees = Ppoisson(i+1, inf).asStream.nextN(size);
 			var amp = Pwhite(-15.0, -10.0).asStream.next;
-			var sustain = 0.3;
-			var octave = [5, 6].wchoose([1,3].normalizeSum);
+			var sustain = 0.2;
+			var octave = [5, 6, 7].choose;
 			var pan = Pwhite(-0.8, 0.8, inf).asStream.next;
 
 			Pbind(
 				\instrument, \sine,
 				\degree, Pseq(degrees, size * [2,4,8].wchoose([3,2,1].normalizeSum)),
 				\scale, Scale.dorian,
+				\mtranspose, Pstutter(16, Pseq([0,2,-2,5], inf)),
 				\delta, Pseq(val.convertRhythm, inf),
 				\sustain, sustain,
 				\octave, octave,
@@ -71,9 +72,6 @@ SynthDef(\sine, {
 ~p[\rev].play;
 ~p[\rev].stop;
 ~p[\rev].gui;
-
-App.recordWorkspace("ws10");
-s.stopRecording
 
 
 s.meter(2,2).window.alwaysOnTop_(true);

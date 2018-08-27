@@ -76,3 +76,33 @@ Delayorama {
 	}
 }
 
+Chorus {
+
+	/*
+	# 1767 C* ChorusI - Mono chorus/flanger
+	> a: in (-1 to 1)
+	> k: t (ms) (2.5 to 40)
+	> k: width (ms) (0.5 to 10)
+	> k: rate (Hz) (0 to 5)
+	> k: blend (0 to 1)
+	> k: feedforward (0 to 1)
+	> k: feedback (0 to 1)
+	< a: out
+	*/
+
+	*ar {arg in, t = 30, width = 1.5, rate = 2.5, blend = 1, feedforward = 0.8, feedback = 0.2;
+
+		var sig = LADSPA.ar(1, 1767,
+			in,
+			t,
+			width,
+			rate,
+			blend,
+			feedforward,
+			feedback
+		);
+
+		LeakDC.ar(sig);
+	}
+}
+

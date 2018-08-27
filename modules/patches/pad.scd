@@ -37,7 +37,7 @@ SynthDef(\pad, {
 // pad
 ~p[\pad].clear;
 ~p[\pad].mold;
-(~p[\pad][0] = Pbind(
+(~p[\pad][0] = Pbindef(\bobo,
 	\instrument, \pad,
 	\scale, Scale.locrian,
 	// nice chord progression modified from http://sccode.org/1-597
@@ -86,17 +86,19 @@ SynthDef(\pad, {
 
 /////////////////////////////////////////
 // fx1
+~p[\fx1].clear;
 (~p[\fx1][0] = {
 	var in = ~p[\pad].ar;
 	var fx = (WaveLoss.ar(in) * 4).tanh;
 	fx * 0.4
 });
-~p[\fx1].play(out:2);
+~p[\fx1].play(out:0, vol:0.6);
 ~p[\fx1].stop;
 ~p[\fx1].gui;
 
 /////////////////////////////////////////
 // fx2
+~p[\fx2].clear;
 (~p[\fx2][0] = {
 	var in = ~p[\pad].ar;
 	var fbNode = FbNode(2, 5, 4);
@@ -108,7 +110,7 @@ SynthDef(\pad, {
 	fbNode.write(sig.tanh);
 	JPverb.ar(sig, 5, 0, SinOsc.kr(1/64).range(1.0,2.0)) * 0.2
 });
-~p[\fx2].play(out:4);
+~p[\fx2].play(out:0);
 ~p[\fx2].stop;
 ~p[\fx2].gui;
 
@@ -116,11 +118,26 @@ App.recordWorkspace("ws10");
 s.stopRecording
 
 
+
+App.recordWorkspace("ws10");
+~p[\pad][0].reset;
+~p[\pad].play(fadeTime:3);
+~p[\fx1].play(fadeTime:30, vol:0.6);
+~p[\fx2].play(fadeTime:10);
+
+~p[\pad].stop(fadeTime:10);
+~p[\fx1].stop(fadeTime:10);
+~p[\fx2].stop(fadeTime:10);
+
+
+
+
+
 /////////////////////////////////////////
 // s1
-~p[\s1].clear;
-~p[\s1].mold;
-(~p[\s1][0] = {
+~p[\s11].clear;
+~p[\s11].mold;
+(~p[\s11][0] = {
 
 	var trig = \trig.tr;
 	var freq = \freq.kr(432);
@@ -129,27 +146,27 @@ s.stopRecording
 	sig = Pan2.ar(sig, \pan.kr(0)) * env * AmpCompA.kr(freq) * \amp.kr(-12.dbamp);
 	sig;
 });
-~p[\s1].play(out:6);
-~p[\s1].stop;
-~p[\s1].gui;
+~p[\s11].play(out:0);
+~p[\s11].stop;
+~p[\s11].gui;
 
-(~p[\s1][2] = \set -> Pbind(
+(~p[\s11][2] = \set -> Pbind(
     \trig, 1,
 	\scale, Scale.locrian,
 	\degree, Ppatlace([Pseq([0,6], inf), Pshuf([1,2,3,4,5].scramble[0..3], inf)], inf),
 	\octave, Pbjorklund(7, 11).collect({arg val; if (val == 0) {6}{7}}),
 	\dur, 0.25,
-	\amp, -10.dbamp
+	\amp, -15.dbamp
 ));
 
 /////////////////////////////////////////
 // f3
 (~p[\f3][0] = {
-	var in = ~p[\s1].ar;
+	var in = ~p[\s11].ar;
 	var fx = FbC({arg fb; fb * 0.5 + in}, [3/8, 5/8]);
 	fx
 });
-~p[\f3].play(out:8);
+~p[\f3].play(out:0);
 ~p[\f3].stop;
 ~p[\f3].gui;
 
