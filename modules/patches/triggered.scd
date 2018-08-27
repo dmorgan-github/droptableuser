@@ -10,12 +10,7 @@
 // seq
 (~p[\seq][0] = {
 
-	var trigs = [
-		Impulse.ar(2),
-		Impulse.ar(SinOsc.ar(1/10).range(2, 16)),
-		Impulse.ar(3),
-	];
-	var trig = SelectXFocus.ar(LFNoise2.kr(1).range(0, trigs.size - 1), trigs);
+	var trig = Impulse.kr(2);
 	trig;
 });
 
