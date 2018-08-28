@@ -3,9 +3,9 @@ App {
 	*initClass {
 	}
 
-	*saveWorkspace {arg name = nil, folder = "~/projects/droptableuser/workspaces", rec = false;
+	*saveWorkspace {arg name = "", folder = "~/projects/droptableuser/workspaces", rec = false;
 
-		var workspace = name ? "%-%-%/%%".format(Date.getDate.year, Date.getDate.month, Date.getDate.day, Date.getDate.hour, Date.getDate.minute);
+		var workspace = "%/%-%-%/%%".format(name, Date.getDate.year, Date.getDate.month, Date.getDate.day, Date.getDate.hour, Date.getDate.minute);
 		var current_doc = Document.current;
 		var current_path = folder.standardizePath ++ "/" ++ workspace;
 		var dirname;
