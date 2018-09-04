@@ -1,9 +1,14 @@
+/////////////////////////////////////////
+// proxy space
 ~p = ~p ? ProxySpace.new(s, \p);
-~p.quant = 1.0;
+~p.quant = 4.0;
+~p.fadeTime = 2;
+~p.clock = TempoClock.default.tempo_(60/60);
+
 
 //////////////////////////////////////////////
-// synth
-(~p[\monosynth1][0] = {
+// triggered_multi : triggered monosynth with multiple oscs
+(~p[\triggered_multi][0] = {
 
 	var trig = \trig.tr;
 	var freq_in = \freq.kr(432);
@@ -46,7 +51,7 @@
 });
 
 (
-~p[\monosynth1][1] = \set -> Pbind(
+~p[\triggered_multi][1] = \set -> Pbind(
 	\trig, 1,
 	\scale, Scale.locrian,
 	\octave, Pbjorklund(3,8,inf).collect({arg val; if (val == 0) {5}{6}}),
@@ -78,9 +83,9 @@
 ))
 )
 
-~p[\monosynth1].set(\osc1, 0.8, \osc2, 0.2, \sus, 0.02, \vdepth, 0.005, \lag, 0.01);
-~p[\monosynth1].play(out:0);
-~p[\monosynth1].stop;
+~p[\triggered_multi].set(\osc1, 0.8, \osc2, 0.2, \sus, 0.02, \vdepth, 0.005, \lag, 0.01);
+~p[\triggered_multi].play(out:0);
+~p[\triggered_multi].stop;
 
 (~p[\send_del] = {
 
@@ -97,31 +102,3 @@
 		(fx[1] * 2).tanh * 0.8];
 	fx;
 });
-
-
-//////////////////////////////////////////////
-// ui
-(
-Slider()
-.minWidth_(100)
-.maxHeight_(50)
-.orientation_(\horizontal)
-.action_({arg ctrl;
-	var val = ctrl.value.linlin(0,1,0,4);
-	~p[\send_del].set(\del, val);
-	[\send_del, \del, val].postln;
-})
-.value_(~p[\send_del].get(\del).linlin(0,4,0,1))
-.front
-)
-
-//////////////////////////////////////////////
-// play
-~p[\send_del] <<> ~p[\synth];
-~p[\send_del].play(out:0);
-~p[\send_del].stop;
-~p[\send_del].vol = 0.3;
-
-
-App.recordWorkspace("ws13");
-s.stopRecording;

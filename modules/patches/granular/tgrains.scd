@@ -4,7 +4,7 @@
 ~bufs[\kitchen_sounds_1] = Buffer.read(s, Platform.miSCellaneousDirs[0] +/+ "Sounds" +/+ "kitchen_sounds_1.wav");
 ~bufs[\sticks] = Buffer.read(s, "/Users/david/projects/droptableuser/workspaces/ws12/Crushing Sticks 2.wav");
 ~bufs[\humming] = Buffer.read(s, "/Users/david/projects/droptableuser/workspaces/ws12/264191__lavilovesyou__female-humming.wav");
-
+~bufs[\singing] = Buffer.read(s, "/Users/david/projects/droptableuser/workspaces/ws1/180448__klankbeeld__ghana-woman-sing-traditional-song-dec-1986-2-007-01.wav");
 /////////////////////////////////////////
 // proxy space
 ~p = ~p ? ProxySpace.new(s, \p);
@@ -58,11 +58,59 @@
 ~p[\tgrains].addSpec(\amp, [0.0, 0.5, \lin, 0.005, 0.25]);
 );
 
-~p[\tgrains].set(\buf, ~bufs[\humming]);
-~p[\tgrains].play(vol:2)
+~p[\tgrains].set(\buf, ~bufs[\singing]);
+~p[\tgrains].play(vol:1, out:0)
 ~p[\tgrains].stop;
-~p[\tgrains].gui;
+~tgrains_win = App.guiHelper(~p[\tgrains], "tgrains");
+~tgrains_win.front;
 
+
+/////////////////////////////////////////
+// fb1
+~p[\fb1].clear;
+(~p[\fb1][0] = {
+
+	var chain;
+	var in = \in.ar([0,0]);
+	var sig;
+	var fblevel = \fblevel.kr(0.7);
+	var fbNode = FbNode(2, 1, 4);
+	var fb = fbNode.delay(0.01);// * fblevel + in;
+
+	//fb = PitchShift.ar(fb, 0.2, 2, timeDispersion:0.1);
+	//fb = FreqShift.ar(fb, [10,-10]);
+	fb = SinOsc.ar(\freq.kr(88), in, 6);
+	//chain = FFT(LocalBuf(2048, 2), fb);
+	//chain = PV_MagAbove(chain, \above.kr(500));
+	//chain = PV_BinScramble(chain, MouseX.kr , 0.1, MouseY.kr > 0.5 );
+	//chain = IFFT(chain)!2;
+
+	fb = DelayC.ar(fb, 0.2, SinOsc.kr(1/16).range(0.1, 0.2));
+	//fb = SoftClipper8.ar(fb, 4);
+	fb = JPverb.ar(fb, 5, 0, 5);
+
+	sig = fb.reverse * fblevel + in;
+	//fbNode.write( Limiter.ar(sig, 0.7) );
+	fbNode.write( sig.tanh );
+
+	//sig = BLowPass4.ar(sig, SinOsc.kr(0.1).range(440, 3200), 0.8);
+
+	sig = XFade2.ar(JPverb.ar(sig, 5, 0, 5), sig);
+
+	Splay.ar(sig);
+
+};
+~p[\fb1].addSpec(\fblevel, [0.0, 1.0, \lin, 0.0, 0.4]);
+~p[\fb1].addSpec(\above, [50, 10000, \lin, 0.0, 500]);
+);
+~p[\fb1] <<> ~p[\tgrains];
+~p[\fb1].play(vol:0, out:6);
+~p[\fb1].stop;
+~fb1_win = App.guiHelper(~p[\fb1], "fb1");
+~fb1_win.front;
+
+
+SwitchDelay
 
 /////////////////////////////////////////
 // sine
@@ -144,3 +192,5 @@
 ~p[\filt1].gui;
 
 ~p[\filt1] <<> ~p[\fb1];
+
+
