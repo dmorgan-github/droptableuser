@@ -31,12 +31,13 @@ Pdef(\glitch_buf, Pbind(
 	\buf, ~bufs[\piano],
 	\foo, Pseg([0, numFrames], [dur], 0, inf).collect({arg val; if (0.7.coin){val}{\}}),
 	// scene 1
-	//\pos, Pseg([0, numFrames], [dur], 0, inf).collect({arg val; if (0.7.coin){val}{\}}),
-	//\delta, 1,
+	\pos, Pkey(\foo),
+	\delta, 1,
 
+	//Pseg([0, numFrames], [dur], 0, inf).collect({arg val; if (0.7.coin){val}{\}}),
 	// scene 2
-	\pos, Pif(Pfunc({ 0.5.coin }), Pstutter(Prand([25,35,45], inf), Pkey(\foo)), Pkey(\foo)),
-	\delta, 0.125,
+	//\pos, Pif(Pfunc({ 0.5.coin }), Pstutter(Prand([25,35,45], inf), Pkey(\foo)), Pkey(\foo)),
+	//\delta, 0.125,
 
 	\dur, Pkey(\delta) * Pwhite(0.5, 2.0, inf),
 	\rate, Pfunc({ if (0.4.coin) {-1}{1} * if (0.8.coin) {1} {[12,24,7,-7,5,2].choose.midiratio} * if (0.5.coin){1}{0.5} }),
@@ -44,13 +45,29 @@ Pdef(\glitch_buf, Pbind(
 ))
 )
 
+// scene 1
+(
+Pdef(\main,
+	Pbind(
+		\pos, Pkey(\foo),
+		\delta, 1) <> Pdef(\glitch_buf)
+))
+
+// scene 2
+(
+Pdef(\main,
+	Pbind(
+		\pos, Pif(Pfunc({0.5.coin}), Pstutter(Prand([25,35,45], inf), Pkey(\foo)), Pkey(\foo)),
+		\delta, 0.125) <> Pdef(\glitch_buf)
+))
+
 /////////////////////////////////////////
 // glitch_buf node
 ~p[\glitch_buf].clear;
 ~p[\glitch_buf].mold;
-~p[\glitch_buf][0] = Pdef(\glitch_buf);
+~p[\glitch_buf][0] = Pdef(\main);
 ~p[\glitch_buf].play;
-~p[\glitch_buf].stop;
+~p[\glitch_buf].stop(fadeTime:10);
 ~glitch_buf_win = App.guiHelper(~p[\glitch_buf], "glitch_buf");
 ~glitch_buf_win.front;
 

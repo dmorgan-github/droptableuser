@@ -45,7 +45,7 @@
 	sig;
 })
 
-~p[\lfomel].play
+~p[\lfomel].play(vol:0.2);
 ~p[\lfomel].stop
 ~p[\lfomel].gui;
 

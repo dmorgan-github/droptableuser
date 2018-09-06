@@ -1,10 +1,8 @@
 /////////////////////////////////////////
 // proxy space
-(
 ~p = ~p ? ProxySpace.new(s, \p);
 ~p.quant = 1.0;
 ~p.fadeTime = 2;
-)
 
 /////////////////////////////////////////
 // sequencer
@@ -280,4 +278,3 @@ n = NdefGui(Ndef(\a), 4, w, options: NdefGui.big);
 
 
 
-Event

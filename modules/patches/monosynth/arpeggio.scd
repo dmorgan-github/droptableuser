@@ -119,7 +119,7 @@ var circle = Library.at(\circle);
 (~p[\fx1][0] = {
 	var in = ~p[\fx2].ar;
 	var fx = FbC({arg fb; fb * 0.4 + in.tanh}, [3/8, 5/8]);
-	in + fx;
+	fx;
 });
 ~p[\fx1].play(vol:0.8);
 ~p[\fx1].stop;

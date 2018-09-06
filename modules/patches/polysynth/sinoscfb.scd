@@ -3,7 +3,7 @@
 (
 SynthDef(\sinoscfb, {
 
-	var freq = Vibrato.ar(K2A.ar(\freq.kr(432).lag(\lag.kr(0.0))),
+	var freq = Vibrato.kr(\freq.kr(432).lag(\lag.kr(0.0)),
 		\vrate.kr(6),
 		\vdepth.kr(0.0),
 		\vdelay.kr(0),
@@ -22,7 +22,7 @@ SynthDef(\sinoscfb, {
 	var sus = \atk.kr(2);
 	var rel = \rel.kr(1);
 	var curve = \curve.kr(4);
-	var env = Env.linen(atk,sus,rel, curve:curve).kr(doneAction:2, gate:1, timeScale:1, mul:1);
+	var env = Env.linen(atk,sus,rel, curve:curve).kr(doneAction:2, gate:1, timeScale:1);
 
 	sig = sig * env * AmpCompA.kr(freq) * \amp.kr(0.1);
 
@@ -33,15 +33,8 @@ SynthDef(\sinoscfb, {
 }).add;
 )
 
-/////////////////////////////////
-// patch
-~sinoscfb = ProxySpace.new(s);
-~sinoscfb.quant = 4.0;
-~sinoscfb.clock = TempoClock.default;
-
-
 (
-~sinoscfb[\snd][0] = EventPatternProxy(Pbind(
+~p[\sinoscfb][0] = Pbind(
 	\instrument, \sinoscfb,
 
 	\curve, [-4, 4],
@@ -65,7 +58,7 @@ SynthDef(\sinoscfb, {
 	\stepsPerOctave, 12,
 
 	\octave2, Prand([5, 6], inf),
-	\degree2, Pkey(\degree) + (Prand([2, 3], inf) * Prand([-1,1], inf)),
+	\degree2, Pkey(\degree) + (Prand([2, 5], inf) * Prand([-1,1], inf)),
 
 	\f1, Pfunc({arg evt;
 		var note = (evt[\degree] + evt[\mtranspose]).degreeToKey(evt[\scale], evt[\stepsPerOctave]);
@@ -80,31 +73,28 @@ SynthDef(\sinoscfb, {
 		freq;
 	}),
 	\freq, Ptuple([ Pkey(\f1), Pkey(\f2)], inf)
-))
+)
 )
 
 /////////////////////////////////
 // fx
-(~sinoscfb[2] = \filter -> {arg in; { in = BHiPass.ar(in, 100) }.dup(4) })
 
-(~sinoscfb[\snd][4] = \filter -> {arg in;
-	JPverb.ar(in, t60:10, size:5)
+(~p[\sinoscfb][4] = \filter -> {arg in;
+	JPverb.ar(in, t60:10, size:SinOsc.kr(1/32).range(1,2))
 });
 
-(~sinoscfb[\snd][6] = \filter -> {arg in;
+(~p[\sinoscfb][6] = \filter -> {arg in;
 	Greyhole.ar(in, feedback:0.5, modDepth: 0.5, modFreq: LFTri.kr(1/64).range(2, 4));
 })
-(~sinpair[\mix][8] = nil\filter -> {arg in;
-	WaveLoss.ar(in, LFTri.kr(1/16).range(1, 20));
-})
+
 
 /////////////////////////////////
 // play
-~sinoscfb[\snd].play(fadeTime:8);
-~sinoscfb[\snd].stop(fadeTime:8);
-~sinoscfb[\snd].vol = 0.5;
+~p[\sinoscfb].play(fadeTime:8, vol:0.5);
+~p[\sinoscfb].stop(fadeTime:8);
+~p[\sinoscfb].vol = 0.5;
 
-
+TempoClock.default.tempo_(45/60)
 
 
 

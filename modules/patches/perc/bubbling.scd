@@ -35,7 +35,7 @@
 		sig;
 	};
 
-	var env = Env.circle([0,1,0],[4,8,4],-4).kr(gate:1);
+	var env = Env.circle([0,1,0],[4,8,24],-4).kr(gate:1);
 
 	var sig = [
 		osc1.()

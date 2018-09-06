@@ -1,5 +1,9 @@
+/////////////////////////////////////////
+// proxy space
 ~p = ~p ? ProxySpace.new(s, \p);
 ~p.quant = 4.0;
+~p.fadeTime = 2;
+~p.clock = TempoClock.default.tempo_(60/60);
 
 /////////////////////////////////
 // synth
@@ -95,6 +99,3 @@
 ~p[\bass].play(fadeTime:8, out:0);
 ~p[\bass].stop(fadeTime:8);
 ~p[\bass].vol = 2
-
-App.recordWorkspace("ws13");
-s.stopRecording;

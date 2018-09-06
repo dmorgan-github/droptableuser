@@ -12,7 +12,7 @@ SynthDef(\hollow, {
 		curve:\cub
 	).kr(doneAction:Done.freeSelf);
 
-	var noise = WhiteNoise.ar(0.5);
+	var noise = WhiteNoise.ar(0.2);
 	var sig1 = BPF.ar(noise * env, freq, res);
 	var sig2 = BPF.ar(noise * env, freq * 2, res) * 0.5;
 	var sig3 = BPF.ar(noise * env, freq * 4, res) * 0.125;
@@ -67,30 +67,13 @@ Pdef(\hollow, Ppar([
 ~p[\hollow].clear;
 ~p[\hollow].mold;
 ~p[\hollow][0] = Pdef(\hollow);
-~p[\hollow].play(vol:0.25);
-~p[\hollow].stop;
+~p[\hollow].play(vol:0.5);
+~p[\hollow].stop(fadeTime:10);
 ~hollow_win = App.guiHelper(~p[\hollow], "hollow");
 ~hollow_win.front;
 
+App.saveWorkspace("ws2");
 
-/////////////////////////////////////////
-// waveloss
-~p[\waveloss].clear;
-(~p[\waveloss][0] = {
-	var in = \in.ar([0,0]);
-	var fx = WaveLoss.ar(in, 10, 100, 2);
-	fx;
-};
-//~p[\waveloss].addSpec(\param, [0.0, 1.0, \lin, 0.0, 0.4]);
-);
-~p[\waveloss] <<> ~p[\hollow];
-~p[\waveloss].play;
-~p[\waveloss].stop;
-~waveloss_win = App.guiHelper(~p[\waveloss], "waveloss");
-~waveloss_win.front;
-
-
-
-play{p=LFPulse;cos(p.ar(p.kr(2)+p.kr(3)*[50,51]).lag(2e-3)+mean({|n|(p.ar(n*1e2+50*p.kr(4-n/[2,7,4]).sum+3e2)*p.kr(n+1*2,0,0.8))}!3))}
+TempoClock.default.tempo_(60/60);
 
   

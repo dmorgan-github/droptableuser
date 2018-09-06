@@ -1,6 +1,7 @@
-~p = ~p ? ProxySpace.new(s, \p);
 
-(~p[\sinoscfb][0] = {
+/////////////////////////////////////////
+// sinoscfb_mono
+(~p[\sinoscfb_mono][0] = {
 
 	var trig = \trig.tr;
 
@@ -30,7 +31,9 @@
 	sig;
 })
 
-(~p[\sinoscfb][2] = \set -> Pbind(
+/////////////////////////////////////////
+// pattern
+(~p[\sinoscfb_mono][2] = \set -> Pbind(
 
 	\trig, 1,
 	\isRest, false,//Pstep(Pseq([false, true], inf), Pseq([1.5, 0.5, 3.5, 0.5], inf) * Pstep(Pseq([1, 2, 4, 8]), Pseq([8, 16, 32, 64], inf), inf), inf),
@@ -50,7 +53,7 @@
 ))
 
 (
-~p[\sinoscfb].filter(4, {arg in;
+~p[\sinoscfb_mono].filter(4, {arg in;
 
 	var preamp = 5;
 	var sig = (in * preamp).tanh / (preamp ** 0.6);
@@ -60,7 +63,7 @@
 }).set(\wet4, 0.5)
 )
 
-(~p[\sinoscfb].filter(6, {arg in;
+(~p[\sinoscfb_mono].filter(6, {arg in;
 
 	var sig = in;
 
@@ -74,8 +77,7 @@
 }).set(\wet6, 0.2)
 )
 
-
-(~p[\sinoscfb].filter(7, {arg in;
+(~p[\sinoscfb_mono].filter(7, {arg in;
 
 	/*
 	# 1767 C* ChorusI - Mono chorus/flanger
@@ -103,7 +105,7 @@
 
 
 (
-~p[\sinoscfb].filter(8, {arg in;
+~p[\sinoscfb_mono].filter(8, {arg in;
 
 	var sig = in;
 
@@ -117,18 +119,16 @@
 }).set(\wet8, 0.5)
 )
 
-(~p[\sinoscfb].filter(10, {arg in;
+(~p[\sinoscfb_mono].filter(10, {arg in;
 	JPverb.ar(in);
 }).set(\wet10, 0.0))
 
 
-~p[\sinoscfb].play(fadeTime:0, out:6);
-~p[\sinoscfb].stop(fadeTime:8);
-~p[\sinoscfb].vol = 1
+~p[\sinoscfb_mono].play(fadeTime:0, out:0);
+~p[\sinoscfb_mono].stop(fadeTime:8);
+~p[\sinoscfb_mono].vol = 1
 
 
-App.recordWorkspace("ws5");
-s.stopRecording
 
 
 IEnvGen

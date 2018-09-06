@@ -134,8 +134,3 @@ var circle = Library.at(\circle);
 ~p[\jpverb2].set(\t60, 15, \size, 10, \modDepth, 0.2);
 
 
-App.recordWorkspace("ws14");
-s.stopRecording
-
-Volume(s, 0, 2).gui
-

@@ -8,9 +8,9 @@
 
 /////////////////////////////////////////
 // s1
-~p[\s1].clear;
-~p[\s1].mold;
-(~p[\s1][0] = {
+~p[\bells].clear;
+~p[\bells].mold;
+(~p[\bells][0] = {
 
     var trig = \trig.tr;
 	var freq = Vibrato.kr(\freq.kr(432).varlag(\lag.kr(0.1)), \vrate.kr(6), \vdepth.kr(0.0));
@@ -47,7 +47,7 @@
 	sig;
 });
 
-(~p[\s1][2] = \set -> Pbind(
+(~p[\bells][2] = \set -> Pbind(
     \trig, 1,
 	\dur, Pseg(Pwhite(1/32, 1/2), Pwhite(0.1, 1), -4, inf),
 	\amp,  Pseg(Pseq([0,1], inf), Pseq([4,8], inf), -4, inf) * -12.dbamp,//0.2
@@ -56,9 +56,9 @@
 	\octave, Prand([5,6,7], inf)
 ));
 
-~p[\s1].play;
-~p[\s1].stop;
-~p[\s1].gui;
+~p[\bells].play(vol:0.01);
+~p[\bells].stop;
+~p[\bells].gui;
 
 
 /////////////////////////////////////////
@@ -73,7 +73,7 @@
 ~p[\fx1].play;
 ~p[\fx1].stop;
 ~p[\fx1].gui;
-~p[\fx1] <<> ~p[\s1];
+~p[\fx1] <<> ~p[\bells];
 
 /////////////////////////////////////////
 // fx2

@@ -1,10 +1,8 @@
 
 /////////////////////////////////////////
 // buffers
-~bufs[\kitchen_sounds_1] = Buffer.read(s, Platform.miSCellaneousDirs[0] +/+ "Sounds" +/+ "kitchen_sounds_1.wav");
-~bufs[\sticks] = Buffer.read(s, "/Users/david/projects/droptableuser/workspaces/ws12/Crushing Sticks 2.wav");
-~bufs[\humming] = Buffer.read(s, "/Users/david/projects/droptableuser/workspaces/ws12/264191__lavilovesyou__female-humming.wav");
-~bufs[\singing] = Buffer.read(s, "/Users/david/projects/droptableuser/workspaces/ws1/180448__klankbeeld__ghana-woman-sing-traditional-song-dec-1986-2-007-01.wav");
+~bufs[\singing] = Buffer.read(s, "/Users/david/projects/droptableuser/workspaces/ws2/180448__klankbeeld__ghana-woman-sing-traditional-song-dec-1986-2-007-01.wav");
+
 /////////////////////////////////////////
 // proxy space
 ~p = ~p ? ProxySpace.new(s, \p);
@@ -44,7 +42,7 @@
 
 	var sig = TGrains.ar(2, trig, bufNum, rate, pos, granDur, pan, 1, interp) * amp;
 
-	sig;
+	sig * Env.circle([0,1,0],[8,8,16],-4).kr(gate:1);
 };
 
 ~p[\tgrains].addSpec(\posLo, [0.01, 0.99, \lin, 0.01, 0]);
@@ -59,11 +57,16 @@
 );
 
 ~p[\tgrains].set(\buf, ~bufs[\singing]);
-~p[\tgrains].play(vol:1, out:0)
+~p[\tgrains].play(vol:1, out:0);
 ~p[\tgrains].stop;
 ~tgrains_win = App.guiHelper(~p[\tgrains], "tgrains");
 ~tgrains_win.front;
 
+(~p[\tgrains][2] = nil\set -> Pbind(
+	\args, #[\amp],
+	\amp, Pseg(Pseq([0, 0.2, 0],inf), Pseq([5],inf), \linear, inf),
+	\dur, 0.125
+));
 
 /////////////////////////////////////////
 // fb1

@@ -1,5 +1,11 @@
-~d1 = ProxySpace.new(s);
-(~d1[\snd][0] = {
+/////////////////////////////////////////
+// proxy space
+~p = ~p ? ProxySpace.new(s, \p);
+~p.quant = 4.0;
+~p.fadeTime = 2;
+~p.clock = TempoClock.default.tempo_(60/60);
+
+(~p[\snd][0] = {
 
 	var trig = \trig.tr;
 	var freq = \freq.kr(432);
@@ -24,24 +30,18 @@
 
 })
 
-~d1[\snd].play
-~d1[\snd].set(\trig, 1)
+~p[\snd].play(vol:3);
+~p[\snd].stop
 
-(~d1[\snd][4] = \set -> Pbind(\trig, 1, \dur, Pseq([0.25, 3.75], inf), \degree, Pbrown(0, 4, 1, inf), \octave, 5 ))
+(~p[\snd][4] = \set -> Pbind(\trig, 1, \dur, Pseq([0.25, 3.75], inf), \degree, Pbrown(0, 4, 1, inf), \octave, 5 ))
 
 (
-~d1[\snd].filter(12, {arg in;
-
-	SVF.ar(in, SinOsc.kr(111).range(220,2200), 0.5);
+~p[\snd].filter(12, {arg in;
+	//SVF.ar(in, SinOsc.kr(SinOsc.kr(1/16).exprange(1,10)).range(220,2200), 0.5);
+	IIRFilter.ar(in, SinOsc.kr(SinOsc.kr(1/16).exprange(1,10)).range(220,2200), 0.5);
 })
 )
 
-~d1[\snd][12] = nil
 
-
-App.recordWorkspace("ws4");
+App.saveWorkspace("ws3", rec:true);
 s.stopRecording
-
-
-SmoothClipS
-

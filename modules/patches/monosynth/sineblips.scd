@@ -44,7 +44,7 @@
 };
 //~p[\sineblips].addSpec(\param, [0.0, 1.0, \lin, 0.0, 0.4]);
 );
-~p[\sineblips].play(out:4);
+~p[\sineblips].play(out:0);
 ~p[\sineblips].stop;
 ~sineblips_win = App.guiHelper(~p[\sineblips], "sineblips");
 ~sineblips_win.front;
