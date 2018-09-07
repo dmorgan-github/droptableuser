@@ -29,37 +29,15 @@ var dur = ~bufs[\piano].duration;
 Pdef(\glitch_buf, Pbind(
 	\instrument, \playbuf_s,
 	\buf, ~bufs[\piano],
-	\foo, Pseg([0, numFrames], [dur], 0, inf).collect({arg val; if (0.7.coin){val}{\}}),
-	// scene 1
+	\foo, Pseg([0, numFrames], [dur], 0, inf).collect({arg val; if (0.4.coin){val}{Rest()}}),
 	\pos, Pkey(\foo),
 	\delta, 1,
-
-	//Pseg([0, numFrames], [dur], 0, inf).collect({arg val; if (0.7.coin){val}{\}}),
-	// scene 2
-	//\pos, Pif(Pfunc({ 0.5.coin }), Pstutter(Prand([25,35,45], inf), Pkey(\foo)), Pkey(\foo)),
-	//\delta, 0.125,
-
 	\dur, Pkey(\delta) * Pwhite(0.5, 2.0, inf),
-	\rate, Pfunc({ if (0.4.coin) {-1}{1} * if (0.8.coin) {1} {[12,24,7,-7,5,2].choose.midiratio} * if (0.5.coin){1}{0.5} }),
-	\amp, Pif(Pfunc({arg evt; evt[\rate] < 2 }), -12.dbamp, -23.dbamp)
+	\bar, Pxrand([12,24,7,5].midiratio, inf),
+	\rate, Pfunc({arg evt; if (0.6.coin) {1}{-1} * if (0.7.coin) {1} {evt[\bar]} }),
+	\amp, Pif(Pfunc({arg evt; evt[\rate] < 2 }), -12.dbamp, -30.dbamp)
 ))
 )
-
-// scene 1
-(
-Pdef(\main,
-	Pbind(
-		\pos, Pkey(\foo),
-		\delta, 1) <> Pdef(\glitch_buf)
-))
-
-// scene 2
-(
-Pdef(\main,
-	Pbind(
-		\pos, Pif(Pfunc({0.5.coin}), Pstutter(Prand([25,35,45], inf), Pkey(\foo)), Pkey(\foo)),
-		\delta, 0.125) <> Pdef(\glitch_buf)
-))
 
 /////////////////////////////////////////
 // glitch_buf node
@@ -68,6 +46,61 @@ Pdef(\main,
 ~p[\glitch_buf][0] = Pdef(\main);
 ~p[\glitch_buf].play;
 ~p[\glitch_buf].stop(fadeTime:10);
-~glitch_buf_win = App.guiHelper(~p[\glitch_buf], "glitch_buf");
-~glitch_buf_win.front;
 
+/////////////////////////////////////////
+// delay
+~p[\delay].clear;
+(~p[\delay][0] = {
+	var in = \in.ar([0,0]);
+	var fx = FbC({arg fb; fb * 0.5 + in}, [3/8, 5/8]);
+	fx
+};
+);
+~p[\delay] <<> ~p[\glitch_buf];
+~p[\delay].play(vol:0.8);
+~p[\delay].stop;
+
+/////////////////////////////////////////
+// reverb
+~p[\reverb].clear;
+(~p[\reverb][0] = {
+	var in = \in.ar([0,0]);
+	var fx = JPverb.ar(in, 5, 0, SinOsc.kr(1/32).range(4,5));
+	fx;
+};
+);
+~p[\reverb] <<> ~p[\delay];
+~p[\reverb].play(vol:0.5);
+~p[\reverb].stop;
+
+/////////////////////////////////////////
+// play
+(
+~p[\glitch_buf].play(fadeTime:0);
+~p[\delay].play(fadeTime:10, vol:0.8);
+~p[\reverb].play(fadeTime:10, vol:0.5);
+)
+
+/////////////////////////////////////////
+// scenes
+// scene 1
+(
+Pdef(\main, Pbind(
+	\pos, Pkey(\foo),
+	\delta, 0.5) <> Pdef(\glitch_buf)
+))
+
+// scene 2
+(
+Pdef(\main, Pbind(
+	\pos, Pif(Pfunc({0.5.coin}), Pstutter(Prand([25,35,45], inf), Pkey(\foo)), Pkey(\foo)),
+	\delta, 0.25) <> Pdef(\glitch_buf)
+))
+
+/////////////////////////////////////////
+// stop
+(
+~p[\reverb].stop;
+~p[\delay].stop;
+~p[\glitch_buf].stop;
+)
