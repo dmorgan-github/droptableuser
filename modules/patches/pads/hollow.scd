@@ -2,7 +2,7 @@
 (
 SynthDef(\hollow, {
 
-	var freq =  \freq.kr('E2'.namecps);
+	var freq = Vibrato.kr(\freq.kr(432), 6, 0.01);
 	var res = \res.kr(0.01);
 	var cutoff = \cutoff.kr(1479);
 	var env = Env.linen(
@@ -18,7 +18,7 @@ SynthDef(\hollow, {
 	var sig3 = BPF.ar(noise * env, freq * 4, res) * 0.125;
 	var sig = LPF.ar(sig1 + sig2 + sig3, cutoff);
 
-	sig = sig * AmpCompA.kr(freq) * \amp.kr(-20.dbamp) * 15;
+	sig = sig * AmpCompA.kr(freq) * \amp.kr(-20.dbamp) * 200;
 
 	sig = Pan2.ar(sig, \pan.kr(0));
 
@@ -37,25 +37,25 @@ Pdef(\hollow).clear;
 Pdef(\hollow, Ppar([
 	Pbind(\instrument, \hollow,
 		\freq, Prand(['G#3', 'C#3'].namecps, inf),
-		//\foo, Pfunc({arg evt; evt[\freq].cpsname.debug("foo")}),
-		\atk, 6,
-		\rel, 6,
+		\beatDur, Pfunc({thisThread.clock.beatDur}),
+		\atk, 6 * Pkey(\beatDur),
+		\rel, 6 * Pkey(\beatDur),
 		\dur, 12,
 		\amp, 0.dbamp
 	),
 	Pbind(\instrument, \hollow,
 		\freq, Prand(['F#3', 'B3'].namecps, inf),
-		//\foo, Pfunc({arg evt; evt[\freq].cpsname.debug("foo2")}),
-		\atk, 4,
-		\rel, 5,
+		\beatDur, Pfunc({thisThread.clock.beatDur}),
+		\atk, 4 * Pkey(\beatDur),
+		\rel, 5 * Pkey(\beatDur),
 		\dur, 10,
 		\amp, 0.dbamp
 	),
 	Pbind(\instrument, \hollow,
 		\freq, Prand(['A3', 'D#3'].namecps, inf),
-		//\foo, Pfunc({arg evt; evt[\freq].cpsname.debug("foo3")}),
-		\atk, 5,
-		\rel, 5,
+		\beatDur, Pfunc({thisThread.clock.beatDur}),
+		\atk, 5 * Pkey(\beatDur),
+		\rel, 5 * Pkey(\beatDur),
 		\dur, 11,
 		\amp, 0.dbamp
 	)
@@ -67,13 +67,17 @@ Pdef(\hollow, Ppar([
 ~p[\hollow].clear;
 ~p[\hollow].mold;
 ~p[\hollow][0] = Pdef(\hollow);
-~p[\hollow].play(vol:0.5);
+(~p[\hollow].filter(2, {arg in;
+	JPverb.ar(in, 5, 0, SinOsc.kr(1/24).range(1.0,2.0));
+}).set(\wet2, 0.3)
+)
+
+~p[\hollow].play(fadeTime:10, vol:-6.dbamp);
 ~p[\hollow].stop(fadeTime:10);
 ~hollow_win = App.guiHelper(~p[\hollow], "hollow");
 ~hollow_win.front;
 
 App.saveWorkspace("ws2");
-
-TempoClock.default.tempo_(60/60);
+TempoClock.default.tempo_(45/60);
 
   

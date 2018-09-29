@@ -16,7 +16,8 @@
 	var env = Env([0,1,0], [0.1,0.5], 0);
 	var index = SinOsc.kr(LFNoise2.kr(1/16).range(0.2,10)).range(0, env.times.sum);
 	sig = sig * IEnvGen.kr(env, index);
-	sig = SelectX.ar(which, [sig, Silence.ar]);
+	//sig = SelectX.ar(which, [sig, Silence.ar]);
+	SelectX.ar(which, [sig, Silent.ar]);
 
 	sig = sig * \amp.kr(-12.dbamp) * 2;
 	sig;

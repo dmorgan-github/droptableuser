@@ -1,5 +1,3 @@
-~p = ~p ? ProxySpace.new(s, \p);
-
 //////////////////////////////////////////////
 // patch
 (
@@ -43,57 +41,68 @@ var circle = Library.at(\circle);
 ~p[\fm7_mono][1] = \set -> Pbind(
 
 	\trig, 1,
-	\delta, 8,
+	\delta, 4,
 
-	\scale, Scale.locrian,
-	\degree, Pseq([
-		Pseq(circle[\first], 16),
-		Pshuf(circle[\fifth], 16),
-		Pseq(circle[\second], 16),
-		Pshuf(circle[\seventh], 16)
-	], inf),
-	\octave, 5,
+	\scale, Scale.major,
+	\degree, Pseq([2,1], inf),
+	\octave, 3,
 	\vdepth, 0.005,
 
-	[\c0env_ts, \c1env_ts, \c2env_ts], #[1,2,3].normalizeSum,
+	[\c0env_ts, \c1env_ts, \c2env_ts, \c3env_ts, \c4env_ts, \c5env_ts], #[1,2,3,4,5,6].normalizeSum,
 
-	\c0amp, 1,
+	\c0, 0,
+	\c0env, [Env([0,1,0.7,0.7,0],[0.001,0.05,0.8541,0.0949],\sin)],
+	\c0amp, 0.5,
+	\c0env_ts, 1,
 
-	\c1, Pwhite(2.0, 2.1, inf),
-	\c1env, [Env( {rrand(0.0, 1.0)}.dup(5), { rrand(0.0, 1) }.dup(4).normalizeSum, [-4,4,-12,12,-4])],
+	\c1, 0.5,
+	\c1env, [Env([0,1,0.7,0.7,0],[0.001,0.05,0.8541,0.0949],\sin)],
 	\c1amp, 0.3,
+	\c1env_ts, 1,
 
-	\c2, 4,
-	\c2env, [Env( {rrand(0.0, 1.0)}.dup(5), { rrand(0.0, 1) }.dup(4).normalizeSum, [-4,4,-12,12,-4])],
+	\c2, 2,
+	\c2env, [Env([0,1,0.7,0.7,0],[0.001,0.05,0.8541,0.0949],\sin)],
 	\c2amp, 0.5,
+	\c2env_ts, 1,
 
-	[\m0_0, \m0_1, \m0_2], Ptuple([
-		Pseq([0, 0.1, 0.5, 0.2], inf),
-		Pwhite(0.0, 0.2, inf),
-		Prand([0, 0.1, 0.5, 0.2])
-	], inf).collect(_.normalizeSum) * 0.3,
+	\c3, 2,
+	\c3env, [Env([1,0.75,0.5,0.25,0],[0.25,0.25,0.25,0.25],\sin)],
+	\c3amp, 0.5,
+	\c3env_ts, 1,
 
-	/*
-	[\m1_0, \m1_1, \m1_2], Ptuple([
-		Pseq([0, 0.1, 0.5, 0.2], inf),
-		Pwhite(0.0, 0.2, inf),
-		Prand([0, 0.1, 0.5, 0.2])
-	], inf).collect(_.normalizeSum) * 0.1,
-	*/
+	\c4, 2,
+	\c4env, [Env([1,0.75,0.5,0.25,0],[0.25,0.25,0.25,0.25],\sin)],
+	\c4amp, 0.5,
+	\c4env_ts, 1,
 
+	\c5, 1,
+	\c5env, [Env([1,0.75,0.5,0.25,0],[0.25,0.25,0.25,0.25],\sin)],
+	\c5amp, 0.5,
+	\c5env_ts, 1,
+
+	\m0_0, 0.1, \m0_1, 0.1, \m0_2, 0.1, \m0_3, 0.1, \m0_4, 0.1, \m0_5, 0.5,
+
+	\m1_0, 0.1, \m1_1, 0.1, \m1_2, 0.1, \m1_3, 0.1, \m1_4, 0.1, \m1_5, 0.1,
+
+	\m2_0, 0, \m2_1, 0,	\m2_2, 0, \m2_3, 0, \m2_4, 0, \m2_5, 0,
+
+	\m3_0, 0, \m3_1, 0, \m3_2, 0, \m3_3, 0, \m3_4, 0, \m3_5, 0,
+
+	\m4_0, 0, \m4_1, 0, \m4_2, 0, \m4_3, 0, \m4_4, 0, \m4_5, 0,
+
+	\m5_0, 0.1, \m5_1, 0, \m5_2, 0, \m5_3, 0, \m5_4, 0, \m5_5, 0,
 
 	[\chan0, \chan1, \chan2, \chan3, \chan4, \chan5], #[1,1,1,0,0,0],
 
-	\amp, 0.3
+	\amp, 0.5
 ))
 
 ~p[\fm7_mono].play(out:0);
 ~p[\fm7_mono].stop;
 
 
-Osc
 
 
-
+~fm7ui.(~p[\fm7_mono])
 
 

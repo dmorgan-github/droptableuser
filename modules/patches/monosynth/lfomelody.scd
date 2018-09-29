@@ -1,11 +1,4 @@
 /////////////////////////////////////////
-// proxy space
-~p = ~p ? ProxySpace.new(s, \p);
-~p.quant = 4.0;
-~p.fadeTime = 2;
-~p.clock = TempoClock.default.tempo_(60/60);
-
-/////////////////////////////////////////
 // name
 ~p[\lfomel].clear;
 ~p[\lfomel].mold;
@@ -45,7 +38,7 @@
 	sig;
 })
 
-~p[\lfomel].play(vol:0.2);
+~p[\lfomel].play(vol:-20.dbamp);
 ~p[\lfomel].stop
 ~p[\lfomel].gui;
 

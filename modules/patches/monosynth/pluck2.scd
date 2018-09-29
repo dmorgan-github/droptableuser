@@ -15,32 +15,46 @@
 	var trig = \trig.tr;
 
 	var osc1 = {
-		var sig = { Pluck.ar(WhiteNoise.ar,
-			Impulse.kr(1),
-			freq.reciprocal * 2,
-			freq.reciprocal * 2,
+		Pluck.ar(
+			WhiteNoise.ar(0.2),
+			trig,
+			freq.reciprocal * 2 * 1.01,
+			freq.reciprocal * 2 * LFNoise2.kr(1/8).range(0.99, 1.01),
 			11,
 			SinOsc.kr(1/32).range(0.07, 0.1);
-		) }.dup(4).sum;
-		sig * 0.2;
+		);
+	};
+
+	var osc2 = {
+		var sig = Saw.ar(freq * [0.5, 0.501]);
+		sig = SVF.ar(sig, Env([1200, 1200, 220], [0, 1], 0).kr(gate:trig));
+		sig * Env.perc.kr(gate:trig);
 	};
 
 	var sig = [
-		osc1.()
+		osc1.dup(2).sum,
+		osc2.().sum * 2
 	].sum;
 
 	Pan2.ar(sig, \pan.kr(0));
-});
-~p[\pluck2].play(vol:0.08);
+};
+~p[\pluck2].filter(2, {arg in;
+	AdCVerb2.ar(in, 3);
+}).set(\wet2, 0.1);
+);
+~p[\pluck2].play(vol:-30.dbamp);
 ~p[\pluck2].stop(fadeTime:5);
 ~p[\pluck2].gui;
 
 /////////////////////////////////////////
 // pattern
-(~p[\pluck2][2] = \set -> Pbind(
-    \trig, 1,
+(~p[\pluck2][4] = \set -> Pbind(
+	\trig, 1,
 	\midinote, 77
 ));
+
+WarpOverlap
+TGrains3
 
 /////////////////////////////////////////
 // pitchshift
@@ -58,7 +72,7 @@
 //~p[\pitchshift].addSpec(\param, [0.0, 1.0, \lin, 0.0, 0.4]);
 );
 ~p[\pitchshift] <<> ~p[\pluck2];
-~p[\pitchshift].play(vol:0.3);
+~p[\pitchshift].play(vol:0.1);
 ~p[\pitchshift].stop;
 ~pitchshift_win = App.guiHelper(~p[\pitchshift], "pitchshift");
 ~pitchshift_win.front;
@@ -68,6 +82,7 @@
 ~p[\warp].clear;
 (~p[\warp][0] = {
 
+	var x, y;
 	var in = \in.ar([0,0]);
 	var buffer = \buf.kr(0);
 	var warpFactor = \warpFactor.kr(1);
@@ -93,7 +108,8 @@
 		4
 	);
 
-	fx;
+	#x, y = Rotate2.ar(fx[0], fx[1], LFSaw.kr(\rate.kr(0.1)));
+	[x,y];
 };
 ~p[\warp].addSpec(\warpFactor, [0.1, 250, \lin, 0.0, 1]);
 ~p[\warp].addSpec(\freqScale, [0.1, 4, \lin, 0.0, 1]);
@@ -118,11 +134,13 @@
 ~p[\pluck2_fx].clear;
 (~p[\pluck2_fx][0] = {
 	var in = \in.ar([0,0]);
-	var fx = in;
+	var fx = in, x, y;
 	fx = DelayC.ar(
 		FreqShift.ar(fx, LFNoise2.kr(0.5).range(-100, 200)), 2, [1,2,3,4,5,6,7,8].normalizeSum * SinOsc.kr(1/16).range(5,10));
 	fx = fx + FbC({arg fb; fb * 0.2 + fx}, 0.26);
-	Splay.ar(fx) * Env.circle([0,0.6,0], [4,5,5], -4).kr(gate:1);
+	fx = fx * Env.circle([0,0.6,0], [4,5,5], -4).kr(gate:1);
+	#x, y = Rotate2.ar(fx[0], fx[1], LFSaw.kr(\rate.kr(0.1)));
+	[x,y];
 };
 //~p[\pluck2_fx].addSpec(\param, [0.0, 1.0, \lin, 0.0, 0.4]);
 );
@@ -133,11 +151,8 @@
 ~n1_fx_win.front;
 
 
-App.saveWorkspace("ws3", rec:true);
+App.saveWorkspace("ws3");
 s.stopRecording
-
-
-
 
 /////////////////////////////////////////
 // mix1

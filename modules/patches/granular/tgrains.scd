@@ -56,6 +56,8 @@
 ~p[\tgrains].addSpec(\amp, [0.0, 0.5, \lin, 0.005, 0.25]);
 );
 
+
+
 ~p[\tgrains].set(\buf, ~bufs[\singing]);
 ~p[\tgrains].play(vol:1, out:0);
 ~p[\tgrains].stop;

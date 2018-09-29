@@ -2,3 +2,4 @@
 *.aiff
 *.wav
 .DS_store
+exp/

@@ -60,9 +60,13 @@
 ~gridkit.quant = 4.0;
 ~gridkit.clock = TempoClock.default;
 
+~gridkit.clock.tempo_(120/60)
+
+~kit_player.player.play
 /////////////////////////////////
 // play
 ~gridkit[\snd] = ~kit_player.player;
+~gridkit[\snd].stop;
 
 (~gridkit[\snd][4] = \filter -> {arg in;
 
@@ -81,7 +85,7 @@
 
 (~gridkit[\snd].filter(6, {arg in;
 	JPverb.ar(in);
-}).set(\wet6, 0.4))
+}).set(\wet6, 0.0))
 
 ~gridkit[\snd].set(\wet4)
 
@@ -90,10 +94,13 @@
 ~gridkit[\snd].stop
 
 
-App.defaultOut(s);
-App.soundflowerOut(s);
+[1,[1,2,2]].isKindOf(Collection)
+
+Pbind().isKindOf(Pattern)
 
 
+
+Ppar([])
 
 
 
