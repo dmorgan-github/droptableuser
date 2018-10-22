@@ -1,5 +1,5 @@
 (
-var func = {arg target, divs, nums, pref;
+var func = {arg target, divs, nums = [], pref;
 
 	var returnVal, current;
 	// no preference, equal weight
@@ -25,11 +25,15 @@ var func = {arg target, divs, nums, pref;
 	} {
 		if (current < target) {
 			nums = nums ++ val;
-		};
-		returnVal = func.value(target, divs, nums, pref);
+			returnVal = func.value(target, divs, nums, pref);
+		} {
+			val = target - sum(nums);
+			returnVal = nums ++ [val];
+		}
 	};
+
 	returnVal;
 };
-Fdef(\rhythm_solver, func);
+~rhythm_solver = func;
 )
 

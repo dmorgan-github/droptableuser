@@ -1,5 +1,5 @@
 (
-var freq_func = {arg evt;
+~freq_func = {arg evt;
 
 	var freq, note, midinote;
 	var scale = evt[\scale] ? Scale.major;
@@ -15,7 +15,7 @@ var freq_func = {arg evt;
 	note = (degree + mtranspose).degreeToKey(scale, stepsPerOctave);
 	midinote = ((note + gtranspose + root) / stepsPerOctave + octave) * 12.0;
 	freq =  (midinote + ctranspose).midicps * harmonic;
-	freq;
+	freq.postln;
 };
 
 Fdef(\freq_func, freq_func);

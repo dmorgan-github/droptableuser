@@ -1,7 +1,7 @@
 (
-SynthDef(\pad2, {
+SynthDef(\pad, {
 
-	var freq = Vibrato.kr(\freq.kr(432), \vrate.kr(0.005), \vdepth.kr(0.001));
+	var freq = Vibrato.kr(\freq.kr(432), \vrate.kr(6), \vdepth.kr(0.01));
 
 	var env = Env.adsr(
 		\atk.kr(0.01),
@@ -15,17 +15,14 @@ SynthDef(\pad2, {
 		[
 			{
 				var myfreq = freq * [1, 2.01];
-				var sig = [
-					Pulse.ar(myfreq, width: SinOsc.kr(1/8).exprange(0.4,0.6)),
-					VarSaw.ar(myfreq * 2, 0, width: SinOsc.kr(1/4).exprange(0.4, 0.7))
-				].sum;
-				sig = RLPF.ar(sig, 4000, 0.2).tanh;
+				var sig = Saw.ar(myfreq);
+				sig = RLPF.ar(sig, SinOsc.kr(1/8).exprange(1000,4000), 0.1).tanh;
 				sig * AmpCompA.kr(myfreq);
 			},
 			{
 				var myfreq = freq * [1, 2.01, 4.01];
 				var sig = Gendy1.ar(minfreq:myfreq, maxfreq:myfreq);
-				sig = DFM1.ar(sig, 4000, 0.7);
+				sig = DFM1.ar(sig, SinOsc.kr(1/7).exprange(440, 4000), XLine.kr(0.1, 0.9, 2));
 				sig * AmpCompA.kr(myfreq);
 			},
 			{
@@ -36,7 +33,7 @@ SynthDef(\pad2, {
 	}.();
 
 	sig = LPF.ar(sig, 1080);
-	sig = BLowShelf.ar(sig, 200, 1, -20.dbamp);
+	sig = BLowShelf.ar(sig, 200, 0.1);
 	sig = sig.sum * env * AmpCompA.kr(freq) * \amp.kr(-20.dbamp);
 	sig = DelayC.ar(sig, 0.2, [0.01, 0.05]);
 	sig = SoftClipAmp8.ar(sig, 3);
@@ -48,32 +45,33 @@ SynthDef(\pad2, {
 
 (
 var seq = [
-	[-7, 0, 2, 9]
+	[-14, 0, 2, 6],
+	[-15, 1, 3, 7, 10]
 ];
-Pbindef(\pad2,
-	\instrument, \pad2,
+Pbindef(\pad,
+	\instrument, \pad,
 	\root, 2,
-	\scale, Scale.zhi,
+	\scale, Scale.minor,
 	\octave, 5,
 	\degree, Pseq(seq, inf),
-	\legato, 16,
-	\dur, 16,
+	\sustain, 4,
+	\dur, 8,
 	\atk, 1,
 	\susLevel, 0.7,
-	\amp, -30.dbamp
+	\amp, -8.dbamp
 )
 )
 
-~p[\pad2].clear;
-~p[\pad2][0] = Pbindef(\pad2);
-~p[\pad2].play(vol:1);
-~p[\pad2].stop(fadeTime:10);
+~p[\pad][0] = Pbindef(\pad);
+~p[\pad].play;
+~p[\ppad].stop;
 
 (
-~p[\pa2].filter(10, {arg in;
-	var sig = in;//FbC({arg fb; fb * 0.3 + in}, [3/8, 5/8]) + in;
+~p[\pad].filter(10, {arg in;
+	var sig = FbC({arg fb; fb * 0.3 + in}, [3/8, 5/8]) + in;
 	JPverb.ar(sig, 10, 0, 5).tanh + sig;
 })
 )
 
-
+Pbindef(\pad).play;
+Pbindef(\pad).stop;

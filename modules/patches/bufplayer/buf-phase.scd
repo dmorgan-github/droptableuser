@@ -123,8 +123,11 @@ TempoClock.default.tempo_(60/60)
 
 //~p[\mod22].set(\posrateL, nil, \ratel, nil, \posrateR, nil, \rater, nil);
 //~p[\mod22].set(\posrateL, 1, \ratel, 1, \posrateR, 1.002, \rater, 1);
-~p[\mod23].play(vol:0.7, fadeTime:3);
+~p[\mod23].play(vol:0.5, fadeTime:3);
 ~p[\mod23].stop;
+
+
+e.scale.degreeToFreq(e.degree + e.detune2, 0.midicps, e.octave)
 
 
 

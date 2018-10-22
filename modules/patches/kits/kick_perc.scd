@@ -33,7 +33,7 @@
 	sig = Pan2.ar(sig.sum, \pan.kr(0)) * env * \amp.kr(-10.dbamp);
     sig;
 });
-~p[\kik].play(vol:0.1)
+~p[\kik].play(vol:1)
 ~p[\kik].stop;
 ~p[\kik].gui;
 
@@ -153,6 +153,8 @@ Pdef(\res, Pproto({
 	\lag, 0,
 ))).quant_(4.0)
 )
+
+Pdef(\res).play;
 
 /////////////////////////////////////////
 // part1

@@ -21,23 +21,39 @@ SynthDef(\playbuf_s, {
 	Out.ar(\out.kr(0), sig);
 
 }).add;
+
+SynthDef(\playbuf_m, {
+
+	var numChannels = 1;
+	var buf = \buf.kr;
+	var rate = \rate.kr(1);
+	var startPos = \pos.kr(0);
+	var loop = \loop.kr(0);
+	var dur = \dur.kr(1);
+	var sig = PlayBuf.ar(numChannels, buf, rate, 1, startPos, loop);
+	var env = Env([0,1,1,0], [0,dur,0.01], curve:\step).kr(doneAction:Done.freeSelf);
+	sig = sig * env * \amp.kr(-12.dbamp);
+	sig = Splay.ar(sig);
+	Out.ar(\out.kr(0), sig);
+
+}).add;
 )
 
 /////////////////////////////////////////
 // pattern
 (
-var buf = ~bufs[\xylo];
+var buf = ~buf;//~bufs[\arp];//~bufs[\xylo];
 var numFrames = buf.numFrames;
 var dur = buf.duration;
 Pdef(\glitch_buf, Pbind(
-	\instrument, \playbuf_s,
+	\instrument, \playbuf_m,
 	\buf, buf,
-	\foo, Pseg([0, numFrames], [dur], 0, inf).collect({arg val; if (0.4.coin){val}{Rest()}}),
+	\foo, Pseg([0, numFrames], [dur], 0, inf).collect({arg val; if (0.7.coin){val}{Rest()}}),
 	\pos, Pkey(\foo),
-	\delta, 1,
+	\delta, 0.5,
 	\dur, Pkey(\delta) * Pwhite(0.5, 2.0, inf),
 	\bar, Pxrand([12,24,7,5].midiratio, inf),
-	\rate, Pfunc({arg evt; if (0.6.coin) {1}{-1} * if (0.7.coin) {1} {evt[\bar]} }),
+	\rate, Pfunc({arg evt; if (0.6.coin) {1}{-1} * if (0.7.coin) {1} {evt[\bar]} }), // reverse is tricky
 	\amp, 1,//Pif(Pfunc({arg evt; evt[\rate] < 2 }), -12.dbamp, -30.dbamp)
 ))
 )
@@ -47,8 +63,14 @@ Pdef(\glitch_buf, Pbind(
 ~p[\glitch_buf].clear;
 ~p[\glitch_buf].mold;
 ~p[\glitch_buf][0] = Pdef(\glitch_buf);
-~p[\glitch_buf].play(vol:1.dbamp);
+~p[\glitch_buf].play(vol:0.2);
 ~p[\glitch_buf].stop(fadeTime:10);
+
+(
+~p[\glitch_buf].filter(4, {arg in;
+	JPverb.ar(in, 5, 0, 5) * 0.6 + in;
+});
+)
 
 /////////////////////////////////////////
 // warp

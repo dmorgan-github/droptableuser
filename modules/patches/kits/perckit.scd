@@ -1,6 +1,3 @@
-(
-
-)
 
 
 ~perc = ~grid_player.();
