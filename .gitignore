@@ -3,3 +3,13 @@
 *.wav
 .DS_store
 exp/
+*.audulus
+samples
+tidal
+reaktor
+images
+sc-tennis
+ref
+todo
+workspaces
+
