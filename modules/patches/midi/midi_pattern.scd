@@ -12,7 +12,7 @@ Pbindef(\midi_pattern,
 	\midicmd, \noteOn,
 	\midiout, m,
 	\chan, 1,
-	\delta, Prand([1,2,4,8,0.25], inf),
+	\delta, 0.25,
 	\scale, Scale.dorian,
 	\octave, Prand([5], inf),
 	\degree, Pxrand((0..7), inf)
@@ -24,6 +24,8 @@ Pbindef(\midi_pattern).stop
 
 ~midi_pairs.play
 ~midi_pairs.stop
+
+Event
 
 
 

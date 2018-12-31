@@ -80,7 +80,7 @@ var major_thirteen = [ 0, 4, 7, 14, 18, 21 ];
 	var sig = SinOsc.ar (freq * [1, 1.01]) * env;
 	Splay.ar (sig) * \amp.kr (1) * AmpCompA.kr(freq);
 });
-~p[\s2].play(out:2, vol:-3.dbamp);
+~p[\s2].play(out:0, vol:-3.dbamp);
 ~p[\s2].stop;
 ~p[\s2].gui;
 (~p[\s2][2] = \set -> Pbind(
@@ -96,7 +96,7 @@ var major_thirteen = [ 0, 4, 7, 14, 18, 21 ];
 	sig = SoftClipAmp8.ar(sig, 2);
 	sig;
 });
-~p[\ring1].play(out:4, vol:-20.dbamp);
+~p[\ring1].play(out:0, vol:-20.dbamp);
 ~p[\ring1].stop;
 ~p[\ring1].gui;
 
@@ -117,7 +117,7 @@ var major_thirteen = [ 0, 4, 7, 14, 18, 21 ];
 	var sig = SinOscFB.ar (freq * 0.5, 0.6) * env;
 	Splay.ar (sig) * \amp.kr (1) * AmpCompA.kr(freq);
 });
-~p[\s3].play(out:6, vol:-8.dbamp);
+~p[\s3].play(out:0, vol:-8.dbamp);
 ~p[\s3].stop;
 ~p[\s3].gui;
 

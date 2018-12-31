@@ -19,12 +19,12 @@ Fdef(\simplegrid, {arg key = \seq;
 
 		Pspawner({arg ps;
 
-			var grid = Pdefn(\grid).asStream;
-			var div = Pdefn(\div).asStream;
-
 			inf.do({arg i;
 
-				var vals = grid.next.collect({arg row;
+				var grid = Pdefn((key ++ '_grid').asSymbol).pattern;
+				var div = Pdefn((key ++ '_div').asSymbol).pattern;
+
+				var vals = grid.collect({arg row;
 					if (row.isKindOf(Integer)) {
 						if (i.mod(row) == 0) {1} {1}
 					} {
@@ -34,15 +34,16 @@ Fdef(\simplegrid, {arg key = \seq;
 
 				var data = (count:i, trigs:vals, ps:ps);
 
+				Evt.trigger((key ++ '_clock_pre').asSymbol, data);
 				vals.do({arg val, j;
 					if (val.coin) {
-						var key = ('e' ++ j.asInt).asSymbol;
-						Evt.trigger(key, data);
+						var mykey = (key ++ '_e' ++ j.asInt).asSymbol;
+						Evt.trigger(mykey, data);
 					};
 				});
 
-				Evt.trigger(\clock, data);
-				ps.wait(div.next);
+				Evt.trigger((key ++ '_clock').asSymbol, data);
+				ps.wait(div);
 			});
 		})
 	});

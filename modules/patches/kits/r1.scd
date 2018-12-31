@@ -70,31 +70,35 @@ Ndef(\out).filter(2, {arg in;
 
 (
 var foo = {
-	//thisThread.randSeed_(1000000.rand.debug("rand seed: volca"));
-	thisThread.randSeed_(62491);
+	thisThread.randSeed_(1000000.rand.debug("rand seed: volca"));
+	//thisThread.randSeed_(62491);
 }.();
 
 var pdefs = [
 	\volca_kik -> [1,0,0,0],
 	\volca_sn -> Array.fill(16, { if (0.2.coin) {1}{0} }),
-	\volca_ch -> Array.fill(16, { if (0.4.coin) {1}{0} }),
+	\volca_ch -> Array.fill(16, { if (0.7.coin) {1}{0} }),
 	\volca_clav -> Array.fill(16, {if (0.2.coin) {1}{0}})
 ].collect({arg val;
-	Pbindef(val.key, \seq, Pseq(val.value, inf));
+	var node = ~p[val.key];
+	Pdef(val.key.identityHash, {
+		node.play;
+		Pbindef(val.key, \seq, Pseq(val.value, inf), \out, Pfunc({node.bus.index}), \group, Pfunc({node.group}))
+	})
 });
 
 // NOTE:
 // can pass args to pattern like this
 // (Pdef(\r2) <> (vol:0.1)).play
 Pdef(\r2, {arg vol = 0.25;
-	var node = Ndef(\out2);//.play(vol:0.5);
-	node.play(vol:vol);
-	Pbind(\out, Pfunc({node.bus.index})) <> Ppar(pdefs, inf)
+	Ppar(pdefs, inf)
 });
 )
 
 Pdef(\r2).play;
 Pdef(\r2).stop;
+
+
 
 /////////////////////////////////////////
 // r1
@@ -123,22 +127,22 @@ Pbindef(\n2, \instrument, \n2,
 
 (
 var foo = {
-	//thisThread.randSeed_(1000000.rand.debug("rand seed"));
-	thisThread.randSeed_(129733);
+	thisThread.randSeed_(1000000.rand.debug("rand seed"));
+	//thisThread.randSeed_(129733);
 }.();
 
 var pdefs = [
 	\n1 -> [1,0,0,0],
 	\n2 -> Array.fill(16, { if (0.2.coin) {1}{0} })
 ].collect({arg val;
-	Pbindef(val.key, \seq, Pseq(val.value, inf));
+	var node = ~p[val.key];
+	Pdef(val.key.identityHash.asSymbol, {
+		node.play;
+		Pbindef(val.key, \seq, Pseq(val.value, inf), \out, Pfunc({node.bus.index}), \group, Pfunc({node.group}));
+	});
 });
 
-Pdef(\r1, {arg vol=0.5;
-	var node = Ndef(\out);
-	node.play(vol:vol);
-	Pbind(\out, Pfunc({node.bus.index})) <> Ppar(pdefs, inf)
-})
+Pdef(\r1, Ppar(pdefs, inf))
 )
 
 Pdef(\r1).play;
