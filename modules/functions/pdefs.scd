@@ -1,14 +1,17 @@
 (
 Pdef(\nbind, {arg node;
 
-	if (node.isMonitoring.not) {
-		node.play;
+	if (node.rate == \audio) {
+		if (node.isMonitoring.not) {
+			node.play;
+		};
 	};
 	Pbind(
 		\type, \set,
 		\id, Pfunc({arg evt; node.nodeID;}),
 		\args, node.controlNames.collect({arg ctrl;ctrl.name}),
 		\trig, 1,
+		\beat_dur, Pfunc({thisThread.clock.beatDur}),
 		\amp, Pkey(\amp) * 1,
 	)
 });
