@@ -11,6 +11,9 @@ Ndef(\s1, {
 }).play
 )
 
+Ndef(\s1).play(vol:0.1);
+Ndef(\s1).stop;
+
 
 // storm sounds by Nathan Ho
 (

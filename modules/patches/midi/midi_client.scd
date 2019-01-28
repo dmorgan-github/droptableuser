@@ -10,13 +10,13 @@ MIDIClient.sources;
 */
 MIDIdef.noteOn(\noteOn, {arg ...args;
 	var note = args[1];
-	args.postln;
-	Fdef(\noteOn).value(note);
+	var vel = args[0];
+	Fdef(\noteOn).value(note, vel);
 });
 MIDIdef.noteOff(\noteOff, {arg ...args;
 	var note = args[1];
-	args.postln;
-	Fdef(\noteOff).value(note);
+	var vel = args[0];
+	Fdef(\noteOff).value(note, vel);
 });
 )
 

@@ -4,6 +4,7 @@
 MIDIClient.init;
 m = MIDIOut(0);
 
+MIDIClient.list
 
 (
 Pbindef(\midi_pattern,
@@ -19,18 +20,9 @@ Pbindef(\midi_pattern,
 );
 )
 
-Pbindef(\midi_pattern).play
-Pbindef(\midi_pattern).stop
 
 ~midi_pairs.play
 ~midi_pairs.stop
-
-Event
-
-
-
-
-
 
 
 

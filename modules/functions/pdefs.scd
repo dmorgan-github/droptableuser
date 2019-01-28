@@ -1,9 +1,9 @@
 (
-Pdef(\nbind, {arg node;
+Pdef(\nbind, {arg node, out=0;
 
 	if (node.rate == \audio) {
 		if (node.isMonitoring.not) {
-			node.play;
+			node.play(fadeTime:node.fadeTime, out:out)
 		};
 	};
 	Pbind(
@@ -15,6 +15,24 @@ Pdef(\nbind, {arg node;
 		\amp, Pkey(\amp) * 1,
 	)
 });
+
+Fdef(\nbind, {arg ndef;
+	Pdef(\nbind)
+	<> (node:Ndef(ndef))
+	<> Pbind(*Ndef(ndef)
+		.controlNames
+		.reject({arg ctrl; (ctrl.name == \freq) || (ctrl.name == \trig)})
+		.collect({arg ctrl; [ctrl.name, ctrl.defaultValue]}).flatten)
+});
+
+Fdef(\stop, {arg key;
+	Pdef.all.do({arg item;
+		if (item.key.asString.beginsWith(key.asString)) {
+			item.stop;
+		}
+	})
+});
+
 )
 
 (

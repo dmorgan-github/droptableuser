@@ -60,7 +60,7 @@ Pdef(\bd_v1,
 Pdef(\bd_v1).play;
 Pdef(\bd_v1).stop;
 
-TempoClock.default.tempo
+
 
 (
 Pdef(\test,
@@ -106,19 +106,58 @@ Pdef(\test,
 
 		Pdef(\bd_v1),
 
-		Pbind(\degree, Pif(Pfunc({arg evt; (0.7).coin}), Pkey(\degree), Pn(2,inf) ))
+		Pbind(\degree, Pif(Pfunc({arg evt; (0.7).coin}), Pkey(\degree), Pn(2,inf) ), \scale, Scale.chromatic)
 		<> Ppar([
 			Pdef(\s4_v1),
 			Pdef(\p2_s1_v1)
 		], inf)
 	], inf)
-)?/.
+)
+)
+
+Pdef(\p3_s7_v1)
 
 Pdef(\test).play;
 Pdef(\test).stop;
 
 
 Pdef(\bd_v1).play;
+
+(
+//s.record;
+Pspawner({arg ps;
+
+	var test2, test3, test4;
+	var test = ps.par( Pdef(\test) );
+
+	ps.wait(32);
+
+	test.stop;
+
+	test2 = ps.par( Pdef(\p2_s1_v1) );
+
+	test3 = ps.par( Pdef(\p3_s7_v1) );
+
+	ps.wait(16);
+
+	test2.stop;
+
+	test = ps.par( Pdef(\test) );
+	test4 = ps.par( Pdef(\p3_s6_v1) );
+
+	test2.stop;
+
+	ps.wait(64);
+
+	test2.stop;
+	test3.stop;
+	test.stop;
+	test4.stop;
+
+}).play;
+)
+
+
 
 App.saveWorkspace("ws7", rec:true);
 s.stopRecording

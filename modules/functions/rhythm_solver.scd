@@ -34,6 +34,6 @@ var func = {arg target, divs, nums = [], pref;
 
 	returnVal;
 };
-~rhythm_solver = func;
+Fdef(\rhythm_solver, func);
 )
 

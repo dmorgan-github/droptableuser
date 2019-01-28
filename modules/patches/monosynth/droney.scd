@@ -1,4 +1,4 @@
-Ndef(\droney).play(fadeTime:10);
+Ndef(\droney).play(fadeTime:10, vol:0.2);
 Ndef(\s2).play(fadeTime:20);
 Ndef(\droney).stop;
 
