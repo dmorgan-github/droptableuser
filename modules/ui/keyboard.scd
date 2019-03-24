@@ -1,24 +1,38 @@
 (
-~keyboard = {
+Fdef(\keyboard, {arg root = 48;
 	var map = (
-		'a': 48,
-		'w': 49,
-		's': 50,
-		'e': 51,
-		'd': 52,
-		'f': 53,
-		't': 54,
-		'g': 55,
-		'y': 56,
-		'h': 57,
-		'u': 58,
-		'j': 59,
-		'k': 60,
-		'o': 61,
-		'l': 62,
-		'p': 63
+		'z': 0,
+		's': 1,
+		'x': 2,
+		'd': 3,
+		'c': 4,
+		'v': 5,
+		'g': 6,
+		'b': 7,
+		'h': 8,
+		'n': 9,
+		'j': 10,
+		'm': 11,
+		',': 12,
+		'q': 12,
+		'2': 13,
+		'w': 14,
+		'3': 15,
+		'e': 16,
+		'r': 17,
+		'5': 18,
+		't': 19,
+		'6': 20,
+		'y': 21,
+		'7': 22,
+		'u': 23,
+		'i': 24,
+		'9': 25,
+		'o': 26,
+		'0': 27,
+		'p': 28,
+		'[': 29
 	);
-	var octave = 0;
 	var text = StaticText().string_("");
 	var view = View().layout_(
 		VLayout(
@@ -34,16 +48,13 @@
 			text
 		)
 	).fixedSize_(100);
+
 	view.keyDownAction_({arg ctrl, char, mod, unicode, keycode, key;
 
 		var note;
-		//[char, mod, unicode, keycode, key].debug("keyDownAction");
-		///////////////
-		// "+" = up 1 octave, "-" = down 1 octave
-		switch(key, 43, { octave = octave + 12}, 45, { octave = octave -12} );
-		note = map[char.asSymbol];
+		note = map.at(char.asSymbol);
 		if (note.isNil.not) {
-			note = note + octave;
+			note = note + root;
 			text.string_(note.midiname);
 			Fdef(\noteOn).value(note);
 		}
@@ -51,15 +62,15 @@
 	view.keyUpAction_({arg ctrl, char, mod, unicode, keycode, key;
 
 		var note;
-		//[char, mod, unicode, keycode, key].debug("keyUpAction");
-		note = map[char.asSymbol];
+		note = map.at(char.asSymbol);
 		if (note.isNil.not) {
-			note = note + octave;
+			note = note + root;
 			Fdef(\noteOff).value(note);
 		}
 	});
-	view;
-}
+	view.front;
+});
 )
 
 
+Fdef(\keyboard).();
