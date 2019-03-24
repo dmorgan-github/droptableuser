@@ -1,4 +1,4 @@
-
+/*
 var start = Ndef(\start).kr(1),
 	end = Ndef(\end).kr(1),
 	// in the synth, '+' is analogous to 'or'
@@ -17,6 +17,7 @@ var start = Ndef(\start).kr(1),
 	bufs = BufRd.ar(1, b, phase: phasors, loop: 1),
 	egs = EnvGen.kr(Env.asr(0.01, 1, 0.01), gates);
 	Mix(bufs * egs).dup
+*/
 
 (
 Fdef(\smplr1, {arg key, path;
@@ -63,6 +64,8 @@ Fdef(\smplr1, {arg key, path;
 
 			var sig = BufRd.ar(numChannels, buf, phase, interpolation:4);
 
+			/*
+
 			//var env = Env.linen(0, 1, 0).kr(gate:trig, timeScale:dur);
 			sig = sig.blend(FreqShift.ar(sig, [\fshift_freq_l.kr(0), \fshift_freq_r.kr(0)]), \fshift_wet.kr(0));
 
@@ -72,6 +75,8 @@ Fdef(\smplr1, {arg key, path;
 
 			sig = sig.blend(Decimator.ar(sig, \dec_rate.kr(44100), \dec_bits.kr(24)), \dec_wet.kr(0));
 
+			*/
+
 			sig = sig.blend(
 				FbC({arg fb; fb * \del_fb.kr(0.3) + sig},
 					2,
@@ -80,9 +85,11 @@ Fdef(\smplr1, {arg key, path;
 				\del_wet.kr(0)
 			);
 
+			/*
 			sig = sig.blend(Squiz.ar(sig, \pitchratio.kr(2), \zcperchunk.kr(1)), \squiz_wet.kr(0));
 
 			sig = sig.blend(lopass.(hipass.(sig)), \filt_wet.kr(0));
+			*/
 
 			sig = sig.blend(JPverb.ar(sig, \rev_t60.kr(1), 0, \rev_size.kr(1)), \rev_wet.kr(0));
 
