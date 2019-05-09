@@ -1,3 +1,6 @@
+/////////////////////////////////////////
+// proxy space
+~p = ~p ? ProxySpace.new(s, \p);
 
 ~p[\snd3].clear;
 (~p[\snd3][0] = {

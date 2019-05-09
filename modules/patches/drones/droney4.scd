@@ -96,12 +96,3 @@ Ndef(\droney).play(fadeTime:20);
 
 App.saveWorkspace("droney2", rec:true);
 s.stopRecording
-
-
-
-chain1 = FFT(LocalBuf(numFrames, 1).clear, Mix(sig1));
-chain2 = FFT(LocalBuf(numFrames, 1).clear, Mix(sig2));
-
-sig = PV_MagMul(chain1, chain2);  // v1 == more sample character (phases of GrainBuf)
-    // sig = PV_MagMul(chain2, chain1); // v2 == more synth character (phases of Saw)
-sig = IFFT(sig) * 0.05;

@@ -150,7 +150,7 @@
 	);
 	fx;
 });
-~p[\verb2].set(\t60, 3, \size, 5)
+~p[\verb2].set(\t60, 3, \size, 5);
 ~p[\verb2].play;
 ~p[\verb2].stop;
 ~p[\verb2].gui;

@@ -10,10 +10,7 @@ Evt {
 
 	*trigger {arg event, data = Dictionary.new;
 		var me = this;
-		//{
-			//event.debug("trigger");
-			NotificationCenter.notify(me, event, data);
-		//}.fork(quant:0.0);
+		NotificationCenter.notify(me, event, data);
 	}
 
 	*clear {

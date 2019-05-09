@@ -1,7 +1,3 @@
-Ndef(\droney).play(fadeTime:10, vol:0.2);
-Ndef(\s2).play(fadeTime:20);
-Ndef(\droney).stop;
-
 Ndef(\droney).clear;
 (
 Ndef(\droney, {
@@ -64,25 +60,8 @@ Ndef(\droney).filter(6, {arg in;
 }).set(\wet6, 0.5);
 )
 
-
-(
-Ndef(\s2, {
-
-	var trig = Impulse.kr(4);
-	var freq = Demand.kr(trig, 0, Dseq((57 + 12 + ([0] ++ Scale.dorian.degrees.rotate)).midicps, inf));
-	var sig = SinOscFB.ar(Vibrato.kr(freq.lag(0.01) * LFNoise2.kr(1/16).range(0.901,1.01), 6, 0.005), 0.3);
-	var env = Env.perc(releaseTime:0.5).kr(gate:trig);
-	sig = DFM1.ar(sig, 4400, 0.8);
-	sig = Splay.ar(sig) * env * AmpCompA.kr(freq) * \amp.kr(-30.dbamp);
-	sig = FbC({arg fb; fb * 0.4 + sig}, [3/8, 5/8]) * 0.7 + sig;
-	sig = JPverb.ar(sig,2, 0, 2) * 0.5 + sig;
-	sig;
-})
-)
-
-Ndef(\s2).stop;
-Ndef(\s2).clear;
-Ndef(\s2).play(vol:1);
+Ndef(\droney).play(fadeTime:10, vol:0.2);
+Ndef(\droney).stop;
 
 
 ~buf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/1channel/vox/apollo-lift-vector-issue2.wav");
@@ -95,6 +74,9 @@ Ndef(\s3, {
 	sig;
 })
 )
+
+Ndef(\s3).set(\trig, 1);
+Ndef(\s3).play(vol:0.2, fadeTime:64);
 
 (
 {

@@ -2,7 +2,10 @@
 ~bufs[\piano] = Buffer.read(s, "/Users/david/projects/droptableuser/workspaces/ws2/171326__bradovic__piano-improvisation.wav");
 "https://freesound.org/people/14G_Panska_Niklova_Michaela/sounds/422137/"
 ~bufs[\xylo] = Buffer.read(s, "/Users/david/projects/droptableuser/workspaces/ws4/422137__14g-panska-niklova-michaela__1-xylophone.wav");
-~bufs[\glitch2] = Buffer.alloc(s, 44100 * 10, 2);
+~bufs[\glitch2] = Buffer.alloc(s, 44100 * 16, 2);
+
+
+~bufs = ();
 
 /////////////////////////////////////////
 // recbuf
@@ -17,8 +20,8 @@
 };
 //~p[\recbuf].addSpec(\param, [0.0, 1.0, \lin, 0.0, 0.4]);
 );
-~p[\recbuf] <<> ~p[\pulse];
-~p[\recbuf].set(\buf, ~bufs[\glitch2])
+~p[\recbuf] <<> Ndef(\s3_synth);//~p[\pulse];
+~p[\recbuf].set(\buf, ~bufs[\glitch2]);
 ~p[\recbuf].play;
 ~p[\recbuf].stop;
 ~recbuf_win = App.guiHelper(~p[\recbuf], "recbuf");
@@ -58,7 +61,7 @@ Pdef(\glitch_buf, Pbind(
 	\buf, buf,
 	\foo, Pseg([0, numFrames], [dur], 0, inf).collect({arg val; if (1.coin){val}{Rest()}}),
 	\pos, Pkey(\foo),
-	\delta, 4,
+	\delta, 2,
 	\dur, 1,
 	\bar, Prand([-12, -7, 12].midiratio, inf),
 	\rate, Pfunc({arg evt; if (1.coin) {-1}{1} * if (1.coin) {evt[\bar]} {1} }),
@@ -71,7 +74,7 @@ Pdef(\glitch_buf, Pbind(
 ~p[\glitch_buf].clear;
 ~p[\glitch_buf].mold;
 ~p[\glitch_buf][0] = Pdef(\glitch_buf);
-~p[\glitch_buf].play(vol:-30.dbamp);
+~p[\glitch_buf].play(vol:-6.dbamp);
 ~p[\glitch_buf].stop(fadeTime:10);
 
 /////////////////////////////////////////
@@ -79,8 +82,9 @@ Pdef(\glitch_buf, Pbind(
 ~p[\del2].clear;
 (~p[\del2][0] = {
 	var in = \in.ar([0,0]);
-	var fx = JPverb.ar(in, 2, 0, 2);
-	fx;
+	//var sig = JPverb.ar(in, 2, 0, 2);
+	var sig = in.blend(FbC({arg fb; fb * 0.3 + in}, [3/4, 3/5]), 0.3);
+	sig.blend(JPverb.ar(sig, 2, 0, 2), 0.5);
 };
 ~p[\del2].addSpec(\fb, [0.0, 1.0, \lin, 0.0, 0.2]);
 ~p[\del2].addSpec(\delayL, [0.001, 5, \lin, 0.0, 3/8]);

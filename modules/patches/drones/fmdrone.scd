@@ -1,7 +1,5 @@
 //////////////////////////////////////////////
 // patch
-
-
 (
 Ndef(\fm7, {
 
@@ -102,12 +100,12 @@ Ndef(\fm7_2, {
 });
 )
 
-Ndef(\fm7).play;
+Ndef(\fm7).play(vol:1 * 0.2);
 Ndef(\fm7).set(\freq, 'G1'.namecps);
+Ndef(\fm7).stop;
 
-Ndef(\fm7_2).play(vol:0.4);
+Ndef(\fm7_2).play(vol:0.4 * 0.2);
 Ndef(\fm7_2).set(\freq, 'D2'.namecps);
-
 Ndef(\fm7_2).stop;
 
 

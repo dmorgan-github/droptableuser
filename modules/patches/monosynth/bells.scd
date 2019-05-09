@@ -1,16 +1,8 @@
 /////////////////////////////////////////
-// proxy space
-~p = ~p ? ProxySpace.new(s, \p);
-~p.quant = 4.0;
-~p.fadeTime = 2;
-~p.clock = TempoClock.default.tempo_(60/60);
-
-
-/////////////////////////////////////////
-// s1
-~p[\bells].clear;
-~p[\bells].mold;
-(~p[\bells][0] = {
+// bells
+Ndef(\bells).clear;
+Ndef(\bells).mold;
+(Ndef(\bells)[0] = {
 
     var trig = \trig.tr;
 	var freq = Vibrato.kr(\freq.kr(432).varlag(\lag.kr(0.1)), \vrate.kr(6), \vdepth.kr(0.0));
@@ -47,81 +39,81 @@
 	sig;
 });
 
-(~p[\bells][2] = \set -> Pbind(
+(Ndef(\bells)[2] = \set -> Pbind(
     \trig, 1,
 	\dur, Pseg(Pwhite(1/32, 1/2), Pwhite(0.1, 1), -4, inf),
-	\amp,  Pseg(Pseq([0,1], inf), Pseq([4,8], inf), -4, inf) * -12.dbamp,//0.2
+	\amp,  Pseg(Pseq([0,1], inf), Pseq([4,8], inf), -4, inf) * -60.dbamp,//0.2
 	\scale, Scale.minor,
 	\degree, Pstutter(Prand([8,16,32], inf), Prand([0,2,5,7], inf)),
 	\octave, Prand([5,6,7], inf)
 ));
 
-~p[\bells].play(vol:0.01);
-~p[\bells].stop;
-~p[\bells].gui;
+Ndef(\bells).play(vol:1);
+Ndef(\bells).stop;
+Ndef(\bells).gui;
 
 
 /////////////////////////////////////////
 // fx1
-~p[\fx1].clear;
-(~p[\fx1][0] = {
+Ndef(\fx1).clear;
+(Ndef(\fx1)[0] = {
 	var in = \in.ar([0,0]);
-	var fx = in ring1: SinOsc.ar(440);
+	var fx = in;// ring1: SinOsc.ar(440);
 	fx = FbC({arg fb; fb * 0.3 + fx}, 3/8);
 	fx;
 });
-~p[\fx1].play;
-~p[\fx1].stop;
-~p[\fx1].gui;
-~p[\fx1] <<> ~p[\bells];
+Ndef(\fx1).play(vol:1);
+Ndef(\fx1).stop;
+Ndef(\fx1).gui;
+Ndef(\fx1) <<> Ndef(\bells);
 
 /////////////////////////////////////////
 // fx2
-~p[\fx2].clear;
-(~p[\fx2][0] = {
+Ndef(\fx2).clear;
+(Ndef(\fx2)[0] = {
 	var in = \in.ar([0,0]);
 	var fx = JPverb.ar(in, 5, 0, SinOsc.kr(1/64).range(1, 2));
 	fx;
 });
-~p[\fx2].play;
-~p[\fx2].stop;
-~p[\fx2].gui;
+Ndef(\fx2).play;
+Ndef(\fx2).stop;
+Ndef(\fx2).gui;
 
-~p[\fx2] <<> ~p[\fx1];
+Ndef(\fx2) <<> Ndef(\fx1);
 
 /////////////////////////////////////////
 // fx3
-~p[\fx3].clear;
-(~p[\fx3][0] = {
+Ndef(\fx3).clear;
+(Ndef(\fx3)[0] = {
 	var in = \in.ar([0,0]);
 	var fx = FreqShift.ar(in, [200,-100], [0, 0.5]);
 	fx = DelayC.ar(fx, 0.5, 0.5);
 	fx
 });
-~p[\fx3].play;
-~p[\fx3].stop;
-~p[\fx3].gui;
+Ndef(\fx3).play;
+Ndef(\fx3).stop;
+Ndef(\fx3).gui;
 
-~p[\fx3] <<> ~p[\s1];
+Ndef(\fx3) <<> Ndef(\bells);
 
 /////////////////////////////////////////
 // fx4
-~p[\fx4].clear;
-(~p[\fx4][0] = {
-	var in = ~p[\fx3].ar + ~p[\s1].ar;
+Ndef(\fx4).clear;
+(Ndef(\fx4)[0] = {
+	var in = Ndef(\fx3).ar + Ndef(\bells).ar;
 	var fx = in;
 	fx = JPverb.ar(in, 3, 0, 3);
 	fx;
 });
-~p[\fx4].play;
-~p[\fx4].stop;
-~p[\fx4].gui;
+Ndef(\fx4).play;
+Ndef(\fx4).stop;
+Ndef(\fx4).gui;
 
 
 /////////////////////////////////////////
 // fx5
-~p[\fx5].clear;
-(~p[\fx5][0] = {
+Ndef(\fx5).clear;
+(Ndef(\fx5)[0] = {
 	var in = \in.ar([0,0]);
 	var fbNode = FbNode(2, 10, 10);
 	var fb = fbNode.delay(0.3);
@@ -131,27 +123,26 @@
 	fbNode.write(sig);
 	sig;
 });
-~p[\fx5].play;
-~p[\fx5].stop;
-~p[\fx5].gui;
+Ndef(\fx5).play;
+Ndef(\fx5).stop;
+Ndef(\fx5).gui;
 
-~p[\fx5] <<> ~p[\fx4];
+Ndef(\fx5) <<> Ndef(\fx4);
 
 /////////////////////////////////////////
 // fx6
-~p[\fx6].clear;
-(~p[\fx6][0] = {
+Ndef(\fx6).clear;
+(Ndef(\fx6)[0] = {
 	var in = \in.ar([0,0]);
 	var fx = BLowPass4.ar(in, SinOsc.kr(2).range(440, 2200), 0.5);
 	fx
 });
-~p[\fx6].play;
-~p[\fx6].stop;
-~p[\fx6].gui;
+Ndef(\fx6).play;
+Ndef(\fx6).stop;
+Ndef(\fx6).gui;
 
 
-~p[\fx6] <<> ~p[\fx5]
+Ndef(\fx6) <<> Ndef(\fx5);
 
-
-App.recordWorkspace("ws11");
+App.saveWorkspace("beetle", rec:true);
 s.stopRecording

@@ -26,27 +26,12 @@ SynthDef(\pad, {
 
 	sig = DelayC.ar(sig, 0.2, [0.01, 0.05]) + sig;
 	sig = sig.sum * env * AmpCompA.kr(freq) * \amp.kr(-20.dbamp);
-	sig = SoftClipAmp8.ar(sig, 3);
+	sig = SoftClipAmp8.ar(sig, 2);
 	sig = LPF.ar(sig, 1080);
 	sig = Splay.ar(sig);
 	Out.ar(\out.kr(0), sig);
 
 }).add;
-)
-
-
-~p[\pad][0] = Pbindef(\pad);
-~p[\pad].play;
-~p[\pad].stop(fadeTime:10);
-
-~p[\pad] = NodeProxy.new(s, \audio, 2);
-~p[\pad].mold;
-
-(
-~p[\pad].filter(10, {arg in;
-	var sig = in;//FbC({arg fb; fb * 0.3 + in}, [3/8, 5/8]) + in;
-	JPverb.ar(sig, 10, 0, 5).tanh * 0.5 + sig;
-})
 )
 
 (
@@ -68,6 +53,18 @@ Pbindef(\pad,
 	\amp, -25.dbamp
 )
 )
+
+~p[\pad][0] = Pbindef(\pad);
+~p[\pad].play;
+~p[\pad].stop(fadeTime:10);
+
+(
+~p[\pad].filter(10, {arg in;
+	var sig = in;//FbC({arg fb; fb * 0.3 + in}, [3/8, 5/8]) + in;
+	sig.blend(JPverb.ar(sig, 10, 0, 5), 0.5);// * 0.5 + sig;
+})
+)
+
 
 
 Pbindef(\pad).play;

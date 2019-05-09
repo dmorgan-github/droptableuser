@@ -61,7 +61,7 @@ Ndef(\s1, {
 })
 )
 
-Ndef(\s1).play(vol:0.1);
+Ndef(\s1).play(vol:1);
 Ndef(\s1).stop;
 
 

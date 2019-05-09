@@ -1,4 +1,8 @@
 /////////////////////////////////////////
+// proxy space
+~p = ~p ? ProxySpace.new(s, \p);
+
+/////////////////////////////////////////
 // name
 ~p[\lfomel].clear;
 ~p[\lfomel].mold;
@@ -38,7 +42,7 @@
 	sig;
 })
 
-~p[\lfomel].play(vol:-20.dbamp);
+~p[\lfomel].play(vol:-3.dbamp);
 ~p[\lfomel].stop
 ~p[\lfomel].gui;
 

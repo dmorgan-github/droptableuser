@@ -33,11 +33,11 @@ SynthDef(\pulse_pad, {
 	}.();
 
 	sig = LPF.ar(sig, 1080);
-	sig = BLowShelf.ar(sig, 200, 0.1);
+	sig = BLowShelf.ar(sig, 100, 0.1);
 	sig = sig.sum * env * AmpCompA.kr(freq) * \amp.kr(-20.dbamp);
 	sig = DelayC.ar(sig, 0.2, [0.01, 0.05]) + sig;
-	sig = SoftClipAmp8.ar(sig, 3);
-	sig = Splay.ar(sig);
+	//sig = SoftClipAmp8.ar(sig, 3);
+	sig = Splay.ar(sig, 0.2);
 	Out.ar(\out.kr(0), sig);
 
 }).add;

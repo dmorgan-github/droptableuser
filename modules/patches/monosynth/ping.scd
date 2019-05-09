@@ -1,7 +1,5 @@
-~p.push;
-
 (
-~t2 = {
+~p[\t2] = {
 
 	var numvoices = 2;
 	var detune = \detune.kr(0.01);
@@ -42,6 +40,7 @@ Pdefn(\t2_scale, Scale.dorian);
 Pdefn(\t2_dur, 0.25);
 Pdefn(\t2_degrees, Pseq([0], inf));
 
+
 /////////////////////////////////////////
 // t2 base pattern
 (
@@ -66,7 +65,7 @@ Pdef(\t2_base,
 /////////////////////////////////////////
 // t2
 (
-var envir = currentEnvironment;
+var envir = ~p.envir;
 
 var patterns = [
 	{
@@ -78,7 +77,7 @@ var patterns = [
 			\offset, Pseq([0,-2], inf)
 		);
 
-		var n = currentEnvironment[\t2];
+		var n = envir[\t2];
 
 		(k:\t2_1, p:p, n:n);
 	},
@@ -92,7 +91,7 @@ var patterns = [
 			\offset, Pseq([2,3,1], inf)
 		);
 
-		var n = currentEnvironment[\t2];
+		var n = envir[\t2];
 
 		(k:\t2_2, p:p, n:n);
 	}
@@ -117,44 +116,44 @@ Pdef(\t2_main, {
 
 /////////////////////////////////////////
 // t2 play
-~t2.play;
-~t2.stop;
+~p[\t2].play;
+~p[\t2].stop;
 Pdef(\t2_main).play;
 Pdef(\t2_main).stop;
 
 
 (
-~t2_del = {
-	var in = ~t2.ar;
+~p[\t2_del] = {
+	var in = ~p[\t2].ar;
 	var fx = FbC({arg fb; fb * 0.5 + in}, [3/4, 4/4]);
 	fx
 };
 )
-~t2_del.play;
+~p[\t2_del].play;
 
-~t2_mix2[0] = \mix -> {~t2.ar};
-~t2_mix2[1] = \mix -> {~t2_del.ar};
-~t2_mix2[2] = \mix -> {~t2_rev2.ar * 0.1;};
+~p[\t2_mix2][0] = \mix -> {~p[\t2].ar};
+~p[\t2_mix2][1] = \mix -> {~p[\t2_del].ar};
+~p[\t2_mix2][2] = \mix -> {~p[\t2_rev2].ar * 0.1;};
 
 (
-~t2_rev = {
+~p[\t2_rev] = {
 	var in = \in.ar([0, 0]);
 	var fx = JPverb.ar(in, 9, 0, 5);
 	fx;
 }
 );
-~t2_rev.play(vol:1);
-~t2_rev <<> ~t2_mix2;
+~p[\t2_rev].play(vol:1);
+~p[\t2_rev] <<> ~p[\t2_mix2];
 
 (
-~t2_del2 = {
+~p[\t2_del2] = {
 	var in = \in.ar([0,0]);
 	var fx = FbC({arg fb; fb * 0.2 + in}, 2 + [3/4, 4/4]);
 	fx;
 }
 )
-~t2_del2.stop;
-~t2_del2 <<> ~t2_rev;
+~p[\t2_del2].stop;
+~p[\t2_del2] <<> ~p[\t2_rev];
 
 (
 ~t2_ps1 = {

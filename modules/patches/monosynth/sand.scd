@@ -1,4 +1,8 @@
 /////////////////////////////////////////
+// proxy space
+~p = ~p ? ProxySpace.new(s, \p);
+
+/////////////////////////////////////////
 // sand
 ~p[\sand].clear;
 ~p[\sand].mold;
@@ -74,7 +78,7 @@
 ~sand_win = App.guiHelper(~p[\sand], "sand");
 ~sand_win.front;
 
-~p[\sand].set(\trig, 0, \freq, 440);
+~p[\sand].set(\trig, 0, \freq, 840);
 
 
 440 - 12.midiratio
@@ -92,5 +96,3 @@ Fdef(\noteOff, {arg note;
 
 ~kb = ~keyboard.();
 ~kb.front;
-
-52.midicps
