@@ -1,1 +1,0 @@
-sig = BPF.ar(sig, bpFreq, bpRQ, (bpRQ ** -1) * (400 / bpFreq ** 0.5));

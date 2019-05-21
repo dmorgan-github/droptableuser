@@ -9,12 +9,14 @@ V {
 
 	init {arg inKey, inVoice, inCb;
 		var obj;
-		obj = all.at(inKey);
+		key = inKey.asSymbol;
+		obj = all.at(key);
 		if (obj.isNil) {
-			key = inKey.asSymbol;
-			Ndef(key)[0] = Fdef(inVoice).(inCb);
 			obj = this;
 			all.put(key, obj);
+		};
+		if (inVoice.isNil.not) {
+			Ndef(key)[0] = Library.at(\voices, inVoice).(inCb);
 		};
 		^obj;
 	}
@@ -24,12 +26,11 @@ V {
 		if (inKey.class == Function) {
 			func = inKey;
 		} {
-			func = Fdef(inKey);
-			func = func.(*args);
+			func = Library.at(\fx, inKey.asSymbol).performKeyValuePairs(\value, args);
 		};
 		Ndef(this.key).filter(index, func)
 		.set(('wet' ++ index).asSymbol, wet)
-		.set(args.asPairs);
+		.set(*args.asPairs);
 		^this;
 	}
 
@@ -93,36 +94,37 @@ D {
 		if (inKey.class == Function) {
 			func = inKey;
 		} {
-			func = Fdef(inKey);
-			func = func.(*args);
+			func = Library.at(\fx, inKey).performKeyValuePairs(\value, args);
 		};
 		Ndef(this.key).filter(index, func)
 		.set(('wet' ++ index).asSymbol, wet)
-		.set(args.asPairs);
+		.set(*args.asPairs);
 		^this;
 	}
 
 	pattern_ {arg func;
 		var patterns = func.();
 		var pbinds = patterns.collect({arg val, i;
+
 			var key = val.key; // could be an array
-			var evt = val.value; // pattern event
+			var pairs = val.value; // pattern event
 
 			// get the superset of unique event args
 			// for the specified ndef(s) where the ndef(s)
 			// have matching controlnames
 			var evtargs = {
-				var eventkeys = evt.keys;
 				var setargs = [];
+				var keys = pairs.reject({arg val, i; i.odd});
 				key.asArray.do({arg val, i;
-					var ctrls = Ndef(val).controlNames.collect({arg val; val.name}).asSet.sect(eventkeys.asSet);
+					var ctrls = Ndef(val).controlNames.collect({arg val; val.name}).asSet.sect(keys.asSet);
 					setargs = setargs ++ ctrls;
 				});
-				setargs.asSet.asArray ++ if (evt.keys.includes(\degree) || evt.keys.includes(\note)) {\freq};
+				setargs.asSet.asArray ++ if (keys.includes(\degree) || keys.includes(\note)) {\freq};
 			}.();
 			var props = [\type, \set,
 				\id, Pfunc({ key.asArray.collect({arg val; Ndef(val.asSymbol).nodeID }) }),
-				\args, evtargs] ++ evt.asPairs;
+				\args, evtargs] ++ pairs.asPairs;
+			//props.postln;
 			Pbind(*props)
 		});
 		Pdef(key, {arg monitor=true, fadeTime=0;
@@ -141,7 +143,7 @@ D {
 	}
 
 	set_ {arg ...args;
-		Ndef(this.key).set(args.asPairs);
+		Ndef(this.key).set(*args.asPairs);
 		^this;
 	}
 

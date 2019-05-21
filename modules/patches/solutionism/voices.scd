@@ -1,5 +1,5 @@
 (
-Fdef(\varsaw, {arg cb={arg sig; sig};
+Library.put(\voices, \varsaw, {arg cb={arg sig; sig};
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
@@ -24,7 +24,7 @@ Fdef(\varsaw, {arg cb={arg sig; sig};
 		sig;
 	}
 });
-Fdef(\pulse, {arg cb={arg sig; sig};
+Library.put(\voices, \pulse, {arg cb={arg sig; sig};
 
 	{
 		var trig = \trig.tr;
@@ -50,7 +50,7 @@ Fdef(\pulse, {arg cb={arg sig; sig};
 		sig;
 	}
 });
-Fdef(\sine, {arg cb={arg sig; sig};
+Library.put(\voices, \sine, {arg cb={arg sig; sig};
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
@@ -74,7 +74,7 @@ Fdef(\sine, {arg cb={arg sig; sig};
 		sig;
 	}
 });
-Fdef(\saw, {arg cb={arg sig; sig};
+Library.put(\voices, \saw, {arg cb={arg sig; sig};
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
@@ -98,7 +98,7 @@ Fdef(\saw, {arg cb={arg sig; sig};
 		sig;
 	}
 });
-Fdef(\klang, {arg cb={arg sig; sig};
+Library.put(\voices, \klang, {arg cb={arg sig; sig};
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
@@ -129,7 +129,7 @@ Fdef(\klang, {arg cb={arg sig; sig};
 		sig;
 	}
 });
-Fdef(\sinoscfb, {arg cb={arg sig; sig};
+Library.put(\voices, \sinoscfb, {arg cb={arg sig; sig};
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
@@ -153,7 +153,7 @@ Fdef(\sinoscfb, {arg cb={arg sig; sig};
 		sig;
 	}
 });
-Fdef(\klank, {arg cb={arg sig; sig};
+Library.put(\voices, \klank, {arg cb={arg sig; sig};
 	{
 		var trig = \trig.tr;
 		var which = \which.kr(0);
@@ -193,7 +193,7 @@ Fdef(\klank, {arg cb={arg sig; sig};
 		Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 	}
 });
-Fdef(\res, {arg cb={arg sig; sig};
+Library.put(\voices, \res, {arg cb={arg sig; sig};
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
@@ -218,7 +218,7 @@ Fdef(\res, {arg cb={arg sig; sig};
 		sig;
 	}
 });
-Fdef(\syncsaw, {arg cb={arg sig; sig};
+Library.put(\voices, \syncsaw, {arg cb={arg sig; sig};
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
@@ -242,7 +242,7 @@ Fdef(\syncsaw, {arg cb={arg sig; sig};
 		sig;
 	}
 });
-Fdef(\fm7, {arg cb={arg sig; sig};
+Library.put(\voices, \fm7, {arg cb={arg sig; sig};
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
@@ -275,7 +275,7 @@ Fdef(\fm7, {arg cb={arg sig; sig};
 		sig;
 	}
 });
-Fdef(\noise, {arg cb={arg sig; sig};
+Library.put(\voices, \noise, {arg cb={arg sig; sig};
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
@@ -303,7 +303,7 @@ Fdef(\noise, {arg cb={arg sig; sig};
 		sig;
 	}
 });
-Fdef(\pluck, {arg cb={arg sig; sig};
+Library.put(\voices, \pluck, {arg cb={arg sig; sig};
 	{
 		var which = \which.kr(1);
 		var focus = \focus.kr(1);

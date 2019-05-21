@@ -3,6 +3,7 @@ MIDIClient.init;
 MIDIIn.connectAll;
 MIDIIn.disconnectAll;
 MIDIClient.sources;
+MIDIdef.freeAll;
 
 (
 /*
@@ -11,12 +12,16 @@ MIDIClient.sources;
 MIDIdef.noteOn(\noteOn, {arg ...args;
 	var note = args[1];
 	var vel = args[0];
-	Fdef(\noteOn).value(note, vel);
+	var chan = args[2];
+	var key = ('noteOn' ++ chan).asSymbol;
+	Fdef(key).value(note, vel);
 });
 MIDIdef.noteOff(\noteOff, {arg ...args;
 	var note = args[1];
 	var vel = args[0];
-	Fdef(\noteOff).value(note, vel);
+	var chan = args[2];
+	var key = ('noteOff' ++ chan).asSymbol;
+	Fdef(key).value(note, vel);
 });
 )
 

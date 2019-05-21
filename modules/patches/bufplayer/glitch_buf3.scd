@@ -7,6 +7,8 @@
 
 ~bufs = ();
 
+~p = ProxySpace.new
+
 /////////////////////////////////////////
 // recbuf
 ~p[\recbuf].clear;
@@ -20,7 +22,7 @@
 };
 //~p[\recbuf].addSpec(\param, [0.0, 1.0, \lin, 0.0, 0.4]);
 );
-~p[\recbuf] <<> Ndef(\s3_synth);//~p[\pulse];
+~p[\recbuf] <<> Ndef(\v2);//~p[\pulse];
 ~p[\recbuf].set(\buf, ~bufs[\glitch2]);
 ~p[\recbuf].play;
 ~p[\recbuf].stop;
@@ -63,8 +65,8 @@ Pdef(\glitch_buf, Pbind(
 	\pos, Pkey(\foo),
 	\delta, 2,
 	\dur, 1,
-	\bar, Prand([-12, -7, 12].midiratio, inf),
-	\rate, Pfunc({arg evt; if (1.coin) {-1}{1} * if (1.coin) {evt[\bar]} {1} }),
+	\bar, Prand([-12, -7, 12, 24].midiratio, inf),
+	\rate, Pfunc({arg evt; if (0.5.coin) {-1}{1} * if (0.5.coin) {evt[\bar]} {1} }),
 	\amp, 1,//Pif(Pfunc({arg evt; evt[\rate] < 2 }), -12.dbamp, -30.dbamp)
 ))
 )
@@ -74,7 +76,7 @@ Pdef(\glitch_buf, Pbind(
 ~p[\glitch_buf].clear;
 ~p[\glitch_buf].mold;
 ~p[\glitch_buf][0] = Pdef(\glitch_buf);
-~p[\glitch_buf].play(vol:-6.dbamp);
+~p[\glitch_buf].play(vol:-18.dbamp);
 ~p[\glitch_buf].stop(fadeTime:10);
 
 /////////////////////////////////////////
@@ -91,7 +93,7 @@ Pdef(\glitch_buf, Pbind(
 ~p[\del2].addSpec(\delayR, [0.001, 5, \lin, 0.0, 5/8]);
 );
 ~p[\del2] <<> ~p[\glitch_buf];
-~p[\del2].play;
+~p[\del2].play(vol:0.5)
 ~p[\del2].stop;
 ~del2_win = App.guiHelper(~p[\del2], "del2");
 ~del2_win.front;
