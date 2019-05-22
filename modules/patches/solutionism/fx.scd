@@ -2,14 +2,22 @@
 Library.put(\fx, \delay, {arg maxdelay=1;
 	{arg in;
 		in = LPF.ar(HPF.ar(in, \delhi.kr(20)), \dello.kr(20000));
-		FbC({arg fb; fb * \fb.kr(0.3) + in;}, maxdelay, \beatdur.kr(1) * [\delL.kr(3/4), \delR.kr(5/8)]);
+		FbC({arg fb; fb.reverse * [\fbL.kr(0.2), \fbR.kr(0.3)] + in;},
+			maxdelay,
+			\beatdur.kr(1) * [\delL.kr(3/4), \delR.kr(5/8)]
+		);
 	};
 });
 
 Library.put(\fx, \reverb, {
 	{arg in;
 		in = LPF.ar(HPF.ar(in, \revhi.kr(20)), \revlo.kr(20000));
-		JPverb.ar(in, \t60.kr(1), 0, \size.kr(1));
+		JPverb.ar(in, \t60.kr(1), 0,
+			\size.kr(1),
+			\earlyDiff.kr(0.707),
+			\modDepth.kr(0.1),
+			\modFreq.kr(2.0)
+		);
 	}
 });
 

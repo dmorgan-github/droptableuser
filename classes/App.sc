@@ -3,6 +3,12 @@ App {
 	*initClass {
 	}
 
+	*idgen {
+		var str = {"aaabcdeeefghiiijklmnooopqrstuuuvwxyz".choose}.dup(rrand(4,8)).join;
+		str = ("\\" ++ str).postln;
+		^str
+	}
+
 	*saveWorkspace {arg name = "", folder = "~/projects/droptableuser/workspaces", rec = false;
 
 		var workspace = "%/%-%-%/%%".format(name, Date.getDate.year, Date.getDate.month, Date.getDate.day, Date.getDate.hour, Date.getDate.minute);

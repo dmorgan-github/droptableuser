@@ -1,1 +1,1 @@
-{"abcdefghijklmnopqrstuvwxyz-/+1234567890".choose}.dup(rrand(4,8)).join;
+{"abcdefghijklmnopqrstuvwxyz1234567890".choose}.dup(rrand(4,8)).join;
