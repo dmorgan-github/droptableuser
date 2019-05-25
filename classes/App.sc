@@ -5,7 +5,7 @@ App {
 
 	*idgen {
 		var str = {"aaabcdeeefghiiijklmnooopqrstuuuvwxyz".choose}.dup(rrand(4,8)).join;
-		str = ("\\" ++ str).postln;
+		"echo % | pbcopy".format(str).systemCmd;
 		^str
 	}
 

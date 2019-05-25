@@ -316,17 +316,58 @@ Library.put(\voices, \pluck, {arg cb={arg sig; sig};
 
 		var trig = \trig.tr;
 		var freqmul = \freqmul.kr(1);
-		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)), \vrate.kr(6), \vdepth.kr(0.001)) * freqmul;
-		var sig = Pluck.ar(noise,
+		var freq = Vibrato.ar(K2A.ar(\freq.kr(432).lag(\lag.kr(0))), \vrate.kr(6), \vdepth.kr(0.001)) * freqmul;
+		var detune = \dtune.kr(0);
+		var temp = [freq + detune, freq - detune];
+		var sig = Pluck.ar(RLPF.ar(noise, \nfreq.kr(18000), \nres.kr(0).linlin(0, 1, 1, 0.00001)),
 			trig:trig,
 			maxdelaytime:100.reciprocal,
-			delaytime:freq.reciprocal.lag(\lag.kr(0)),
+			delaytime:temp.reciprocal,
 			decaytime:\decay.kr(1),
 			coef:\coef.kr(0.5)
 		);
 		sig = cb.(sig);
 		sig = LeakDC.ar(sig) * AmpCompA.kr(freq) * \amp.kr(-6.dbamp);
 		Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
+	}
+});
+
+Library.put(\voices, \fm, {arg cb={arg sig; sig};
+	{
+		var trig = \trig.tr;
+		var sus = \sus.kr(1);
+		var glide = \glide.kr(0) > 0;
+		var gate = Trig1.kr(trig, sus) * (1-glide) + glide;
+		var env = Env.adsr(
+			attackTime:\atk.kr(0.01),
+			decayTime:\dec.kr(0.3),
+			sustainLevel:\suslevel.kr(0.5),
+			releaseTime:\rel.kr(1),
+			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
+		).kr(gate:gate);
+
+		var index = \index.kr(1);
+		var ivel = \ivel.kr(1);
+		var isuslevel = \isuslevel.kr(0.5);
+		var ienv = Env(
+			[1, ivel, ivel * isuslevel, ivel * isuslevel, 1],
+			[\iatk.kr(0.01), \idec.kr(0.3), \isus.kr(1), \irel.kr(1)],
+			[\icurve1.kr(-4), \icurve2.kr(-4), \icurve3.kr(-4)]
+		).kr(gate:trig) * index;
+
+		var freqmul = \freqmul.kr(1);
+		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
+		var detune = \dtune.kr(0);
+
+		//modulator/carrier
+		var mratio = \mratio.kr(1);
+		var mod = SinOscFB.ar(freq * mratio, \feedback.kr(0)) * freq * mratio * ienv;
+		var sig = SinOsc.ar([freq - detune, freq + detune] + mod);
+
+		sig = cb.(sig);
+		sig = LeakDC.ar(sig) * env * AmpCompA.kr(freq) * \amp.kr(-3.dbamp);
+		sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
+		sig;
 	}
 });
 )

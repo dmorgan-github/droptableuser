@@ -1,6 +1,8 @@
 
 MIDIClient.init;
+MIDIClient.initialized
 MIDIIn.connectAll;
+
 MIDIIn.disconnectAll;
 MIDIClient.sources;
 MIDIdef.freeAll;
