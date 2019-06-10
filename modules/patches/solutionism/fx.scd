@@ -1,5 +1,6 @@
 (
 Library.put(\fx, \delay, {arg maxdelay=1;
+	"maxdelay %".format(maxdelay).debug(\fx);
 	{arg in;
 		in = LPF.ar(HPF.ar(in, \delhi.kr(20)), \dello.kr(20000));
 		FbC({arg fb; fb.reverse * [\fbL.kr(0.2), \fbR.kr(0.3)] + in;},
@@ -133,14 +134,15 @@ Library.put(\fx, \rlpf, {
 
 Library.put(\fx, \squiz, {
 	{arg in;
-		Squiz.ar(in, [\prL.kr(1.5), \prR.kr(2)], \zcp.kr(1));
+		var sig = Squiz.ar(in, [\prL.kr(1.5), \prR.kr(2)], \zcp.kr(1));
+		LeakDC.ar(sig);
 	}
 });
 
 Library.put(\fx, \pitchshift, {arg windowSize=0.2;
 	"pitchshift windowsize: %".format(windowSize).debug(\pitchshift);
 	{arg in;
-		PitchShift.ar(in, windowSize, [\prL.kr(1), \prR.kr(2)], \pitchDispersion.kr(0.01), \timeDispersion.kr(0.01));
+		PitchShift.ar(in, windowSize, [\psRatioL.kr(1), \psRatioR.kr(2)], \pitchDispersion.kr(0.01), \timeDispersion.kr(0.01));
 	}
 });
 
@@ -160,7 +162,8 @@ Library.put(\fx, \greyhole, {
 
 Library.put(\fx, \waveloss, {
 	{arg in;
-		WaveLoss.ar(in, [\dropL.kr(20), \dropR.kr(20)], \outof.kr(40), \mode.kr(1));
+		var sig = WaveLoss.ar(in, [\dropL.kr(20), \dropR.kr(20)], \outof.kr(40), \mode.kr(1));
+		LeakDC.ar(sig);
 	}
 });
 

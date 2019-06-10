@@ -1,4 +1,34 @@
 (
+/*
+noteOn:  #{ arg chan=0, midinote=60, amp=0.1;
+noteOff: #{ arg chan=0, midinote=60, amp=0.1;
+polyTouch: #{ arg chan=0, midinote=60, polyTouch=125;
+control: #{ arg chan=0, ctlNum, control=125;
+program:  #{ arg chan=0, progNum=1; [ chan, progNum ] },
+touch:  #{ arg chan=0, val=125; [ chan, val ] },
+bend:  #{ arg chan=0, val=125; [ chan, val ] },
+allNotesOff: #{ arg chan=0; [chan] },
+smpte:	#{ arg frames=0, seconds=0, minutes=0, hours=0, frameRate=25;
+songPtr: #{ arg songPtr; [songPtr] },
+sysex: #{ arg uid, array; [array] } // Int8Array
+*/
+Pdef(\midi, {arg cmd=\noteOn;
+	Pbind(
+		\type, \midi,
+		\midicmd, cmd,
+		\midiout, MIDIOut(0)
+	)
+});
+
+Pdef(\status,
+	Pbind(
+		\count, Pseries(0, 1, inf),
+		\beatdur, Pfunc({thisThread.clock.beatDur;}),
+		\bar, Pfunc({thisThread.clock.beatDur;}),
+		\beat, Pfunc({thisThread.clock.beatInBar;}),
+		\beatint, Pfunc({thisThread.clock.beatInBar.floor.asInt;})
+	)
+);
 Pdef(\nbind, {arg node, out=0;
 
 	if (node.rate == \audio) {
