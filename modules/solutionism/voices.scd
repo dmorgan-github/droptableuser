@@ -315,12 +315,19 @@ Library.put(\voices, \syncsaw, {arg cb={arg sig; sig}, numvoices=4;
 		sig;
 	}
 });
-Library.put(\voices, \fm7, {arg cb={arg sig; sig};
+Library.put(\voices, \fm7, {arg overlap=2, cb={arg sig; sig};
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
 		var glide = \glide.kr(0) > 0;
-		var gate = Trig1.kr(trig, sus) * (1-glide) + glide;
+
+		// rudimentary voice stealing, round robin
+		var index = Stepper.kr(trig, 0, 0, overlap-1);
+		var trigs = overlap.collect({arg i;
+			InRange.kr(index, i-0.5, i+0.5);
+		});
+
+		var gate = Trig1.kr(trigs, sus) * (1-glide) + glide;
 		var env = Env.adsr(
 			attackTime:\atk.kr(0.01),
 			decayTime:\dec.kr(0.1),
@@ -430,7 +437,7 @@ Library.put(\voices, \fm, {arg cb={arg sig; sig}, numvoices=4;
 		var isuslevel = \isuslevel.kr(0.5);
 		var ienv = Env(
 			[1, ivel, ivel * isuslevel, ivel * isuslevel, 1],
-			[\iatk.kr(0.01), \idec.kr(0.3), \isus.kr(1), \irel.kr(1)],
+			[\iatk.kr(0.01), \idec.kr(0.1), \isus.kr(1), \irel.kr(1)],
 			[\icurve1.kr(-4), \icurve2.kr(-4), \icurve3.kr(-4)]
 		).kr(gate:trig) * index;
 

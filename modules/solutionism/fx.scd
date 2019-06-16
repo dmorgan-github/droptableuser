@@ -1,4 +1,39 @@
 (
+Library.put(\fx, \bufglitch, {arg bufdur=16;
+
+	{arg in;
+
+		var buf = LocalBuf(bufdur * 44100, 2).clear;
+		var rec = {
+			var trig = \rectrig.tr;
+			var offset = \offset.kr(0);
+			var recLevel = \reclevel.kr(1);
+			var preLevel = \prelevel.kr(0);
+			var run = \run.kr(0);
+			var loop = \recloop.kr(0);
+			RecordBuf.ar(in, buf, offset:offset, recLevel:recLevel, preLevel:preLevel, run:run, loop:loop, trigger:trig);
+		}.();
+
+		var rateL = \rateL.kr(3);
+		var rateR = \rateR.kr(4);
+		var interval = \interval.kr(4);
+		var trig = Impulse.kr([rateL,rateR]);
+		var gate = TChoose.kr(PulseDivider.kr(trig, interval), [1, 0]);
+		var rev = \rev.kr(0.4);
+		var loop = \loop.kr(1);
+		var frames = BufFrames.kr(buf);
+		var sus = TChoose.kr(trig, [0.5, 2, 1]);
+		var start = Latch.kr(WhiteNoise.kr().range(0, 1), trig) * frames;
+		var rate = TWChoose.kr(trig,
+			[12, 7, 5, 24].midiratio,
+			[4, 3, 2, 1].normalizeSum) * TWChoose.kr(PulseDivider.kr(trig, 4), [1, -1], [1-rev, rev]);
+		var env = Env([0, 1, 1, 0], [0.01, sus-0.01-0.01, 0.01], curve:\lin).kr(gate:trig);
+		var sig = PlayBufCF.ar(2, buf, rate, trig, start, loop);
+		sig = sig * env * \amp.kr(-3.dbamp) * gate;
+		Splay.ar(sig.flatten);
+	};
+});
+
 Library.put(\fx, \delay, {arg maxdelay=1;
 	"maxdelay %".format(maxdelay).debug(\fx);
 	{arg in;
@@ -34,7 +69,7 @@ Library.put(\fx, \bandpass, {
 		var curve3 = \fcurve3.kr(-4);
 		var cutoff = \cutoff.kr(1000);
 		var vel = \fvel.kr(2);
-		var res = \res.kr(0.1).linlin(0, 1, 1, 0.00001);
+		var res = \res.kr(0.1).linexp(0, 1, 1, 0.001);
 		var ffreq = Env(
 			[1, vel, vel * suslevel, vel * suslevel, 1],
 			[atk, dec, sus, rel],
@@ -78,7 +113,7 @@ Library.put(\fx, \lopass4, {
 		var curve3 = \fcurve3.kr(-4);
 		var cutoff = \cutoff.kr(1000);
 		var vel = \fvel.kr(2);
-		var res = \res.kr(0.1).linlin(0, 1, 1, 0.00001);
+		var res = \res.kr(0.1).linexp(0, 1, 1, 0.001);
 		var ffreq = Env(
 			[1, vel, vel * suslevel, vel * suslevel, 1],
 			[atk, dec, sus, rel],
@@ -100,7 +135,7 @@ Library.put(\fx, \hipass4, {
 		var curve3 = \fcurve3.kr(-4);
 		var cutoff = \cutoff.kr(1000);
 		var vel = \fvel.kr(2);
-		var res = \res.kr(0.1).linlin(0, 1, 1, 0.00001);
+		var res = \res.kr(0.1).linexp(0, 1, 1, 0.001);
 		var ffreq = Env(
 			[1, vel, vel * suslevel, vel * suslevel, 1],
 			[atk, dec, sus, rel],
@@ -122,7 +157,7 @@ Library.put(\fx, \rlpf, {
 		var curve3 = \fcurve3.kr(-4);
 		var cutoff = \cutoff.kr(1000);
 		var vel = \fvel.kr(2);
-		var res = \res.kr(0.1).linlin(0, 1, 1, 0.00001);
+		var res = \res.kr(0.1).linexp(0, 1, 1, 0.001);
 		var ffreq = Env(
 			[1, vel, vel * suslevel, vel * suslevel, 1],
 			[atk, dec, sus, rel],

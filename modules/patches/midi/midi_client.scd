@@ -16,13 +16,15 @@ MIDIdef.noteOn(\noteOn, {arg ...args;
 	var vel = args[0];
 	var chan = args[2];
 	var key = ('noteOn' ++ chan).asSymbol;
-	Fdef(key).value(note, vel);
+	key.postln;
+	//Fdef(key).value(note, vel);
 });
 MIDIdef.noteOff(\noteOff, {arg ...args;
 	var note = args[1];
 	var vel = args[0];
 	var chan = args[2];
 	var key = ('noteOff' ++ chan).asSymbol;
+	key.postln;
 	Fdef(key).value(note, vel);
 });
 )
