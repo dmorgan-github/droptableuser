@@ -457,46 +457,31 @@ Library.put(\voices, \fm, {arg cb={arg sig; sig}, numvoices=4;
 		sig;
 	}
 });
-Library.put(\voices, \playbuf, {arg cb={arg sig; sig}, numchannels=2;
+Library.put(\voices, \playbuf, {arg numchannels=2, cb={arg sig; sig};
 	"numchannels %".format(numchannels).debug(\playbuf);
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
-		var gate = \glide.kr(0) > 0; // proxy with control named \gate will print warning message
 		var buf = \buf.kr;
 		var frames = BufFrames.kr(buf);
 		var start = \start.kr(0) * frames;
-		var detune = \dtune.kr(0);
-		var base = \base.kr('C3'.namecps);
-		var freq = \freq.kr('C3'.namecps);
-		var ratio = Select.kr(\freqmode.kr(0), [\rate.kr(1), freq/base]);
-		var rate = [ratio - detune, ratio + detune];
 
 		var loop = \loop.kr(0);
 		var suslevel = \suslevel.kr(1);
 		var atk = \atk.kr(0);
 		var rel = \rel.kr(0.1);
-		var curve = \curve.kr(-4);
+		var curve = \curve.kr(-1);
 
-		var retrigEnv = Env(
-			[0, suslevel, suslevel,0],
+		var env = Env(
+			[0, suslevel, suslevel, 0],
 			[atk, sus, rel],
 			curve
 		).kr(gate:trig);
 
-		var gateEnv = Env.asr(
-			atk,
-			suslevel,
-			rel,
-			curve
-		).kr(gate:gate);
-
-		var env = Select.kr(\retrig.kr(1), [gateEnv, retrigEnv]);
-
-		var sig = PlayBufCF.ar(numchannels, buf, rate, trig, start, loop);
+		var sig = PlayBufCF.ar(numchannels, buf, 1, trig, start, loop, lag:0.0, n:2);
 		sig = cb.(sig);
 		sig = LeakDC.ar(sig) * env * \amp.kr(-3.dbamp);
-		sig = Splay.ar(sig.flatten, \spread.kr(1), center:\center.kr(0));
+		sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 		sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
 		sig;
 	}

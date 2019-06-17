@@ -35,12 +35,13 @@ Library.put(\fx, \bufglitch, {arg bufdur=16;
 });
 
 Library.put(\fx, \delay, {arg maxdelay=1;
+	var beatudur = TempoClock.default.beatDur;
 	"maxdelay %".format(maxdelay).debug(\fx);
 	{arg in;
 		in = LPF.ar(HPF.ar(in, \delhi.kr(20)), \dello.kr(20000));
 		FbC({arg fb; fb.reverse * [\fbL.kr(0.2), \fbR.kr(0.3)] + in;},
 			maxdelay,
-			\beatdur.kr(1) * [\delL.kr(3/4), \delR.kr(5/8)]
+			\beatdur.kr(beatudur) * [\delL.kr(3/4), \delR.kr(5/8)]
 		);
 	};
 });

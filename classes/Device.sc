@@ -234,7 +234,7 @@ Device {
 
 V : Device {
 
-	classvar all;
+	classvar <all;
 
 	*new { arg key, voice ...args;
 		^super.new(key).init(key, voice, args);
@@ -263,7 +263,7 @@ V : Device {
 
 M : Device {
 
-	classvar all;
+	classvar <all;
 
 	*new { arg key;
 		^super.new(key).init(key);
