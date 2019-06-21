@@ -1,6 +1,14 @@
 App {
 
+	classvar <bluetoothMidiChan = 5;
+
 	*initClass {
+	}
+
+	*midiConnect {
+		MIDIClient.init;
+		MIDIClient.initialized.debug("midi initialized");
+		MIDIIn.connectAll;
 	}
 
 	*idgen {

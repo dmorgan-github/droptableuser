@@ -14,6 +14,24 @@ CC {
 	}
 }
 
+
+B {
+	var <min, <max, <stL, <stH, <cb;
+
+	*new {arg min=6290, max=10099, stL=(-24), stH=24, cb;
+		^super.new.bInit(min, max, stL, stH, cb);
+	}
+
+	bInit {arg inMin, inMax, inStL, inStH, inCb;
+		min = inMin;
+		max = inMax;
+		stL = inStL;
+		stH = inStH;
+		cb = inCb;
+		^this;
+	}
+}
+
 Device {
 
 	var <key, order, <midichan=0, <oscpath, <oscport;
@@ -125,13 +143,26 @@ Device {
 		var key = (this.key ++ '_' ++ prop).asSymbol;
 		"map midi cc: %".format(prop).debug(this.key);
 		MIDIdef.cc(key, {arg val, num, chan, src;
+			val = val.linlin(0, 127, min, max);
 			if (cb.isNil.not){
 				val = cb.(val);
-			}{
-				val = val.linlin(0, 127, min, max);
 			};
 			Ndef(this.key).set(prop, val);
 		}, ccNum:ccNum, chan:this.midichan);
+		^this;
+	}
+
+	midibend_ {arg prop, min=6290, max=10099, stL=(-24), stH=24, cb;
+		var key = (this.key ++ '_' ++ prop).asSymbol;
+		"map midi bend: %".format(prop).debug(this.key);
+		MIDIdef.bend(key, {arg val, num;
+			val = val.linlin(min, max, stL, stH);
+			if (cb.isNil.not){
+				val = cb.(val);
+			};
+			//[prop, val, \bend].postln;
+			Ndef(this.key).set(prop, val);
+		}, chan:this.midichan);
 		^this;
 	}
 
@@ -206,6 +237,12 @@ Device {
 					var prop = args[i-1];
 					this.midicc_(val.num, prop, val.min, val.max, val.cb);
 					"creating cc mapping %".format(prop).debug(this.key);
+					val;
+				},
+				B, {
+					var prop = args[i-1];
+					this.midibend_(prop, val.min, val.max, val.stL, val.stH, val.cb);
+					"creating bend mapping %".format(prop).debug(this.key);
 					val;
 				},
 				{val;}

@@ -24,8 +24,17 @@ Library.put(\funcs, \wavegen, {arg buf, timbre=0, seed=nil, len=1024;
 
 Library.put(\funcs, \parse, {arg str;
 
-	var doparse, result, amps, rates, weights, durs, i;
-	doparse = {arg str, pos=0, context=\p, result = [nil,nil,nil, nil, nil];
+	/*
+	[
+		\corliwud -> "|    k           |/4",
+		\uihzrca  -> "|  j  n          |/2",
+		\sioe     -> "|m      b b      |/4"
+	],
+	*/
+
+	var doparse, result, amps, rates, weights, durs, stretch, i;
+
+	doparse = {arg str, pos=0, context=\p, result = [nil,nil,nil,nil,nil,nil];
 
 		var current = str[pos];
 		var pattern = result[0];
@@ -33,6 +42,7 @@ Library.put(\funcs, \parse, {arg str;
 		var rates = result[2];
 		var weights = result[3];
 		var durs = result[4];
+		var stretch = result[5];
 
 		if (pos < str.size) {
 			switch(current.ascii,
@@ -40,6 +50,7 @@ Library.put(\funcs, \parse, {arg str;
 				10, {/*new line*/},
 				37, {/*percent*/ weights = List.new; context = \w},
 				42, {/*star*/ amps = List.new; context = \a},
+				43, {/*plus*/ stretch = List.new; context = \s},
 				47, {/*forward slash*/ durs = List.new; context = \d},
 				94, {/*caret*/ rates = List.new; context = \r},
 				124, {/*pipe*/ if (pattern.isNil) {pattern = List.new; context = \p}},
@@ -70,12 +81,24 @@ Library.put(\funcs, \parse, {arg str;
 						},
 						\d, {
 							var val = current.asString.asInt;
-							durs.add(val);
+							if (val > 0) {
+								durs.add(val);
+							} {
+								"invalid dur: %".format(val).postln;
+							}
+						},
+						\s, {
+							var val = current.asString.asInt;
+							if (val > 0) {
+								stretch.add(val);
+							} {
+								"invalid stretch: %".format(val).postln;
+							}
 						}
 					);
 				}
 			);
-			result = doparse.(str, pos+1, context, [pattern, amps, rates, weights, durs]);
+			result = doparse.(str, pos+1, context, [pattern, amps, rates, weights, durs, stretch]);
 		};
 		result;
 	};
@@ -100,11 +123,16 @@ Library.put(\funcs, \parse, {arg str;
 	.collect({arg val; if (val.isNil){1}{val}});
 
 	durs = result[4];
-	if (durs.isNil) {
+	if (durs.isNil or: (durs.size == 0)) {
 		durs = [1]
 	};
 
-	[result[0], amps, rates, weights, durs];
+	stretch = result[5];
+	if (stretch.isNil or: (stretch.size == 0)) {
+		stretch = [1];
+	};
+
+	[result[0], amps, rates, weights, durs, stretch];
 });
 
 Library.put(\funcs, \loadbufs, {arg bufs, dir;

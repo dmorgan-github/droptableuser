@@ -1,4 +1,18 @@
 (
+Library.put(\fx, \compressor, {
+	{arg in;
+		var sig = CompanderD.ar(in: in, thresh: 0.7, slopeBelow: 1, slopeAbove: 0.4, clampTime: 0.008, relaxTime: 0.2);
+		sig = tanh(sig).softclip;
+		sig;
+	}
+});
+
+Library.put(\fx, \limiter, {
+	{arg in;
+		Limiter.ar(in, -6.dbamp);
+	}
+});
+
 Library.put(\fx, \bufglitch, {arg bufdur=16;
 
 	{arg in;

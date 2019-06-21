@@ -8,6 +8,29 @@ MIDIClient.sources;
 MIDIdef.freeAll;
 
 (
+MIDIdef.bend(\bend, {arg val, vel;
+	var st = val.linlin(6290, 10099, -24, 24);
+	//[st.midiratio, val, vel].postln;
+})
+)
+
+(
+MIDIdef.polytouch(\poly, {arg val, vel;
+	//[\poly, val, vel].postln;
+});
+MIDIdef.touch(\touch, {arg val, vel;
+	//[\touch, val, vel].postln;
+})
+)
+
+(
+MIDIdef.cc(\cc, {arg a, b, c, d;
+	//[\cc, a, b, c, d].postln;
+});
+)
+
+
+(
 /*
 48 to 72
 */
