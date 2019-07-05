@@ -24,9 +24,10 @@ Pdef(\status,
 	Pbind(
 		\count, Pseries(0, 1, inf),
 		\beatdur, Pfunc({thisThread.clock.beatDur;}),
-		\bar, Pfunc({thisThread.clock.beatDur;}),
-		\beat, Pfunc({thisThread.clock.beatInBar;}),
-		\beatint, Pfunc({thisThread.clock.beatInBar.floor.asInt;})
+		\bar, Pfunc({thisThread.clock.bar;}),
+        \beat, Pfunc({thisThread.clock.beat}),
+		\beatinbar, Pfunc({thisThread.clock.beatInBar;}),
+		\beatinbarint, Pfunc({thisThread.clock.beatInBar.floor.asInt;})
 	)
 );
 Pdef(\nbind, {arg node, out=0;

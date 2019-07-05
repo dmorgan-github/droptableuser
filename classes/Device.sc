@@ -129,16 +129,6 @@ Device {
 		^this;
 	}
 
-	/*
-	midioff_ {
-		"note off".debug(this.key);
-		MIDIdef.noteOff(this.key, func:{arg vel, note, chan, src;
-			Ndef(this.key).set(\glide, 0);
-		}, chan:this.midichan);
-		^this;
-	}
-	*/
-
 	midicc_ {arg ccNum=0, prop, min=0, max=1, cb;
 		var key = (this.key ++ '_' ++ prop).asSymbol;
 		"map midi cc: %".format(prop).debug(this.key);
@@ -398,5 +388,65 @@ P {
 
 			Ppar(pbinds);
 		});
+	}
+}
+
+/*
+A wrapper around Pdef to work with a V object
+and provide some convenience set up operations
+*/
+Vbind {
+    var <key;
+
+	*new { arg key ...pairs;
+		^super.new.init(key, pairs);
+	}
+
+    init {arg argKey, argPairs;
+		key = argKey.asSymbol;
+		if (argPairs.size > 0) {
+            "building %".format(key).debug("vbind");
+			this.prBuild(argKey, argPairs);
+		};
+		^Pdef(key);
+	}
+
+    prBuild {arg argKey, argPairs;
+
+        var key = argPairs.asDict[\v] ?? argKey;
+        var pairs = argPairs;
+
+        var evtargs = {
+            var setargs = [];
+			var keys = pairs.reject({arg val, i; i.odd});
+			key.asArray.do({arg val, i;
+                var ctrls = Ndef(val).controlNames.collect({arg val; val.name}).asSet.sect(keys.asSet);
+				setargs = setargs ++ ctrls;
+			});
+			// freq argument is implied by other properties
+			setargs.asSet.asArray ++ if (keys.includes(\degree) || keys.includes(\note) || keys.includes(\midinote)) {\freq};
+		}.();
+		var props = [
+            \type, \set,
+            \id, Pfunc({ key.asArray.collect({arg val; Ndef(val.asSymbol).nodeID }) }),
+            \args, evtargs
+        ] ++ pairs.asPairs;
+
+        "pattern props %".format(props).debug(argKey);
+        Pdef(argKey, {arg monitor=true, fadeTime=0;
+            key.asArray.do({arg val, i;
+				var node = Ndef(val);
+                if (node.rate == \audio) {
+                    if (monitor.not){
+                        // allow stoping the node
+                        node.stop(fadeTime:fadeTime);
+                    };
+                    if (node.isMonitoring.not && monitor) {
+                        node.play(fadeTime:fadeTime)
+                    }
+                };
+			});
+            Pbind(*props);
+        });
 	}
 }

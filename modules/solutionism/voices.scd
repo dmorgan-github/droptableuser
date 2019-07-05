@@ -1,4 +1,181 @@
 (
+Library.put(\voices, \benjolin, {
+
+	/*
+	https://scsynth.org/t/benjolin-inspired-instrument/1074
+
+	Instrument inspired from Rob Hordijk's Benjolin, it requires sc3-plugins (PulseDPW, SVF and DFM1)
+
+	outSignal:
+	1-triangle osc1,
+	2-square osc1,
+	3-triangle osc2,
+	4-pulse osc2,
+	5-XOR output,
+	6-Filter output
+
+	Enjoy! Alejandro Olarte
+
+	// add ranges for controlling with a GUI
+	(
+	Spec.add(\freq1, ControlSpec( 20.0, 14000.0, \exp, 0, 70, "Hz") );
+	Spec.add(\freq2, ControlSpec( 0.1, 14000.0, \exp, 0, 4, "Hz") );
+	Spec.add(\filtFreq, ControlSpec( 20.0, 20000.0, \exp, 0, 40, "Hz") );
+	Spec.add(\q, ControlSpec( 0.0, 1.0, \lin, 0, 0.82) );
+	Spec.add(\gain, ControlSpec( 0.0, 3.0, \lin, 0, 1) );
+	Spec.add(\filterType, ControlSpec( 0.0, 3.0, \lin, 1, 0) );
+	Spec.add(\rungler1, ControlSpec( 0.0, 1.0, \lin, 0, 0.16) );
+	Spec.add(\rungler2, ControlSpec( 0.0, 1.0, \lin, 0, 0) );
+	Spec.add(\runglerFilt, ControlSpec( 0.0, 1.0, \lin, 0, 9) );
+	Spec.add(\loop, ControlSpec( 0.0, 1.0, \lin, 0, 1) );
+	Spec.add(\scale, ControlSpec( 0.0, 1.0, \lin, 0, 1) );
+	Spec.add(\outSignal, ControlSpec( 0.0, 6.0, \lin, 1, 6) );
+	);
+	*/
+
+	{
+		var freq1 = \freq1.kr(40);
+		var freq2 = \freq2.kr(4);
+		var scale = \scale.kr(1);
+		var rungler1 = \rungler1.kr(0.16);
+		var rungler2 = \rungler2.kr(0.0);
+		var runglerFilt = \runglerFilt.kr(9);
+		var loop = \loop.kr(0);
+		var filtFreq = \filtFreq.kr(40);
+		var q = \q.kr(0.82);
+		var gain = \gain.kr(1);
+		var filterType = \filterType.kr(0);
+		var outSignal = \outSignal.kr(6);
+		var amp = \amp.kr(1);
+
+		var osc1, osc2, tri1, tri2, sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8=1, rungler, pwm, filt, output;
+		var sr;
+		var osc2freq, buf, bufR;
+
+		bufR = LocalIn.ar(2,0);
+		rungler = bufR.at(0);
+		buf = bufR.at(1);
+
+		sr = SampleDur.ir;
+		//sr = ControlDur.ir;
+		tri1 = LFTri.ar((rungler*rungler1)+freq1);
+		tri2 = LFTri.ar((rungler*rungler2)+freq2);
+		osc1 = PulseDPW.ar((rungler*rungler1)+freq1);
+		osc2 = PulseDPW.ar((rungler*rungler2)+freq2);
+
+		//pwm = tri1 > tri2;
+		pwm = BinaryOpUGen('>', (tri1 + tri2),(0));
+
+		osc1 = ((buf*loop)+(osc1* (loop* -1 +1)));
+		sh0 = BinaryOpUGen('>', osc1, 0.5);
+		sh0 = BinaryOpUGen('==', (sh8 > sh0), (sh8 < sh0));
+		sh0 = (sh0 * -1) + 1;
+
+		sh1 = DelayN.ar(Latch.ar(sh0,osc2),0.01,sr);
+		sh2 = DelayN.ar(Latch.ar(sh1,osc2),0.01,sr*2);
+		sh3 = DelayN.ar(Latch.ar(sh2,osc2),0.01,sr*3);
+		sh4 = DelayN.ar(Latch.ar(sh3,osc2),0.01,sr*4);
+		sh5 = DelayN.ar(Latch.ar(sh4,osc2),0.01,sr*5);
+		sh6 = DelayN.ar(Latch.ar(sh5,osc2),0.01,sr*6);
+		sh7 = DelayN.ar(Latch.ar(sh6,osc2),0.01,sr*7);
+		sh8 = DelayN.ar(Latch.ar(sh7,osc2),0.01,sr*8);
+
+		//rungler = ((sh6/8)+(sh7/4)+(sh8/2)); //original circuit
+		//rungler = ((sh5/16)+(sh6/8)+(sh7/4)+(sh8/2));
+
+		rungler = ((sh1/2.pow(8))+(sh2/2.pow(7))+(sh3/2.pow(6))+(sh4/2.pow(5))+(sh5/2.pow(4))+(sh6/2.pow(3))+(sh7/2.pow(2))+(sh8/2.pow(1)));
+
+		buf = rungler;
+		rungler = (rungler * scale.linlin(0,1,0,127));
+		rungler = rungler.midicps;
+
+		LocalOut.ar([rungler,buf]);
+
+		filt = Select.ar(filterType, [
+			RLPF.ar(pwm,(rungler*runglerFilt)+filtFreq,q* -1 +1,gain),
+			//BMoog.ar(pwm,(rungler*runglerFilt)+filtFreq,q,0,gain),
+			RHPF.ar(pwm,(rungler*runglerFilt)+filtFreq,q* -1 +1,gain),
+			SVF.ar(pwm,(rungler*runglerFilt)+filtFreq,q,1,0,0,0,0,gain),
+			DFM1.ar(pwm,(rungler*runglerFilt)+filtFreq,q,gain,1)
+		]);
+
+		output = Select.ar(outSignal, [
+			tri1, osc1, tri2, osc2, pwm, sh0, filt
+
+		]);
+
+		LeakDC.ar(output) * amp ! 2
+	}
+});
+
+Library.put(\voices, \warp, {arg cb={arg sig; sig};
+
+	{
+		var sig = Warp0.ar(numChannels: 1,
+			buffer: \buf.kr(0),
+			warpFactor: \warp.kr(10).reciprocal,
+			freqScale: ([0, 5, 7]).midiratio,
+			windowSize: \windowsize.kr(0.2),
+			envbufnum: -1,
+			overlaps: \overlaps.kr(10),
+			windowRandRatio: \winrandrate.kr(0.1),
+			interp: 4);
+
+		sig = 4.collect({
+			AllpassC.ar(sig, 0.2, rrand(0.1, 0.2), rrand(1.0, 2.0));
+		}).flatten;
+
+		// not sure how to get rid of some of the artifacts
+		// need some eq
+		sig = LeakDC.ar(sig);
+		sig = HPF.ar(sig, 80);
+		sig = CompanderD.ar(in: sig,
+			thresh: 0.7,
+			slopeBelow: 1,
+			slopeAbove: 0.4,
+			clampTime: 0.008,
+			relaxTime: 0.2);
+		sig = cb.(sig);
+		sig = LeakDC.ar(sig) * \vel.kr(1) * \amp.kr(-3.dbamp);
+		sig = Splay.ar(sig, \spread.kr(0.5), center:\center.kr(0));
+		sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
+		sig;
+	}
+});
+
+Library.put(\voices, \swarm, {arg cb={arg sig; sig};
+
+	{
+		var trig = \trig.tr;
+		var sus = \sus.kr(1);
+		var glide = \glide.kr(0) > 0;
+		var gate = Trig1.kr(trig, sus) * (1-glide) + glide;
+		var env = Env.adsr(
+			attackTime:\atk.kr(0.01),
+			decayTime:\dec.kr(0.1),
+			sustainLevel:\suslevel.kr(0.5),
+			releaseTime:\rel.kr(0.3),
+			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
+		).kr(gate:gate);
+
+		var freqmul = \freqmul.kr(1);
+		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
+		var mul = [0.5, 1, 2, 1.5, 1.12, 1.33];
+		var sig = 50.collect({arg num;
+			var detune = LFNoise1.kr(0.1).bipolar(0.2).midiratio;
+			VarSaw.ar(freq * detune * mul.choose, 0,
+				width:LFNoise1.kr(1).range(0.1, 0.9))
+			* Env.circle([0, 1, 0], [rrand(1, 24), rrand(10, 50)], rrand(-4, 4)).kr();
+		});
+
+		sig = cb.(sig);
+		sig = LeakDC.ar(sig) * env * AmpCompA.kr(freq) * \vel.kr(1) * \amp.kr(-3.dbamp);
+		sig = Splay.ar(sig, \spread.kr(0.5), center:\center.kr(0));
+		sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
+		sig;
+	}
+});
+
 Library.put(\voices, \grainer, {arg cb={arg sig; sig}, numchannels=2;
 	"numchannels %".format(numchannels).debug(\grainer);
 	{
@@ -76,7 +253,7 @@ Library.put(\voices, \osc, {arg cb={arg sig; sig}, numvoices=4;
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+        ).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var freqmul = \freqmul.kr(1);
 		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
@@ -103,7 +280,7 @@ Library.put(\voices, \varsaw, {arg cb={arg sig; sig}, numvoices=2;
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var freqmul = \freqmul.kr(1);
 		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
@@ -130,7 +307,7 @@ Library.put(\voices, \pulse, {arg cb={arg sig; sig}, numvoices=4;
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var freqmul = \freqmul.kr(1);
 		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
@@ -157,7 +334,7 @@ Library.put(\voices, \sine, {arg cb={arg sig; sig}, numvoices=2;
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var freqmul = \freqmul.kr(1);
 		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
@@ -171,12 +348,13 @@ Library.put(\voices, \sine, {arg cb={arg sig; sig}, numvoices=2;
 	}
 });
 
-Library.put(\voices, \percsine, {arg cb={arg sig; sig}, numvoices=2;
+Library.put(\voices, \percsine, {arg cb={arg sig; sig}, poly=0, doneAction=Done.none, numvoices=2;
 	"numvoices %".format(numvoices).debug(\percsine);
 	{
 		var trig = \trig.tr;
 		var sus = \sus.kr(1);
-		var glide = \glide.kr(0) > 0;
+		// gate has to be initialized as 1 to work with polyphonic Pbinds
+		var glide = \gate.kr(poly);
 		var gate = Trig1.kr(trig, sus) * (1-glide) + glide;
 		var env = Env.adsr(
 			attackTime:\atk.kr(0.01),
@@ -184,7 +362,7 @@ Library.put(\voices, \percsine, {arg cb={arg sig; sig}, numvoices=2;
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1), doneAction:doneAction);
 
 		var freqmul = \freqmul.kr(1);
 		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
@@ -211,7 +389,7 @@ Library.put(\voices, \saw, {arg cb={arg sig; sig}, numvoices=4;
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var freqmul = \freqmul.kr(1);
 		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
@@ -237,7 +415,7 @@ Library.put(\voices, \klang, {arg cb={arg sig; sig}, numvoices=4;
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var freqmul = \freqmul.kr(1);
 		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
@@ -270,7 +448,7 @@ Library.put(\voices, \sinoscfb, {arg cb={arg sig; sig}, numvoices=4;
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var freqmul = \freqmul.kr(1);
 		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
@@ -339,10 +517,10 @@ Library.put(\voices, \res, {arg cb={arg sig; sig}, numvoices=4;
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var freqmul = \freqmul.kr(1);
-		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
+		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0), delay:\vdelay.kr(0)) * freqmul;
 		var detune = LFNoise1.kr(0.1.dup(numvoices)).bipolar(\dtune.kr(0.1)).midiratio;
 		var res = \res.kr(0.1);
 		var sig = LeakDC.ar(RLPF.ar(PinkNoise.ar(0.3), freq * detune, res));
@@ -366,7 +544,7 @@ Library.put(\voices, \syncsaw, {arg cb={arg sig; sig}, numvoices=4;
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var freqmul = \freqmul.kr(1);
 		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
@@ -398,7 +576,7 @@ Library.put(\voices, \fm7, {arg overlap=2, cb={arg sig; sig};
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var freqmul = \freqmul.kr(1);
 		var freq = Vibrato.ar(K2A.ar(\freq.kr(432)).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.0)) * freqmul;
@@ -432,7 +610,7 @@ Library.put(\voices, \noise, {arg cb={arg sig; sig};
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var noises = [
 			WhiteNoise.ar,
@@ -494,7 +672,7 @@ Library.put(\voices, \fm, {arg cb={arg sig; sig}, numvoices=4;
 			sustainLevel:\suslevel.kr(0.5),
 			releaseTime:\rel.kr(0.3),
 			curve:[\curve1.kr(-4), \curve2.kr(-4), \curve3.kr(-4)]
-		).kr(gate:gate);
+		).kr(gate:gate, timeScale:\ts.kr(1));
 
 		var index = \index.kr(1);
 		var ivel = \ivel.kr(1);
@@ -525,15 +703,14 @@ Library.put(\voices, \playbuf, {arg numchannels=2, cb={arg sig; sig};
 	"numchannels %".format(numchannels).debug(\playbuf);
 	{
 		var trig = \trig.tr;
-		var sus = \sus.kr(1);
-		var buf = \buf.kr;
+		var buf = \buf.kr(0);
 		var frames = BufFrames.kr(buf);
 		var start = \start.kr(0) * frames;
-		var rate = \rate.kr(1);
-
+		var rate = BufRateScale.kr(buf) * \rate.kr(1) * \dir.kr(1);
 		var loop = \loop.kr(0);
 		var suslevel = \suslevel.kr(1);
 		var atk = \atk.kr(0);
+		var sus = \sus.kr(1);
 		var rel = \rel.kr(0.1);
 		var curve = \curve.kr(-1);
 
@@ -541,11 +718,11 @@ Library.put(\voices, \playbuf, {arg numchannels=2, cb={arg sig; sig};
 			[0, suslevel, suslevel, 0],
 			[atk, sus, rel],
 			curve
-		).kr(gate:trig);
+		).kr(gate:trig, timeScale:\ts.kr(1));
 
-		var sig = PlayBufCF.ar(numchannels, buf, rate, trig, start, loop, lag:0.0, n:2);
+		var sig = PlayBufCF.ar(numchannels, bufnum:buf, rate:rate, trigger:trig, startPos:start, loop:loop, lag:0.01, n:2);
 		sig = cb.(sig);
-		sig = LeakDC.ar(sig) * env * \vel.kr(1) * \amp.kr(-3.dbamp);
+		sig = LeakDC.ar(sig) * \vel.kr(1) * \amp.kr(-3.dbamp);
 		sig = Splay.ar(sig, \spread.kr(0.5), center:\center.kr(0));
 		sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
 		sig;
