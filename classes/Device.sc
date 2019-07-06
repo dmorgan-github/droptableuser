@@ -394,6 +394,42 @@ P {
 /*
 A wrapper around Pdef to work with a V object
 and provide some convenience set up operations
+(
+Vbind(\isycxuo,
+    \v, \rwzjmgoh,
+    \trig, 1,
+    \dur, 0.5,
+    \degree, 0,
+    \atk, 0.01,
+    \sus, 0.25,
+    \cutoff, 100,
+    \res, 0.3,
+    \fatk, 0.01,
+    \fvel, 8,
+    \fdec, 0.35,
+);
+)
+
+// bit of a hack
+// but allows for updating properties on the fly
+Pdef(\isycxuo_p1, Pbindef(\isycxuo_set, \foo, 1) <> Vbind(\isycxuo));
+Pdef(\isycxuo_p1, Vbind(\isycxuo));
+
+(
+Pbindef(\isycxuo_set,
+    \dur, Pseq([3,2,3,4], inf) * 0.25,
+    \scale, Scale.dorian,
+    \degree, Pdefn(\xy),
+    \octave, Pbjorklund(3,8).collect({arg val; if (val == 1){5}{4}}),
+    \res, 0.3,
+    \cutoff, 200,
+    \fatk, 0.1,
+    \fdec, Pkey(\sus),
+    \fvel, 8,
+    \sus, Pkey(\dur) * 1.4,
+    \atk, 0.01
+)
+)
 */
 Vbind {
     var <key;
@@ -449,4 +485,65 @@ Vbind {
             Pbind(*props);
         });
 	}
+}
+
+Q : EventPatternProxy {
+
+    var <key;
+
+	classvar <>all;
+
+	storeArgs { ^[key] }
+
+	*new {arg key ...pairs;
+		var res = all.at(key);
+		if(res.isNil) {
+            var pbind = this.prBuild(key, pairs);
+			res = super.new(pbind).prAdd(key);
+		} {
+			if(pairs.size > 0) {
+                var pbind = this.prBuild(key, pairs);
+                res.source = pbind
+            }
+		}
+		^res
+	}
+
+    trig {
+        ^Ndef((key ++ '_trig').asSymbol);
+    }
+
+    freq {
+        ^Ndef((key ++ '_freq').asSymbol);
+    }
+
+    dur {
+        ^Ndef((key ++ '_dur').asSymbol);
+    }
+
+    *prBuild {arg argKey, argPairs;
+        var seqkey = (argKey ++ '_seq').asSymbol;
+
+        "here".postln;
+        Ndef(seqkey, {
+            var trig = \trig.tr;
+            var freq = \freq.kr;
+            var dur = \dur.kr;
+            [trig, freq, dur];
+        });
+        Ndef( (argKey ++ '_trig').asSymbol, { Ndef(seqkey).kr[0]});
+        Ndef( (argKey ++ '_freq').asSymbol, { Ndef(seqkey).kr[1]});
+        Ndef( (argKey ++ '_dur').asSymbol, { Ndef(seqkey).kr[2]});
+        argPairs = argPairs ++ [\type, \set, \id, Pfunc({Ndef(seqkey).nodeID}), \trig, 1, \args, #[\trig, \freq, \dur]];
+        ^Pdef(argKey, Pbind(*argPairs));
+    }
+
+    prAdd { arg argKey;
+		key = argKey;
+		all.put(argKey, this);
+	}
+
+    *initClass {
+		all = IdentityDictionary.new;
+    }
 }
