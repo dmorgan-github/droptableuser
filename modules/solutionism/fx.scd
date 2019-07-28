@@ -309,7 +309,7 @@ Library.put(\fx, \rlpf_ad, {
 		var cutoff = \cutoff.kr(1000);
 		var vel = \fvel.kr(2);
 		var peak = cutoff * vel;
-		var ffreq = Decay2.ar(K2A.ar(\trig.tr), \fatk.kr(0.01), \fdec.kr(1)).linexp(0, 1, cutoff, peak);
+        var ffreq = Decay2.ar(K2A.ar(\trig.tr), \fatk.kr(0.01), \fdec.kr(1)).lincurve(0, 1, cutoff, peak, \fcurve.kr(-4));
 		sig = RLPF.ar(sig, ffreq.clip(20, 20000), res);
 		sig * \postgain.kr(1);
 	}

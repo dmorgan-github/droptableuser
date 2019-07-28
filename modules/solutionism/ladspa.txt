@@ -1,0 +1,2777 @@
+# 1429 Inverter
+> a: Input
+< a: Output
+
+# 1337 Vocoder for LMMS
+> a: Formant-in
+> a: Carrier-in
+< a: Output-out
+< a: Output2-out
+> k: Number of bands (1 to 16)
+> k: Left/Right (-100 to 100)
+> k: Band 1 Level (0 to 1)
+> k: Band 2 Level (0 to 1)
+> k: Band 3 Level (0 to 1)
+> k: Band 4 Level (0 to 1)
+> k: Band 5 Level (0 to 1)
+> k: Band 6 Level (0 to 1)
+> k: Band 7 Level (0 to 1)
+> k: Band 8 Level (0 to 1)
+> k: Band 9 Level (0 to 1)
+> k: Band 10 Level (0 to 1)
+> k: Band 11 Level (0 to 1)
+> k: Band 12 Level (0 to 1)
+> k: Band 13 Level (0 to 1)
+> k: Band 14 Level (0 to 1)
+> k: Band 15 Level (0 to 1)
+> k: Band 16 Level (0 to 1)
+
+# 33919 Calf Filter LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Frequency (10 to 20000)
+> k: Resonance (0.707 to 32)
+> k: Mode (0 to 11)
+> k: Inertia (5 to 100)
+
+# 33951 Calf Filterclavier LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Transpose (-48 to 48)
+> k: Detune (-100 to 100)
+> k: Max. Resonance (0.707 to 32)
+> k: Mode (0 to 11)
+> k: Portamento time (1 to 2000)
+
+# 33917 Calf Flanger LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Min delay (0.1 to 10)
+> k: Mod depth (0.1 to 10)
+> k: Mod rate (0.01 to 20)
+> k: Feedback (-0.99 to 0.99)
+> k: Stereo phase (0 to 360)
+> k: Reset
+> k: Amount (0 to 4)
+> k: Dry Amount (0 to 4)
+
+# 33918 Calf Reverb LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+< k: 0dB (0 to 1)
+< k: Wet amount (0 to 1)
+< k: Output (0 to 1)
+> k: Decay time (0.4 to 15)
+> k: High Frq Damp (2000 to 20000)
+> k: Room size (0 to 5)
+> k: Diffusion (0 to 1)
+> k: Wet Amount (0 to 2)
+> k: Dry Amount (0 to 2)
+> k: Pre Delay (0 to 50)
+> k: Bass Cut (20 to 20000)
+> k: Treble Cut (20 to 20000)
+
+# 33922 Calf Vintage Delay LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Tempo (30 to 300)
+> k: Subdivide (1 to 16)
+> k: Time L (1 to 16)
+> k: Time R (1 to 16)
+> k: Feedback (0 to 1)
+> k: Amount (0 to 4)
+> k: Mix mode (0 to 3)
+> k: Medium (0 to 2)
+> k: Dry Amount (0 to 4)
+> k: Stereo Width (-1 to 1)
+
+# 33923 Calf Rotary Speaker LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Speed Mode (0 to 5)
+> k: Tap Spacing (0 to 1)
+> k: Tap Offset (0 to 1)
+> k: FM Depth (0 to 1)
+> k: Treble Motor (10 to 600)
+> k: Bass Motor (10 to 600)
+> k: Mic Distance (0 to 1)
+> k: Reflection (0 to 1)
+> k: AM Depth (0 to 1)
+> k: Test (0 to 1)
+< k: Low rotor (0 to 1)
+< k: High rotor (0 to 1)
+
+# 33924 Calf Phaser LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Center Freq (20 to 20000)
+> k: Mod depth (0 to 10800)
+> k: Mod rate (0.01 to 20)
+> k: Feedback (-0.99 to 0.99)
+> k: # Stages (1 to 12)
+> k: Stereo phase (0 to 360)
+> k: Reset
+> k: Amount (0 to 4)
+> k: Dry Amount (0 to 4)
+
+# 34049 Calf MultiChorus LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Min delay (0.1 to 10)
+> k: Mod depth (0.1 to 10)
+> k: Modulation rate (0.01 to 20)
+> k: Stereo phase (0 to 360)
+> k: Voices (1 to 8)
+> k: Inter-voice phase (0 to 360)
+> k: Amount (0 to 4)
+> k: Dry Amount (0 to 4)
+> k: Center Frq 1 (10 to 20000)
+> k: Center Frq 2 (10 to 20000)
+> k: Q (0.125 to 8)
+> k: Overlap (0 to 1)
+
+# 34050 Calf Compressor LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+< k: Input (0 to 1)
+< k: Output (0 to 1)
+< k: 0dB-In
+< k: 0dB-Out
+> k: Threshold (0.000976563 to 1)
+> k: Ratio (1 to 20)
+> k: Attack (0.01 to 2000)
+> k: Release (0.01 to 2000)
+> k: Makeup Gain (1 to 64)
+> k: Knee (1 to 8)
+> k: Detection (0 to 1)
+> k: Stereo Link (0 to 1)
+< k: Reduction (0.03125 to 1)
+
+# 34071 Calf Sidechain Compressor LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+< k: Input (0 to 1)
+< k: Output (0 to 1)
+< k: 0dB-In
+< k: 0dB-Out
+> k: Threshold (0.000976563 to 1)
+> k: Ratio (1 to 20)
+> k: Attack (0.01 to 2000)
+> k: Release (0.01 to 2000)
+> k: Makeup Gain (1 to 64)
+> k: Knee (1 to 8)
+> k: Detection (0 to 1)
+> k: Stereo Link (0 to 1)
+< k: Gain Reduction (0.03125 to 1)
+> k: S/C Mode (0 to 9)
+> k: F1 Freq (10 to 18000)
+> k: F2 Freq (10 to 18000)
+> k: F1 Level (0.0625 to 16)
+> k: F2 Level (0.0625 to 16)
+> k: S/C-Listen
+< k: F1 Active
+< k: F2 Active
+> k: S/C Route (0 to 2)
+> k: S/C Level (0.015625 to 64)
+
+# 34070 Calf Multiband Compressor LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+> k: Output (0 to 64)
+< k: Input L (0 to 1)
+< k: Input R (0 to 1)
+< k: Output L (0 to 1)
+< k: Output R (0 to 1)
+< k: 0dB-InL (0 to 1)
+< k: 0dB-InR (0 to 1)
+< k: 0dB-OutL (0 to 1)
+< k: 0dB-OutR (0 to 1)
+> k: Split 1/2 (10 to 20000)
+> k: Split 2/3 (10 to 20000)
+> k: Split 3/4 (10 to 20000)
+> k: S1 (-0.5 to 0.5)
+> k: S2 (-0.5 to 0.5)
+> k: S3 (-0.5 to 0.5)
+> k: Q1 (0.25 to 4)
+> k: Q2 (0.25 to 4)
+> k: Q3 (0.25 to 4)
+> k: Filter Mode (0 to 1)
+> k: Threshold 1 (0.000976563 to 1)
+> k: Ratio 1 (1 to 20)
+> k: Attack 1 (0.01 to 2000)
+> k: Release 1 (0.01 to 2000)
+> k: Makeup 1 (1 to 64)
+> k: Knee 1 (1 to 8)
+> k: Detection 1 (0 to 1)
+< k: Gain Reduction 1 (0.0625 to 1)
+< k: Output 1 (0 to 1)
+> k: Bypass 1
+> k: Solo 1
+> k: Threshold 2 (0.000976563 to 1)
+> k: Ratio 2 (1 to 20)
+> k: Attack 2 (0.01 to 2000)
+> k: Release 2 (0.01 to 2000)
+> k: Makeup 2 (1 to 64)
+> k: Knee 2 (1 to 8)
+> k: Detection 2 (0 to 1)
+< k: Gain Reduction 2 (0.0625 to 1)
+< k: Output 2 (0 to 1)
+> k: Bypass 2
+> k: Solo 2
+> k: Threshold 3 (0.000976563 to 1)
+> k: Ratio 3 (1 to 20)
+> k: Attack 3 (0.01 to 2000)
+> k: Release 3 (0.01 to 2000)
+> k: Makeup 3 (1 to 64)
+> k: Knee 3 (1 to 8)
+> k: Detection 3 (0 to 1)
+< k: Gain Reduction 3 (0.0625 to 1)
+< k: Output 3 (0 to 1)
+> k: Bypass 3
+> k: Solo 3
+> k: Threshold 4 (0.000976563 to 1)
+> k: Ratio 4 (1 to 20)
+> k: Attack 4 (0.01 to 2000)
+> k: Release 4 (0.01 to 2000)
+> k: Makeup 4 (1 to 64)
+> k: Knee 4 (1 to 8)
+> k: Detection 4 (0 to 1)
+< k: Gain Reduction 4 (0.0625 to 1)
+< k: Output 4 (0 to 1)
+> k: Bypass 4
+> k: Solo 4
+
+# 34069 Calf Deesser LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+< k: Detected (0 to 1)
+< k: Gain Reduction (0.0625 to 1)
+< k: Active
+< k: Out
+> k: Detection (0 to 1)
+> k: Mode (0 to 1)
+> k: Threshold (0.000976563 to 1)
+> k: Ratio (1 to 20)
+> k: Laxity (1 to 100)
+> k: Makeup (1 to 64)
+> k: Split (10 to 18000)
+> k: Peak (10 to 18000)
+> k: Gain (0.0625 to 16)
+> k: Level (0.0625 to 16)
+> k: Peak Q (0.1 to 100)
+> k: S/C-Listen
+
+# 34051 Calf Gate LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+< k: Input (0 to 1)
+< k: Output (0 to 1)
+< k: 0dB-In
+< k: 0dB-Out
+> k: Max Gain Reduction (1.5849e-05 to 1)
+> k: Threshold (0.000976563 to 1)
+> k: Ratio (1 to 20)
+> k: Attack (0.01 to 2000)
+> k: Release (0.01 to 2000)
+> k: Makeup Gain (1 to 64)
+> k: Knee (1 to 8)
+> k: Detection (0 to 1)
+> k: Stereo Link (0 to 1)
+< k: Gating (0.03125 to 1)
+
+# 34052 Calf Sidechain Gate LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+< k: Input (0 to 1)
+< k: Output (0 to 1)
+< k: 0dB-In
+< k: 0dB-Out
+> k: Max Gain Reduction (1.5849e-05 to 1)
+> k: Threshold (0.000976563 to 1)
+> k: Ratio (1 to 20)
+> k: Attack (0.01 to 2000)
+> k: Release (0.01 to 2000)
+> k: Makeup Gain (1 to 64)
+> k: Knee (1 to 8)
+> k: Detection (0 to 1)
+> k: Stereo Link (0 to 1)
+< k: Gating (0.03125 to 1)
+> k: S/C Mode (0 to 9)
+> k: F1 Freq (10 to 18000)
+> k: F2 Freq (10 to 18000)
+> k: F1 Level (0.0625 to 16)
+> k: F2 Level (0.0625 to 16)
+> k: S/C-Listen
+< k: F1 Active
+< k: F2 Active
+> k: S/C Route (0 to 2)
+> k: S/C Level (0.015625 to 64)
+
+# 34053 Calf Multiband Gate LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+> k: Output (0 to 64)
+< k: Input L (0 to 1)
+< k: Input R (0 to 1)
+< k: Output L (0 to 1)
+< k: Output R (0 to 1)
+< k: 0dB-InL (0 to 1)
+< k: 0dB-InR (0 to 1)
+< k: 0dB-OutL (0 to 1)
+< k: 0dB-OutR (0 to 1)
+> k: Split 1/2 (10 to 20000)
+> k: Split 2/3 (10 to 20000)
+> k: Split 3/4 (10 to 20000)
+> k: S1 (-0.5 to 0.5)
+> k: S2 (-0.5 to 0.5)
+> k: S3 (-0.5 to 0.5)
+> k: Q1 (0.25 to 4)
+> k: Q2 (0.25 to 4)
+> k: Q3 (0.25 to 4)
+> k: Filter Mode (0 to 1)
+> k: Reduction 1 (1.5849e-05 to 1)
+> k: Threshold 1 (0.000976563 to 1)
+> k: Ratio 1 (1 to 20)
+> k: Attack 1 (0.01 to 2000)
+> k: Release 1 (0.01 to 2000)
+> k: Makeup 1 (1 to 64)
+> k: Knee 1 (1 to 8)
+> k: Detection 1 (0 to 1)
+< k: Gating 1 (0.0625 to 1)
+< k: Output 1 (0 to 1)
+> k: Bypass 1
+> k: Solo 1
+> k: Reduction 2 (1.5849e-05 to 1)
+> k: Threshold 2 (0.000976563 to 1)
+> k: Ratio 2 (1 to 20)
+> k: Attack 2 (0.01 to 2000)
+> k: Release 2 (0.01 to 2000)
+> k: Makeup 2 (1 to 64)
+> k: Knee 2 (1 to 8)
+> k: Detection 2 (0 to 1)
+< k: Gating 2 (0.0625 to 1)
+< k: Output 2 (0 to 1)
+> k: Bypass 2
+> k: Solo 2
+> k: Reduction 3 (1.5849e-05 to 1)
+> k: Threshold 3 (0.000976563 to 1)
+> k: Ratio 3 (1 to 20)
+> k: Attack 3 (0.01 to 2000)
+> k: Release 3 (0.01 to 2000)
+> k: Makeup 3 (1 to 64)
+> k: Knee 3 (1 to 8)
+> k: Detection 3 (0 to 1)
+< k: Gating 3 (0.0625 to 1)
+< k: Output 3 (0 to 1)
+> k: Bypass 3
+> k: Solo 3
+> k: Reduction 4 (1.5849e-05 to 1)
+> k: Threshold 4 (0.000976563 to 1)
+> k: Ratio 4 (1 to 20)
+> k: Attack 4 (0.01 to 2000)
+> k: Release 4 (0.01 to 2000)
+> k: Makeup 4 (1 to 64)
+> k: Knee 4 (1 to 8)
+> k: Detection 4 (0 to 1)
+< k: Gating 4 (0.0625 to 1)
+< k: Output 4 (0 to 1)
+> k: Bypass 4
+> k: Solo 4
+
+# 34081 Calf Limiter LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+> k: Output (0 to 64)
+< k: Input L (0 to 1)
+< k: Input R (0 to 1)
+< k: Output L (0 to 1)
+< k: Output R (0 to 1)
+< k: 0dB-InL (0 to 1)
+< k: 0dB-InR (0 to 1)
+< k: 0dB-OutL (0 to 1)
+< k: 0dB-OutR (0 to 1)
+> k: Limit (0.0625 to 1)
+> k: Lookahead (0.1 to 10)
+> k: Release (1 to 1000)
+< k: Attenuation (0.125 to 1)
+> k: ASC
+< k: asc active (0 to 1)
+> k: ASC Level (0 to 1)
+
+# 34080 Calf Multiband Limiter LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+> k: Output (0 to 64)
+< k: Input L (0 to 1)
+< k: Input R (0 to 1)
+< k: Output L (0 to 1)
+< k: Output R (0 to 1)
+< k: 0dB-InL (0 to 1)
+< k: 0dB-InR (0 to 1)
+< k: 0dB-OutL (0 to 1)
+< k: 0dB-OutR (0 to 1)
+> k: Split 1/2 (10 to 20000)
+> k: Split 2/3 (10 to 20000)
+> k: Split 3/4 (10 to 20000)
+> k: S1 (-0.5 to 0.5)
+> k: S2 (-0.5 to 0.5)
+> k: S3 (-0.5 to 0.5)
+> k: Q1 (0.25 to 4)
+> k: Q2 (0.25 to 4)
+> k: Q3 (0.25 to 4)
+> k: Filter Mode (0 to 1)
+> k: Limit (0.0625 to 1)
+> k: Lookahead (0.1 to 10)
+> k: Release (1 to 1000)
+> k: Min Release
+< k: Low (0.125 to 1)
+< k: LMid (0.125 to 1)
+< k: HMid (0.125 to 1)
+< k: Hi (0.125 to 1)
+> k: Weight 1 (-1 to 1)
+> k: Weight 2 (-1 to 1)
+> k: Weight 3 (-1 to 1)
+> k: Weight 4 (-1 to 1)
+> k: Release 1 (-1 to 1)
+> k: Release 2 (-1 to 1)
+> k: Release 3 (-1 to 1)
+> k: Release 4 (-1 to 1)
+> k: Solo 1
+> k: Solo 2
+> k: Solo 3
+> k: Solo 4
+< k: Effectively Release 1 (0 to 1000)
+< k: Effectively Release 2 (0 to 1000)
+< k: Effectively Release 3 (0 to 1000)
+< k: Effectively Release 4 (0 to 1000)
+> k: ASC
+< k: asc active (0 to 1)
+> k: ASC Level (0 to 1)
+
+# 34068 Calf Pulsator LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input Gain (0 to 64)
+> k: Output Gain (0 to 64)
+< k: Meter-InL (0 to 1)
+< k: Meter-InR (0 to 1)
+< k: Meter-OutL (0 to 1)
+< k: Meter-OutR (0 to 1)
+< k: 0dB-InL (0 to 1)
+< k: 0dB-InR (0 to 1)
+< k: 0dB-OutL (0 to 1)
+< k: 0dB-OutR (0 to 1)
+> k: Mode (0 to 4)
+> k: Frequency (0.01 to 100)
+> k: Modulation (0 to 1)
+> k: Offset L/R (0 to 1)
+> k: Mono-in
+> k: Reset
+
+# 34065 Calf Equalizer 5 Band LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input Gain (0 to 64)
+> k: Output Gain (0 to 64)
+< k: Meter-InL (0 to 1)
+< k: Meter-InR (0 to 1)
+< k: Meter-OutL (0 to 1)
+< k: Meter-OutR (0 to 1)
+< k: 0dB-InL (0 to 1)
+< k: 0dB-InR (0 to 1)
+< k: 0dB-OutL (0 to 1)
+< k: 0dB-OutR (0 to 1)
+> k: LS Active
+> k: Level L (0.015625 to 64)
+> k: Freq L (10 to 20000)
+> k: HS Active
+> k: Level H (0.015625 to 64)
+> k: Freq H (10 to 20000)
+> k: F1 Active
+> k: Level 1 (0.015625 to 64)
+> k: Freq 1 (10 to 20000)
+> k: Q 1 (0.1 to 100)
+> k: F2 Active
+> k: Level 2 (0.015625 to 64)
+> k: Freq 2 (10 to 20000)
+> k: Q 2 (0.1 to 100)
+> k: F3 Active
+> k: Level 3 (0.015625 to 64)
+> k: Freq 3 (10 to 20000)
+> k: Q 3 (0.1 to 100)
+
+# 34066 Calf Equalizer 8 Band LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input Gain (0 to 64)
+> k: Output Gain (0 to 64)
+< k: Meter-InL (0 to 1)
+< k: Meter-InR (0 to 1)
+< k: Meter-OutL (0 to 1)
+< k: Meter-OutR (0 to 1)
+< k: 0dB-InL (0 to 1)
+< k: 0dB-InR (0 to 1)
+< k: 0dB-OutL (0 to 1)
+< k: 0dB-OutR (0 to 1)
+> k: HP Active
+> k: HP Freq (10 to 20000)
+> k: HP Mode (0 to 2)
+> k: LP Active
+> k: LP Freq (10 to 20000)
+> k: LP Mode (0 to 2)
+> k: LS Active
+> k: Level L (0.015625 to 64)
+> k: Freq L (10 to 20000)
+> k: HS Active
+> k: Level H (0.015625 to 64)
+> k: Freq H (10 to 20000)
+> k: F1 Active
+> k: Level 1 (0.015625 to 64)
+> k: Freq 1 (10 to 20000)
+> k: Q 1 (0.1 to 100)
+> k: F2 Active
+> k: Level 2 (0.015625 to 64)
+> k: Freq 2 (10 to 20000)
+> k: Q 2 (0.1 to 100)
+> k: F3 Active
+> k: Level 3 (0.015625 to 64)
+> k: Freq 3 (10 to 20000)
+> k: Q 3 (0.1 to 100)
+> k: F4 Active
+> k: Level 4 (0.015625 to 64)
+> k: Freq 4 (10 to 20000)
+> k: Q 4 (0.1 to 100)
+
+# 34067 Calf Equalizer 12 Band LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input Gain (0 to 64)
+> k: Output Gain (0 to 64)
+< k: Meter-InL (0 to 1)
+< k: Meter-InR (0 to 1)
+< k: Meter-OutL (0 to 1)
+< k: Meter-OutR (0 to 1)
+< k: 0dB-InL (0 to 1)
+< k: 0dB-InR (0 to 1)
+< k: 0dB-OutL (0 to 1)
+< k: 0dB-OutR (0 to 1)
+> k: HP Active
+> k: HP Freq (10 to 20000)
+> k: HP Mode (0 to 2)
+> k: LP Active
+> k: LP Freq (10 to 20000)
+> k: LP Mode (0 to 2)
+> k: LS Active
+> k: Level L (0.015625 to 64)
+> k: Freq L (10 to 20000)
+> k: HS Active
+> k: Level H (0.015625 to 64)
+> k: Freq H (10 to 20000)
+> k: F1 Active
+> k: Level 1 (0.015625 to 64)
+> k: Freq 1 (10 to 20000)
+> k: Q 1 (0.1 to 100)
+> k: F2 Active
+> k: Level 2 (0.015625 to 64)
+> k: Freq 2 (10 to 20000)
+> k: Q 2 (0.1 to 100)
+> k: F3 Active
+> k: Level 3 (0.015625 to 64)
+> k: Freq 3 (10 to 20000)
+> k: Q 3 (0.1 to 100)
+> k: F4 Active
+> k: Level 4 (0.015625 to 64)
+> k: Freq 4 (10 to 20000)
+> k: Q 4 (0.1 to 100)
+> k: F5 Active
+> k: Level 5 (0.015625 to 64)
+> k: Freq 5 (10 to 20000)
+> k: Q 5 (0.1 to 100)
+> k: F6 Active
+> k: Level 6 (0.015625 to 64)
+> k: Freq 6 (10 to 20000)
+> k: Q 6 (0.1 to 100)
+> k: F7 Active
+> k: Level 7 (0.015625 to 64)
+> k: Freq 7 (10 to 20000)
+> k: Q 7 (0.1 to 100)
+> k: F8 Active
+> k: Level 8 (0.015625 to 64)
+> k: Freq 8 (10 to 20000)
+> k: Q 8 (0.1 to 100)
+
+# 34096 Calf Saturator LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Activation (1 to 64)
+> k: Master (0 to 64)
+> k: Mix (0 to 1)
+< k: Input (0 to 1)
+< k: Output (0 to 1)
+< k: 0dB (0 to 1)
+< k: 0dB (0 to 1)
+> k: Saturation (0.1 to 10)
+> k: Blend (-10 to 10)
+< k: Drive (0 to 1)
+> k: Lowpass (10 to 20000)
+> k: Highpass (10 to 20000)
+> k: Lowpass (10 to 20000)
+> k: Highpass (10 to 20000)
+> k: Tone (80 to 8000)
+> k: Amount (0.0625 to 16)
+> k: Gradient (0.1 to 10)
+
+# 34097 Calf Exciter LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+> k: Output (0 to 64)
+> k: Amount (0 to 64)
+< k: Input (0 to 1)
+< k: Output (0 to 1)
+< k: 0dB (0 to 1)
+< k: 0dB (0 to 1)
+> k: Harmonics (0.1 to 10)
+> k: Blend harmonics (-10 to 10)
+< k: Harmonics level (0 to 1)
+> k: Scope (2000 to 12000)
+> k: Listen
+> k: Ceiling active
+> k: Ceiling (10000 to 20000)
+
+# 34098 Calf Bass Enhancer LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+> k: Output (0 to 64)
+> k: Amount (0 to 64)
+< k: Input (0 to 1)
+< k: Output (0 to 1)
+< k: 0dB (0 to 1)
+< k: 0dB (0 to 1)
+> k: Harmonics (0.1 to 10)
+> k: Blend harmonics (-10 to 10)
+< k: Harmonics level (0 to 1)
+> k: Scope (10 to 250)
+> k: Listen
+> k: Floor active
+> k: Floor (10 to 120)
+
+# 34185 Calf Mono Input LADSPA
+> a: In
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+> k: Output (0 to 64)
+< k: Input (0 to 1)
+< k: Output L (0 to 1)
+< k: Output R (0 to 1)
+< k: 0dB-In (0 to 1)
+< k: 0dB-OutL (0 to 1)
+< k: 0dB-OutR (0 to 1)
+> k: Balance (-1 to 1)
+> k: Softclip
+> k: Mute L
+> k: Mute R
+> k: Phase L
+> k: Phase R
+> k: Delay (-20 to 20)
+
+# 34184 Calf Stereo Tools LADSPA
+> a: In L
+> a: In R
+< a: Out L
+< a: Out R
+> k: Bypass
+> k: Input (0 to 64)
+> k: Output (0 to 64)
+< k: Input L (0 to 1)
+< k: Input R (0 to 1)
+< k: Output L (0 to 1)
+< k: Output R (0 to 1)
+< k: 0dB-InL (0 to 1)
+< k: 0dB-InR (0 to 1)
+< k: 0dB-OutL (0 to 1)
+< k: 0dB-OutR (0 to 1)
+> k: Balance In (-1 to 1)
+> k: Balance Out (-1 to 1)
+> k: Softclip
+> k: Mute L
+> k: Mute R
+> k: Phase L
+> k: Phase R
+> k: Mode (0 to 6)
+> k: S Level (-1 to 1)
+> k: S Balance (-1 to 1)
+> k: M Level (-1 to 1)
+> k: M Panorama (-1 to 1)
+> k: Widener (0 to 1)
+> k: Delay (-20 to 20)
+< k: Phase Correlation (0 to 1)
+
+# 1181 Simple amplifier
+> k: Amps gain (dB) (-70 to 70)
+> a: Input
+< a: Output
+
+# 1198 Sinus wavewrapper
+> k: Wrap degree (0 to 10)
+> a: Input (-1 to 1)
+< a: Output (-1 to 1)
+
+# 1212 Step Demuxer
+> k: Crossfade time (in ms) (0 to 100)
+> a: Clock
+> a: Input 1
+> a: Input 2
+> a: Input 3
+> a: Input 4
+> a: Input 5
+> a: Input 6
+> a: Input 7
+> a: Input 8
+< a: Output
+
+# 1425 SC1
+> k: Attack time (ms) (2 to 400)
+> k: Release time (ms) (2 to 800)
+> k: Threshold level (dB) (-30 to 0)
+> k: Ratio (1:n) (1 to 10)
+> k: Knee radius (dB) (1 to 10)
+> k: Makeup gain (dB) (0 to 24)
+> a: Input
+< a: Output
+
+# 1187 Wave shaper
+> k: Waveshape (-10 to 10)
+> a: Input (-1 to 1)
+< a: Output (-1 to 1)
+
+# 1206 Transient mangler
+> k: Attack speed (-1 to 1)
+> k: Sustain time (-1 to 1)
+> a: Input (-1 to 1)
+< a: Output (-1 to 1)
+
+# 2154 TAP Reflector
+> k: Fragment Length [ms] (20 to 1600)
+> k: Dry Level [dB] (-90 to 20)
+> k: Wet Level [dB] (-90 to 20)
+> a: Input
+< a: Output
+
+# 1202 Decimator
+> k: Bit depth (1 to 24)
+> k: Sample rate (Hz) (0.001 to 1)
+> a: Input (-1 to 1)
+< a: Output (-1 to 1)
+
+# 1405 Valve rectifier
+> k: Sag level (0 to 1)
+> k: Distortion (0 to 1)
+> a: Input
+< a: Output
+
+# 1419 Modulatable delay
+> k: Base delay (s) (0 to 1)
+> a: Delay (s) (0 to 1.7)
+> a: Input
+< a: Output
+
+# 1188 Ringmod with two inputs
+> k: Modulation depth (0=none, 1=AM, 2=RM) (0 to 2)
+> a: Input
+> a: Modulator (-1 to 1)
+< a: Output
+
+# 1189 Ringmod with LFO
+> k: Modulation depth (0=none, 1=AM, 2=RM) (0 to 2)
+> k: Frequency (Hz) (1 to 1000)
+> k: Sine level (-1 to 1)
+> k: Triangle level (-1 to 1)
+> k: Sawtooth level (-1 to 1)
+> k: Square level (-1 to 1)
+> a: Input
+< a: Output
+
+# 1215 GSM simulator
+> k: Dry/wet mix (0 to 1)
+> k: Number of passes (0 to 10)
+> k: Error rate (bits/block) (0 to 30)
+> a: Input
+< a: Output
+< k: latency
+
+# 1889 Comb delay line, noninterpolating
+> a: Input
+< a: Output
+> k: Max Delay (s) (0 to ...)
+> k: Delay Time (s) (0 to ...)
+> k: Decay Time (s) (0 to ...)
+
+# 1887 Comb delay line, linear interpolation
+> a: Input
+< a: Output
+> k: Max Delay (s) (0 to ...)
+> k: Delay Time (s) (0 to ...)
+> k: Decay Time (s) (0 to ...)
+
+# 1888 Comb delay line, cubic spline interpolation
+> a: Input
+< a: Output
+> k: Max Delay (s) (0 to ...)
+> k: Delay Time (s) (0 to ...)
+> k: Decay Time (s) (0 to ...)
+
+# 1404 Crossover distortion
+> k: Crossover amplitude (0 to 0.1)
+> k: Smoothing (0 to 1)
+> a: Input
+< a: Output
+
+# 2150 TAP Pitch Shifter
+> k: Semitone Shift (-12 to 12)
+> k: Rate Shift [%] (-50 to 100)
+> k: Dry Level [dB] (-90 to 20)
+> k: Wet Level [dB] (-90 to 20)
+< k: latency (0 to 16027)
+> a: Input
+< a: Output
+
+# 1216 GVerb
+> k: Roomsize (m) (1 to 300)
+> k: Reverb time (s) (0.1 to 30)
+> k: Damping (0 to 1)
+> k: Input bandwidth (0 to 1)
+> k: Dry signal level (dB) (-70 to 0)
+> k: Early reflection level (dB) (-70 to 0)
+> k: Tail level (dB) (-70 to 0)
+> a: Input
+< a: Left output
+< a: Right output
+
+# 2155 TAP Pink/Fractal Noise
+> k: Fractal Dimension (0 to 1)
+> k: Signal Level [dB] (-90 to 20)
+> k: Noise Level [dB] (-90 to 20)
+> a: Input
+< a: Output
+
+# 1423 Plate reverb
+> k: Reverb time (0.01 to 8.5)
+> k: Damping (0 to 1)
+> k: Dry/wet mix (0 to 1)
+> a: Input
+< a: Left output
+< a: Right output
+
+# 1195 Declipper
+> a: Input (-1 to 1)
+< a: Output (-1 to 1)
+
+# 1886 Exponential signal decay
+> a: Input
+< a: Output
+> k: Decay Time (s) (0 to ...)
+
+# 2144 TAP Tremolo
+> k: Frequency [Hz] (0 to 20)
+> k: Depth [%] (0 to 100)
+> k: Gain [dB] (-70 to 20)
+> a: Input_0
+< a: Output_0
+
+# 1440 Hilbert transformer
+> a: Input
+< a: 0deg output
+< a: 90deg output
+< k: latency
+
+# 1914 Artificial latency
+> k: Delay (ms) (0 to 10000)
+> a: Input
+< a: Output
+< k: latency
+
+# 1092 Ambisonic Decoder (B-Format to Cube)
+> a: Input (W)
+> a: Input (X)
+> a: Input (Y)
+> a: Input (Z)
+< a: Output (Base Front Left)
+< a: Output (Base Front Right)
+< a: Output (Base Back Left)
+< a: Output (Base Back Right)
+< a: Output (Top Front Left)
+< a: Output (Top Front Right)
+< a: Output (Top Back Left)
+< a: Output (Top Back Right)
+
+# 1091 Ambisonic Decoder (B-Format to Quad)
+> a: Input (W)
+> a: Input (X)
+> a: Input (Y)
+> a: Input (Z)
+< a: Output (Front Left)
+< a: Output (Front Right)
+< a: Output (Back Left)
+< a: Output (Back Right)
+
+# 1090 Ambisonic Decoder (B-Format to Stereo)
+> a: Input (W)
+> a: Input (X)
+> a: Input (Y)
+> a: Input (Z)
+< a: Output (Left)
+< a: Output (Right)
+
+# 1093 Ambisonic Decoder (FMH-Format to Octagon)
+> a: Input (W)
+> a: Input (X)
+> a: Input (Y)
+> a: Input (Z)
+> a: Input (R)
+> a: Input (S)
+> a: Input (T)
+> a: Input (U)
+> a: Input (V)
+< a: Output (Front Front Left)
+< a: Output (Front Front Right)
+< a: Output (Front Right Right)
+< a: Output (Back Right Right)
+< a: Output (Back Back Right)
+< a: Output (Back Back Left)
+< a: Output (Back Left Left)
+< a: Output (Front Left Left)
+
+# 1087 Ambisonic Encoder (B-Format)
+> a: Input
+> k: Sound Source X Coordinate
+> k: Sound Source Y Coordinate
+> k: Sound Source Z Coordinate
+< a: Output (W)
+< a: Output (X)
+< a: Output (Y)
+< a: Output (Z)
+
+# 1088 Ambisonic Encoder (FMH-Format)
+> a: Input
+> k: Sound Source X Coordinate
+> k: Sound Source Y Coordinate
+> k: Sound Source Z Coordinate
+< a: Output (W)
+< a: Output (X)
+< a: Output (Y)
+< a: Output (Z)
+< a: Output (R)
+< a: Output (S)
+< a: Output (T)
+< a: Output (U)
+< a: Output (V)
+
+# 1094 Ambisonic Rotation (B-Format, Horizontal)
+> k: Angle of Rotation (Degrees Anticlockwise) (-180 to 180)
+> a: Input (W)
+> a: Input (X)
+> a: Input (Y)
+> a: Input (Z)
+< a: Output (W)
+< a: Output (X)
+< a: Output (Y)
+< a: Output (Z)
+
+# 1095 Ambisonic Rotation (FMH-Format, Horizontal)
+> k: Angle of Rotation (Degrees Anticlockwise) (-180 to 180)
+> a: Input (W)
+> a: Input (X)
+> a: Input (Y)
+> a: Input (Z)
+> a: Input (R)
+> a: Input (S)
+> a: Input (T)
+> a: Input (U)
+> a: Input (V)
+< a: Output (W)
+< a: Output (X)
+< a: Output (Y)
+< a: Output (Z)
+< a: Output (R)
+< a: Output (S)
+< a: Output (T)
+< a: Output (U)
+< a: Output (V)
+
+# 1067 Amplifier (Mono)
+> k: Gain (0 to ...)
+> a: Input
+< a: Output
+
+# 1068 Amplifier (Stereo)
+> k: Gain (0 to ...)
+> a: Input (Left)
+< a: Output (Left)
+> a: Input (Right)
+< a: Output (Right)
+
+# 1070 Amplitude Modulator
+> a: Input 1
+> a: Input 2
+< a: Output
+
+# 1221 Analogue Voice
+< a: Out
+> k: Gate
+> k: Velocity (0 to 1)
+> k: Frequency (Hz) (0 to 20000)
+> k: DCO1 Octave (0.001 to 1)
+> k: DCO1 Waveform (0 to 10)
+> k: DCO1 LFO Frequency Modulation (-2 to 2)
+> k: DCO1 LFO Pulse Width Modulation (-0.1 to 5.1)
+> k: DCO1 Attack (0 to 1)
+> k: DCO1 Decay (0 to 1)
+> k: DCO1 Sustain (0.01 to 8)
+> k: DCO1 Release (0.01 to 8)
+> k: DCO2 Octave (0 to 1)
+> k: DCO2 Waveform (0.01 to 8)
+> k: DCO2 LFO Frequency Modulation (-2 to 2)
+> k: DCO2 LFO Pulse Width Modulation (-0.1 to 5.1)
+> k: DCO2 Attack (0 to 1)
+> k: DCO2 Decay (0 to 1)
+> k: DCO2 Sustain (0.01 to 8)
+> k: DCO2 Release (0.01 to 8)
+> k: LFO Frequency (Hz) (0 to 1)
+> k: LFO Fadein (0.01 to 8)
+> k: Filter Envelope Modulation (0 to 20)
+> k: Filter LFO Modulation (0.01 to 8)
+> k: Filter Resonance (0 to 1)
+> k: Filter Attack (0 to 1)
+> k: Filter Decay (0 to 1)
+> k: Filter Sustain (0.01 to 8)
+> k: Filter Release (0.01 to 8)
+
+# 1225 Canyon Delay
+> a: In (Left)
+> a: In (Right)
+< a: Out (Left)
+< a: Out (Right)
+> k: Left to Right Time (Seconds) (0.01 to 0.99)
+> k: Left to Right Feedback (Percent) (-1 to 1)
+> k: Right to Left Time (Seconds) (0.01 to 0.99)
+> k: Right to Left Feedback (Percent) (-1 to 1)
+> k: Low-Pass Cutoff (Hz) (1 to 5000)
+
+# 1846 Disintegrator
+> k: Probability (0 to 1)
+> k: Multiplier (-1 to 1)
+> a: Input
+< a: Output
+
+# 1848 Dynamic Sledgehammer
+> k: Rate (1e-05 to 0.001)
+> k: Modulator influence (-1 to 1)
+> k: Carrier influence (-1 to 1)
+> a: Modulator
+> a: Carrier
+< a: Output
+
+# 1053 Echo Delay Line (Maximum Delay 0.01s)
+> k: Delay (Seconds) (0 to 0.01)
+> k: Dry/Wet Balance (0 to 1)
+> a: Input
+< a: Output
+
+# 1054 Echo Delay Line (Maximum Delay 0.1s)
+> k: Delay (Seconds) (0 to 0.1)
+> k: Dry/Wet Balance (0 to 1)
+> a: Input
+< a: Output
+
+# 1055 Echo Delay Line (Maximum Delay 1s)
+> k: Delay (Seconds) (0 to 1)
+> k: Dry/Wet Balance (0 to 1)
+> a: Input
+< a: Output
+
+# 1056 Echo Delay Line (Maximum Delay 5s)
+> k: Delay (Seconds) (0 to 5)
+> k: Dry/Wet Balance (0 to 1)
+> a: Input
+< a: Output
+
+# 1057 Echo Delay Line (Maximum Delay 60s)
+> k: Delay (Seconds) (0 to 60)
+> k: Dry/Wet Balance (0 to 1)
+> a: Input
+< a: Output
+
+# 1080 Envelope Tracker (Maximum Peak)
+> a: Input
+< k: Output (0 to ...)
+> k: Envelope Forgetting Factor (s/60dB) (0 to ...)
+
+# 1081 Envelope Tracker (Maximum RMS)
+> a: Input
+< k: Output (0 to ...)
+> k: Envelope Forgetting Factor (s/60dB) (0 to ...)
+
+# 1078 Envelope Tracker (Peak)
+> a: Input
+< k: Output (0 to ...)
+> k: Smoothing Factor (0 to 1)
+
+# 1079 Envelope Tracker (RMS)
+> a: Input
+< k: Output (0 to ...)
+> k: Smoothing Factor (0 to 1)
+
+# 1089 FMH-Format to B-Format (Discards RSTUV Channels)
+> a: Input (W)
+> a: Input (X)
+> a: Input (Y)
+> a: Input (Z)
+> a: Input (R)
+> a: Input (S)
+> a: Input (T)
+> a: Input (U)
+> a: Input (V)
+< a: Output (W)
+< a: Output (X)
+< a: Output (Y)
+< a: Output (Z)
+
+# 1058 Feedback Delay Line (Maximum Delay 0.01s)
+> k: Delay (Seconds) (0 to 0.01)
+> k: Dry/Wet Balance (0 to 1)
+> a: Input
+< a: Output
+> k: Feedback (-1 to 1)
+
+# 1059 Feedback Delay Line (Maximum Delay 0.1s)
+> k: Delay (Seconds) (0 to 0.1)
+> k: Dry/Wet Balance (0 to 1)
+> a: Input
+< a: Output
+> k: Feedback (-1 to 1)
+
+# 1060 Feedback Delay Line (Maximum Delay 1s)
+> k: Delay (Seconds) (0 to 1)
+> k: Dry/Wet Balance (0 to 1)
+> a: Input
+< a: Output
+> k: Feedback (-1 to 1)
+
+# 1061 Feedback Delay Line (Maximum Delay 5s)
+> k: Delay (Seconds) (0 to 5)
+> k: Dry/Wet Balance (0 to 1)
+> a: Input
+< a: Output
+> k: Feedback (-1 to 1)
+
+# 1062 Feedback Delay Line (Maximum Delay 60s)
+> k: Delay (Seconds) (0 to 60)
+> k: Dry/Wet Balance (0 to 1)
+> a: Input
+< a: Output
+> k: Feedback (-1 to 1)
+
+# 1123 Freeverb (Version 3)
+> a: Input (Left)
+> a: Input (Right)
+< a: Output (Left)
+< a: Output (Right)
+> k: Freeze Mode
+> k: Room Size (0 to 1)
+> k: Damping (0 to 1)
+> k: Wet Level (0 to 1)
+> k: Dry Level (0 to 1)
+> k: Width (0 to 1)
+
+# 1096 Granular Scatter Processor
+> a: Input
+< a: Output
+> k: Density (Grains/s) (0 to ...)
+> k: Scatter (s) (0 to 5)
+> k: Grain Length (s) (0 to ...)
+> k: Grain Attack (s) (0 to ...)
+
+# 1845 Hard Gate
+> k: Threshold (0 to 1)
+> a: Input
+< a: Output
+
+# 1052 High Pass Filter (One Pole)
+> k: Cutoff Frequency (Hz) (0 to 0.5)
+> a: Input
+< a: Output
+
+# 1098 Identity (Audio)
+> a: Input
+< a: Output
+
+# 1099 Identity (Control)
+> k: Input
+< k: Output
+
+# 1227 Lo Fi
+> a: In (Left)
+> a: In (Right)
+< a: Out (Left)
+< a: Out (Right)
+> k: Crackling (%) (-0.1 to 100.1)
+> k: Powersupply Overloading (%) (0 to 100)
+> k: Opamp Bandwidth Limiting (Hz) (1 to 10000)
+
+# 1849 Logistic Map Control Generator
+> k: "r" parameter (2.9 to 3.9999)
+> k: Step frequency (0 to 0.001)
+< a: Output
+
+# 1051 Low Pass Filter (One Pole)
+> k: Cutoff Frequency (Hz) (0 to 0.5)
+> a: Input
+< a: Output
+
+# 1071 Mixer (Stereo to Mono)
+> a: Input 1
+> a: Input 2
+< a: Output
+
+# 1069 Noise Source (White)
+> k: Amplitude (0 to ...)
+< a: Output
+
+# 1084 Null (Audio Input)
+> a: Input
+
+# 1086 Null (Audio Output)
+< a: Output
+
+# 1083 Null (Control Input)
+> k: Input
+
+# 1085 Null (Control Output)
+< k: Output
+
+# 1222 Organ
+< a: Out
+> k: Gate
+> k: Velocity (0 to 1)
+> k: Frequency (Hz) (0 to 20000)
+> k: Brass
+> k: Reed
+> k: Flute
+> k: 16th Harmonic (0 to 1)
+> k: 8th Harmonic (0 to 1)
+> k: 5 1/3rd Harmonic (0 to 1)
+> k: 4th Harmonic (0 to 1)
+> k: 2 2/3rd Harmonic (0 to 1)
+> k: 2nd Harmonic (0 to 1)
+> k: Attack Lo (Secs) (0.01 to 1)
+> k: Decay Lo (Secs) (0.01 to 1)
+> k: Sustain Lo (Level) (0 to 1)
+> k: Release Lo (Secs) (0.01 to 1)
+> k: Attack Hi (Secs) (0.01 to 1)
+> k: Decay Hi (Secs) (0.01 to 1)
+> k: Sustain Hi (Level) (0 to 1)
+> k: Release Hi (Secs) (0.01 to 1)
+
+# 1082 Peak Monitor
+> a: Input
+< k: Peak (0 to ...)
+
+# 1226 Phase Modulated Voice
+< a: Out
+> k: Gate
+> k: Velocity (0 to 1)
+> k: Frequency (Hz) (0 to 20000)
+> k: DCO1 Modulation (0 to 1)
+> k: DCO1 Octave (-2 to 2)
+> k: DCO1 Waveform (-0.1 to 5.1)
+> k: DCO1 Attack (0.01 to 8)
+> k: DCO1 Decay (0.01 to 8)
+> k: DCO1 Sustain (0 to 1)
+> k: DCO1 Release (0.01 to 8)
+> k: DCO2 Modulation (0 to 1)
+> k: DCO2 Octave (-2 to 2)
+> k: DCO2 Waveform (-0.1 to 5.1)
+> k: DCO2 Attack (0.01 to 8)
+> k: DCO2 Decay (0.01 to 8)
+> k: DCO2 Sustain (0 to 1)
+> k: DCO2 Release (0.01 to 8)
+> k: DCO3 Modulation (0 to 1)
+> k: DCO3 Octave (-2 to 2)
+> k: DCO3 Waveform (-0.1 to 5.1)
+> k: DCO3 Attack (0.01 to 8)
+> k: DCO3 Decay (0.01 to 8)
+> k: DCO3 Sustain (0 to 1)
+> k: DCO3 Release (0.01 to 8)
+> k: DCO4 Modulation (0 to 1)
+> k: DCO4 Octave (-2 to 2)
+> k: DCO4 Waveform (-0.1 to 5.1)
+> k: DCO4 Attack (0.01 to 8)
+> k: DCO4 Decay (0.01 to 8)
+> k: DCO4 Sustain (0 to 1)
+> k: DCO4 Release (0.01 to 8)
+> k: DCO5 Modulation (0 to 1)
+> k: DCO5 Octave (-2 to 2)
+> k: DCO5 Waveform (-0.1 to 5.1)
+> k: DCO5 Attack (0.01 to 8)
+> k: DCO5 Decay (0.01 to 8)
+> k: DCO5 Sustain (0 to 1)
+> k: DCO5 Release (0.01 to 8)
+> k: DCO6 Modulation (0 to 1)
+> k: DCO6 Octave (-2 to 2)
+> k: DCO6 Waveform (-0.1 to 5.1)
+> k: DCO6 Attack (0.01 to 8)
+> k: DCO6 Decay (0.01 to 8)
+> k: DCO6 Sustain (0 to 1)
+> k: DCO6 Release (0.01 to 8)
+
+# 1841 Pink Noise (Interpolated)
+> k: Highest frequency (0 to 1)
+< a: Output
+
+# 1844 Pink Noise (full frequency range)
+< a: Output
+
+# 1843 Pink Noise (sample and hold)
+> k: Sample and hold frequency (0 to 0.02)
+< a: Output
+
+# 1072 Simple Compressor (Peak Envelope Tracking)
+> k: Threshold (0 to ...)
+> k: Compression Ratio (... to 1)
+> k: Output Envelope Attack (s) (0 to ...)
+> k: Output Envelope Decay (s) (0 to ...)
+> a: Input
+< a: Output
+
+# 1073 Simple Compressor (RMS Envelope Tracking)
+> k: Threshold (0 to ...)
+> k: Compression Ratio (... to 1)
+> k: Output Envelope Attack (s) (0 to ...)
+> k: Output Envelope Decay (s) (0 to ...)
+> a: Input
+< a: Output
+
+# 1074 Simple Expander (Peak Envelope Tracking)
+> k: Threshold (0 to ...)
+> k: Expansion Ratio (... to 1)
+> k: Output Envelope Attack (s) (0 to ...)
+> k: Output Envelope Decay (s) (0 to ...)
+> a: Input
+< a: Output
+
+# 1075 Simple Expander (RMS Envelope Tracking)
+> k: Threshold (0 to ...)
+> k: Expansion Ratio (... to 1)
+> k: Output Envelope Attack (s) (0 to ...)
+> k: Output Envelope Decay (s) (0 to ...)
+> a: Input
+< a: Output
+
+# 1076 Simple Limiter (Peak Envelope Tracking)
+> k: Threshold (0 to ...)
+> k: Output Envelope Attack (s) (0 to ...)
+> k: Output Envelope Decay (s) (0 to ...)
+> a: Input
+< a: Output
+
+# 1077 Simple Limiter (RMS Envelope Tracking)
+> k: Threshold (0 to ...)
+> k: Output Envelope Attack (s) (0 to ...)
+> k: Output Envelope Decay (s) (0 to ...)
+> a: Input
+< a: Output
+
+# 1063 Sine Oscillator (Freq:audio, Amp:audio)
+> a: Frequency (0 to 0.5)
+> a: Amplitude (0 to ...)
+< a: Output
+
+# 1064 Sine Oscillator (Freq:audio, Amp:control)
+> a: Frequency (0 to 0.5)
+> k: Amplitude (0 to ...)
+< a: Output
+
+# 1065 Sine Oscillator (Freq:control, Amp:audio)
+> k: Frequency (0 to 0.5)
+> a: Amplitude (0 to ...)
+< a: Output
+
+# 1066 Sine Oscillator (Freq:control, Amp:control)
+> k: Frequency (0 to 0.5)
+> k: Amplitude (0 to ...)
+< a: Output
+
+# 1223 Syn Drum
+< a: Out
+> k: Trigger
+> k: Velocity (0 to 10)
+> k: Frequency (Hz) (0 to 20000)
+> k: Resonance (0.001 to 1)
+> k: Frequency Ratio (0 to 10)
+
+# 1224 VCF 303
+> a: In
+< a: Out
+> k: Trigger
+> k: Cutoff (0 to 1)
+> k: Resonance (0 to 1)
+> k: Envelope Modulation (0 to 1)
+> k: Decay (0 to 1)
+
+# 1097 Wave Shaper (Sine-Based)
+> k: Limiting Amplitude (0 to ...)
+> a: Input
+< a: Output
+
+# 1913 Fast Lookahead limiter
+> k: Input gain (dB) (-20 to 20)
+> k: Limit (dB) (-20 to 0)
+> k: Release time (s) (0.01 to 2)
+< k: Attenuation (dB) (0 to 70)
+> a: Input 1
+> a: Input 2
+< a: Output 1
+< a: Output 2
+< k: latency
+
+# 2153 TAP Dynamics (St)
+> k: Attack [ms] (4 to 500)
+> k: Release [ms] (4 to 1000)
+> k: Offset Gain [dB] (-20 to 20)
+> k: Makeup Gain [dB] (-20 to 20)
+< k: Envelope Volume (L) [dB] (-60 to 20)
+< k: Envelope Volume (R) [dB] (-60 to 20)
+< k: Gain Adjustment (L) [dB] (-60 to 20)
+< k: Gain Adjustment (R) [dB] (-60 to 20)
+> k: Stereo Mode (0 to 2.1)
+> k: Function (0 to 14.1)
+> a: Input Left
+> a: Input Right
+< a: Output Left
+< a: Output Right
+
+# 1908 LS Filter
+> k: Filter type (0=LP, 1=BP, 2=HP) (0 to 2)
+> k: Cutoff frequency (Hz) (0.002 to 0.5)
+> k: Resonance (0 to 1)
+> a: Input
+< a: Output
+
+# 1413 Hard Limiter
+> k: dB limit (-50 to 0)
+> k: Wet level (0 to 1)
+> k: Residue level (0 to 1)
+> a: Input
+< a: Output
+
+# 2158 TAP TubeWarmth
+> k: Drive (0.1 to 10)
+> k: Tape--Tube Blend (-10 to 10)
+> a: Input
+< a: Output
+
+# 2156 TAP Fractal Doubler
+> k: Time Tracking (0 to 1)
+> k: Pitch Tracking (0 to 1)
+> k: Dry Level [dB] (-90 to 20)
+> k: Dry Left Position (0 to 1)
+> k: Dry Right Position (0 to 1)
+> k: Wet Level [dB] (-90 to 20)
+> k: Wet Left Position (0 to 1)
+> k: Wet Right Position (0 to 1)
+> a: Input_L
+> a: Input_R
+< a: Output_L
+< a: Output_R
+
+# 1892 Glame Bandpass Filter
+> k: Center Frequency (Hz) (0.0001 to 0.45)
+> k: Bandwidth (Hz) (0.0001 to 0.45)
+> k: Stages(2 poles per stage) (1 to 10)
+> a: Input
+< a: Output
+
+# 1197 Multiband EQ
+> k: 50Hz gain (low shelving) (-70 to 30)
+> k: 100Hz gain (-70 to 30)
+> k: 156Hz gain (-70 to 30)
+> k: 220Hz gain (-70 to 30)
+> k: 311Hz gain (-70 to 30)
+> k: 440Hz gain (-70 to 30)
+> k: 622Hz gain (-70 to 30)
+> k: 880Hz gain (-70 to 30)
+> k: 1250Hz gain (-70 to 30)
+> k: 1750Hz gain (-70 to 30)
+> k: 2500Hz gain (-70 to 30)
+> k: 3500Hz gain (-70 to 30)
+> k: 5000Hz gain (-70 to 30)
+> k: 10000Hz gain (-70 to 30)
+> k: 20000Hz gain (-70 to 30)
+> a: Input
+< a: Output
+< k: latency
+
+# 1191 Flanger
+> k: Delay base (ms) (0.1 to 25)
+> k: Max slowdown (ms) (0 to 10)
+> k: LFO frequency (Hz) (0.05 to 100)
+> k: Feedback (-1 to 1)
+> a: Input
+< a: Output
+
+# 1412 Wave Terrain Oscillator
+> a: x
+> a: y
+< a: z
+
+# 1407 Aliasing
+> k: Aliasing level (0 to 1)
+> a: Input
+< a: Output
+
+# 1885 Nonbandlimited single-sample impulses (Frequency: Control)
+> k: Frequency (Hz) (0 to ...)
+< a: Output
+
+# 1437 Giant flange
+> k: Double delay
+> k: LFO frequency 1 (Hz) (0 to 30)
+> k: Delay 1 range (s) (0 to 10.5)
+> k: LFO frequency 2 (Hz) (0 to 30)
+> k: Delay 2 range (s) (0 to 10.5)
+> k: Feedback (-100 to 100)
+> k: Dry/Wet level (0 to 1)
+> a: Input
+< a: Output
+
+# 1204 Triple band parametric with shelves
+> k: Low-shelving gain (dB) (-70 to 30)
+> k: Low-shelving frequency (Hz) (0.0001 to 0.49)
+> k: Low-shelving slope (0 to 1)
+> k: Band 1 gain (dB) (-70 to 30)
+> k: Band 1 frequency (Hz) (0.0001 to 0.49)
+> k: Band 1 bandwidth (octaves) (0 to 4)
+> k: Band 2 gain (dB) (-70 to 30)
+> k: Band 2 frequency (Hz) (0.0001 to 0.49)
+> k: Band 2 bandwidth (octaves) (0 to 4)
+> k: Band 3 gain (dB) (-70 to 30)
+> k: Band 3 frequency (Hz) (0.0001 to 0.49)
+> k: Band 3 bandwidth (octaves) (0 to 4)
+> k: High-shelving gain (dB) (-70 to 30)
+> k: High-shelving frequency (Hz) (0.0001 to 0.49)
+> k: High-shelving slope (0 to 1)
+> a: Input (-1 to 1)
+< a: Output (-1 to 1)
+
+# 1190 Comb Filter
+> k: Band separation (Hz) (16 to 640)
+> k: Feedback (-0.99 to 0.99)
+> a: Input
+< a: Output
+
+# 1891 Glame Lowpass Filter
+> k: Cutoff Frequency (0.0001 to 0.45)
+> k: Stages(2 poles per stage) (1 to 10)
+> a: Input
+< a: Output
+
+# 1432 Bode frequency shifter (CV)
+> k: Base shift (0 to 5000)
+> k: Mix (-1=down, +1=up) (-1 to 1)
+> a: Input
+> k: CV Attenuation (0 to 1)
+> a: Shift CV (0 to 5)
+< a: Down out
+< a: Up out
+< a: Mix out
+< k: latency
+
+# 1905 VyNil (Vinyl Effect)
+> k: Year (1900 to 1990)
+> k: RPM (33 to 78)
+> k: Surface warping (0 to 1)
+> k: Crackle (0 to 1)
+> k: Wear (0 to 1)
+> a: Input L
+> a: Input R
+< a: Output L
+< a: Output R
+
+# 1203 Single band parametric
+> k: Gain (dB) (-70 to 30)
+> k: Frequency (Hz) (0 to 0.4)
+> k: Bandwidth (octaves) (0 to 4)
+> a: Input (-1 to 1)
+< a: Output (-1 to 1)
+
+# 1402 Delayorama
+> k: Random seed (0 to 1000)
+> k: Input gain (dB) (-96 to 24)
+> k: Feedback (%) (0 to 100)
+> k: Number of taps (2 to 128)
+> k: First delay (s) (0 to 5)
+> k: Delay range (s) (0.0001 to 6)
+> k: Delay change (0.2 to 5)
+> k: Delay random (%) (0 to 100)
+> k: Amplitude change (0.2 to 5)
+> k: Amplitude random (%) (0 to 100)
+> k: Dry/wet mix (0 to 1)
+> a: Input
+< a: Output
+
+# 1220 Harmonic generator
+> k: Fundamental magnitude (-1 to 1)
+> k: 2nd harmonic magnitude (-1 to 1)
+> k: 3rd harmonic magnitude (-1 to 1)
+> k: 4th harmonic magnitude (-1 to 1)
+> k: 5th harmonic magnitude (-1 to 1)
+> k: 6th harmonic magnitude (-1 to 1)
+> k: 7th harmonic magnitude (-1 to 1)
+> k: 8th harmonic magnitude (-1 to 1)
+> k: 9th harmonic magnitude (-1 to 1)
+> k: 10th harmonic magnitude (-1 to 1)
+> a: Input (-1 to 1)
+< a: Output (-1 to 1)
+
+# 1185 Diode Processor
+> k: Mode (0 for none, 1 for half wave, 2 for full wave) (0 to 3)
+> a: Input
+< a: Output
+
+# 2159 TAP Chorus/Flanger
+> k: Frequency [Hz] (0 to 5)
+> k: L/R Phase Shift [deg] (0 to 180)
+> k: Depth [%] (0 to 100)
+> k: Delay [ms] (0 to 100)
+> k: Contour [Hz] (20 to 20000)
+> k: Dry Level [dB] (-90 to 20)
+> k: Wet Level [dB] (-90 to 20)
+> a: Input_L
+> a: Input_R
+< a: Output_L
+< a: Output_R
+
+# 1773 C* Eq - 10-band equalizer
+> a: in
+> k: 31 Hz (-48 to 24)
+> k: 63 Hz (-48 to 24)
+> k: 125 Hz (-48 to 24)
+> k: 250 Hz (-48 to 24)
+> k: 500 Hz (-48 to 24)
+> k: 1 kHz (-48 to 24)
+> k: 2 kHz (-48 to 24)
+> k: 4 kHz (-48 to 24)
+> k: 8 kHz (-48 to 24)
+> k: 16 kHz (-48 to 24)
+< a: out
+
+# 2594 C* Eq2x2 - stereo 10-band equalizer
+> a: in:l
+> a: in:r
+> k: 31 Hz (-48 to 24)
+> k: 63 Hz (-48 to 24)
+> k: 125 Hz (-48 to 24)
+> k: 250 Hz (-48 to 24)
+> k: 500 Hz (-48 to 24)
+> k: 1 kHz (-48 to 24)
+> k: 2 kHz (-48 to 24)
+> k: 4 kHz (-48 to 24)
+> k: 8 kHz (-48 to 24)
+> k: 16 kHz (-48 to 24)
+< a: out:l
+< a: out:r
+
+# 1772 C* Compress - Mono compressor
+> a: in (-1 to 1)
+> k: gain (dB) (0 to 24)
+> k: ratio (1:n) (1 to 10)
+> k: attack (s) (0.001 to 1)
+> k: release (s) (0.001 to 1)
+> k: threshold (dB) (-30 to 400)
+> k: knee radius (dB) (1 to 10)
+< a: out
+
+# 1788 C* Pan - Pan and width
+> a: in
+> k: pan (-1 to 1)
+> k: width (0 to 1)
+> k: t (0.1 to 40)
+> k: mono (0 to 1)
+< a: out:l
+< a: out:r
+
+# 2595 C* Narrower - Stereo image width reduction
+> a: in:l
+> a: in:r
+> k: strength (0 to 1)
+< a: out:l
+< a: out:r
+
+# 1776 C* PreampIII - Tube preamp emulation
+> a: in (-1 to 1)
+> k: gain (0 to 10)
+> k: temperature (0.005 to 1)
+< a: out
+< k: latency
+
+# 1777 C* PreampIV - Tube preamp emulation + tone controls
+> a: in (-1 to 1)
+> k: gain (0 to 10)
+> k: temperature (0.005 to 1)
+> k: bass (-20 to 20)
+> k: mid (-20 to 20)
+> k: treble (-20 to 20)
+> k: hi (-20 to 20)
+< a: out
+< k: latency
+
+# 2589 C* ToneStack - Tone stack emulation
+> a: in (-1 to 1)
+> k: model (0 to 5)
+> k: bass (0 to 1)
+> k: mid (0 to 1)
+> k: treble (0 to 1)
+< a: out
+
+# 2590 C* ToneStackLT - Tone stack emulation, lattice filter 44.1
+> a: in (-1 to 1)
+> k: bass (0 to 1)
+> k: mid (0 to 1)
+> k: treble (0 to 1)
+< a: out
+
+# 1786 C* AmpIII - Tube amp
+> a: in (-1 to 1)
+> k: gain (0 to 10)
+> k: temperature (0.005 to 1)
+> k: drive (0.0001 to 1)
+< a: out
+< k: latency
+
+# 1794 C* AmpIV - Tube amp + tone controls
+> a: in (-1 to 1)
+> k: gain (0 to 10)
+> k: temperature (0.005 to 1)
+> k: bass (-20 to 20)
+> k: mid (-20 to 20)
+> k: treble (-20 to 20)
+> k: hi (-20 to 20)
+> k: drive (0.0001 to 1)
+< a: out
+< k: latency
+
+# 2587 C* AmpV - Tube amp
+> a: in (-1 to 1)
+> k: gain (0 to 3)
+> k: bass (-9 to 9)
+> k: tone (0 to 1)
+> k: drive (0.0001 to 1)
+> k: watts (5 to 150)
+< a: out
+< k: latency
+
+# 2592 C* AmpVTS - Tube amp + Tone stack
+> a: in (-1 to 1)
+> k: model (0 to 5)
+> k: gain (0 to 3)
+> k: bass (0 to 1)
+> k: mid (0 to 1)
+> k: treble (0 to 1)
+> k: drive (0.0001 to 1)
+> k: watts (0.0001 to 1)
+< a: out
+< k: latency
+
+# 1766 C* CabinetI - Loudspeaker cabinet emulation
+> a: in (-1 to 1)
+> k: model (0 to 5)
+> k: gain (dB) (-24 to 24)
+< a: out
+
+# 2581 C* CabinetII - Refined loudspeaker cabinet emulation
+> a: in (-1 to 1)
+> k: model (0 to 7)
+> k: gain (dB) (-24 to 24)
+< a: out
+
+# 1771 C* Clip - Hard clipper, 8x oversampled
+> a: in (-1 to 1)
+> k: gain (dB) (-72 to 72)
+< a: out
+< k: latency
+
+# 1767 C* ChorusI - Mono chorus/flanger
+> a: in (-1 to 1)
+> k: t (ms) (2.5 to 40)
+> k: width (ms) (0.5 to 10)
+> k: rate (Hz) (0 to 5)
+> k: blend (0 to 1)
+> k: feedforward (0 to 1)
+> k: feedback (0 to 1)
+< a: out
+
+# 1768 C* StereoChorusI - Stereo chorus/flanger
+> a: in (-1 to 1)
+> k: t (ms) (2.5 to 40)
+> k: width (ms) (0.5 to 10)
+> k: rate (Hz) (0 to 5)
+> k: phase (0 to 1)
+> k: blend (0 to 1)
+> k: feedforward (0 to 1)
+> k: feedback (0 to 1)
+< a: out:l
+< a: out:r
+
+# 2583 C* ChorusII - Mono chorus/flanger modulated by a fractal
+> a: in (-1 to 1)
+> k: t (ms) (2.5 to 40)
+> k: width (ms) (0.5 to 10)
+> k: rate (0 to 1)
+> k: blend (0 to 1)
+> k: feedforward (0 to 1)
+> k: feedback (0 to 1)
+< a: out
+
+# 2584 C* StereoChorusII - Stereo chorus/flanger modulated by a fractal
+> a: in (-1 to 1)
+> k: t (ms) (2.5 to 40)
+> k: width (ms) (0.5 to 10)
+> k: rate (0 to 1)
+> k: blend (0 to 1)
+> k: feedforward (0 to 1)
+> k: feedback (0 to 1)
+< a: out:l
+< a: out:r
+
+# 1775 C* PhaserI - Mono phaser
+> a: in (-1 to 1)
+> k: rate (Hz) (0 to 10)
+> k: depth (0 to 1)
+> k: spread (0 to 3.14159)
+> k: feedback (0 to 0.999)
+< a: out
+
+# 2586 C* PhaserII - Mono phaser modulated by a Lorenz fractal
+> a: in (-1 to 1)
+> k: rate (0 to 1)
+> k: depth (0 to 1)
+> k: spread (0 to 1.5708)
+> k: feedback (0 to 0.999)
+< a: out
+
+# 1782 C* SweepVFI - Resonant filter swept by a Lorenz fractal
+> a: in
+> k: f (83 to 3383)
+> k: Q (0.001 to 0.999)
+> k: mode (0 to 1)
+> k: depth:x (0 to 1)
+> k: depth:y (0 to 1)
+> k: depth:z (0 to 1)
+> k: h (0.001 to 1)
+< a: out
+
+# 2582 C* SweepVFII - Resonant filter, f and Q swept by a Lorenz fractal
+> a: in
+> k: f (83 to 3383)
+> k: Q (0.001 to 0.999)
+> k: mode (0 to 1)
+> k: f:depth:x (0 to 1)
+> k: f:depth:y (0 to 1)
+> k: f:depth:z (0 to 1)
+> k: f:h (0.001 to 1)
+> k: Q:depth:x (0 to 1)
+> k: Q:depth:y (0 to 1)
+> k: Q:depth:z (0 to 1)
+> k: Q:h (0.001 to 1)
+< a: out
+
+# 2593 C* AutoWah - Resonant envelope-following filter
+> a: in
+> k: f (43 to 933)
+> k: Q (0.001 to 0.999)
+> k: depth (0 to 1)
+< a: out
+
+# 2588 C* Scape - Stereo delay + Filters
+> a: in (-1 to 1)
+> k: bpm (30 to 240)
+> k: divider (2 to 4)
+> k: feedback (0 to 1)
+> k: dry (0 to 1)
+> k: blend (0 to 1)
+< a: out:l
+< a: out:r
+
+# 1783 C* VCOs - Virtual 'analogue' oscillator
+> k: f (1 to 5751)
+> k: tri .. saw (0 to 1)
+> k: ~ .. square (0 to 1)
+> k: volume (1e-06 to 1)
+< a: out
+
+# 1784 C* VCOd - Double VCO with detune and hard sync options
+> k: f (1 to 5751)
+> k: 1: tri .. saw (0 to 1)
+> k: 1: ~ .. square (0 to 1)
+> k: 2: tri .. saw (0 to 1)
+> k: 2: ~ .. square (0 to 1)
+> k: 2: tune (-12 to 12)
+> k: sync (0 to 1)
+> k: blend (-1 to 1)
+> k: volume (1e-06 to 1)
+< a: out
+
+# 1770 C* CEO - Chief Executive Oscillator
+> k: mpm (4 to 244)
+> k: volume (0 to 1)
+> k: damping (0 to 1)
+< a: out
+
+# 1781 C* Sin - Sine wave generator
+> k: f (0.0001 to 20000)
+> k: volume (1e-06 to 1)
+< a: out
+
+# 1785 C* White - White noise generator
+> k: volume (1e-06 to 1)
+< a: out
+
+# 1774 C* Lorenz - The sound of a Lorenz attractor
+> k: h (0 to 1)
+> k: x (0 to 1)
+> k: y (0 to 1)
+> k: z (0 to 1)
+> k: volume (1e-06 to 1)
+< a: out
+
+# 1780 C* Roessler - The sound of a Roessler attractor
+> k: h (0 to 1)
+> k: x (0 to 1)
+> k: y (0 to 1)
+> k: z (0 to 1)
+> k: volume (1e-06 to 1)
+< a: out
+
+# 1778 C* JVRev - Stanford-style reverb from STK
+> a: in (-1 to 1)
+> k: t60 (s) (0 to 4.6)
+> k: blend (0 to 0.28)
+< a: out:l
+< a: out:r
+
+# 1779 C* Plate - Versatile plate reverb
+> a: in (-1 to 1)
+> k: bandwidth (0.005 to 0.999)
+> k: tail (0 to 0.749)
+> k: damping (0.0005 to 1)
+> k: blend (0 to 1)
+< a: out:l
+< a: out:r
+
+# 1795 C* Plate2x2 - Versatile plate reverb, stereo inputs
+> a: in:l (-1 to 1)
+> a: in:r (-1 to 1)
+> k: bandwidth (0.005 to 0.999)
+> k: tail (0 to 0.749)
+> k: damping (0.0005 to 1)
+> k: blend (0 to 1)
+< a: out:l
+< a: out:r
+
+# 1769 C* Click - Metronome
+> k: bpm (4 to 244)
+> k: volume (0 to 1)
+> k: damping (0 to 1)
+< a: out
+
+# 2585 C* Dirac - One-sample impulse generator
+> k: ppm (30 to 60)
+> k: volume (0 to 1)
+> k: damping (0 to 1)
+< a: out
+
+# 1787 C* HRTF - Head-related transfer function at elevation 0
+> a: in (-1 to 1)
+> k: pan (-36 to 36)
+< a: out:l
+< a: out:r
+
+# 1199 Impulse convolver
+> k: Impulse ID (1 to 21)
+> k: High latency mode (0 to 1)
+> k: Gain (dB) (-90 to 24)
+> a: Input
+< a: Output
+< k: latency
+
+# 1893 Glame Bandpass Analog Filter
+> k: Center Frequency (Hz) (0.0001 to 0.45)
+> k: Bandwidth (Hz) (0.0001 to 0.45)
+> a: Input
+< a: Output
+
+# 1433 AM pitchshifter
+> k: Pitch shift (0.25 to 4)
+> k: Buffer size (1 to 7)
+> a: Input
+< a: Output
+< k: latency
+
+# 1436 L/C/R Delay
+> k: L delay (ms) (0 to 2700)
+> k: L level (0 to 50)
+> k: C delay (ms) (0 to 2700)
+> k: C level (0 to 50)
+> k: R delay (ms) (0 to 2700)
+> k: R level (0 to 50)
+> k: Feedback (-100 to 100)
+> k: High damp (%) (0 to 100)
+> k: Low damp (%) (0 to 100)
+> k: Spread (0 to 50)
+> k: Dry/Wet level (0 to 1)
+> a: L input
+> a: R input
+< a: L output
+< a: R output
+
+# 1193 Pitch Scaler
+> k: Pitch co-efficient (0.5 to 2)
+> a: Input
+< a: Output
+< k: latency
+
+# 1406 Mono to Stereo splitter
+> a: Input (-1 to 1)
+< a: Output 1 (-1 to 1)
+< a: Output 2 (-1 to 1)
+
+# 1417 Rate shifter
+> k: Rate (-4 to 4)
+> a: Input
+< a: Output
+
+# 1438 DJ flanger
+> k: LFO sync
+> k: LFO period (s) (0.1 to 32)
+> k: LFO depth (ms) (1 to 5)
+> k: Feedback (%) (-100 to 100)
+> a: Input
+< a: Output
+
+# 2151 TAP Equalizer/BW
+> k: Band 1 Gain [dB] (-50 to 20)
+> k: Band 2 Gain [dB] (-50 to 20)
+> k: Band 3 Gain [dB] (-50 to 20)
+> k: Band 4 Gain [dB] (-50 to 20)
+> k: Band 5 Gain [dB] (-50 to 20)
+> k: Band 6 Gain [dB] (-50 to 20)
+> k: Band 7 Gain [dB] (-50 to 20)
+> k: Band 8 Gain [dB] (-50 to 20)
+> k: Band 1 Freq [Hz] (40 to 280)
+> k: Band 2 Freq [Hz] (100 to 500)
+> k: Band 3 Freq [Hz] (200 to 1000)
+> k: Band 4 Freq [Hz] (400 to 2800)
+> k: Band 5 Freq [Hz] (1000 to 5000)
+> k: Band 6 Freq [Hz] (3000 to 9000)
+> k: Band 7 Freq [Hz] (6000 to 18000)
+> k: Band 8 Freq [Hz] (10000 to 20000)
+> k: Band 1 Bandwidth [octaves] (0.1 to 5)
+> k: Band 2 Bandwidth [octaves] (0.1 to 5)
+> k: Band 3 Bandwidth [octaves] (0.1 to 5)
+> k: Band 4 Bandwidth [octaves] (0.1 to 5)
+> k: Band 5 Bandwidth [octaves] (0.1 to 5)
+> k: Band 6 Bandwidth [octaves] (0.1 to 5)
+> k: Band 7 Bandwidth [octaves] (0.1 to 5)
+> k: Band 8 Bandwidth [octaves] (0.1 to 5)
+> a: Input
+< a: Output
+
+# 1894 Mag's Notch Filter
+> k: Center Frequency (Hz) (0.0001 to 0.45)
+> k: Bandwidth (Hz) (0.0001 to 0.45)
+> k: Stages(2 poles per stage) (1 to 10)
+> a: Input
+< a: Output
+
+# 1408 Barry's Satan Maximiser
+> k: Decay time (samples) (2 to 30)
+> k: Knee point (dB) (-90 to 0)
+> a: Input
+< a: Output
+
+# 2152 TAP Dynamics (M)
+> k: Attack [ms] (4 to 500)
+> k: Release [ms] (4 to 1000)
+> k: Offset Gain [dB] (-20 to 20)
+> k: Makeup Gain [dB] (-20 to 20)
+< k: Envelope Volume [dB] (-60 to 20)
+< k: Gain Adjustment [dB] (-60 to 20)
+> k: Function (0 to 14.1)
+> a: Input
+< a: Output
+
+# 1420 Matrix: Stereo to MS
+> a: Left
+> a: Right
+< a: Mid
+< a: Side
+
+# 1414 Smooth Decimator
+> k: Resample rate (0 to 1)
+> k: Smoothing (0 to 1)
+> a: Input
+< a: Output
+
+# 1194 Higher Quality Pitch Scaler
+> k: Pitch co-efficient (0.5 to 2)
+> a: Input
+< a: Output
+< k: latency
+
+# 1200 Hermes Filter
+> k: LFO1 freq (Hz) (0 to 1000)
+> k: LFO1 wave (0 = sin, 1 = tri, 2 = saw, 3 = squ, 4 = s&h) (0 to 4)
+> k: LFO2 freq (Hz) (0 to 1000)
+> k: LFO2 wave (0 = sin, 1 = tri, 2 = saw, 3 = squ, 4 = s&h) (0 to 4)
+> k: Osc1 freq (Hz) (0 to 4000)
+> k: Osc1 wave (0 = sin, 1 = tri, 2 = saw, 3 = squ, 4 = noise) (0 to 4)
+> k: Osc2 freq (Hz) (0 to 4000)
+> k: Osc2 wave (0 = sin, 1 = tri, 2 = saw, 3 = squ, 4 = noise) (0 to 4)
+> k: Ringmod 1 depth (0=none, 1=AM, 2=RM) (0 to 2)
+> k: Ringmod 2 depth (0=none, 1=AM, 2=RM) (0 to 2)
+> k: Ringmod 3 depth (0=none, 1=AM, 2=RM) (0 to 2)
+> k: Osc1 gain (dB) (-70 to 20)
+> k: RM1 gain (dB) (-70 to 20)
+> k: Osc2 gain (dB) (-70 to 20)
+> k: RM2 gain (dB) (-70 to 20)
+> k: Input gain (dB) (-70 to 20)
+> k: RM3 gain (dB) (-70 to 20)
+> k: Xover lower freq (50 to 6000)
+> k: Xover upper freq (1000 to 10000)
+> k: Dist1 drive (0 to 3)
+> k: Dist2 drive (0 to 3)
+> k: Dist3 drive (0 to 3)
+> k: Filt1 type (0=none, 1=LP, 2=HP, 3=BP, 4=BR, 5=AP) (0 to 5)
+> k: Filt1 freq (0 to 8000)
+> k: Filt1 q (0 to 1)
+> k: Filt1 resonance (0 to 1)
+> k: Filt1 LFO1 level (-500 to 500)
+> k: Filt1 LFO2 level (-500 to 500)
+> k: Filt2 type (0=none, 1=LP, 2=HP, 3=BP, 4=BR, 5=AP) (0 to 5)
+> k: Filt2 freq (0 to 8000)
+> k: Filt2 q (0 to 1)
+> k: Filt2 resonance (0 to 1)
+> k: Filt2 LFO1 level (-500 to 500)
+> k: Filt2 LFO2 level (-500 to 500)
+> k: Filt3 type (0=none, 1=LP, 2=HP, 3=BP, 4=BR, 5=AP) (0 to 5)
+> k: Filt3 freq (0 to 8000)
+> k: Filt3 q (0 to 1)
+> k: Filt3 resonance (0 to 1)
+> k: Filt3 LFO1 level (-500 to 500)
+> k: Filt3 LFO2 level (-500 to 500)
+> k: Delay1 length (s) (0 to 2)
+> k: Delay1 feedback (0 to 1)
+> k: Delay1 wetness (0 to 1)
+> k: Delay2 length (s) (0 to 2)
+> k: Delay2 feedback (0 to 1)
+> k: Delay2 wetness (0 to 1)
+> k: Delay3 length (s) (0 to 2)
+> k: Delay3 feedback (0 to 1)
+> k: Delay3 wetness (0 to 1)
+> k: Band 1 gain (dB) (-70 to 20)
+> k: Band 2 gain (dB) (-70 to 20)
+> k: Band 3 gain (dB) (-70 to 20)
+> a: Input (-1 to 1)
+< a: Output (-1 to 1)
+
+# 2147 TAP DeEsser
+> k: Threshold Level [dB] (-50 to 10)
+> k: Frequency [Hz] (2000 to 16000)
+> k: Sidechain Filter (0 to 1.01)
+> k: Monitor (0 to 1.01)
+< k: Attenuation [dB] (0 to 10)
+> a: Input
+< a: Output
+
+# 2145 TAP Scaling Limiter
+> k: Limit Level [dB] (-30 to 20)
+> k: Output Volume [dB] (-30 to 20)
+< k: latency (0 to 2500.1)
+> a: Input
+< a: Output
+
+# 1186 Audio Divider (Suboctave Generator)
+> k: Denominator (1 to 8)
+> a: Input
+< a: Output (-1 to 1)
+
+# 1883 SE4
+> k: RMS/peak (0 to 1)
+> k: Attack time (ms) (1.5 to 400)
+> k: Release time (ms) (2 to 800)
+> k: Threshold level (dB) (-30 to 0)
+> k: Ratio (1:n) (1 to 20)
+> k: Knee radius (dB) (1 to 10)
+> k: Attenuation (dB) (-24 to 0)
+< k: Amplitude (dB) (-40 to 12)
+< k: Gain expansion (dB) (0 to 24)
+> a: Left input
+> a: Right input
+< a: Left output
+< a: Right output
+
+# 1217 LFO Phaser
+> k: LFO rate (Hz) (0 to 100)
+> k: LFO depth (0 to 1)
+> k: Feedback (-1 to 1)
+> k: Spread (octaves) (0 to 2)
+> a: Input
+< a: Output
+
+# 1218 4 x 4 pole allpass
+> k: Frequency 1 (1 to 20000)
+> k: Feedback 1 (-1 to 1)
+> k: Frequency 2 (1 to 20000)
+> k: Feedback 2 (-1 to 1)
+> k: Frequency 3 (1 to 20000)
+> k: Feedback 3 (-1 to 1)
+> k: Frequency 4 (1 to 20000)
+> k: Feedback 4 (-1 to 1)
+> a: Input
+< a: Output
+
+# 1219 Auto phaser
+> k: Attack time (s) (0 to 1)
+> k: Decay time (s) (0 to 1)
+> k: Modulation depth (0 to 1)
+> k: Feedback (-1 to 1)
+> k: Spread (octaves) (0 to 2)
+> a: Input
+< a: Output
+
+# 1890 Glame Highpass Filter
+> k: Cutoff Frequency (0.0001 to 0.45)
+> k: Stages(2 poles per stage) (1 to 10)
+> a: Input
+< a: Output
+
+# 1207 DC Offset Remover
+> a: Input
+< a: Output
+
+# 1902 Glame Butterworth X-over Filter
+> k: Cutoff Frequency (Hz) (0.0001 to 0.45)
+> k: Resonance (0.1 to 1.41)
+> a: Input
+< a: LP-Output
+< a: HP-Output
+
+# 1903 GLAME Butterworth Lowpass
+> k: Cutoff Frequency (Hz) (0.0001 to 0.45)
+> k: Resonance (0.1 to 1.41)
+> a: Input
+< a: Output
+
+# 1904 GLAME Butterworth Highpass
+> k: Cutoff Frequency (Hz) (0.0001 to 0.45)
+> k: Resonance (0.1 to 1.41)
+> a: Input
+< a: Output
+
+# 1411 Comb Splitter
+> k: Band separation (Hz) (16 to 640)
+> a: Input
+< a: Output 1
+< a: Output 2
+
+# 1192 Fractionally Addressed Delay Line
+> k: Delay (seconds) (0.1 to 10)
+> k: Feedback (dB) (-70 to 0)
+> a: Input
+< a: Output
+
+# 1910 Pointer cast distortion
+> k: Effect cutoff freq (Hz) (0.0001 to 0.3)
+> k: Dry/wet mix (0 to 1)
+> a: Input
+< a: Output
+
+# 2142 TAP Reverberator
+> k: Decay [ms] (0 to 10000)
+> k: Dry Level [dB] (-70 to 10)
+> k: Wet Level [dB] (-70 to 10)
+> k: Comb Filters
+> k: Allpass Filters
+> k: Bandpass Filter
+> k: Enhanced Stereo
+> k: Reverb Type (0 to 42.1)
+> a: Input Left
+< a: Output Left
+> a: Input Right
+< a: Output Right
+
+# 1431 Bode frequency shifter
+> k: Frequency shift (0 to 5000)
+> a: Input
+< a: Down out
+< a: Up out
+< k: latency
+
+# 1909 Constant Signal Generator
+> k: Signal amplitude (-1 to 1.1)
+> a: Input
+< a: Output
+
+# 1422 Matrix Spatialiser
+> a: Input L
+> a: Input R
+> k: Width (-512 to 512)
+< a: Output L
+< a: Output R
+
+# 1439 Gong beater
+> k: Impulse gain (dB) (-70 to 0)
+> k: Strike gain (dB) (-70 to 0)
+> k: Strike duration (s) (0.001 to 0.2)
+> a: Input
+< a: Output
+
+# 1430 Chebyshev distortion
+> k: Distortion (0 to 3)
+> a: Input (-1 to 1)
+< a: Output (-1 to 1)
+
+# 1213 Foldover distortion
+> k: Drive (0 to 1)
+> k: Skew (0 to 1)
+> a: Input
+< a: Output
+
+# 1210 Signal sifter
+> k: Sift size (1 to 1000)
+> a: Input
+< a: Output
+
+# 1409 Karaoke
+> k: Vocal volume (dB) (-70 to 0)
+> a: Left in
+> a: Right in
+< a: Left out
+< a: Right out
+
+# 1208 Retro Flanger
+> k: Average stall (ms) (0 to 10)
+> k: Flange frequency (Hz) (0.5 to 8)
+> a: Input
+< a: Output
+
+# 1916 SC4 mono
+> k: RMS/peak (0 to 1)
+> k: Attack time (ms) (1.5 to 400)
+> k: Release time (ms) (2 to 800)
+> k: Threshold level (dB) (-30 to 0)
+> k: Ratio (1:n) (1 to 20)
+> k: Knee radius (dB) (1 to 10)
+> k: Makeup gain (dB) (0 to 24)
+< k: Amplitude (dB) (-40 to 12)
+< k: Gain reduction (dB) (-24 to 0)
+> a: Input
+< a: Output
+
+# 1410 Gate
+> k: LF key filter (Hz) (0.0007 to 0.1)
+> k: HF key filter (Hz) (0.005 to 0.49)
+> k: Threshold (dB) (-70 to 20)
+> k: Attack (ms) (0.01 to 1000)
+> k: Hold (ms) (2 to 2000)
+> k: Decay (ms) (2 to 4000)
+> k: Range (dB) (-90 to 0)
+> k: Output select (-1 = key listen, 0 = gate, 1 = bypass) (-1 to 1)
+> a: Input
+< a: Output
+
+# 2157 TAP Sigmoid Booster
+> k: Pre Gain [dB] (-90 to 20)
+> k: Post Gain [dB] (-90 to 20)
+> a: Input
+< a: Output
+
+# 1426 SC2
+> k: Attack time (ms) (2 to 400)
+> k: Release time (ms) (2 to 800)
+> k: Threshold level (dB) (-30 to 0)
+> k: Ratio (1:n) (1 to 10)
+> k: Knee radius (dB) (1 to 10)
+> k: Makeup gain (dB) (0 to 24)
+> a: Sidechain
+> a: Input
+< a: Output
+
+# 1427 SC3
+> k: Attack time (ms) (2 to 400)
+> k: Release time (ms) (2 to 800)
+> k: Threshold level (dB) (-30 to 0)
+> k: Ratio (1:n) (1 to 10)
+> k: Knee radius (dB) (1 to 10)
+> k: Makeup gain (dB) (0 to 24)
+> k: Chain balance (0 to 1)
+> a: Sidechain
+> a: Left input
+> a: Right input
+< a: Left output
+< a: Right output
+
+# 1403 Dyson compressor
+> k: Peak limit (dB) (-30 to 0)
+> k: Release time (s) (0 to 1)
+> k: Fast compression ratio (0 to 1)
+> k: Compression ratio (0 to 1)
+> a: Input
+< a: Output
+
+# 2143 TAP Stereo Echo
+> k: L Delay [ms] (0 to 2000)
+> k: L Feedback [%] (0 to 100)
+> k: R/Haas Delay [ms] (0 to 2000)
+> k: R/Haas Feedback [%] (0 to 100)
+> k: L Echo Level [dB] (-70 to 10)
+> k: R Echo Level [dB] (-70 to 10)
+> k: Dry Level [dB] (-70 to 10)
+> k: Cross Mode
+> k: Haas Effect
+> k: Swap Outputs
+> a: Input Left
+< a: Output Left
+> a: Input Right
+< a: Output Right
+
+# 1882 SC4
+> k: RMS/peak (0 to 1)
+> k: Attack time (ms) (1.5 to 400)
+> k: Release time (ms) (2 to 800)
+> k: Threshold level (dB) (-30 to 0)
+> k: Ratio (1:n) (1 to 20)
+> k: Knee radius (dB) (1 to 10)
+> k: Makeup gain (dB) (0 to 24)
+< k: Amplitude (dB) (-40 to 12)
+< k: Gain reduction (dB) (-24 to 0)
+> a: Left input
+> a: Right input
+< a: Left output
+< a: Right output
+
+# 1214 State Variable Filter
+> a: Input (-1 to 1)
+< a: Output (-1 to 1)
+> k: Filter type (0=none, 1=LP, 2=HP, 3=BP, 4=BR, 5=AP) (0 to 5)
+> k: Filter freq (0 to 6000)
+> k: Filter Q (0 to 1)
+> k: Filter resonance (0 to 1)
+
+# 1428 z-1
+> a: Input
+< a: Output
+
+# 1895 Allpass delay line, noninterpolating
+> a: Input
+< a: Output
+> k: Max Delay (s) (0 to ...)
+> k: Delay Time (s) (0 to ...)
+> k: Decay Time (s) (0 to ...)
+
+# 1896 Allpass delay line, linear interpolation
+> a: Input
+< a: Output
+> k: Max Delay (s) (0 to ...)
+> k: Delay Time (s) (0 to ...)
+> k: Decay Time (s) (0 to ...)
+
+# 1897 Allpass delay line, cubic spline interpolation
+> a: Input
+< a: Output
+> k: Max Delay (s) (0 to ...)
+> k: Delay Time (s) (0 to ...)
+> k: Decay Time (s) (0 to ...)
+
+# 2148 TAP Vibrato
+> k: Frequency [Hz] (0 to 30)
+> k: Depth [%] (0 to 20)
+> k: Dry Level [dB] (-90 to 20)
+> k: Wet Level [dB] (-90 to 20)
+< k: latency (0 to 6300)
+> a: Input
+< a: Output
+
+# 1401 Surround matrix encoder
+> a: L
+> a: R
+> a: C
+> a: S
+< a: Lt
+< a: Rt
+
+# 1209 Valve saturation
+> k: Distortion level (0 to 1)
+> k: Distortion character (0 to 1)
+> a: Input
+< a: Output
+
+# 1201 Multivoice Chorus
+> k: Number of voices (1 to 8)
+> k: Delay base (ms) (10 to 40)
+> k: Voice separation (ms) (0 to 2)
+> k: Detune (%) (0 to 5)
+> k: LFO frequency (Hz) (2 to 30)
+> k: Output attenuation (dB) (-20 to 0)
+> a: Input
+< a: Output
+
+# 1418 Frequency tracker
+> k: Tracking speed (0 to 1)
+> a: Input
+< a: Frequency (Hz)
+
+# 1211 Tape Delay Simulation
+> k: Tape speed (inches/sec, 1=normal) (0 to 10)
+> k: Dry level (dB) (-90 to 0)
+> k: Tap 1 distance (inches) (0 to 4)
+> k: Tap 1 level (dB) (-90 to 0)
+> k: Tap 2 distance (inches) (0 to 4)
+> k: Tap 2 level (dB) (-90 to 0)
+> k: Tap 3 distance (inches) (0 to 4)
+> k: Tap 3 level (dB) (-90 to 0)
+> k: Tap 4 distance (inches) (0 to 4)
+> k: Tap 4 level (dB) (-90 to 0)
+> a: Input
+< a: Output
+
+# 1196 Fast overdrive
+> k: Drive level (1 to 3)
+> a: Input
+< a: Output
+
+# 1881 Sine + cosine oscillator
+> k: Base frequency (Hz) (1e-06 to 0.5)
+> k: Pitch offset (0 to 8)
+< a: Sine output
+< a: Cosine output
+
+# 1605 Reverse Delay (5s max)
+> a: Input
+< a: Output
+> k: Delay Time (s) (0 to 5)
+> k: Dry Level (dB) (-70 to 0)
+> k: Wet Level (dB) (-70 to 0)
+> k: Feedback (0 to 1)
+> k: Crossfade samples (0 to 5000)
+
+# 2141 TAP Equalizer
+> k: Band 1 Gain [dB] (-50 to 20)
+> k: Band 2 Gain [dB] (-50 to 20)
+> k: Band 3 Gain [dB] (-50 to 20)
+> k: Band 4 Gain [dB] (-50 to 20)
+> k: Band 5 Gain [dB] (-50 to 20)
+> k: Band 6 Gain [dB] (-50 to 20)
+> k: Band 7 Gain [dB] (-50 to 20)
+> k: Band 8 Gain [dB] (-50 to 20)
+> k: Band 1 Freq [Hz] (40 to 280)
+> k: Band 2 Freq [Hz] (100 to 500)
+> k: Band 3 Freq [Hz] (200 to 1000)
+> k: Band 4 Freq [Hz] (400 to 2800)
+> k: Band 5 Freq [Hz] (1000 to 5000)
+> k: Band 6 Freq [Hz] (3000 to 9000)
+> k: Band 7 Freq [Hz] (6000 to 18000)
+> k: Band 8 Freq [Hz] (10000 to 20000)
+> a: Input
+< a: Output
+
+# 1421 Matrix: MS to Stereo
+> k: Width (0 to 2)
+> a: Mid
+> a: Side
+< a: Left
+< a: Right
+
+# 1424 Gong model
+> k: Inner damping (0 to 1)
+> k: Outer damping (0 to 1)
+> k: Mic position (0 to 1)
+> k: Inner size 1 (0 to 1)
+> k: Inner stiffness 1 + (0 to 1)
+> k: Inner stiffness 1 - (0 to 1)
+> k: Inner size 2 (0 to 1)
+> k: Inner stiffness 2 + (0 to 1)
+> k: Inner stiffness 2 - (0 to 1)
+> k: Inner size 3 (0 to 1)
+> k: Inner stiffness 3 + (0 to 1)
+> k: Inner stiffness 3 - (0 to 1)
+> k: Inner size 4 (0 to 1)
+> k: Inner stiffness 4 + (0 to 1)
+> k: Inner stiffness 4 - (0 to 1)
+> k: Outer size 1 (0 to 1)
+> k: Outer stiffness 1 + (0 to 1)
+> k: Outer stiffness 1 - (0 to 1)
+> k: Outer size 2 (0 to 1)
+> k: Outer stiffness 2 + (0 to 1)
+> k: Outer stiffness 2 - (0 to 1)
+> k: Outer size 3 (0 to 1)
+> k: Outer stiffness 3 + (0 to 1)
+> k: Outer stiffness 3 - (0 to 1)
+> k: Outer size 4 (0 to 1)
+> k: Outer stiffness 4 + (0 to 1)
+> k: Outer stiffness 4 - (0 to 1)
+> a: Input
+< a: Output
+
+# 1907 DJ EQ (mono)
+> k: Lo gain (dB) (-70 to 6)
+> k: Mid gain (dB) (-70 to 6)
+> k: Hi gain (dB) (-70 to 6)
+> a: Input
+< a: Output
+< k: latency
+
+# 1901 DJ EQ
+> k: Lo gain (dB) (-70 to 6)
+> k: Mid gain (dB) (-70 to 6)
+> k: Hi gain (dB) (-70 to 6)
+> a: Input L
+> a: Input R
+< a: Output L
+< a: Output R
+< k: latency
+
+# 1915 Crossfade
+> k: Crossfade (-1 to 1)
+> a: Input A left
+> a: Input A right
+> a: Input B left
+> a: Input B right
+< a: Output left
+< a: Output right
+
+# 1917 Crossfade (4 outs)
+> k: Crossfade (-1 to 1)
+> a: Input A left
+> a: Input A right
+> a: Input B left
+> a: Input B right
+< a: Output A left
+< a: Output A right
+< a: Output B left
+< a: Output B right
+
+# 2149 TAP Rotary Speaker
+> k: Rotor Frequency [Hz] (0 to 30)
+> k: Horn Frequency [Hz] (0 to 30)
+> k: Mic Distance [%] (0 to 100)
+> k: Rotor/Horn Mix (0 to 1)
+< k: latency (0 to 9200)
+> a: Input L
+> a: Input R
+< a: Output L
+< a: Output R
+
+# 1898 Simple delay line, noninterpolating
+> a: Input
+< a: Output
+> k: Max Delay (s) (0 to ...)
+> k: Delay Time (s) (0 to ...)
+
+# 1899 Simple delay line, linear interpolation
+> a: Input
+< a: Output
+> k: Max Delay (s) (0 to ...)
+> k: Delay Time (s) (0 to ...)
+
+# 1900 Simple delay line, cubic spline interpolation
+> a: Input
+< a: Output
+> k: Max Delay (s) (0 to ...)
+> k: Delay Time (s) (0 to ...)
+
+# 2146 TAP AutoPanner
+> k: Frequency [Hz] (0 to 20)
+> k: Depth [%] (0 to 100)
+> k: Gain [dB] (-70 to 20)
+> a: Input L
+> a: Input R
+< a: Output L
+< a: Output R
+

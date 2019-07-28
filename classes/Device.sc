@@ -392,11 +392,11 @@ P {
 }
 
 /*
-A wrapper around Pdef to work with a V object
+A wrapper around Pdef to work with an Ndef
 and provide some convenience set up operations
 (
-Vbind(\isycxuo,
-    \v, \rwzjmgoh,
+Nbind(\isycxuo,
+    \n, \rwzjmgoh,
     \trig, 1,
     \dur, 0.5,
     \degree, 0,
@@ -412,8 +412,8 @@ Vbind(\isycxuo,
 
 // bit of a hack
 // but allows for updating properties on the fly
-Pdef(\isycxuo_p1, Pbindef(\isycxuo_set, \foo, 1) <> Vbind(\isycxuo));
-Pdef(\isycxuo_p1, Vbind(\isycxuo));
+Pdef(\isycxuo_p1, Pbindef(\isycxuo_set, \foo, 1) <> Nbind(\isycxuo));
+Pdef(\isycxuo_p1, Nbind(\isycxuo));
 
 (
 Pbindef(\isycxuo_set,
@@ -431,7 +431,7 @@ Pbindef(\isycxuo_set,
 )
 )
 */
-Vbind {
+Nbind {
     var <key;
 
 	*new { arg key ...pairs;
@@ -441,7 +441,7 @@ Vbind {
     init {arg argKey, argPairs;
 		key = argKey.asSymbol;
 		if (argPairs.size > 0) {
-            "building %".format(key).debug("vbind");
+            "building %".format(key).debug("nbind");
 			this.prBuild(argKey, argPairs);
 		};
 		^Pdef(key);
@@ -449,7 +449,7 @@ Vbind {
 
     prBuild {arg argKey, argPairs;
 
-        var key = argPairs.asDict[\v] ?? argKey;
+        var key = argPairs.asDict[\n] ?? argKey;
         var pairs = argPairs;
 
         var evtargs = {
