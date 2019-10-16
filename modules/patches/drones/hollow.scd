@@ -64,18 +64,18 @@ Pdef(\hollow, Ppar([
 
 /////////////////////////////////////////
 // hollow
-~p[\hollow].clear;
-~p[\hollow].mold;
-~p[\hollow][0] = Pdef(\hollow);
-(~p[\hollow].filter(2, {arg in;
+Ndef(\hollow).clear;
+Ndef(\hollow).mold;
+Ndef(\hollow)[0] = Pdef(\hollow);
+(Ndef(\hollow).filter(2, {arg in;
 	JPverb.ar(in, 5, 0, SinOsc.kr(1/24).range(1.0,2.0));
 }).set(\wet2, 0.3)
 )
 
-~p[\hollow].play(fadeTime:0, vol:-15.dbamp);
-~p[\hollow].stop(fadeTime:10);
-~hollow_win = App.guiHelper(~p[\hollow], "hollow");
-~hollow_win.front;
+Ndef(\hollow).play(fadeTime:0, vol:-15.dbamp);
+Ndef(\hollow).stop(fadeTime:10);
+//~hollow_win = App.guiHelper(~p[\hollow], "hollow");
+//~hollow_win.front;
 
 App.saveWorkspace("ws2");
 TempoClock.default.tempo_(45/60);

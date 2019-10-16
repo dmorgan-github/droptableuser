@@ -132,6 +132,9 @@ Fdef(\grid, {arg row, col, val;
 })
 )
 
+~p[\gated_multi].set(\gate, 1, \freq, 440);
+~p[\gated_multi].set(\gate, 0);
+
 /////////////////////////////////////////
 // midi note events
 ~keyboard.().front;

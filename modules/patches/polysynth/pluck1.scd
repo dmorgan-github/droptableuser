@@ -31,6 +31,7 @@ ProxySynthDef(\pluck1, {
 
 ~p[\pluck] = Pmono(\pluck1, \degree, Pwhite(0, 4, inf), \delta, 0.125, \octave, 6);
 ~p[\pluck].play
+~p[\pluck].stop;
 
 (~p[\plug_verb] = {
 	var in = \in.ar([0,0]);
@@ -40,4 +41,5 @@ ProxySynthDef(\pluck1, {
 
 ~p[\plug_verb] <<> ~p[\pluck];
 ~p[\plug_verb].play
+~p[\plug_verb].stop;
 

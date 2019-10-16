@@ -1,6 +1,6 @@
 /////////////////////////////////////////
 // proxy space
-~p = ~p ? ProxySpace.new(s, \p);
+~p = ~p ?? {ProxySpace.new(s, \p)};
 ~p.quant = 4.0;
 ~p.fadeTime = 2;
 ~p.clock = TempoClock.default.tempo_(60/60);

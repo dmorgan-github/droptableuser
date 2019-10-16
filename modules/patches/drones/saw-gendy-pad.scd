@@ -58,7 +58,7 @@ Pbindef(\pad,
 	\dur, 8,
 	\atk, 1,
 	\susLevel, 0.7,
-	\amp, -8.dbamp
+	\amp, -12.dbamp
 )
 )
 
