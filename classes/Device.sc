@@ -1,3 +1,252 @@
+/*
+	osckeys_ {arg root=60;
+		12.do({arg i;
+			var num = i+1;
+			var path = ('/1/push' ++ num).asSymbol;
+			OSCdef.newMatching(path, {arg msg, time, addr, recvPort;
+				var val = msg[1];
+				var note = root + i;
+				if (val == 1) {
+					this.prNoteOn(note, 1);
+				}{
+					this.prNoteOff(note);
+				}
+			}, path).permanent_(true);
+		});
+		^this;
+	}
+
+	osckeysfree_ {
+		12.do({arg i;
+			var num = i+1;
+			var path = ('/1/push' ++ num).asSymbol;
+			OSCdef(path).free;
+		});
+		^this;
+	}
+	*/
+OscCtrl {
+	classvar <all;
+
+	*new {arg key;
+		var res = all[key];
+		if (res.isNil) {
+			res = super.new.init();
+			all.put(key, res);
+		};
+		^res;
+	}
+
+	init {
+		^this;
+	}
+}
+
+MidiCtrl {
+
+	classvar <all;
+
+	var <key, <src, <chan;
+
+	*new {arg key, src=\iac, chan;
+		var res = all[key];
+		if (res.isNil) {
+			res = super.new.init(key, src, chan);
+			all.put(key, res);
+		};
+		^res;
+	}
+
+	init {arg inKey, inSrcKey, inChan;
+		key = inKey;
+		chan = inChan;
+		MIDIClient.init;
+		if (inSrcKey.isNil.not) {
+			src = switch(inSrcKey,
+				\roli_usb, {
+					MIDIClient.sources
+					.select({arg src; src.device.beginsWith("Lightpad BLOCK")})
+					.first
+				},
+				\roli_bt, {
+					MIDIClient.sources
+					.select({arg src; src.device.beginsWith("Lightpad Block 1UOC")})
+					.first
+				},
+				\iac, {
+					MIDIClient.sources
+					.select({arg src; src.device.beginsWith("IAC Driver")})
+					.first;
+				}
+			);
+			MIDIIn.connect(device:src);
+		};
+		^this;
+	}
+
+	note {arg on, off;
+
+		var mychan = if (chan.isNil) {"all"}{chan};
+		var srcid = if (this.src.isNil.not){src.uid}{nil};
+		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
+		var onkey = ("%_%_%_on").format(this.key, mychan, srcdevice).asSymbol;
+		var offkey = ("%_%_%_off").format(this.key, mychan, srcdevice).asSymbol;
+
+		if (on.isNil) {
+			"free %".format(onkey).debug(this.key);
+			MIDIdef(onkey).free;
+		}{
+			"register %".format(onkey).debug(this.key);
+			MIDIdef.noteOn(onkey, func:{arg vel, note, chan, src;
+				on.(note, vel);
+			}, chan:chan, srcID:srcid);
+		};
+
+		if (off.isNil){
+			"free %".format(offkey).debug(this.key);
+			MIDIdef(offkey).free;
+		}{
+			"register %".format(offkey).debug(this.key);
+			MIDIdef.noteOff(offkey, func:{arg vel, note, chan, src;
+				off.(note);
+			}, chan:chan, srcID:srcid);
+		};
+
+		^this;
+	}
+
+	clear {
+		this.note(nil, nil);
+		all.removeAt(key)
+	}
+
+	prNormalize {arg str;
+		^str.toLower().stripWhiteSpace().replace(" ", "")
+	}
+
+	*clearAll {
+		all.do({arg m; m.clear()});
+		all.clear;
+	}
+
+	*initClass { all = () }
+}
+
+S {
+	classvar <all;
+
+	var <key, <synth, <envir, <node, <specs, synths;
+
+	*new {arg key, synth;
+		var res = all[key];
+		if (res.isNil) {
+			res = super.new.init(key, synth);
+			all.put(key, res);
+		};
+		^res;
+	}
+
+	init {arg inKey, inSynth;
+
+		var synthdef, metadata;
+		if (inKey.isNil) {
+			Error("key not specified");
+		};
+		if (inSynth.isNil) {
+			Error("synth not specified");
+		};
+		synths = Array.fill(127, nil);
+		key = inKey;
+		synth = inSynth;
+		envir = (
+			\instrument: inSynth
+		);
+		node = Ndef(key);
+		node.play;
+		synthdef = SynthDescLib.global.at(synth);
+		metadata = synthdef.metadata;
+		specs = metadata[\specs];
+
+		^this;
+	}
+
+	set {arg key, val;
+		if (key.isNil) {
+			Error("key is nil");
+		};
+		envir[key] = val;
+		^this;
+	}
+
+	on {arg midinote, vel=1;
+		this.prNoteOn(midinote, vel);
+	}
+
+	off {arg midinote;
+		this.prNoteOff(midinote);
+	}
+
+	pdef {
+		var myspecs = specs.collect({arg assoc;
+			var key = assoc.key;
+			var spec = assoc.value;
+			if (envir[key].isNil) {
+				envir[key] = spec.default;
+			};
+			[key, Pfunc({envir[key]})]
+		}).flatten ++ [
+			\instrument, envir[\instrument],
+			\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
+			\group, Pfunc({node.group})
+		];
+
+		^Pdef(key, {arg monitor=true, fadeTime=0, out=0;
+			if (node.isMonitoring.not and: monitor) {
+				node.play(fadeTime:fadeTime, out:out);
+			};
+			Pbind(*myspecs)
+		})
+	}
+
+	clear {
+		Ndef(key).clear;
+		Pdef(key).clear;
+		this.panic();
+		all[key] = nil;
+	}
+
+	panic {
+		synths.do({arg synth,i;
+			if (synth.isNil.not) {
+				synth.release;
+				synths[i] = nil;
+			}
+		});
+	}
+
+	prNoteOn {arg midinote, vel=1;
+		// there should only be one synth per note
+		if (synths[midinote].isNil) {
+			var evt = {
+				envir.select({arg val; val.isKindOf(Pattern).not});
+				envir[\vel] = vel;
+				envir;
+			}.();
+			var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps] ++ evt.asPairs();
+			var x = Synth(synth.asSymbol, args, target:node.nodeID);
+			synths[midinote] = x;
+		}
+	}
+
+	prNoteOff {arg midinote;
+		var synth = synths[midinote];
+		synth.set(\gate, 0);
+		synths[midinote] = nil;
+	}
+
+	*initClass { all = () }
+}
+
 CC {
 	var <num, <min, <max, <cb;
 

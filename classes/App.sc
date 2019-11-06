@@ -1,14 +1,19 @@
 App {
 
-	classvar <bluetoothMidiChan = 5;
+	classvar <roli_cc_key = \roli_cc;
 
 	*initClass {
 	}
 
-	*midiConnect {
+	*midiInit {
 		MIDIClient.init;
 		MIDIClient.initialized.debug("midi initialized");
-		MIDIIn.connectAll;
+	}
+
+	*scynapse {
+		var envir = Ndef.dictFor(Server.default).envir;
+		File.open("/Users/david/projects/scynapse/_main.scd", "r").readAllString.interpret;
+		Fdef(\scynapse).(envir, "/Users/david/projects/scynapse/");
 	}
 
 	*idgen {
@@ -17,9 +22,10 @@ App {
 		^str
 	}
 
-	*saveWorkspace {arg name = "", folder = "~/projects/droptableuser/workspaces", rec = false;
+	*saveWorkspace {arg name = "", folder = "~/projects/droptableuser/workspaces", rec = false, envir;
 
-		var workspace = "%/%-%-%/%%".format(name, Date.getDate.year, Date.getDate.month, Date.getDate.day, Date.getDate.hour, Date.getDate.minute);
+		var workspace = "%/%-%-%/%%".format(name,
+			Date.getDate.year, Date.getDate.month, Date.getDate.day, Date.getDate.hour, Date.getDate.minute);
 		var current_doc = Document.current;
 		var current_path = folder.standardizePath ++ "/" ++ workspace;
 		var dirname;

@@ -56,13 +56,17 @@ SynthDef(\subtrsynth, {
 
     var tri = {arg freq;
 		var sig = VarSaw.ar(freq, 0, \triwidth.ar(0.5));
+		var fold = \trifold.kr(1);
+		sig = (sig * fold).fold(-1, 1) * fold.reciprocal.sqrt;
+		sig = LeakDC.ar(sig);
         sig * AmpCompA.kr(freq);
     };
 
 	var saw = {arg freq;
 		//var sig = Saw.ar(freq);
 		var timbre = \sawtimbre.ar(0);
-		var sig = SyncSaw.ar(freq, freq + timbre);
+		var sawcurve = \sawcurve.ar(0);
+		var sig = SyncSaw.ar(freq, freq + timbre).lincurve(-1, 1, -1, 1, sawcurve);
         sig * AmpCompA.kr(freq);
     };
 
@@ -74,6 +78,9 @@ SynthDef(\subtrsynth, {
 	var sine = {arg freq;
 		var mod = fm.(freq) * \sinefm.kr(0);
 		var sig = SinOsc.ar(freq + mod);
+		var fold = \sinefold.kr(1);
+		sig = (sig * fold).fold(-1, 1) * fold.reciprocal.sqrt;
+		sig = LeakDC.ar(sig);
         sig * AmpCompA.kr(freq);
     };
 
@@ -116,14 +123,15 @@ SynthDef(\subtrsynth, {
 		curve: ControlSpec(-24, 24, \lin, 0, -4),
 		ts: ControlSpec(0, 100, \lin, 0, 1),
 		freqamt: ControlSpec(0, 4, \lin, 0, 0),
-		cutoff: ControlSpec(20, 20000, 'exp', 0, 100),
-		fvel: ControlSpec(0, 100, \lin, 0, 10),
+		cutoff: ControlSpec(1, 18000, 'exp', 0, 100),
+		fvel: ControlSpec(0, 20, \lin, 0, 10),
 		fcurve: ControlSpec(-24, 24, \lin, 0, -4),
 		res: ControlSpec(0, 1, \lin, 0, 0.5),
 		triwidth: ControlSpec(0, 1, \lin, 0, 0.5),
+		trifold: ControlSpec(1, 10, \lin, 0, 1),
 		sawtimbre: ControlSpec(0, 1, \lin, 0, 0.1),
+		sawcurve: ControlSpec(-4, 4, \lin, 0, 0),
 		squarewidth: ControlSpec(0, 1, \lin, 0, 0.5),
-		sinefm: ControlSpec(0, 1, \lin, 0, 0),
 		trifreqmul: ControlSpec(0, 12, \lin, 0, 1),
 		tri: ControlSpec(0, 1, \lin, 0, 1),
 		sawfreqmul: ControlSpec(0, 12, \lin, 0, 1),
@@ -132,13 +140,15 @@ SynthDef(\subtrsynth, {
 		square: ControlSpec(0, 1, \lin, 0, 0),
 		sinefreqmul: ControlSpec(0, 12, \lin, 0, 1),
 		sine: ControlSpec(0, 1, \lin, 0, 0),
+		sinefm: ControlSpec(0, 1, \lin, 0, 0),
+		sinefold: ControlSpec(1, 10, \lin, 0, 1),
 		noise: ControlSpec(0, 1, \lin, 0, 0),
 		pre: ControlSpec(0, 1, \lin, 0, 1),
 		vel: ControlSpec(0, 1, \lin, 0, 1),
 		spread: ControlSpec(0, 1, \lin, 0, 1),
 		center: ControlSpec(0, 1, \lin, 0, 0),
 		pan: ControlSpec(-1, 1, \lin, 0, 0),
-		amp: \amp.asSpec
+		amp: ControlSpec(0, 1, \lin, 0, 0.1)
 	)
 )).add;
 )
@@ -182,11 +192,13 @@ Pdef(\subtrsynthbase, {arg evt, ndef, monitor=true;
 			\tri, Pif(Pfunc({~tri.isNil}), specs[\tri].default, Pfunc({~tri})),
 			\trifreqmul, Pif(Pfunc({~trifreqmul.isNil}), specs[\trifreqmul].default, Pfunc({~trifreqmul})),
 			\triwidth, Pif(Pfunc({~triwidth.isNil}), specs[\triwidth].default, Pfunc({~triwidth})),
+			\trifold, Pif(Pfunc({~trifold.isNil}), specs[\trifold].default, Pfunc({~trifold})),
 
 			// saw
 			\saw, Pif(Pfunc({~saw.isNil}), specs[\saw].default, Pfunc({~saw})),
 			\sawfreqmul, Pif(Pfunc({~sawfreqmul.isNil}), specs[\sawfreqmul].default, Pfunc({~sawfreqmul})),
 			\sawtimbre, Pif(Pfunc({~sawtimbre.isNil}), specs[\sawtimbre].default, Pfunc({~sawtimbre})),
+			\sawcurve, Pif(Pfunc({~sawcurve.isNil}), specs[\sawcurve].default, Pfunc({~sawcurve})),
 
 			// square
 			\square, Pif(Pfunc({~square.isNil}), specs[\square].default, Pfunc({~square})),
@@ -199,13 +211,16 @@ Pdef(\subtrsynthbase, {arg evt, ndef, monitor=true;
 			// sine
 			\sine, Pif(Pfunc({~sine.isNil}), specs[\sine].default, Pfunc({~sine})),
 			\sinefreqmul, Pif(Pfunc({~sinefreqmul.isNil}), specs[\sinefreqmul].default, Pfunc({~sinefreqmul})),
+			\sinefold, Pif(Pfunc({~sinefold.isNil}), specs[\sinefold].default, Pfunc({~sinefold})),
 			\sinefm, Pif(Pfunc({~sinefm.isNil}), specs[\sinefm].default, Pfunc({~sinefm})),
 
 			// fm
 			\index, Pif(Pfunc({~index.isNil}), specs[\index].default, Pfunc({~index})),
 			\ivel, Pif(Pfunc({~ivel.isNil}), specs[\ivel].default, Pfunc({~ivel})),
 			\idur, Pif(Pfunc({~idur.isNil}), specs[\idur].default, Pfunc({~idur})),
-			\ratio, Pif(Pfunc({~ratio.isNil}), specs[\ratio].default, Pfunc({~ratio}))
+			\ratio, Pif(Pfunc({~ratio.isNil}), specs[\ratio].default, Pfunc({~ratio})),
+
+			\amp, Pif(Pfunc({~amp.isNil}), specs[\amp].default, Pfunc({~amp}))
 		)
 	)
 })
@@ -238,8 +253,8 @@ Pdef(\subtrsynthbase, {arg evt, ndef, monitor=true;
 			.value_(controlSpec.unmap(myval))
 			.mouseDownAction_({arg ctrl, x, y, mod, button, clickCount;
 				if (clickCount == 2){
-					knob.value = controlSpec.map(controlSpec.default);
-					nb.value = controlSpec.default;
+					var val = controlSpec.default;
+					nb.valueAction_(val);
 				}
 			}),
 			nb
@@ -293,6 +308,7 @@ Pdef(\subtrsynthbase, {arg evt, ndef, monitor=true;
 			ezknob.(\tri, \tri),
 			ezknob.(\trifreqmul, \freqmul),
 			ezknob.(\triwidth, \width),
+			ezknob.(\trifold, \fold),
 			nil
 		)
 	).margins_(2).spacing_(2))
@@ -304,6 +320,7 @@ Pdef(\subtrsynthbase, {arg evt, ndef, monitor=true;
 			ezknob.(\saw, \saw),
 			ezknob.(\sawfreqmul, \freqmul),
 			ezknob.(\sawtimbre, \timbre),
+			ezknob.(\sawcurve, \curve),
 			nil
 		)
 	).margins_(2).spacing_(2));
@@ -324,6 +341,7 @@ Pdef(\subtrsynthbase, {arg evt, ndef, monitor=true;
 		HLayout(
 			ezknob.(\sine, \sine),
 			ezknob.(\sinefreqmul, \freqmul),
+			ezknob.(\sinefold, \fold),
 			ezknob.(\sinefm, \fm),
 			ezknob.(\index, \index),
 			ezknob.(\ivel, \ivel),
@@ -341,10 +359,32 @@ Pdef(\subtrsynthbase, {arg evt, ndef, monitor=true;
 	).margins_(2).spacing_(2))
 	.background_(Color.grey.alpha_(0.2));
 
+	var ampView = View().layout_(VLayout(
+		StaticText().string_("amp").font_(font),
+		HLayout(
+			ezknob.(\amp, \amp),
+			nil
+		)
+	).margins_(2).spacing_(2));
+
 	var env = EnvelopeView();
-	var adsr = Env([0, 1, 0.7, 0.7, 0], [0.01, 0.2, 0.5, 0.29], 0);
+	var adsr = Env(
+		[
+			0,
+			1,
+			envir[\suslevel] ?? specs[\suslevel].default,
+			envir[\suslevel] ?? specs[\suslevel].default,
+			0
+		],
+		[
+			envir[\atk] ?? specs[\atk].default,
+			envir[\dec] ?? specs[\dec].default,
+			envir[\sustain] ?? 0.5,
+			envir[\rel] ?? specs[\rel].default
+	], 0);
 	var slider = Slider();
 	var nb = NumberBox();
+	var tsdefault = envir[\ts] ?? specs[\ts].default;
 	var envView = View().layout_(VLayout(
 		env.setEnv(adsr)
 		.action_({arg ctrl;
@@ -386,7 +426,13 @@ Pdef(\subtrsynthbase, {arg evt, ndef, monitor=true;
 			})
 			.thumbSize_(15)
 			.maxHeight_(20)
-			.value_(specs[\ts].unmap(1)),
+			.value_(specs[\ts].unmap(tsdefault))
+			.mouseDownAction_({arg ctrl, x, y, mod, button, clickCount;
+				if (clickCount == 2){
+					nb.valueAction_(specs[\ts].default);
+				};
+				false
+			}),
 			nb
 			.maxWidth_(35)
 			.maxHeight_(20)
@@ -394,13 +440,7 @@ Pdef(\subtrsynthbase, {arg evt, ndef, monitor=true;
 				envir[\ts] = ctrl.value;
 				slider.value = specs[\ts].unmap(ctrl.value);
 			})
-			.value_(1)
-			.mouseDownAction_({arg ctrl, x, y, mod, button, clickCount;
-				if (clickCount == 2){
-					slider.value = specs[\ts].map(specs[\ts].default);
-					nb.value = specs[\ts].default;
-				}
-			})
+			.value_(tsdefault)
 		)
 	).margins_(2).spacing_(2));
 
@@ -414,6 +454,10 @@ Pdef(\subtrsynthbase, {arg evt, ndef, monitor=true;
 	view.layout.add(squareView);
 	view.layout.add(sineView);
 	view.layout.add(noiseView);
+	view.layout.add(ampView);
 	view.front;
 }
 )
+
+
+
