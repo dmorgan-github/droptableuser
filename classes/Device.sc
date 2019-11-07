@@ -116,7 +116,7 @@ MidiCtrl {
 		}{
 			"register %".format(onkey).debug(this.key);
 			MIDIdef.noteOn(onkey, func:{arg vel, note, chan, src;
-				on.(note, vel);
+				on.(note, vel, chan);
 			}, chan:chan, srcID:srcid);
 		};
 
@@ -126,7 +126,7 @@ MidiCtrl {
 		}{
 			"register %".format(offkey).debug(this.key);
 			MIDIdef.noteOff(offkey, func:{arg vel, note, chan, src;
-				off.(note);
+				off.(note, chan);
 			}, chan:chan, srcID:srcid);
 		};
 
@@ -153,11 +153,11 @@ MidiCtrl {
 S {
 	classvar <all;
 
-	var <key, <synth, <envir, <node, <specs, synths;
+	var <key, <synth, <envir, <node, <specs, synthdef, synths;
 
 	*new {arg key, synth;
 		var res = all[key];
-		if (res.isNil) {
+		if (res.isNil or: synth.isNil.not) {
 			res = super.new.init(key, synth);
 			all.put(key, res);
 		};
@@ -165,14 +165,13 @@ S {
 	}
 
 	init {arg inKey, inSynth;
-
-		var synthdef, metadata;
 		if (inKey.isNil) {
 			Error("key not specified");
 		};
 		if (inSynth.isNil) {
 			Error("synth not specified");
 		};
+		"init".debug(inKey);
 		synths = Array.fill(127, nil);
 		key = inKey;
 		synth = inSynth;
@@ -182,17 +181,17 @@ S {
 		node = Ndef(key);
 		node.play;
 		synthdef = SynthDescLib.global.at(synth);
-		metadata = synthdef.metadata;
-		specs = metadata[\specs];
+		if (synthdef.metadata.isNil.not) {
+			specs = synthdef.metadata[\specs];
+		};
 
 		^this;
 	}
 
-	set {arg key, val;
-		if (key.isNil) {
-			Error("key is nil");
-		};
-		envir[key] = val;
+	set {arg ...args;
+		args.as(Event).keysValuesDo({arg k, v;
+			envir[k] = v;
+		});
 		^this;
 	}
 
@@ -205,14 +204,29 @@ S {
 	}
 
 	pdef {
-		var myspecs = specs.collect({arg assoc;
-			var key = assoc.key;
-			var spec = assoc.value;
-			if (envir[key].isNil) {
-				envir[key] = spec.default;
-			};
-			[key, Pfunc({envir[key]})]
-		}).flatten ++ [
+		var myspecs = [];
+		if (specs.isNil.not) {
+			myspecs = specs.collect({arg assoc;
+				var key = assoc.key;
+				var spec = assoc.value;
+				if (envir[key].isNil) {
+					envir[key] = spec.default;
+				};
+				[key, Pfunc({envir[key]})]
+			}).flatten;
+		} {
+			myspecs = synthdef.controls
+			.reject({arg ctrl; [\out, \freq, \gate, \trig].includes(ctrl.name)})
+			.collect({arg ctrl;
+				var key = ctrl.name.asSymbol;
+				if (envir[key].isNil) {
+					envir[key] = ctrl.defaultValue;
+				};
+				[key, Pfunc({envir[key]})]
+			}).flatten
+		};
+
+		myspecs = myspecs ++ [
 			\instrument, envir[\instrument],
 			\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
 			\group, Pfunc({node.group})
@@ -236,10 +250,13 @@ S {
 	panic {
 		synths.do({arg synth,i;
 			if (synth.isNil.not) {
-				synth.release;
+				synth.free;
 				synths[i] = nil;
 			}
 		});
+		if (node.group.isNil.not) {
+			node.group.free;
+		}
 	}
 
 	prNoteOn {arg midinote, vel=1;
