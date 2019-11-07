@@ -1,7 +1,5 @@
 App {
 
-	classvar <roli_cc_key = \roli_cc;
-
 	*initClass {
 	}
 

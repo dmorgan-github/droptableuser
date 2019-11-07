@@ -1,49 +1,67 @@
 /*
-	osckeys_ {arg root=60;
-		12.do({arg i;
-			var num = i+1;
-			var path = ('/1/push' ++ num).asSymbol;
-			OSCdef.newMatching(path, {arg msg, time, addr, recvPort;
-				var val = msg[1];
-				var note = root + i;
-				if (val == 1) {
-					this.prNoteOn(note, 1);
-				}{
-					this.prNoteOff(note);
-				}
-			}, path).permanent_(true);
-		});
-		^this;
+(
+OscCtrl.paths('/1/push', (1..12), {arg val, num;
+	var note = 48 + (num-1);
+	if (val == 1) {
+		S(\synth1).on(note, 1);
+	}{
+		S(\synth1).off(note);
 	}
+});
+)
 
-	osckeysfree_ {
-		12.do({arg i;
-			var num = i+1;
-			var path = ('/1/push' ++ num).asSymbol;
-			OSCdef(path).free;
-		});
-		^this;
-	}
-	*/
+OscCtrl.paths('/1/push', (1..12), nil);
+*/
 OscCtrl {
-	classvar <all;
 
-	*new {arg key;
-		var res = all[key];
-		if (res.isNil) {
-			res = super.new.init();
-			all.put(key, res);
+	*path {arg path, func;
+		var key = path.asSymbol;
+		if (func.isNil) {
+			OSCdef(key).free;
+		}{
+			OSCdef.newMatching(key, {arg msg, time, addr, recvPort;
+				var val = msg[1];
+				func.(val);
+			}, key).permanent_(true);
 		};
-		^res;
 	}
 
-	init {
-		^this;
+	*paths {arg prefix, nums, func;
+		if (func.isNil) {
+			nums.do({arg i;
+				var path =  "%%".format(prefix, i).asSymbol;
+				"free %".format(path).debug(\many);
+				OSCdef(path).free;
+			});
+		}{
+			nums.do({arg i;
+				var path =  "%%".format(prefix, i).asSymbol;
+				"register %".format(path).debug(\many);
+				OSCdef.newMatching(path, {arg msg, time, addr, recvPort;
+					var val = msg[1];
+					func.(val, i);
+				}, path).permanent_(true);
+			});
+		}
 	}
 }
 
+/*
+(
+MidiCtrl(\synth1, \iac)
+.note(
+	{arg note, vel;
+		var myvel = vel/127;
+		S(\synth1).noteon(note, myvel)
+	},
+	{arg note;
+		S(\synth1).noteoff(note)
+	}
+)
+)
+MidiCtrl(\synth1).note(nil, nil);
+*/
 MidiCtrl {
-
 	classvar <all;
 
 	var <key, <src, <chan;
