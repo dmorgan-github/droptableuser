@@ -112,29 +112,64 @@ MidiCtrl {
 
 		if (on.isNil) {
 			"free %".format(onkey).debug(this.key);
-			MIDIdef(onkey).free;
+			MIDIdef(onkey).permanent_(false).free;
 		}{
 			"register %".format(onkey).debug(this.key);
 			MIDIdef.noteOn(onkey, func:{arg vel, note, chan, src;
 				on.(note, vel, chan);
-			}, chan:chan, srcID:srcid);
+			}, chan:chan, srcID:srcid)
+			.permanent_(true);
 		};
 
 		if (off.isNil){
 			"free %".format(offkey).debug(this.key);
-			MIDIdef(offkey).free;
+			MIDIdef(offkey).permanent_(false).free;
 		}{
 			"register %".format(offkey).debug(this.key);
 			MIDIdef.noteOff(offkey, func:{arg vel, note, chan, src;
 				off.(note, chan);
-			}, chan:chan, srcID:srcid);
+			}, chan:chan, srcID:srcid)
+			.permanent_(true);
 		};
 
 		^this;
 	}
 
+	cc {arg num, func;
+
+		var mychan = if (chan.isNil) {"all"}{chan};
+		var srcid = if (this.src.isNil.not){src.uid}{nil};
+		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
+		var key = "%_%_%_cc%".format(this.key, mychan, srcdevice, num).asSymbol;
+		if (func.isNil) {
+			"free %".format(key).debug(this.key);
+			MIDIdef(key).permanent_(false).free;
+		}{
+			"register %".format(key).debug(this.key);
+			MIDIdef.cc(key, {arg val, num, chan, src;
+				func.(val, num, chan);
+			}, chan:chan, srcID:srcid)
+			.permanent_(true);
+		}
+	}
+	/*
+	(
+	MIDIdef.bend(\bendTest, {
+	arg val, chan, src;
+	['bend', val, chan, src].postln;  // [ bend, 11888, 0, 1 ]
+	~bend = val;
+	// also update any notes currently in ~notes
+	~notes.do{arg synth; synth.set(\bend, val.linlin(0, 16383, -2, 2))};
+	}, chan: 0);
+	)
+	*/
+
 	clear {
 		this.note(nil, nil);
+		// clear all with brute force
+		127.do({arg i;
+			this.cc(i, nil);
+		});
 		all.removeAt(key)
 	}
 
@@ -153,7 +188,7 @@ MidiCtrl {
 S {
 	classvar <all;
 
-	var <key, <synth, <envir, <node, <specs, synthdef, synths;
+	var <key, <synth, <envir, <node, <specs, <synths, synthdef;
 
 	*new {arg key, synth;
 		var res = all[key];
@@ -172,7 +207,12 @@ S {
 			Error("synth not specified");
 		};
 		"init".debug(inKey);
-		synths = Array.fill(127, nil);
+		// using a list as a queue for each note
+		// because i'm a little uncertain about
+		// the potential for race conditions
+		// and possible having a synth floating
+		// off in outer space
+		synths = Array.fill(127, {List.new});
 		key = inKey;
 		synth = inSynth;
 		envir = (
@@ -181,6 +221,11 @@ S {
 		node = Ndef(key);
 		node.play;
 		synthdef = SynthDescLib.global.at(synth);
+
+		if (synthdef.isNil) {
+			Error("synthdef not found").throw;
+		};
+
 		if (synthdef.metadata.isNil.not) {
 			specs = synthdef.metadata[\specs];
 		};
@@ -248,11 +293,12 @@ S {
 	}
 
 	panic {
-		synths.do({arg synth,i;
-			if (synth.isNil.not) {
+		synths.do({arg list, i;
+			var synth = list.pop;
+			while({synth.isNil.not},{
 				synth.free;
-				synths[i] = nil;
-			}
+				synth = list.pop;
+			});
 		});
 		if (node.group.isNil.not) {
 			node.group.free;
@@ -261,22 +307,33 @@ S {
 
 	prNoteOn {arg midinote, vel=1;
 		// there should only be one synth per note
-		if (synths[midinote].isNil) {
+		if (node.isPlaying) {
 			var evt = {
 				envir.select({arg val; val.isKindOf(Pattern).not});
 				envir[\vel] = vel;
 				envir;
 			}.();
 			var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps] ++ evt.asPairs();
-			var x = Synth(synth.asSymbol, args, target:node.nodeID);
-			synths[midinote] = x;
+			//synths[midinote].add( Synth(synth.asSymbol, args, target:node.nodeID) );
+			//["lastsynth not nil", synths[midinote]].postln;
+			if (synths[midinote].last.isNil) {
+				synths[midinote].add( Synth(synth.asSymbol, args, target:node.nodeID) );
+			}
 		}
 	}
 
 	prNoteOff {arg midinote;
-		var synth = synths[midinote];
-		synth.set(\gate, 0);
-		synths[midinote] = nil;
+		// popping from a queue seems more atomic
+		// than dealing strictly with an array
+		// removeAt(0) changes the size of the array
+		// copying seems to produce better results
+		// but i'm not sure why
+		var mysynths = synths.copy;
+		var synth = mysynths[midinote].pop;
+		while({synth.isNil.not},{
+			synth.set(\gate, 0);
+			synth = mysynths[midinote].pop;
+		});
 	}
 
 	*initClass { all = () }
