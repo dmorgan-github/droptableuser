@@ -15,16 +15,27 @@ B : S {
 	}
 
 	bInit {arg inPath;
-		Buffer.read(Server.default, inPath, action:{arg mybuf;
-			"buffer loaded; numchannels: %".format(mybuf.numChannels).debug(\b);
-			if (mybuf.numChannels == 2) {
-				var bufnum = mybuf.bufnum;
+		if (inPath.isKindOf(Buffer)) {
+			var bufnum = inPath.bufnum;
+			buf = inPath;
+			this.specs.add(\buf -> ControlSpec(bufnum, bufnum, \lin, 0, bufnum));
+			this.set(\buf, buf);
+			if (buf.numChannels == 2) {
+				this.set(\instrument, \smplr_2chan);
+			}
+		}{
+			Buffer.read(Server.default, inPath, action:{arg mybuf;
+				var bufnum;
+				"buffer loaded; numchannels: %".format(mybuf.numChannels).debug(\b);
+				bufnum = mybuf.bufnum;
 				buf = mybuf;
 				this.specs.add(\buf -> ControlSpec(bufnum, bufnum, \lin, 0, bufnum));
-				this.set(\instrument, \smplr_2chan);
-				this.set(\buf, mybuf);
-			};
-		});
+				this.set(\buf, buf);
+				if (buf.numChannels == 2) {
+					this.set(\instrument, \smplr_2chan);
+				};
+			});
+		};
 		^this;
 	}
 
@@ -287,8 +298,32 @@ S {
 	}
 
 	set {arg ...args;
-		args.as(Event).keysValuesDo({arg k, v;
-			envir[k] = v;
+
+		if (args.size.even.not) {
+			Error("args must be even number").throw;
+		};
+
+		forBy(0, args.size-1, 2, {arg i;
+			var k = args[i];
+			var v = args[i+1];
+
+			case
+			{v.isKindOf(Function)} {
+				var lfokey = (this.key ++ '_' ++ k).asSymbol;
+				"creating lfo node %".format(lfokey).debug(this.key);
+				envir[k] = Ndef(lfokey, v);
+			}
+			{v.isNil} {
+				var myspec = specs.select({arg kv; kv.key == k}).first;
+				if (myspec.isNil.not) {
+					envir[k] = myspec.value.default;
+				} {
+					envir.removeAt(args[i-1]);
+				};
+			}
+			{
+				envir[k] = v;
+			}
 		});
 		^this;
 	}
@@ -404,7 +439,6 @@ S {
 
 		}).add;
 	}
-
 
 	prNoteOn {arg midinote, vel=1;
 		// there should only be one synth per note
