@@ -1,3 +1,38 @@
+L {
+	*new {
+		var view;
+		var pdefs = Pdef.all.keys.asArray
+		.sort
+		.select({arg k; k.asString.contains("_ptrn")})
+		.collect({arg k; Pdef(k)});
+
+		var buttons = List.new;
+		var currentrow = nil;
+		var lastkey = "";
+		pdefs.do({arg pdef, i;
+			var key = pdef.key;
+			if (key.asString.beginsWith(lastkey).not) {
+				lastkey = key.asString.split($_)[0];
+				currentrow = List.new;
+				buttons.add(currentrow);
+			};
+			currentrow.add(Button()
+				.states_([ [key, nil, Color.gray], [key, nil, Color.blue] ])
+				.action_({arg ctrl;
+					if (ctrl.value == 1) {
+						pdef.play;
+					}{
+						pdef.stop;
+					}
+				})
+				.value_(pdef.isPlaying)
+			);
+		});
+		view = View().layout_(GridLayout.rows(*buttons));
+		view.front;
+	}
+}
+
 B : S {
 
 	classvar <all;
@@ -70,7 +105,7 @@ OscCtrl.paths('/1/push', (1..12), {arg val, num;
 });
 )
 
-OscCtrl.paths('/1/push', (1..12), nil);
+OscCtrl.paths('/1/push/', (1..12), nil);
 */
 OscCtrl {
 
@@ -248,7 +283,9 @@ MidiCtrl {
 S {
 	classvar <all;
 
-	var <key, <envir, <node, <specs, <synths, synthdef;
+	classvar <>defaultRoot, <>defaultScale, <>defaultTuning;
+
+	var <key, <envir, <node, <specs, <synths, <ptrn, synthdef;
 
 	*new {arg key, synth;
 		var res = all[key];
@@ -279,7 +316,10 @@ S {
 		synths = Array.fill(127, {List.new});
 		key = inKey;
 		envir = (
-			\instrument: inSynth
+			instrument: inSynth,
+			//root: defaultRoot,
+			//scale: defaultScale,
+			//tuning: defaultTuning
 		);
 		node = Ndef(key);
 		node.play;
@@ -340,6 +380,11 @@ S {
 		this.prNoteOff(midinote);
 	}
 
+	pattern {arg ...pairs;
+		ptrn = pairs.asPairs;
+		^this;
+	}
+
 	pdef {
 
 		var myspecs = [];
@@ -366,11 +411,14 @@ S {
 
 		myspecs = myspecs ++ [
 			\instrument, envir[\instrument],
+			\root, Pfunc({defaultRoot}),
+			\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
 			\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
 			\group, Pfunc({node.group})
 		];
 
 		^Pdef(key, {arg monitor=true, fadeTime=0, out=0;
+
 			if (node.isMonitoring.not and: monitor) {
 				node.play(fadeTime:fadeTime, out:out);
 			};
@@ -410,10 +458,14 @@ S {
 		SynthDef(inKey, {
 			var gate = \gate.kr(1);
 			var numvoices = 2;
-			var ddepth = \ddepth.kr(0.1);
-			var drate = \drate.kr(0.1);
-			var detune = [1, 1.01];//LFNoise2.ar(drate.dup(numvoices)).bipolar(ddepth).midiratio;
-			var freq = Vibrato.ar(\freq.ar(261), \vrate.ar(6), \vdepth.ar(0.0));
+			//var ddepth = \ddepth.kr(0.1);
+			//var drate = \drate.kr(0.1);
+			//LFNoise2.ar(drate.dup(numvoices)).bipolar(ddepth).midiratio;
+			var in_freq = \freq.ar(261);
+			var detune = \detuneratio.kr(1);
+			var which = (detune > 1) + (detune < 1);
+			var sel = Select.ar(which, [in_freq, [in_freq, in_freq * detune]]);
+			var freq = Vibrato.ar(sel, \vrate.ar(6), \vdepth.ar(0.0));
 
 			var adsr = {
 				var da = Done.freeSelf;
@@ -434,13 +486,16 @@ S {
 			sig = Splay.ar(sig, \spread.kr(0), center:\center.kr(0));
 			sig = LeakDC.ar(sig);
 			sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
-			sig = sig * \amp.kr(-3.dbamp);
+			sig = sig * \amp.kr(-10.dbamp);
 			Out.ar(\out.kr(0), sig);
 
 		}).add;
 	}
 
 	prNoteOn {arg midinote, vel=1;
+
+		// TODO: see if this technique works
+		// https://gist.github.com/markwheeler/b88b4f7b0f2870567b55cbc36abbd5ea
 		// there should only be one synth per note
 		if (node.isPlaying) {
 			var evt = {
@@ -471,5 +526,10 @@ S {
 		});
 	}
 
-	*initClass { all = () }
+	*initClass {
+		all = ();
+		defaultTuning = \et12;
+		defaultRoot = 4;
+		defaultScale = \dorian;
+	}
 }
