@@ -43,6 +43,7 @@ App {
 		});
 
 		if (rec) {
+			var tempo = TempoClock.default.tempo;
 			Server.default.record(current_path ++ "/SC_" ++ Date.getDate.stamp ++ ".aiff");
 		}
 	}

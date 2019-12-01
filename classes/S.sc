@@ -91,11 +91,59 @@ B : S {
 		// we are using timed envelopes
 	}
 
+	gui {
+		var sfv;
+		var defaultDur = envir[\dur] ?? 1;
+		var view = View().layout_(VLayout().margins_(0.5).spacing_(0.5))
+		.minHeight_(200)
+		.minWidth_(200)
+		.palette_(QPalette.dark);
+
+		var start = NumberBox().normalColor_(Color.white);
+		var beats = NumberBox().action_({arg ctrl;
+			var begin = sfv.selection(0)[0];
+			var dur = ctrl.value;
+			var size = dur * TempoClock.default.tempo * buf.sampleRate;
+			var end = size + begin;
+			this.set(\dur, dur);
+			sfv.setSelection(0, [begin, size]);
+		})
+		.normalColor_(Color.white)
+		.value_(defaultDur);
+
+		sfv = SoundFileView()
+		.background_(Color.gray(0.3))
+		.timeCursorOn_(true)
+		.gridOn_(true)
+		.gridResolution_(0)
+		.mouseUpAction = ({arg ctrl;
+			var loFrames, hiFrames;
+			var msg;
+			var begin = ctrl.selection(0)[0];
+			var end = ctrl.selection(0)[1] + begin;
+			var dur = (end - begin)/buf.sampleRate;
+			var start = begin/buf.numFrames;
+			this.set(\start, start, \dur, dur);
+			beats.value = dur;
+		});
+		buf.loadToFloatArray(action:{arg a;
+			{
+				sfv.setData(a, channels: buf.numChannels);
+				sfv.setSelection (0, [0, buf.numFrames]);
+				sfv.mouseUpAction.value(sfv);
+			}.defer
+		});
+
+		view.layout.add(HLayout(start, beats));
+		view.layout.add(sfv);
+		^view.front;
+	}
+
 	*initClass { all = () }
 }
 /*
 (
-OscCtrl.paths('/1/push', (1..12), {arg val, num;
+OscCtrl.paths('/rotary8/r', (1..12), {arg val, num;
 	var note = 48 + (num-1);
 	if (val == 1) {
 		S(\synth1).on(note, 1);
@@ -104,11 +152,13 @@ OscCtrl.paths('/1/push', (1..12), {arg val, num;
 	}
 });
 )
-
-OscCtrl.paths('/1/push/', (1..12), nil);
+OscCtrl.paths('/rotary8/r', (1..12), nil);
 */
 OscCtrl {
 
+	/*
+	Note: use symbol notation for path
+	*/
 	*path {arg path, func;
 		var key = path.asSymbol;
 		if (func.isNil) {
@@ -121,6 +171,9 @@ OscCtrl {
 		};
 	}
 
+	/*
+	Note: use symbol notation for prefix
+	*/
 	*paths {arg prefix, nums, func;
 		if (func.isNil) {
 			nums.do({arg i;
@@ -143,7 +196,7 @@ OscCtrl {
 
 /*
 (
-MidiCtrl(\synth1, \iac)
+MidiCtrl(\key, \iac)
 .note(
 	{arg note, vel;
 		var myvel = vel/127;
@@ -457,10 +510,6 @@ S {
 
 		SynthDef(inKey, {
 			var gate = \gate.kr(1);
-			var numvoices = 2;
-			//var ddepth = \ddepth.kr(0.1);
-			//var drate = \drate.kr(0.1);
-			//LFNoise2.ar(drate.dup(numvoices)).bipolar(ddepth).midiratio;
 			var in_freq = \freq.ar(261);
 			var detune = \detuneratio.kr(1);
 			var which = (detune > 1) + (detune < 1);
@@ -524,6 +573,111 @@ S {
 			synth.set(\gate, 0);
 			synth = mysynths[midinote].pop;
 		});
+	}
+
+	gui {
+		var scrollView = ScrollView();
+		var view = View()
+		.layout_(VLayout().margins_(0.5).spacing_(0.5))
+		.palette_(QPalette.dark);
+
+		specs.do({arg assoc;
+			var k = assoc.key;
+			var v = assoc.value;
+			var ctrl = this.prCtrlView(k, v.asSpec, Color.rand, envir);
+			view.layout.add(ctrl);
+		});
+
+		view.layout.add(nil);
+		scrollView.canvas = view.background_(Color.clear);
+		^scrollView.front;
+	}
+
+	prCtrlView {arg key, spec, color, envir=();
+		var controlSpec = spec;
+		var myval = envir[key] ?? controlSpec.default;
+
+		var stack, view;
+		var font = Font(size:10);
+		var li = LevelIndicator().value_(controlSpec.unmap(myval));
+		var labelView = StaticText().string_(key ++ ": ").font_(font).stringColor_(Color.white);
+		var st = StaticText().string_(myval).font_(font).stringColor_(Color.white);
+		var nb = NumberBox()
+		.font_(font)
+		.value_(myval)
+		.background_(Color.white)
+		.minDecimals_(3)
+		.clipLo_(controlSpec.minval)
+		.clipHi_(controlSpec.maxval);
+
+		envir[key] = myval;
+		stack = StackLayout(
+			View()
+			.layout_(
+				StackLayout(
+					View().layout_(HLayout(labelView, st, nil).margins_(1).spacing_(1)),
+					li
+					.style_(\continuous)
+					.meterColor_(color.alpha_(0.5))
+					.warningColor_(color.alpha_(0.5))
+					.criticalColor_(color.alpha_(0.5))
+					.background_(color.alpha_(0.2))
+				)
+				.mode_(\stackAll)
+				.margins_(0)
+				.spacing_(0)
+			)
+			.mouseMoveAction_({arg ctrl, x, y, mod;
+				var val = x.linlin(0, ctrl.bounds.width, 0, 1);
+				var mappedVal = controlSpec.map(val);
+				if (mod == 0) {
+					li.value = val;
+					st.string_(mappedVal);
+					nb.value = mappedVal;
+					envir[key] = mappedVal;
+				};
+			})
+			.mouseDownAction_({arg ctrl, x, y, mod, num, count;
+				var val = controlSpec.default;
+				if (count == 2) {
+					li.value = controlSpec.unmap(val);
+					st.string_(val);
+					nb.value = val;
+					envir[key] = val;
+				} {
+					if (mod == 0) {
+						var val = x.linlin(0, ctrl.bounds.width, 0, 1);
+						var mappedVal = controlSpec.map(val);
+						li.value = val;
+						st.string_(mappedVal);
+						nb.value = mappedVal;
+						envir[key] = mappedVal;
+					};
+				};
+			}),
+			nb
+			.action_({arg ctrl;
+				var val = ctrl.value;
+				li.value = controlSpec.unmap(val);
+				st.string_(val);
+				envir[key] = val;
+				stack.index = 0;
+			}),
+		).mode_(\stackOne)
+		.margins_(0)
+		.spacing_(0);
+
+		view = View().layout_(HLayout(
+			View()
+			.layout_(stack)
+			.mouseDownAction_({arg ctrl, x, y, mod, num, count;
+				if (mod == 262144) {
+					stack.index = 1;
+				}
+			}).fixedHeight_(25),
+		).margins_(0).spacing_(1));
+
+		^view;
 	}
 
 	*initClass {
