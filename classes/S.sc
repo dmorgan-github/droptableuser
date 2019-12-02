@@ -284,7 +284,6 @@ MidiCtrl {
 	}
 
 	cc {arg num, func;
-
 		var mychan = if (chan.isNil) {"all"}{chan};
 		var srcid = if (this.src.isNil.not){src.uid}{nil};
 		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
@@ -300,20 +299,28 @@ MidiCtrl {
 			.permanent_(true);
 		}
 	}
-	/*
-	(
-	MIDIdef.bend(\bendTest, {
-	arg val, chan, src;
-	['bend', val, chan, src].postln;  // [ bend, 11888, 0, 1 ]
-	~bend = val;
-	// also update any notes currently in ~notes
-	~notes.do{arg synth; synth.set(\bend, val.linlin(0, 16383, -2, 2))};
-	}, chan: 0);
-	)
-	*/
+
+	bend {arg func;
+		var mychan = if (chan.isNil) {"all"}{chan};
+		var srcid = if (this.src.isNil.not){src.uid}{nil};
+		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
+		var key = "%_%_%_bend".format(this.key, mychan, srcdevice).asSymbol;
+		if (func.isNil) {
+			"free %".format(key).debug(this.key);
+			MIDIdef(key).permanent_(false).free;
+		}{
+			"register %".format(key).debug(this.key);
+			MIDIdef.bend(key, {arg val, chan, src;
+				// var bend = val.linlin(0, 16383, 0.9, 1.1);
+				func.(val, chan);
+			}, chan:chan, srcID:srcid)
+			.permanent_(true);
+		}
+	}
 
 	clear {
 		this.note(nil, nil);
+		this.bend(nil);
 		// clear all with brute force
 		127.do({arg i;
 			this.cc(i, nil);
@@ -336,58 +343,88 @@ MidiCtrl {
 S {
 	classvar <all;
 
-	classvar <>defaultRoot, <>defaultScale, <>defaultTuning;
+	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <defaultSpecs;
 
 	var <key, <envir, <node, <specs, <synths, <ptrn, synthdef;
 
 	*new {arg key, synth;
 		var res = all[key];
-		if (res.isNil or: synth.isNil.not) {
-			res = super.new.sInit(key, synth);
+		if (res.isNil) {
+			res = super.new.prInit(key);
 			all.put(key, res);
+		};
+		if (synth.isNil.not) {
+			res.prInitSynth(key, synth);
 		};
 		^res;
 	}
 
-	sInit {arg inKey, inSynth;
+	prInit {arg inKey;
+
 		if (inKey.isNil) {
 			Error("key not specified");
-		};
-
-		if (inSynth.isNil) {
-			Error("synth not specified");
-		};
-		if (inSynth.isKindOf(Function)) {
-			this.prBuildSynth(inKey, inSynth);
-			inSynth = inKey;
 		};
 		// using a list as a queue for each note
 		// because i'm a little uncertain about
 		// the potential for race conditions
-		// and possible having a synth floating
+		// and possibly having a synth floating
 		// off in outer space
 		synths = Array.fill(127, {List.new});
+		specs = List.new;
+		envir = ();
 		key = inKey;
-		envir = (
-			instrument: inSynth,
-			//root: defaultRoot,
-			//scale: defaultScale,
-			//tuning: defaultTuning
-		);
 		node = Ndef(key);
 		node.play;
 
-		synthdef = SynthDescLib.global.at(inSynth);
+		^this;
+	}
 
+	prInitSynth {arg inKey, inSynth;
+
+		var synthname = inSynth;
+		if (inSynth.isKindOf(Function)) {
+			synthname = inKey;
+			this.prBuildSynth(synthname, inSynth);
+		};
+		envir[\instrument] = synthname;
+
+		synthdef = SynthDescLib.global.at(synthname);
 		if (synthdef.isNil) {
 			Error("synthdef not found").throw;
 		};
 
 		if (synthdef.metadata.isNil.not) {
-			specs = synthdef.metadata[\specs];
+			specs = synthdef.metadata[\specs].asList;
+		} {
+			specs = (
+				synthdef.controls
+				.reject({arg ctrl;
+					[
+						\out, \freq, \gate, \trig
+					].includes(ctrl.name)
+				})
+				.collect({arg ctrl;
+					var key = ctrl.name.asSymbol;
+					var spec = defaultSpecs.detect({arg assoc; assoc.key == key}).value;
+					if (spec.isNil) {
+						var max = if (ctrl.defaultValue < 1) {1} { min(20000, ctrl.defaultValue * 2) };
+						spec = [0, max, \lin, 0, ctrl.defaultValue];
+					};
+					key -> spec.asSpec;
+				})
+				++ specs
+			)
+			.asList;
 		};
+	}
 
-		^this;
+	addSpec {arg key, spec;
+		var myspec = this.specs.detect({arg assoc; assoc.key == key});
+		if (myspec.isNil) {
+			this.specs.add(key -> spec.asSpec);
+		} {
+			myspec.value = spec.asSpec;
+		}
 	}
 
 	set {arg ...args;
@@ -450,16 +487,6 @@ S {
 				};
 				[key, Pfunc({envir[key]})]
 			}).flatten;
-		} {
-			myspecs = synthdef.controls
-			.reject({arg ctrl; [\out, \freq, \gate, \trig].includes(ctrl.name)})
-			.collect({arg ctrl;
-				var key = ctrl.name.asSymbol;
-				if (envir[key].isNil) {
-					envir[key] = ctrl.defaultValue;
-				};
-				[key, Pfunc({envir[key]})]
-			}).flatten
 		};
 
 		myspecs = myspecs ++ [
@@ -506,15 +533,36 @@ S {
 		}
 	}
 
+	gui {
+		/*
+		TODO: move to own class and called from here
+		*/
+		var scrollView = ScrollView();
+		var view = View()
+		.layout_(VLayout().margins_(0.5).spacing_(0.5))
+		.palette_(QPalette.dark);
+
+		specs.do({arg assoc;
+			var k = assoc.key;
+			var v = assoc.value;
+			var ctrl = this.prCtrlView(k, v.asSpec, Color.rand, envir);
+			view.layout.add(ctrl);
+		});
+
+		view.layout.add(nil);
+		scrollView.canvas = view.background_(Color.clear);
+		^scrollView.front;
+	}
+
 	prBuildSynth {arg inKey, inFunc;
 
 		SynthDef(inKey, {
 			var gate = \gate.kr(1);
 			var in_freq = \freq.ar(261);
 			var detune = \detuneratio.kr(1);
-			var which = (detune > 1) + (detune < 1);
-			var sel = Select.ar(which, [in_freq, [in_freq, in_freq * detune]]);
-			var freq = Vibrato.ar(sel, \vrate.ar(6), \vdepth.ar(0.0));
+			var bend = \bend.ar(1);
+			var freqbend = Lag.ar(in_freq * bend, 0.005);
+			var freq = Vibrato.ar([freqbend, freqbend * detune], \vrate.ar(6), \vdepth.ar(0.0));
 
 			var adsr = {
 				var da = Done.freeSelf;
@@ -553,8 +601,6 @@ S {
 				envir;
 			}.();
 			var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps] ++ evt.asPairs();
-			//synths[midinote].add( Synth(synth.asSymbol, args, target:node.nodeID) );
-			//["lastsynth not nil", synths[midinote]].postln;
 			if (synths[midinote].last.isNil) {
 				synths[midinote].add( Synth(envir[\instrument], args, target:node.nodeID) );
 			}
@@ -575,28 +621,13 @@ S {
 		});
 	}
 
-	gui {
-		var scrollView = ScrollView();
-		var view = View()
-		.layout_(VLayout().margins_(0.5).spacing_(0.5))
-		.palette_(QPalette.dark);
-
-		specs.do({arg assoc;
-			var k = assoc.key;
-			var v = assoc.value;
-			var ctrl = this.prCtrlView(k, v.asSpec, Color.rand, envir);
-			view.layout.add(ctrl);
-		});
-
-		view.layout.add(nil);
-		scrollView.canvas = view.background_(Color.clear);
-		^scrollView.front;
-	}
-
 	prCtrlView {arg key, spec, color, envir=();
+
+		/*
+		TODO: move to own class
+		*/
 		var controlSpec = spec;
 		var myval = envir[key] ?? controlSpec.default;
-
 		var stack, view;
 		var font = Font(size:10);
 		var li = LevelIndicator().value_(controlSpec.unmap(myval));
@@ -685,5 +716,31 @@ S {
 		defaultTuning = \et12;
 		defaultRoot = 4;
 		defaultScale = \dorian;
+
+		defaultSpecs = List.new
+		.addAll([
+			\cutoff -> [20, 18000, 'exp', 0, 1000],
+			\res -> [0, 1, \lin, 0, 0.5],
+			\start -> [0, 1, \lin, 0, 0],
+			\rate -> [0.1, 4.0, \lin, 0, 1],
+			\detuneratio -> [0.9, 1.1, \lin, 0, 1],
+			\atk -> [0, 30, \lin, 0, 0.01],
+			\dec -> [0, 30, \lin, 0, 0.2],
+			\rel -> [0, 30, \lin, 0, 0.29],
+			\suslevel -> [0, 1, \lin, 0, 0.7],
+			\sus -> [0, 30, \lin, 0, 0.1],
+			\atkcurve -> [-4,4,\lin,0,4],
+			\relcurve -> [-4,4,\lin,0,-4],
+			\curve -> [-24, 24, \lin, 0, -4],
+			\ts -> [0, 100, \lin, 0, 1],
+			\bend -> [0.9, 1.1, \lin, 0, 1],
+			\vrate -> [0, 440, \lin, 0, 6],
+			\vdepth -> [0, 1, \lin, 0, 0],
+			\vel -> [0, 1, \lin, 0, 1],
+			\spread -> [0, 1, \lin, 0, 1],
+			\center -> [0, 1, \lin, 0, 0],
+			\pan -> [-1, 1, \lin, 0, 0],
+			\amp -> [-60.dbamp, 20.dbamp, \lin, 0, -20.dbamp]
+		]);
 	}
 }
