@@ -412,7 +412,6 @@ S {
 					};
 					key -> spec.asSpec;
 				})
-				++ specs
 			)
 			.asList;
 		};
