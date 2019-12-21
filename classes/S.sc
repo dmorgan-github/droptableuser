@@ -1,3 +1,61 @@
+Pddl {
+
+	*new {arg seq;
+		var durs, degrees, lag;
+		var parse, result;
+		parse = {arg seq, result=[[],[],0], div=1, isstart=true;
+			seq.do({arg val, i;
+				if (val.isRest) {
+					if(isstart) {
+						// lag only matters if we start the whole phrase
+						// with a rest. inner rests don't require anything
+						// to do with lag
+						result[2] = result[2] + 1;
+					}{
+						if (val == \r) {
+							// a rest
+							result[0] = result[0].add(Rest(div));
+							result[1] = result[1].add(Rest());
+						} {
+							// otherwise a tie
+							var mydurs = result[0];
+							mydurs[mydurs.lastIndex] = mydurs[mydurs.lastIndex] + div;
+						}
+					}
+				} {
+					isstart = false;
+					if (val.isArray) {
+						if ((val.size == 2) and: val[1].isArray) {
+							var myseq = val[1];
+							var mydiv = val[0]/myseq.size * div;
+							result = parse.(myseq, result, mydiv, isstart);
+						} {
+							result[0] = result[0].add(div);
+							result[1] = result[1].add(val.value);
+						}
+					} {
+						result[0] = result[0].add(div);
+						result[1] = result[1].add(val.value);
+					}
+				}
+			});
+			result.postln;
+		};
+		result = parse.(seq);
+		lag = result[2];
+		durs = result[0];
+		durs[durs.lastIndex] = durs[durs.lastIndex] + lag;
+		degrees = result[1];
+		^Pbind(
+			\pddl_dur, Pfunc({arg evt; if (evt[\dur].isNil) {1}{evt[\dur]}}),
+			\pddl_degree, Pfunc({arg evt; if (evt[\degree].isNil) {0}{evt[\degree]}}),
+			\dur, Pseq(durs, inf) * Pkey(\pddl_dur),
+			\degree, Pseq(degrees, inf) + Pkey(\pddl_degree),
+			\lag, Pn(lag) * Pkey(\pddl_dur)
+		);
+	}
+}
+
 L {
 	*new {
 		var view;
@@ -345,7 +403,7 @@ S {
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <defaultSpecs;
 
-	var <key, <envir, <node, <specs, <synths, <ptrn, synthdef;
+	var <key, <envir, <node, <specs, <synths, synthdef, <scenes;
 
 	*new {arg key, synth;
 		var res = all[key];
@@ -371,6 +429,7 @@ S {
 		// off in outer space
 		synths = Array.fill(127, {List.new});
 		specs = List.new;
+		scenes = Order.new;
 		envir = ();
 		key = inKey;
 		node = Ndef(key);
@@ -459,6 +518,32 @@ S {
 
 	filter {arg index, func;
 		node.put(index, \filter -> func);
+		//^this by default this is returned
+	}
+
+	scene {arg index, func;
+		var gdef = Pdef(this.key ++ '_gptrn' ++ index, Pbind(\type, \set, \id, Pfunc({this.node.nodeID})));
+		var pattern = func.(this.pdef, gdef, this.scenes);
+		var key = (this.key ++ '_ptrn' ++ index).asSymbol;
+		pattern = Pdef(key, pattern);
+		scenes.put(index, pattern);
+	}
+
+	playScene {arg index;
+		scenes.do({arg pdef;
+			pdef.stop;
+		});
+		scenes[index].play;
+	}
+
+	stopScene {arg index;
+		if (index.isNil) {
+			scenes.do({arg pdef;
+				pdef.stop;
+			});
+		} {
+			scenes[index].stop;
+		}
 	}
 
 	on {arg midinote, vel=1;
@@ -467,11 +552,6 @@ S {
 
 	off {arg midinote;
 		this.prNoteOff(midinote);
-	}
-
-	pattern {arg ...pairs;
-		ptrn = pairs.asPairs;
-		^this;
 	}
 
 	pdef {
@@ -557,7 +637,7 @@ S {
 
 		SynthDef(inKey, {
 			var gate = \gate.kr(1);
-			var in_freq = \freq.ar(261);
+			var in_freq = \freq.ar(261).lag(\glis.kr(0));
 			var detune = \detuneratio.kr(1);
 			var bend = \bend.ar(1);
 			var freqbend = Lag.ar(in_freq * bend, 0.005);
