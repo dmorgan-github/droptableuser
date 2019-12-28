@@ -1,4 +1,56 @@
-Pddl2 {
+/*
+Vst(\baxfiaii)
+.load()
+.mix(1, Ndef(\aaa), 0.5)
+.mix(2, Ndef(\ddd). 1)
+.set()
+.editor()
+
+var in_node, node, vstcntrl, view, synth;
+	var parentGroup = Group.new(Server.default).debug(\parent);
+	var innerGroup = Group.new(parentGroup).debug(\inner);
+	var fxGroup;
+	var vsts, func;
+
+	SynthDef.new(objName, {
+		var in = \in.kr(0);
+		var sig = VSTPlugin.ar(input:In.ar(in, 2), numOut:2, id:objName) * \amp.kr(1);
+		ReplaceOut.ar(\in.kr(0), sig);
+	}).add;
+
+	node = NodeProxy.audio(s, 2);
+	node.group_(innerGroup).play;
+
+	func = {arg path;
+		var inbus = node.bus;
+		fxGroup = Group.new(target:node.group.debug(\node), addAction:\addAfter);
+
+		synth = Synth(objName, [in: inbus], target:fxGroup.debug(\fx), addAction:\addToTail);
+		vstcntrl = VSTPluginController(synth, objName);
+		vstcntrl.open(path, editor:true);
+	};
+
+	vsts = PathName("/Library/Audio/Plug-Ins/VST").entries.collect({arg pn;
+		var fp = pn.fullPath.asString;
+		var name = fp[0..(fp.size-2)];
+		var path = PathName(name).pathOnly;
+		name = PathName(name).fileNameWithoutExtension;
+		path = path ++ name;
+	});
+
+	view = View().layout_(VLayout());
+	view.layout.add(PopUpMenu().items_([""] ++ vsts).action_({arg ctrl;
+		var item = ctrl.item;
+		if (item != "") {
+			func.(item);
+		}
+	}));
+	view.layout.add(Button().action_({ vstcntrl.editor; }));
+	view.layout.add(Knob().mode_(\vert).action_({arg ctrl; fxGroup.set(\amp, ctrl.value); }).value_(1));
+	envir[objName] = node;
+*/
+
+Pddl {
 
 	*new {arg seq;
 		var durs, degrees, lag, vels, legs;
@@ -102,64 +154,6 @@ Pddl2 {
 	}
 }
 
-Pddl {
-
-	*new {arg seq;
-		var durs, degrees, lag;
-		var parse, result;
-		parse = {arg seq, result=[[],[],0], div=1, isstart=true;
-			seq.do({arg val, i;
-				if (val.isRest) {
-					if(isstart) {
-						// lag only matters if we start the whole phrase
-						// with a rest. inner rests don't require anything
-						// to do with lag
-						result[2] = result[2] + 1;
-					}{
-						if (val == \r) {
-							// a rest
-							result[0] = result[0].add(Rest(div));
-							result[1] = result[1].add(Rest());
-						} {
-							// otherwise a tie
-							var mydurs = result[0];
-							mydurs[mydurs.lastIndex] = mydurs[mydurs.lastIndex] + div;
-						}
-					}
-				} {
-					isstart = false;
-					if (val.isArray) {
-						if ((val.size == 2) and: val[1].isArray) {
-							var myseq = val[1];
-							var mydiv = val[0]/myseq.size * div;
-							result = parse.(myseq, result, mydiv, isstart);
-						} {
-							result[0] = result[0].add(div);
-							result[1] = result[1].add(val.value);
-						}
-					} {
-						result[0] = result[0].add(div);
-						result[1] = result[1].add(val.value);
-					}
-				}
-			});
-			result.postln;
-		};
-		result = parse.(seq);
-		lag = result[2];
-		durs = result[0];
-		durs[durs.lastIndex] = durs[durs.lastIndex] + lag;
-		degrees = result[1];
-		^Pbind(
-			\pddl_dur, Pfunc({arg evt; if (evt[\dur].isNil) {1}{evt[\dur]}}),
-			\pddl_degree, Pfunc({arg evt; if (evt[\degree].isNil) {0}{evt[\degree]}}),
-			\dur, Pseq(durs, inf) * Pkey(\pddl_dur),
-			\degree, Pseq(degrees, inf) + Pkey(\pddl_degree),
-			\lag, Pn(lag) * Pkey(\pddl_dur)
-		);
-	}
-}
-
 L {
 	*new {
 		var view;
@@ -236,6 +230,10 @@ B : S {
 		^this;
 	}
 
+	recSoundIn {
+		Synth(\rec_soundin, [\buf, buf, \run, 1, \trig, 1]);
+	}
+
 	prNoteOn {arg rate, vel=1;
 		if (this.node.isPlaying) {
 			var evt = {
@@ -301,7 +299,30 @@ B : S {
 		^view.front;
 	}
 
-	*initClass { all = () }
+	*initClass {
+
+		all = ();
+
+		StartUp.add {
+			SynthDef(\rec_soundin, {
+				var in = SoundIn.ar([0, 1]);
+				var trig = \trig.tr;
+				var buf = \buf.kr(0);
+				var run = \run.kr(0);
+				RecordBuf.ar(in,
+					buf,
+					offset:0,
+					recLevel:\reclevel.ar(1),
+					preLevel:\prelevel.ar(0),
+					run:run,
+					loop:0,
+					trigger:trig,
+					doneAction:Done.freeSelf
+				);
+				Silent.ar(2);
+			}).add;
+		};
+	}
 }
 /*
 (
