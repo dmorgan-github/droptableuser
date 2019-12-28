@@ -1,3 +1,107 @@
+Pddl2 {
+
+	*new {arg seq;
+		var durs, degrees, lag, vels, legs;
+		var parse, result;
+		parse = {arg seq, result=[[],[],0,[],[]], div=1, isstart=true;
+			seq.do({arg val, i;
+				if (val.isRest) {
+					if(isstart) {
+						// lag only matters if we start the whole phrase
+						// with a rest. inner rests don't require anything
+						// to do with lag
+						result[2] = result[2] + 1;
+					}{
+						if (val == \r) {
+							// a rest
+							result[0] = result[0].add(Rest(div));
+							// degree
+							result[1] = result[1].add(Rest());
+							// vel
+							result[3] = result[3].add(Rest());
+							// legato
+							result[4] = result[4].add(Rest());
+						} {
+							// otherwise a tie
+							var mydurs = result[0];
+							mydurs[mydurs.lastIndex] = mydurs[mydurs.lastIndex] + div;
+						}
+					}
+				} {
+					isstart = false;
+					if (val.isArray) {
+						if ((val.size == 2) and: val[1].isArray) {
+							var myseq = val[1];
+							var mydiv = val[0]/myseq.size * div;
+							result = parse.(myseq, result, mydiv, isstart);
+						} {
+							var obj = val.value;
+							var mydegree = obj;
+							var vel = 1;
+							var legato = 1;
+							if (obj.isKindOf(Event)) {
+								mydegree = obj[\deg].asStream;
+								mydegree = Pfuncn({mydegree.next}, 1);
+
+								vel = obj[\vel].asStream ?? vel;
+								vel = Pfuncn({vel.next}, 1);
+
+								legato = obj[\leg].asStream ?? legato;
+								legato = Pfuncn({legato.next}, 1);
+
+							};
+							result[0] = result[0].add(div);
+							result[1] = result[1].add(mydegree);
+							result[3] = result[3].add(vel);
+							result[4] = result[4].add(legato);
+						}
+					} {
+						var obj = val.value;
+						var mydegree = obj;
+						var vel = 1;
+						var legato = 1;
+						if (obj.isKindOf(Event)) {
+							var dstream, vstream, lstream;
+							dstream = obj[\deg].asStream;
+							mydegree = Pfuncn({dstream.next}, 1);
+
+							vstream = obj[\vel].asStream ?? vel;
+							vel = Pfuncn({vstream.next}, 1);
+
+							lstream = obj[\leg].asStream ?? legato;
+							legato = Pfuncn({lstream.next}, 1);
+
+						};
+						result[0] = result[0].add(div);
+						result[1] = result[1].add(mydegree);
+						result[3] = result[3].add(vel);
+						result[4] = result[4].add(legato);
+					}
+				}
+			});
+			result.postln;
+		};
+		result = parse.(seq);
+		lag = result[2];
+		durs = result[0];
+		durs[durs.lastIndex] = durs[durs.lastIndex] + lag;
+		degrees = result[1];
+		vels = result[3];
+		legs = result[4];
+		^Pbind(
+			\pddl_dur, Pfunc({arg evt; if (evt[\dur].isNil) {1}{evt[\dur]}}),
+			\pddl_degree, Pfunc({arg evt; if (evt[\degree].isNil) {0}{evt[\degree]}}),
+			\pddl_vel, Pfunc({arg evt; if (evt[\vel].isNil) {1}{evt[\vel]}}),
+			\pddl_legato, Pfunc({arg evt; if (evt[\legato].isNil) {1}{evt[\legato]}}),
+			\dur, Pseq(durs, inf) * Pkey(\pddl_dur),
+			\degree, Pseq(degrees, inf) + Pkey(\pddl_degree),
+			\lag, Pn(lag) * Pkey(\pddl_dur),
+			\legato, Pseq(legs, inf) * Pkey(\pddl_legato),
+			\vel, Pseq(vels, inf) * Pkey(\pddl_vel)
+		);
+	}
+}
+
 Pddl {
 
 	*new {arg seq;
@@ -455,24 +559,30 @@ S {
 		if (synthdef.metadata.isNil.not) {
 			specs = synthdef.metadata[\specs].asList;
 		} {
-			specs = (
-				synthdef.controls
-				.reject({arg ctrl;
-					[
-						\out, \freq, \gate, \trig
-					].includes(ctrl.name)
-				})
-				.collect({arg ctrl;
-					var key = ctrl.name.asSymbol;
-					var spec = defaultSpecs.detect({arg assoc; assoc.key == key}).value;
-					if (spec.isNil) {
-						var max = if (ctrl.defaultValue < 1) {1} { min(20000, ctrl.defaultValue * 2) };
-						spec = [0, max, \lin, 0, ctrl.defaultValue];
-					};
-					key -> spec.asSpec;
-				})
-			)
-			.asList;
+			// does this need to be smarter
+			// when we're reloading the synthdef
+			// to pick up new controls but not
+			// overwrite anything already existing...
+			if (specs.size == 0) {
+				specs = (
+					synthdef.controls
+					.reject({arg ctrl;
+						[
+							\out, \freq, \gate, \trig
+						].includes(ctrl.name)
+					})
+					.collect({arg ctrl;
+						var key = ctrl.name.asSymbol;
+						var spec = defaultSpecs.detect({arg assoc; assoc.key == key}).value;
+						if (spec.isNil) {
+							var max = if (ctrl.defaultValue < 1) {1} { min(20000, ctrl.defaultValue * 2) };
+							spec = [0, max, \lin, 0, ctrl.defaultValue];
+						};
+						key -> spec.asSpec;
+					})
+				)
+				.asList;
+			}
 		};
 	}
 
@@ -587,7 +697,8 @@ S {
 				\beatdur, Pfunc({thisThread.clock.beatDur}),
 				\elapsedbeats, Pfunc({thisThread.clock.elapsedBeats}),
 				\bar, Pfunc({thisThread.clock.bar}),
-				\beatinbar, Pfunc({thisThread.clock.beatInBar})
+				\beatinbar, Pfunc({thisThread.clock.beatInBar}),
+				\hit, Pseries(0, 1, inf)
 			)
 		})
 	}
@@ -616,8 +727,10 @@ S {
 		/*
 		TODO: move to own class and called from here
 		*/
-		var scrollView = ScrollView();
+		var scrollView = ScrollView()
+		.name_(this.key);
 		var view = View()
+		.name_(this.key)
 		.layout_(VLayout().margins_(0.5).spacing_(0.5))
 		.palette_(QPalette.dark);
 
@@ -645,18 +758,35 @@ S {
 
 			var adsr = {
 				var da = Done.freeSelf;
+				var ts = \ts.kr(1);
 				var atk = \atk.kr(0.01);
 				var dec = \dec.kr(0.1);
 				var rel = \rel.kr(0.1);
 				var curve = \curve.kr(-4);
 				var suslevel = \suslevel.kr(0.5);
-				var ts = \ts.kr(1);
 				var env = Env.adsr(atk, dec, suslevel, rel, curve:curve).ar(doneAction:da, gate:gate, timeScale:ts);
+
+				/*
+				// this will allow changing the curve for each stage
+				var peakLevel = 1;
+				var suslevel = \suslevel.kr(0.5);
+				var atk =  \atk.kr(0.01);
+				var dec = \dec.kr(0.1);
+				var rel = \rel.kr(0.1);
+				var c1 = \curve1.kr(-4);
+				var c2 = \curve2.kr(-4);
+				var c3 = \curve3.kr(-4);
+				Env(
+				[0, peakLevel, peakLevel * suslevel, 0],
+				[atk, dec, rel],
+				curve:[c1, c2, c3],
+				releaseNode:2).ar(doneAction:da, gate:gate, timeScale:ts);
+				*/
 				env;
 			};
 
 			var aeg = adsr.();
-			var sig = inFunc.(freq, gate);
+			var sig = inFunc.(freq, gate, aeg);
 
 			sig = sig * aeg * AmpCompA.ar(freq) * \vel.kr(1);
 			sig = Splay.ar(sig, \spread.kr(0), center:\center.kr(0));
@@ -811,6 +941,9 @@ S {
 			\atkcurve -> [-4,4,\lin,0,4],
 			\relcurve -> [-4,4,\lin,0,-4],
 			\curve -> [-24, 24, \lin, 0, -4],
+			\curve1 -> [-24, 24, \lin, 0, -4],
+			\curve2 -> [-24, 24, \lin, 0, -4],
+			\curve3 -> [-24, 24, \lin, 0, -4],
 			\ts -> [0, 100, \lin, 0, 1],
 			\bend -> [0.9, 1.1, \lin, 0, 1],
 			\vrate -> [0, 440, \lin, 0, 6],
