@@ -53,18 +53,22 @@ OscCtrl {
 
 /*
 (
-MidiCtrl(\key, \iac)
+MidiCtrl(\qaryrf)
 .note(
 	{arg note, vel;
 		var myvel = vel/127;
-		S(\synth1).noteon(note, myvel)
+		S(\usmo).on(note, myvel)
 	},
 	{arg note;
-		S(\synth1).noteoff(note)
+		S(\usmo).off(note)
 	}
 )
+.cc(0, {arg val, num, chan;
+	var myval = val/127;
+	S(\usmo).set(\start, myval);
+});
 )
-MidiCtrl(\synth1).note(nil, nil);
+MidiCtrl(\qaryrf).note(nil, nil).cc(0, nil);
 */
 MidiCtrl {
 	classvar <all;

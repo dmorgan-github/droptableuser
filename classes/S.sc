@@ -1,10 +1,13 @@
 /*
 Vst(\baxfiaii)
-.load()
-.mix(1, Ndef(\aaa), 0.5)
-.mix(2, Ndef(\ddd). 1)
+.load('++decimator')
+.in(Ndef(\aaa))
+.wet()
+.bypass(true)
 .set()
 .editor()
+.node
+
 
 var in_node, node, vstcntrl, view, synth;
 	var parentGroup = Group.new(Server.default).debug(\parent);
@@ -106,27 +109,6 @@ B : S {
 			msg.debug(\overdubSoundIn);
 		}, '/rec_soundin_done', Server.default.addr).oneShot;
 	}
-
-	/*
-	prNoteOn {arg rate, vel=1;
-		if (this.node.isPlaying) {
-			var evt = {
-				this.envir.select({arg val; val.isKindOf(Pattern).not});
-				this.envir[\vel] = vel;
-				this.envir;
-			}.();
-			var args = [\out, this.node.bus.index, \rate, rate] ++ evt.asPairs();
-			Synth(this.envir[\instrument], args, target:this.node.nodeID);
-		}
-	}
-	*/
-
-	/*
-	prNoteOff {arg midinote;
-		// no op
-		// we are using timed envelopes
-	}
-	*/
 
 	gui {
 		var sfv;
