@@ -1,6 +1,6 @@
 Sui {
 
-	show {arg key, envir, specs;
+	*new {arg key, envir, specs;
 		/*
 		TODO: move to own class and called from here
 		*/
@@ -114,7 +114,7 @@ Sui {
 
 K {
 
-	show {arg synth;
+	*new {arg synth;
 
 		var synthEnvir = synth.envir;
 
@@ -216,6 +216,6 @@ L {
 			);
 		});
 		view = View().layout_(GridLayout.rows(*buttons));
-		view.front;
+		^view
 	}
 }

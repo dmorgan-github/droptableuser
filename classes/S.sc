@@ -107,6 +107,7 @@ B : S {
 		}, '/rec_soundin_done', Server.default.addr).oneShot;
 	}
 
+	/*
 	prNoteOn {arg rate, vel=1;
 		if (this.node.isPlaying) {
 			var evt = {
@@ -118,11 +119,14 @@ B : S {
 			Synth(this.envir[\instrument], args, target:this.node.nodeID);
 		}
 	}
+	*/
 
+	/*
 	prNoteOff {arg midinote;
 		// no op
 		// we are using timed envelopes
 	}
+	*/
 
 	gui {
 		var sfv;
@@ -426,7 +430,7 @@ S {
 	}
 
 	gui {
-		var view = Sui().show(this.key, this.envir, this.specs);
+		var view = Sui(this.key, this.envir, this.specs);
 		view.front;
 	}
 
