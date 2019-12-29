@@ -1,13 +1,8 @@
 (
 thisProcess.platform.recordingsDir_("/Users/david/projects/droptableuser/workspaces");
 
-//s.options.memSize = 256 ** 2;
-s.options.memSize_(65536 * 4);
-//s.options.numInputBusChannels = 2;
-s.options.numOutputBusChannels = 16;
-
+s.options.memSize_(2 ** 18);
 s.options.numAudioBusChannels = 1024 * 2;
-
 s.options.numWireBufs = 2 ** 7;
 
 // for superdirt
@@ -18,24 +13,43 @@ s.options.numBuffers = 1024 * 16;
 
 Font.setDefault(Font("Courier New", 10));
 
-s.options.numOutputBusChannels = 16;
+s.options.numOutputBusChannels = 2; // 24
 s.options.inDevice_("supercollider-in");
+
+//s.options.outDevice = "JackRouter";
 s.options.outDevice_("supercollider-out");
 
 s.waitForBoot({
 
-	~bufs = ();
+	File.open("/Users/david/projects/scynapse/_main.scd", "r").readAllString.interpret;
+	MIDIClient.init;
+	MIDIClient.initialized.debug("midi initialized");
+	//MIDIIn.connectAll;
+	Pdef.defaultQuant_(1);
 
-	/////////////////////////////////////////
-	// proxy space
-	~p = ~p ? ProxySpace.new(s, \p);
-	~p.quant = 4.0;
-	~p.fadeTime = 2;
-	~p.clock = TempoClock.default.tempo_(60/60);
+	{
+		// load synthdefs
+		var pathname = PathName.new("/Users/david/projects/scynapse/_synthdefs/");
+		pathname.files.do({arg pn;
+			File.open(pn.fullPath, "r").readAllString.interpret;
+		});
+	}.();
 
-	"~p proxy space initialized".postln;
+	// trigger bitwig record
+	//m = NetAddr("127.0.0.1", 8000); // loopback
+	//m.sendMsg("/record");
 
-	//SuperDirt.stop;
-	//SuperDirt.start;
+	// mini preprocessor to generate id values
+	{
+		var func = {arg code;
+			if (code == "scid") {
+				var id = ("\\" ++ App.idgen).asSymbol;
+				code = code.replace("scid", id);
+				Document.current.selectedString_(id);
+			};
+			code;
+		};
+		this.preProcessor = func;
+	}.();
 })
 )
