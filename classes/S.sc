@@ -50,145 +50,6 @@ var in_node, node, vstcntrl, view, synth;
 	envir[objName] = node;
 */
 
-Pddl {
-
-	*new {arg seq;
-		var durs, degrees, lag, vels, legs;
-		var parse, result;
-		parse = {arg seq, result=[[],[],0,[],[]], div=1, isstart=true;
-			seq.do({arg val, i;
-				if (val.isRest) {
-					if(isstart) {
-						// lag only matters if we start the whole phrase
-						// with a rest. inner rests don't require anything
-						// to do with lag
-						result[2] = result[2] + 1;
-					}{
-						if (val == \r) {
-							// a rest
-							result[0] = result[0].add(Rest(div));
-							// degree
-							result[1] = result[1].add(Rest());
-							// vel
-							result[3] = result[3].add(Rest());
-							// legato
-							result[4] = result[4].add(Rest());
-						} {
-							// otherwise a tie
-							var mydurs = result[0];
-							mydurs[mydurs.lastIndex] = mydurs[mydurs.lastIndex] + div;
-						}
-					}
-				} {
-					isstart = false;
-					if (val.isArray) {
-						if ((val.size == 2) and: val[1].isArray) {
-							var myseq = val[1];
-							var mydiv = val[0]/myseq.size * div;
-							result = parse.(myseq, result, mydiv, isstart);
-						} {
-							var obj = val.value;
-							var mydegree = obj;
-							var vel = 1;
-							var legato = 1;
-							if (obj.isKindOf(Event)) {
-								mydegree = obj[\deg].asStream;
-								mydegree = Pfuncn({mydegree.next}, 1);
-
-								vel = obj[\vel].asStream ?? vel;
-								vel = Pfuncn({vel.next}, 1);
-
-								legato = obj[\leg].asStream ?? legato;
-								legato = Pfuncn({legato.next}, 1);
-
-							};
-							result[0] = result[0].add(div);
-							result[1] = result[1].add(mydegree);
-							result[3] = result[3].add(vel);
-							result[4] = result[4].add(legato);
-						}
-					} {
-						var obj = val.value;
-						var mydegree = obj;
-						var vel = 1;
-						var legato = 1;
-						if (obj.isKindOf(Event)) {
-							var dstream, vstream, lstream;
-							dstream = obj[\deg].asStream;
-							mydegree = Pfuncn({dstream.next}, 1);
-
-							vstream = obj[\vel].asStream ?? vel;
-							vel = Pfuncn({vstream.next}, 1);
-
-							lstream = obj[\leg].asStream ?? legato;
-							legato = Pfuncn({lstream.next}, 1);
-
-						};
-						result[0] = result[0].add(div);
-						result[1] = result[1].add(mydegree);
-						result[3] = result[3].add(vel);
-						result[4] = result[4].add(legato);
-					}
-				}
-			});
-			result.postln;
-		};
-		result = parse.(seq);
-		lag = result[2];
-		durs = result[0];
-		durs[durs.lastIndex] = durs[durs.lastIndex] + lag;
-		degrees = result[1];
-		vels = result[3];
-		legs = result[4];
-		^Pbind(
-			\pddl_dur, Pfunc({arg evt; if (evt[\dur].isNil) {1}{evt[\dur]}}),
-			\pddl_degree, Pfunc({arg evt; if (evt[\degree].isNil) {0}{evt[\degree]}}),
-			\pddl_vel, Pfunc({arg evt; if (evt[\vel].isNil) {1}{evt[\vel]}}),
-			\pddl_legato, Pfunc({arg evt; if (evt[\legato].isNil) {1}{evt[\legato]}}),
-			\dur, Pseq(durs, inf) * Pkey(\pddl_dur),
-			\degree, Pseq(degrees, inf) + Pkey(\pddl_degree),
-			\lag, Pn(lag) * Pkey(\pddl_dur),
-			\legato, Pseq(legs, inf) * Pkey(\pddl_legato),
-			\vel, Pseq(vels, inf) * Pkey(\pddl_vel)
-		);
-	}
-}
-
-L {
-	*new {
-		var view;
-		var pdefs = Pdef.all.keys.asArray
-		.sort
-		.select({arg k; k.asString.contains("_ptrn")})
-		.collect({arg k; Pdef(k)});
-
-		var buttons = List.new;
-		var currentrow = nil;
-		var lastkey = "";
-		pdefs.do({arg pdef, i;
-			var key = pdef.key;
-			if (key.asString.beginsWith(lastkey).not) {
-				lastkey = key.asString.split($_)[0];
-				currentrow = List.new;
-				buttons.add(currentrow);
-			};
-			currentrow.add(Button()
-				.states_([ [key, nil, Color.gray], [key, nil, Color.blue] ])
-				.action_({arg ctrl;
-					if (ctrl.value == 1) {
-						pdef.play;
-					}{
-						pdef.stop;
-					}
-				})
-				.value_(pdef.isPlaying)
-			);
-		});
-		view = View().layout_(GridLayout.rows(*buttons));
-		view.front;
-	}
-}
-
 B : S {
 
 	classvar <all;
@@ -230,8 +91,20 @@ B : S {
 		^this;
 	}
 
-	recSoundIn {
-		Synth(\rec_soundin, [\buf, buf, \run, 1, \trig, 1]);
+	recSoundIn {arg reclevel=1;
+		Synth(\rec_soundin, [\buf, buf, \run, 1, \trig, 1, \reclevel, reclevel]);
+
+		OSCFunc({arg msg;
+			msg.debug(\recSoundIn);
+		}, '/rec_soundin_done', Server.default.addr).oneShot;
+	}
+
+	overdubSoundIn {arg prelevel=0.7, reclevel=1;
+		Synth(\rec_soundin, [\buf, buf, \run, 1, \trig, 1, \reclevel, reclevel, \prelevel, prelevel]);
+
+		OSCFunc({arg msg;
+			msg.debug(\overdubSoundIn);
+		}, '/rec_soundin_done', Server.default.addr).oneShot;
 	}
 
 	prNoteOn {arg rate, vel=1;
@@ -305,222 +178,30 @@ B : S {
 
 		StartUp.add {
 			SynthDef(\rec_soundin, {
+
 				var in = SoundIn.ar([0, 1]);
 				var trig = \trig.tr;
 				var buf = \buf.kr(0);
 				var run = \run.kr(0);
-				RecordBuf.ar(in,
+
+				var sig = RecordBuf.ar(in,
 					buf,
 					offset:0,
 					recLevel:\reclevel.ar(1),
 					preLevel:\prelevel.ar(0),
 					run:run,
-					loop:0,
+					loop:\loop.kr(0),
 					trigger:trig,
 					doneAction:Done.freeSelf
 				);
-				Silent.ar(2);
+
+				var donetrig = Done.kr(sig);
+				SendReply.kr(donetrig, '/rec_soundin_done', 1, 1905);
+				sig;
+
 			}).add;
 		};
 	}
-}
-/*
-(
-OscCtrl.paths('/rotary8/r', (1..12), {arg val, num;
-	var note = 48 + (num-1);
-	if (val == 1) {
-		S(\synth1).on(note, 1);
-	}{
-		S(\synth1).off(note);
-	}
-});
-)
-OscCtrl.paths('/rotary8/r', (1..12), nil);
-*/
-OscCtrl {
-
-	/*
-	Note: use symbol notation for path
-	*/
-	*path {arg path, func;
-		var key = path.asSymbol;
-		if (func.isNil) {
-			OSCdef(key).free;
-		}{
-			OSCdef.newMatching(key, {arg msg, time, addr, recvPort;
-				var val = msg[1];
-				func.(val);
-			}, key).permanent_(true);
-		};
-	}
-
-	/*
-	Note: use symbol notation for prefix
-	*/
-	*paths {arg prefix, nums, func;
-		if (func.isNil) {
-			nums.do({arg i;
-				var path =  "%%".format(prefix, i).asSymbol;
-				"free %".format(path).debug(\many);
-				OSCdef(path).free;
-			});
-		}{
-			nums.do({arg i;
-				var path =  "%%".format(prefix, i).asSymbol;
-				"register %".format(path).debug(\many);
-				OSCdef.newMatching(path, {arg msg, time, addr, recvPort;
-					var val = msg[1];
-					func.(val, i);
-				}, path).permanent_(true);
-			});
-		}
-	}
-}
-
-/*
-(
-MidiCtrl(\key, \iac)
-.note(
-	{arg note, vel;
-		var myvel = vel/127;
-		S(\synth1).noteon(note, myvel)
-	},
-	{arg note;
-		S(\synth1).noteoff(note)
-	}
-)
-)
-MidiCtrl(\synth1).note(nil, nil);
-*/
-MidiCtrl {
-	classvar <all;
-
-	var <key, <src, <chan;
-
-	*new {arg key, src=\iac, chan;
-		var res = all[key];
-		if (res.isNil) {
-			res = super.new.init(key, src, chan);
-			all.put(key, res);
-		};
-		^res;
-	}
-
-	init {arg inKey, inSrcKey, inChan;
-		key = inKey;
-		chan = inChan;
-		MIDIClient.init;
-		if (inSrcKey.isNil.not) {
-			src = switch(inSrcKey,
-				\roli_usb, {
-					MIDIClient.sources
-					.select({arg src; src.device.beginsWith("Lightpad BLOCK")})
-					.first
-				},
-				\roli_bt, {
-					MIDIClient.sources
-					.select({arg src; src.device.beginsWith("Lightpad Block 1UOC")})
-					.first
-				},
-				\iac, {
-					MIDIClient.sources
-					.select({arg src; src.device.beginsWith("IAC Driver")})
-					.first;
-				}
-			);
-			MIDIIn.connect(device:src);
-		};
-		^this;
-	}
-
-	note {arg on, off;
-
-		var mychan = if (chan.isNil) {"all"}{chan};
-		var srcid = if (this.src.isNil.not){src.uid}{nil};
-		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
-		var onkey = ("%_%_%_on").format(this.key, mychan, srcdevice).asSymbol;
-		var offkey = ("%_%_%_off").format(this.key, mychan, srcdevice).asSymbol;
-
-		if (on.isNil) {
-			"free %".format(onkey).debug(this.key);
-			MIDIdef(onkey).permanent_(false).free;
-		}{
-			"register %".format(onkey).debug(this.key);
-			MIDIdef.noteOn(onkey, func:{arg vel, note, chan, src;
-				on.(note, vel, chan);
-			}, chan:chan, srcID:srcid)
-			.permanent_(true);
-		};
-
-		if (off.isNil){
-			"free %".format(offkey).debug(this.key);
-			MIDIdef(offkey).permanent_(false).free;
-		}{
-			"register %".format(offkey).debug(this.key);
-			MIDIdef.noteOff(offkey, func:{arg vel, note, chan, src;
-				off.(note, chan);
-			}, chan:chan, srcID:srcid)
-			.permanent_(true);
-		};
-
-		^this;
-	}
-
-	cc {arg num, func;
-		var mychan = if (chan.isNil) {"all"}{chan};
-		var srcid = if (this.src.isNil.not){src.uid}{nil};
-		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
-		var key = "%_%_%_cc%".format(this.key, mychan, srcdevice, num).asSymbol;
-		if (func.isNil) {
-			"free %".format(key).debug(this.key);
-			MIDIdef(key).permanent_(false).free;
-		}{
-			"register %".format(key).debug(this.key);
-			MIDIdef.cc(key, {arg val, num, chan, src;
-				func.(val, num, chan);
-			}, chan:chan, srcID:srcid)
-			.permanent_(true);
-		}
-	}
-
-	bend {arg func;
-		var mychan = if (chan.isNil) {"all"}{chan};
-		var srcid = if (this.src.isNil.not){src.uid}{nil};
-		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
-		var key = "%_%_%_bend".format(this.key, mychan, srcdevice).asSymbol;
-		if (func.isNil) {
-			"free %".format(key).debug(this.key);
-			MIDIdef(key).permanent_(false).free;
-		}{
-			"register %".format(key).debug(this.key);
-			MIDIdef.bend(key, {arg val, chan, src;
-				// var bend = val.linlin(0, 16383, 0.9, 1.1);
-				func.(val, chan);
-			}, chan:chan, srcID:srcid)
-			.permanent_(true);
-		}
-	}
-
-	clear {
-		this.note(nil, nil);
-		this.bend(nil);
-		// clear all with brute force
-		127.do({arg i;
-			this.cc(i, nil);
-		});
-		all.removeAt(key)
-	}
-
-	prNormalize {arg str;
-		^str.toLower().stripWhiteSpace().replace(" ", "")
-	}
-
-	*clearAll {
-		all.do({arg m; m.clear()});
-		all.clear;
-	}
-
-	*initClass { all = () }
 }
 
 S {
@@ -745,26 +426,8 @@ S {
 	}
 
 	gui {
-		/*
-		TODO: move to own class and called from here
-		*/
-		var scrollView = ScrollView()
-		.name_(this.key);
-		var view = View()
-		.name_(this.key)
-		.layout_(VLayout().margins_(0.5).spacing_(0.5))
-		.palette_(QPalette.dark);
-
-		specs.do({arg assoc;
-			var k = assoc.key;
-			var v = assoc.value;
-			var ctrl = this.prCtrlView(k, v.asSpec, Color.rand, envir);
-			view.layout.add(ctrl);
-		});
-
-		view.layout.add(nil);
-		scrollView.canvas = view.background_(Color.clear);
-		^scrollView.front;
+		var view = Sui().show(this.key, this.envir, this.specs);
+		view.front;
 	}
 
 	prBuildSynth {arg inKey, inFunc;
@@ -849,96 +512,6 @@ S {
 			synth.set(\gate, 0);
 			synth = mysynths[midinote].pop;
 		});
-	}
-
-	prCtrlView {arg key, spec, color, envir=();
-
-		/*
-		TODO: move to own class
-		*/
-		var controlSpec = spec;
-		var myval = envir[key] ?? controlSpec.default;
-		var stack, view;
-		var font = Font(size:10);
-		var li = LevelIndicator().value_(controlSpec.unmap(myval));
-		var labelView = StaticText().string_(key ++ ": ").font_(font).stringColor_(Color.white);
-		var st = StaticText().string_(myval).font_(font).stringColor_(Color.white);
-		var nb = NumberBox()
-		.font_(font)
-		.value_(myval)
-		.background_(Color.white)
-		.minDecimals_(3)
-		.clipLo_(controlSpec.minval)
-		.clipHi_(controlSpec.maxval);
-
-		envir[key] = myval;
-		stack = StackLayout(
-			View()
-			.layout_(
-				StackLayout(
-					View().layout_(HLayout(labelView, st, nil).margins_(1).spacing_(1)),
-					li
-					.style_(\continuous)
-					.meterColor_(color.alpha_(0.5))
-					.warningColor_(color.alpha_(0.5))
-					.criticalColor_(color.alpha_(0.5))
-					.background_(color.alpha_(0.2))
-				)
-				.mode_(\stackAll)
-				.margins_(0)
-				.spacing_(0)
-			)
-			.mouseMoveAction_({arg ctrl, x, y, mod;
-				var val = x.linlin(0, ctrl.bounds.width, 0, 1);
-				var mappedVal = controlSpec.map(val);
-				if (mod == 0) {
-					li.value = val;
-					st.string_(mappedVal);
-					nb.value = mappedVal;
-					envir[key] = mappedVal;
-				};
-			})
-			.mouseDownAction_({arg ctrl, x, y, mod, num, count;
-				var val = controlSpec.default;
-				if (count == 2) {
-					li.value = controlSpec.unmap(val);
-					st.string_(val);
-					nb.value = val;
-					envir[key] = val;
-				} {
-					if (mod == 0) {
-						var val = x.linlin(0, ctrl.bounds.width, 0, 1);
-						var mappedVal = controlSpec.map(val);
-						li.value = val;
-						st.string_(mappedVal);
-						nb.value = mappedVal;
-						envir[key] = mappedVal;
-					};
-				};
-			}),
-			nb
-			.action_({arg ctrl;
-				var val = ctrl.value;
-				li.value = controlSpec.unmap(val);
-				st.string_(val);
-				envir[key] = val;
-				stack.index = 0;
-			}),
-		).mode_(\stackOne)
-		.margins_(0)
-		.spacing_(0);
-
-		view = View().layout_(HLayout(
-			View()
-			.layout_(stack)
-			.mouseDownAction_({arg ctrl, x, y, mod, num, count;
-				if (mod == 262144) {
-					stack.index = 1;
-				}
-			}).fixedHeight_(25),
-		).margins_(0).spacing_(1));
-
-		^view;
 	}
 
 	*initClass {
