@@ -26,5 +26,5 @@ soundcloud
 *.RTrackTemplate
 valhalla
 deprecated
-
+*.vpreset
 

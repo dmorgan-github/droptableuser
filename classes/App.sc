@@ -48,6 +48,24 @@ App {
 		}
 	}
 
+	*freqscope {
+		var view = View()
+		.layout_(VLayout().spacing_(0).margins_(0))
+		.name_("Freq Analyzer")
+		.minWidth_(200)
+		.minHeight_(150);
+
+		var fsv = FreqScopeView()
+		.active_(true)
+		.freqMode_(1);
+
+		view.layout.add(fsv);
+		view.onClose_({
+			fsv.kill;
+		});
+		view.front;
+	}
+
 	*guiHelper {arg proxy, name;
 
 		var width = 390;

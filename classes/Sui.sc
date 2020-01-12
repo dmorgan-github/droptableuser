@@ -22,7 +22,7 @@ Sui {
 		^scrollView;
 	}
 
-	prCtrlView {arg key, spec, color, envir=();
+	*prCtrlView {arg key, spec, color, envir=();
 		/*
 		TODO: move to own class
 		*/

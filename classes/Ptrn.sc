@@ -1,3 +1,15 @@
+
+/*
+(
+16.collect({arg val;
+	if (0.4.coin) {
+		(-4..4).choose
+	}{
+		Rest()
+	}
+}).asCompileString
+)
+*/
 Pddl {
 
 	*new {arg seq;

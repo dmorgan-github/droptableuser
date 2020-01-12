@@ -22,7 +22,7 @@ OscCtrl {
 			OSCdef(key).free;
 		}{
 			OSCdef.newMatching(key, {arg msg, time, addr, recvPort;
-				var val = msg[1];
+				var val = msg[1..];
 				func.(val);
 			}, key).permanent_(true);
 		};
@@ -71,6 +71,10 @@ MidiCtrl(\qaryrf)
 MidiCtrl(\qaryrf).note(nil, nil).cc(0, nil);
 */
 MidiCtrl {
+
+	/*
+	TODO: add trace - MIDIFunc.trace(true)
+	*/
 	classvar <all;
 
 	var <key, <src, <chan;

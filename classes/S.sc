@@ -79,19 +79,33 @@ B : S {
 				this.set(\instrument, \smplr_2chan);
 			}
 		}{
-			Buffer.read(Server.default, inPath, action:{arg mybuf;
+			if (inPath.isNumber) {
 				var bufnum;
-				"buffer loaded; numchannels: %".format(mybuf.numChannels).debug(\b);
-				bufnum = mybuf.bufnum;
-				buf = mybuf;
-				this.specs.add(\buf -> ControlSpec(bufnum, bufnum, \lin, 0, bufnum));
+				buf = B.alloc(inPath);
+				bufnum = buf.bufnum;
 				this.set(\buf, buf);
-				if (buf.numChannels == 2) {
-					this.set(\instrument, \smplr_2chan);
-				};
-			});
+				this.set(\instrument, \smplr_2chan);
+				this.specs.add(\buf -> ControlSpec(bufnum, bufnum, \lin, 0, bufnum));
+			}{
+				Buffer.read(Server.default, inPath, action:{arg mybuf;
+					var bufnum;
+					"buffer loaded; numchannels: %".format(mybuf.numChannels).debug(\b);
+					bufnum = mybuf.bufnum;
+					buf = mybuf;
+					this.specs.add(\buf -> ControlSpec(bufnum, bufnum, \lin, 0, bufnum));
+					this.set(\buf, buf);
+					if (buf.numChannels == 2) {
+						this.set(\instrument, \smplr_2chan);
+					};
+				});
+			}
 		};
 		^this;
+	}
+
+	*alloc {arg seconds;
+		var numChannels = 2;
+		^Buffer.alloc(Server.default, 44100 * seconds, numChannels);
 	}
 
 	recSoundIn {arg reclevel=1;
@@ -195,7 +209,9 @@ S {
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <defaultSpecs;
 
-	var <key, <envir, <node, <specs, <synths, synthdef, <scenes;
+	var <key, <envir, <node, <specs, <synths, synthdef, <scenes, <currentScene;
+
+	var func;
 
 	*new {arg key, synth;
 		var res = all[key];
@@ -225,7 +241,18 @@ S {
 		envir = ();
 		key = inKey;
 		node = Ndef(key);
+		// play sets up the node for audio
 		node.play;
+
+		//func = {
+		//    var group = Group.new;
+		//	node.group = group;
+		//};
+		//func.value;
+		// i don't understand why this doesn't work
+		// after cmdperiod the group is assigned
+		// but somehow ignored by the node
+		//CmdPeriod.add(func);
 
 		^this;
 	}
@@ -233,6 +260,7 @@ S {
 	prInitSynth {arg inKey, inSynth;
 
 		var synthname = inSynth;
+
 		if (inSynth.isKindOf(Function)) {
 			synthname = inKey;
 			this.prBuildSynth(synthname, inSynth);
@@ -247,10 +275,9 @@ S {
 		if (synthdef.metadata.isNil.not) {
 			specs = synthdef.metadata[\specs].asList;
 		} {
-			// does this need to be smarter
-			// when we're reloading the synthdef
-			// to pick up new controls but not
-			// overwrite anything already existing...
+			// TODO: make this smarter
+			// so it picks up new controls from synthdef
+			// without overwriting any specs added after the fact
 			if (specs.size == 0) {
 				specs = (
 					synthdef.controls
@@ -274,6 +301,26 @@ S {
 		};
 	}
 
+	freqscope {
+
+		var view = View()
+		.layout_(VLayout().spacing_(0).margins_(0))
+		.name_(key)
+		.minWidth_(200)
+		.minHeight_(150);
+
+		var fsv = FreqScopeView()
+		.active_(true)
+		.freqMode_(1)
+		.inBus_(node.bus.index);
+
+		view.layout.add(fsv);
+		view.onClose_({
+			fsv.kill;
+		});
+		view.front;
+	}
+
 	addSpec {arg key, spec;
 		var myspec = this.specs.detect({arg assoc; assoc.key == key});
 		if (myspec.isNil) {
@@ -283,7 +330,46 @@ S {
 		}
 	}
 
+	nset {arg ...args;
+
+		args = args.flatten;
+		if (args.size.even.not) {
+			Error("args must be even number").throw;
+		};
+
+		forBy(0, args.size-1, 2, {arg i;
+			var k = args[i];
+			var v = args[i+1];
+
+			case
+			{v.isKindOf(Function)} {
+				var lfokey = (this.key ++ '_' ++ k).asSymbol;
+				"creating lfo node %".format(lfokey).debug(this.key);
+				node.set(k, Ndef(lfokey, v));
+			}
+			{v.isNil} {
+				//var myspec = specs.select({arg kv; kv.key == k}).first;
+				//if (myspec.isNil.not) {
+					//envir[k] = myspec.value.default;
+				//	node.set(k, myspec.value.default);
+				//} {
+					//envir.removeAt(args[i-1]);
+					node.unset(args[i-1]);
+				//};
+			}
+			{
+				//envir[k] = v;
+				node.set(k, v);
+			}
+		});
+		//^this;
+	}
+
 	set {arg ...args;
+
+		this.nset(args);
+
+		/*
 
 		if (args.size.even.not) {
 			Error("args must be even number").throw;
@@ -308,15 +394,25 @@ S {
 				};
 			}
 			{
-				envir[k] = v;
+				if (v.isKindOf(Pattern)) {
+					// no op
+				}{
+					envir[k] = v;
+				}
 			}
 		});
 		^this;
+		*/
+	}
+
+	pset {arg ...pairs;
+		var setterkey = (this.key ++ '_set').asSymbol;
+		var vals = pairs.flatten;
+		Pbindef(setterkey, *vals);
 	}
 
 	filter {arg index, func;
 		node.put(index, \filter -> func);
-		//^this by default this is returned
 	}
 
 	scene {arg index, func;
@@ -331,7 +427,8 @@ S {
 		scenes.do({arg pdef;
 			pdef.stop;
 		});
-		scenes[index].play;
+		currentScene = index;
+		scenes[currentScene].play;
 	}
 
 	stopScene {arg index;
@@ -355,6 +452,7 @@ S {
 	pdef {
 
 		var myspecs = [];
+		/*
 		if (specs.isNil.not) {
 			myspecs = specs.collect({arg assoc;
 				var key = assoc.key;
@@ -365,6 +463,7 @@ S {
 				[key, Pfunc({envir[key]})]
 			}).flatten;
 		};
+		*/
 
 		myspecs = myspecs ++ [
 			\instrument, envir[\instrument],
@@ -376,11 +475,14 @@ S {
 
 		^Pdef(key, {arg monitor=true, fadeTime=0, out=0;
 
+			var setterkey = (this.key ++ '_set').asSymbol;
+			monitor.debug([key, \monitor]);
 			if (node.isMonitoring.not and: monitor) {
 				node.play(fadeTime:fadeTime, out:out);
 			};
 
-			Pbind(*myspecs)
+			Pbindef(setterkey, this.key, 1)
+			<> Pbind(*myspecs)
 			<> Pbind(
 				\beatdur, Pfunc({thisThread.clock.beatDur}),
 				\elapsedbeats, Pfunc({thisThread.clock.elapsedBeats}),
@@ -392,9 +494,12 @@ S {
 	}
 
 	clear {
+		var setterkey = (this.key ++ '_set').asSymbol;
 		Ndef(key).clear;
 		Pdef(key).clear;
+		Pdef(setterkey).clear;
 		this.panic();
+		//CmdPeriod.remove(func);
 		all[key] = nil;
 	}
 
@@ -474,11 +579,30 @@ S {
 		// https://gist.github.com/markwheeler/b88b4f7b0f2870567b55cbc36abbd5ea
 		// there should only be one synth per note
 		if (node.isPlaying) {
+
+			/*
 			var evt = {
 				envir.select({arg val; val.isKindOf(Pattern).not});
 				envir[\vel] = vel;
 				envir;
 			}.();
+			*/
+
+			var evt = node.nodeMap
+			.controlNames
+			.select({ arg cn;
+				// we only want the params
+				// from the node which have
+				// corresponding controls in the synth
+				specs
+				.detect({arg assoc; assoc.key == cn.name})
+				.isNil.not
+			})
+			.collect({arg cn;
+				[cn.name, node.get(cn.name)]
+			})
+			.flatten;
+
 			var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps] ++ evt.asPairs();
 			if (synths[midinote].last.isNil) {
 				synths[midinote].add( Synth(envir[\instrument], args, target:node.nodeID) );
