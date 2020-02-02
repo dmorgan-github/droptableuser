@@ -1,9 +1,32 @@
+
 Sui {
 
-	*new {arg key, envir, specs;
-		/*
-		TODO: move to own class and called from here
-		*/
+	classvar <all;
+
+	var <key, <specs, <ip, <port, <server, <preset, <>handler;
+
+	*new {arg key, specs, preset, ip="127.0.0.1", port=57120;
+
+		var res = all[key];
+		if (res.isNil) {
+			res = super.new.prInit(key, specs, preset, ip, port);
+			all.put(key, res);
+		};
+		^res;
+	}
+
+	prInit {arg inKey, inSpecs, inPreset=(), inIp, inPort;
+		key = inKey;
+		specs = inSpecs;
+		ip = inIp;
+		port = inPort;
+		preset = inPreset;
+		handler = {};
+		server = NetAddr(ip, port);
+		^this;
+	}
+
+	view {
 		var scrollView = ScrollView()
 		.name_(key);
 		var view = View()
@@ -13,7 +36,7 @@ Sui {
 		specs.do({arg assoc;
 			var k = assoc.key;
 			var v = assoc.value;
-			var ctrl = this.prCtrlView(k, v.asSpec, Color.rand, envir);
+			var ctrl = this.prCtrlView(k, v.asSpec, Color.rand, preset);
 			view.layout.add(ctrl);
 		});
 
@@ -22,10 +45,13 @@ Sui {
 		^scrollView;
 	}
 
-	*prCtrlView {arg key, spec, color, envir=();
-		/*
-		TODO: move to own class
-		*/
+	prSendMsg {arg name, val;
+		var path = "/%/%".format(key, name).asSymbol;
+		server.sendMsg(path, val);
+		handler.(name, val);
+	}
+
+	prCtrlView {arg key, spec, color, envir=();
 		var controlSpec = spec;
 		var myval = envir[key] ?? controlSpec.default;
 		var stack, view;
@@ -66,15 +92,18 @@ Sui {
 					st.string_(mappedVal);
 					nb.value = mappedVal;
 					envir[key] = mappedVal;
+					this.prSendMsg(key, mappedVal);
 				};
 			})
 			.mouseDownAction_({arg ctrl, x, y, mod, num, count;
 				var val = controlSpec.default;
+
 				if (count == 2) {
 					li.value = controlSpec.unmap(val);
 					st.string_(val);
 					nb.value = val;
 					envir[key] = val;
+					this.prSendMsg(key, val);
 				} {
 					if (mod == 0) {
 						var val = x.linlin(0, ctrl.bounds.width, 0, 1);
@@ -83,6 +112,7 @@ Sui {
 						st.string_(mappedVal);
 						nb.value = mappedVal;
 						envir[key] = mappedVal;
+						this.prSendMsg(key, mappedVal);
 					};
 				};
 			}),
@@ -92,6 +122,7 @@ Sui {
 				li.value = controlSpec.unmap(val);
 				st.string_(val);
 				envir[key] = val;
+				this.prSendMsg(key, val);
 				stack.index = 0;
 			}),
 		).mode_(\stackOne)
@@ -109,6 +140,14 @@ Sui {
 		).margins_(0).spacing_(1));
 
 		^view;
+	}
+
+	clear {
+		all[key] = nil;
+	}
+
+	*initClass {
+		all = ();
 	}
 }
 

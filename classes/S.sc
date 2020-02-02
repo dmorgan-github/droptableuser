@@ -1,57 +1,3 @@
-/*
-Vst(\baxfiaii)
-.load('++decimator')
-.in(Ndef(\aaa))
-.wet()
-.bypass(true)
-.set()
-.editor()
-.node
-
-
-var in_node, node, vstcntrl, view, synth;
-	var parentGroup = Group.new(Server.default).debug(\parent);
-	var innerGroup = Group.new(parentGroup).debug(\inner);
-	var fxGroup;
-	var vsts, func;
-
-	SynthDef.new(objName, {
-		var in = \in.kr(0);
-		var sig = VSTPlugin.ar(input:In.ar(in, 2), numOut:2, id:objName) * \amp.kr(1);
-		ReplaceOut.ar(\in.kr(0), sig);
-	}).add;
-
-	node = NodeProxy.audio(s, 2);
-	node.group_(innerGroup).play;
-
-	func = {arg path;
-		var inbus = node.bus;
-		fxGroup = Group.new(target:node.group.debug(\node), addAction:\addAfter);
-
-		synth = Synth(objName, [in: inbus], target:fxGroup.debug(\fx), addAction:\addToTail);
-		vstcntrl = VSTPluginController(synth, objName);
-		vstcntrl.open(path, editor:true);
-	};
-
-	vsts = PathName("/Library/Audio/Plug-Ins/VST").entries.collect({arg pn;
-		var fp = pn.fullPath.asString;
-		var name = fp[0..(fp.size-2)];
-		var path = PathName(name).pathOnly;
-		name = PathName(name).fileNameWithoutExtension;
-		path = path ++ name;
-	});
-
-	view = View().layout_(VLayout());
-	view.layout.add(PopUpMenu().items_([""] ++ vsts).action_({arg ctrl;
-		var item = ctrl.item;
-		if (item != "") {
-			func.(item);
-		}
-	}));
-	view.layout.add(Button().action_({ vstcntrl.editor; }));
-	view.layout.add(Knob().mode_(\vert).action_({arg ctrl; fxGroup.set(\amp, ctrl.value); }).value_(1));
-	envir[objName] = node;
-*/
 
 B : S {
 
@@ -76,16 +22,16 @@ B : S {
 			this.specs.add(\buf -> ControlSpec(bufnum, bufnum, \lin, 0, bufnum));
 			this.set(\buf, buf);
 			if (buf.numChannels == 2) {
-				this.set(\instrument, \smplr_2chan);
+				this.instrument = \smplr_2chan
 			}
 		}{
 			if (inPath.isNumber) {
 				var bufnum;
 				buf = B.alloc(inPath);
 				bufnum = buf.bufnum;
-				this.set(\buf, buf);
-				this.set(\instrument, \smplr_2chan);
 				this.specs.add(\buf -> ControlSpec(bufnum, bufnum, \lin, 0, bufnum));
+				this.set(\buf, buf);
+				this.instrument = \smplr_2chan;
 			}{
 				Buffer.read(Server.default, inPath, action:{arg mybuf;
 					var bufnum;
@@ -95,7 +41,7 @@ B : S {
 					this.specs.add(\buf -> ControlSpec(bufnum, bufnum, \lin, 0, bufnum));
 					this.set(\buf, buf);
 					if (buf.numChannels == 2) {
-						this.set(\instrument, \smplr_2chan);
+						this.instrument = \smplr_2chan;
 					};
 				});
 			}
@@ -126,7 +72,7 @@ B : S {
 
 	gui {
 		var sfv;
-		var defaultDur = envir[\dur] ?? 1;
+		var defaultDur = 1;
 		var view = View().layout_(VLayout().margins_(0.5).spacing_(0.5))
 		.minHeight_(200)
 		.minWidth_(200)
@@ -209,7 +155,9 @@ S {
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <defaultSpecs;
 
-	var <key, <envir, <node, <specs, <synths, synthdef, <scenes, <currentScene;
+	var <key, <>instrument, <node, <specs, <synths, synthdef, <scenes, <currentScene, <setterkey;
+
+	var <preset;
 
 	var func;
 
@@ -238,8 +186,9 @@ S {
 		synths = Array.fill(127, {List.new});
 		specs = List.new;
 		scenes = Order.new;
-		envir = ();
+		preset = ();
 		key = inKey;
+		setterkey = (key ++ '_pset').asSymbol;
 		node = Ndef(key);
 		// play sets up the node for audio
 		node.play;
@@ -259,15 +208,14 @@ S {
 
 	prInitSynth {arg inKey, inSynth;
 
-		var synthname = inSynth;
+		instrument = inSynth;
 
 		if (inSynth.isKindOf(Function)) {
-			synthname = inKey;
-			this.prBuildSynth(synthname, inSynth);
+			instrument = inKey;
+			this.prBuildSynth(instrument, inSynth);
 		};
-		envir[\instrument] = synthname;
 
-		synthdef = SynthDescLib.global.at(synthname);
+		synthdef = SynthDescLib.global.at(instrument);
 		if (synthdef.isNil) {
 			Error("synthdef not found").throw;
 		};
@@ -330,9 +278,8 @@ S {
 		}
 	}
 
-	nset {arg ...args;
+	set {arg ...args;
 
-		args = args.flatten;
 		if (args.size.even.not) {
 			Error("args must be even number").throw;
 		};
@@ -362,14 +309,9 @@ S {
 				node.set(k, v);
 			}
 		});
-		//^this;
 	}
 
-	set {arg ...args;
-
-		this.nset(args);
-
-		/*
+	pset {arg ...args;
 
 		if (args.size.even.not) {
 			Error("args must be even number").throw;
@@ -383,32 +325,12 @@ S {
 			{v.isKindOf(Function)} {
 				var lfokey = (this.key ++ '_' ++ k).asSymbol;
 				"creating lfo node %".format(lfokey).debug(this.key);
-				envir[k] = Ndef(lfokey, v);
-			}
-			{v.isNil} {
-				var myspec = specs.select({arg kv; kv.key == k}).first;
-				if (myspec.isNil.not) {
-					envir[k] = myspec.value.default;
-				} {
-					envir.removeAt(args[i-1]);
-				};
+				Pbindef(this.setterkey, k, Ndef(lfokey, v));
 			}
 			{
-				if (v.isKindOf(Pattern)) {
-					// no op
-				}{
-					envir[k] = v;
-				}
+				Pbindef(this.setterkey, k, v);
 			}
 		});
-		^this;
-		*/
-	}
-
-	pset {arg ...pairs;
-		var setterkey = (this.key ++ '_set').asSymbol;
-		var vals = pairs.flatten;
-		Pbindef(setterkey, *vals);
 	}
 
 	filter {arg index, func;
@@ -452,21 +374,19 @@ S {
 	pdef {
 
 		var myspecs = [];
-		/*
 		if (specs.isNil.not) {
 			myspecs = specs.collect({arg assoc;
 				var key = assoc.key;
 				var spec = assoc.value;
-				if (envir[key].isNil) {
-					envir[key] = spec.default;
-				};
-				[key, Pfunc({envir[key]})]
+				//if (envir[key].isNil) {
+				//	envir[key] = spec.default;
+				//};
+				[key, Pif(Pfunc({node.get(key).isNil}), spec.default, Pfunc({node.get(key)}))]
 			}).flatten;
 		};
-		*/
 
 		myspecs = myspecs ++ [
-			\instrument, envir[\instrument],
+			\instrument, instrument,
 			\root, Pfunc({defaultRoot}),
 			\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
 			\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
@@ -475,13 +395,12 @@ S {
 
 		^Pdef(key, {arg monitor=true, fadeTime=0, out=0;
 
-			var setterkey = (this.key ++ '_set').asSymbol;
 			monitor.debug([key, \monitor]);
 			if (node.isMonitoring.not and: monitor) {
 				node.play(fadeTime:fadeTime, out:out);
 			};
 
-			Pbindef(setterkey, this.key, 1)
+			Pbindef(this.setterkey, this.key, 1)
 			<> Pbind(*myspecs)
 			<> Pbind(
 				\beatdur, Pfunc({thisThread.clock.beatDur}),
@@ -494,10 +413,12 @@ S {
 	}
 
 	clear {
-		var setterkey = (this.key ++ '_set').asSymbol;
 		Ndef(key).clear;
 		Pdef(key).clear;
-		Pdef(setterkey).clear;
+		Pdef(this.setterkey).clear;
+		scenes.do({arg pdef;
+			pdef.clear;
+		});
 		this.panic();
 		//CmdPeriod.remove(func);
 		all[key] = nil;
@@ -516,9 +437,10 @@ S {
 		}
 	}
 
-	gui {
-		var view = Sui(this.key, this.envir, this.specs);
-		view.front;
+	gui {arg func={};
+		^Sui(this.key, this.specs, this.preset)
+		.handler_(func)
+		.view.front;
 	}
 
 	prBuildSynth {arg inKey, inFunc;
@@ -528,35 +450,26 @@ S {
 			var in_freq = \freq.ar(261).lag(\glis.kr(0));
 			var detune = \detuneratio.kr(1);
 			var bend = \bend.ar(1);
-			var freqbend = Lag.ar(in_freq * bend, 0.005);
+			var freqbend = in_freq * bend;
 			var freq = Vibrato.ar([freqbend, freqbend * detune], \vrate.ar(6), \vdepth.ar(0.0));
 
 			var adsr = {
 				var da = Done.freeSelf;
-				var ts = \ts.kr(1);
 				var atk = \atk.kr(0.01);
 				var dec = \dec.kr(0.1);
 				var rel = \rel.kr(0.1);
 				var curve = \curve.kr(-4);
 				var suslevel = \suslevel.kr(0.5);
-				var env = Env.adsr(atk, dec, suslevel, rel, curve:curve).ar(doneAction:da, gate:gate, timeScale:ts);
-
-				/*
-				// this will allow changing the curve for each stage
-				var peakLevel = 1;
-				var suslevel = \suslevel.kr(0.5);
-				var atk =  \atk.kr(0.01);
-				var dec = \dec.kr(0.1);
-				var rel = \rel.kr(0.1);
-				var c1 = \curve1.kr(-4);
-				var c2 = \curve2.kr(-4);
-				var c3 = \curve3.kr(-4);
-				Env(
-				[0, peakLevel, peakLevel * suslevel, 0],
-				[atk, dec, rel],
-				curve:[c1, c2, c3],
-				releaseNode:2).ar(doneAction:da, gate:gate, timeScale:ts);
-				*/
+				var ts = \ts.kr(1);
+				var atkcurve = \atkcurve.kr(-4);
+				var deccurve = \deccurve.kr(-4);
+				var relcurve = \relcurve.kr(-4);
+				var env = Env(
+					[0, 1, suslevel, 0],
+					[atk, dec, rel],
+					[atkcurve, deccurve, relcurve],
+					releaseNode:2
+				).ar(doneAction:da, gate:gate, timeScale:ts);
 				env;
 			};
 
@@ -580,14 +493,6 @@ S {
 		// there should only be one synth per note
 		if (node.isPlaying) {
 
-			/*
-			var evt = {
-				envir.select({arg val; val.isKindOf(Pattern).not});
-				envir[\vel] = vel;
-				envir;
-			}.();
-			*/
-
 			var evt = node.nodeMap
 			.controlNames
 			.select({ arg cn;
@@ -603,9 +508,10 @@ S {
 			})
 			.flatten;
 
-			var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps] ++ evt.asPairs();
+			var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps, \vel, vel] ++ evt.asPairs();
+			//args.postln;
 			if (synths[midinote].last.isNil) {
-				synths[midinote].add( Synth(envir[\instrument], args, target:node.nodeID) );
+				synths[midinote].add( Synth(instrument, args, target:node.nodeID) );
 			}
 		}
 	}

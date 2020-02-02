@@ -19,8 +19,10 @@ OscCtrl {
 	*path {arg path, func;
 		var key = path.asSymbol;
 		if (func.isNil) {
+			"free %".format(key).postln;
 			OSCdef(key).free;
 		}{
+			"register %".format(key).postln;
 			OSCdef.newMatching(key, {arg msg, time, addr, recvPort;
 				var val = msg[1..];
 				func.(val);
@@ -48,6 +50,10 @@ OscCtrl {
 				}, path).permanent_(true);
 			});
 		}
+	}
+
+	*trace {arg enable=true;
+		OSCdef.trace(enable);
 	}
 }
 
@@ -115,6 +121,10 @@ MidiCtrl {
 		^this;
 	}
 
+	*trace {arg enable=true;
+		MIDIFunc.trace(enable);
+	}
+
 	note {arg on, off;
 
 		var mychan = if (chan.isNil) {"all"}{chan};
@@ -177,6 +187,24 @@ MidiCtrl {
 			"register %".format(key).debug(this.key);
 			MIDIdef.bend(key, {arg val, chan, src;
 				// var bend = val.linlin(0, 16383, 0.9, 1.1);
+				func.(val, chan);
+			}, chan:chan, srcID:srcid)
+			.permanent_(true);
+		}
+	}
+
+	// pressure
+	touch {arg func;
+		var mychan = if (chan.isNil) {"all"}{chan};
+		var srcid = if (this.src.isNil.not){src.uid}{nil};
+		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
+		var key = "%_%_%_touch".format(this.key, mychan, srcdevice).asSymbol;
+		if (func.isNil) {
+			"free %".format(key).debug(this.key);
+			MIDIdef(key).permanent_(false).free;
+		}{
+			"register %".format(key).debug(this.key);
+			MIDIdef.touch(key, {arg val, chan, src;
 				func.(val, chan);
 			}, chan:chan, srcID:srcid)
 			.permanent_(true);
