@@ -180,6 +180,7 @@ S {
 		if (inKey.isNil) {
 			Error("key not specified");
 		};
+		key = inKey;
 		// using a list as a queue for each note
 		// because i'm a little uncertain about
 		// the potential for race conditions
@@ -190,8 +191,8 @@ S {
 		scenes = Order.new;
 		preset = ();
 		props = ();
-		key = inKey;
 		psetkey = (key ++ '_pset').asSymbol;
+		Pbindef(psetkey, key, 1); // initialize the pbindef;
 		node = Ndef(key);
 		// play sets up the node for audio
 		node.play;
@@ -281,24 +282,29 @@ S {
 			var k = args[i];
 			var v = args[i+1];
 
+			// we have to keep two copies of the keys
+			// one for patterns and one for synth args.
+			// an event can't really be used directly
+			// within a pattern as keys like \dur when
+			// provided a pattern for their value do not
+			// resolve to the underlying primitive correctly
 			case
 			{v.isKindOf(Function)} {
+				var lfo;
 				var lfokey = (this.key ++ '_' ++ k).asSymbol;
 				"creating lfo node %".format(lfokey).debug(this.key);
-				props.put(k, Ndef(lfokey, v))
+				lfo = Ndef(lfokey, v);
+				props.put(k, lfo);
+				Pbindef(psetkey, k, lfo);
 			}
 			{v.isNil} {
-				props.removeAt(args[i-1])
+				props.removeAt(args[i-1]);
+				Pbindef(psetkey, k, v);
 			}
 			{
-				// this sucks but for some reason duration props
-				// get interpreted differently by Event
-				if ( [\dur, \delta, \legato, \sustain, \stretch, \timingOffset, \lag].includes(k) ) {
-					Pbindef(this.psetkey, k, v);
-				}{
-					var val = v.asStream;
-					props.put(k, val);
-				}
+				var val = v.asStream;
+				props.put(k, val);
+				Pbindef(psetkey, k, v);
 			}
 		});
 	}
@@ -350,8 +356,7 @@ S {
 				node.play(fadeTime:fadeTime, out:out);
 			};
 
-			Pn(props)
-			<> Pbindef(this.psetkey, this.key, 1)
+			Pbindef(this.psetkey)
 			<> Pbind(
 				\instrument, instrument,
 				\root, Pfunc({defaultRoot}),
@@ -370,7 +375,8 @@ S {
 	clear {
 		Ndef(key).clear;
 		Pdef(key).clear;
-		Pdef(this.psetkey).clear;
+		Pbindef(psetkey).clear;
+		Pbindef(psetkey, key, 1);
 		scenes.do({arg pdef;
 			pdef.clear;
 		});
