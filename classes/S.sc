@@ -155,7 +155,9 @@ S {
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <defaultSpecs;
 
-	var <key, <>instrument, <node, <specs, <synths, synthdef, <scenes, <currentScene, <setterkey;
+	var <key, <>instrument, <node, <specs, <synths, synthdef, <scenes, <currentScene;
+
+	var <props, <psetkey;
 
 	var <preset;
 
@@ -187,21 +189,12 @@ S {
 		specs = List.new;
 		scenes = Order.new;
 		preset = ();
+		props = ();
 		key = inKey;
-		setterkey = (key ++ '_pset').asSymbol;
+		psetkey = (key ++ '_pset').asSymbol;
 		node = Ndef(key);
 		// play sets up the node for audio
 		node.play;
-
-		//func = {
-		//    var group = Group.new;
-		//	node.group = group;
-		//};
-		//func.value;
-		// i don't understand why this doesn't work
-		// after cmdperiod the group is assigned
-		// but somehow ignored by the node
-		//CmdPeriod.add(func);
 
 		^this;
 	}
@@ -292,43 +285,20 @@ S {
 			{v.isKindOf(Function)} {
 				var lfokey = (this.key ++ '_' ++ k).asSymbol;
 				"creating lfo node %".format(lfokey).debug(this.key);
-				node.set(k, Ndef(lfokey, v));
+				props.put(k, Ndef(lfokey, v))
 			}
 			{v.isNil} {
-				//var myspec = specs.select({arg kv; kv.key == k}).first;
-				//if (myspec.isNil.not) {
-					//envir[k] = myspec.value.default;
-				//	node.set(k, myspec.value.default);
-				//} {
-					//envir.removeAt(args[i-1]);
-					node.unset(args[i-1]);
-				//};
+				props.removeAt(args[i-1])
 			}
 			{
-				//envir[k] = v;
-				node.set(k, v);
-			}
-		});
-	}
-
-	pset {arg ...args;
-
-		if (args.size.even.not) {
-			Error("args must be even number").throw;
-		};
-
-		forBy(0, args.size-1, 2, {arg i;
-			var k = args[i];
-			var v = args[i+1];
-
-			case
-			{v.isKindOf(Function)} {
-				var lfokey = (this.key ++ '_' ++ k).asSymbol;
-				"creating lfo node %".format(lfokey).debug(this.key);
-				Pbindef(this.setterkey, k, Ndef(lfokey, v));
-			}
-			{
-				Pbindef(this.setterkey, k, v);
+				// this sucks but for some reason duration props
+				// get interpreted differently by Event
+				if ( [\dur, \delta, \legato, \sustain, \stretch, \timingOffset, \lag].includes(k) ) {
+					Pbindef(this.psetkey, k, v);
+				}{
+					var val = v.asStream;
+					props.put(k, val);
+				}
 			}
 		});
 	}
@@ -373,26 +343,6 @@ S {
 
 	pdef {
 
-		var myspecs = [];
-		if (specs.isNil.not) {
-			myspecs = specs.collect({arg assoc;
-				var key = assoc.key;
-				var spec = assoc.value;
-				//if (envir[key].isNil) {
-				//	envir[key] = spec.default;
-				//};
-				[key, Pif(Pfunc({node.get(key).isNil}), spec.default, Pfunc({node.get(key)}))]
-			}).flatten;
-		};
-
-		myspecs = myspecs ++ [
-			\instrument, instrument,
-			\root, Pfunc({defaultRoot}),
-			\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
-			\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
-			\group, Pfunc({node.group})
-		];
-
 		^Pdef(key, {arg monitor=true, fadeTime=0, out=0;
 
 			monitor.debug([key, \monitor]);
@@ -400,9 +350,14 @@ S {
 				node.play(fadeTime:fadeTime, out:out);
 			};
 
-			Pbindef(this.setterkey, this.key, 1)
-			<> Pbind(*myspecs)
+			Pn(props)
+			<> Pbindef(this.psetkey, this.key, 1)
 			<> Pbind(
+				\instrument, instrument,
+				\root, Pfunc({defaultRoot}),
+				\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
+				\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
+				\group, Pfunc({node.group}),
 				\beatdur, Pfunc({thisThread.clock.beatDur}),
 				\elapsedbeats, Pfunc({thisThread.clock.elapsedBeats}),
 				\bar, Pfunc({thisThread.clock.bar}),
@@ -415,12 +370,11 @@ S {
 	clear {
 		Ndef(key).clear;
 		Pdef(key).clear;
-		Pdef(this.setterkey).clear;
+		Pdef(this.psetkey).clear;
 		scenes.do({arg pdef;
 			pdef.clear;
 		});
 		this.panic();
-		//CmdPeriod.remove(func);
 		all[key] = nil;
 	}
 
@@ -488,25 +442,11 @@ S {
 
 	prNoteOn {arg midinote, vel=1;
 
-		// TODO: see if this technique works
-		// https://gist.github.com/markwheeler/b88b4f7b0f2870567b55cbc36abbd5ea
 		// there should only be one synth per note
 		if (node.isPlaying) {
-
-			var evt = node.nodeMap
-			.controlNames
-			.select({ arg cn;
-				// we only want the params
-				// from the node which have
-				// corresponding controls in the synth
-				specs
-				.detect({arg assoc; assoc.key == cn.name})
-				.isNil.not
-			})
-			.collect({arg cn;
-				[cn.name, node.get(cn.name)]
-			})
-			.flatten;
+			var evt = props.keys.collect({arg k;
+				[k, props.at(k).value]
+			}).asArray.flatten;
 
 			var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps, \vel, vel] ++ evt.asPairs();
 			//args.postln;
@@ -542,7 +482,7 @@ S {
 			\res -> [0, 1, \lin, 0, 0.5],
 			\start -> [0, 1, \lin, 0, 0],
 			\rate -> [0.1, 4.0, \lin, 0, 1],
-			\detuneratio -> [0.9, 1.1, \lin, 0, 1],
+			\detunehz -> [0, 100, \lin, 0, 0],
 			\atk -> [0, 30, \lin, 0, 0.01],
 			\dec -> [0, 30, \lin, 0, 0.2],
 			\rel -> [0, 30, \lin, 0, 0.29],
