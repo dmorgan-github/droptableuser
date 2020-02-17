@@ -26,6 +26,7 @@ OscCtrl {
 			OSCdef.newMatching(key, {arg msg, time, addr, recvPort;
 				var val = msg[1..];
 				func.(val);
+				nil;
 			}, key).permanent_(true);
 		};
 	}
@@ -47,6 +48,7 @@ OscCtrl {
 				OSCdef.newMatching(path, {arg msg, time, addr, recvPort;
 					var val = msg[1];
 					func.(val, i);
+					nil;
 				}, path).permanent_(true);
 			});
 		}
@@ -78,9 +80,6 @@ MidiCtrl(\qaryrf).note(nil, nil).cc(0, nil);
 */
 MidiCtrl {
 
-	/*
-	TODO: add trace - MIDIFunc.trace(true)
-	*/
 	classvar <all;
 
 	var <key, <src, <chan;
@@ -122,6 +121,7 @@ MidiCtrl {
 	}
 
 	*trace {arg enable=true;
+		// TODO need to ensure midi is initialized and connected
 		MIDIFunc.trace(enable);
 	}
 

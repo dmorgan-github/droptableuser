@@ -1,3 +1,10 @@
+/*
+Vst(\wednvoc).load('Rev PLATE-140');
+Vst(\wednvoc).node.source = S(\eqytug).node;
+Vst(\wednvoc).node.play(fadeTime:4);
+Vst(\wednvoc).node.stop(fadeTime:4);
+Vst(\wednvoc).editor
+*/
 Vst {
 
 	classvar <all;

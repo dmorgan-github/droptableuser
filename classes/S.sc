@@ -155,9 +155,9 @@ S {
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <defaultSpecs;
 
-	var <key, <>instrument, <node, <specs, <synths, synthdef, <scenes, <currentScene;
+	var <key, <>instrument, <>node, <specs, <synths, synthdef, <scenes, <currentScene;
 
-	var <props, <psetkey;
+	var <>props, <>psetkey;
 
 	var <preset;
 
@@ -214,21 +214,28 @@ S {
 			Error("synthdef not found").throw;
 		};
 
-		if (synthdef.metadata.isNil.not) {
-			specs = synthdef.metadata[\specs].asList;
-		} {
-			// TODO: make this smarter
-			// so it picks up new controls from synthdef
-			// without overwriting any specs added after the fact
+		// if we haven't already added the specs
+		if (specs.size == 0) {
+
+			// check the synthdef
+			if (synthdef.metadata.isNil.not) {
+				if (synthdef.metadata[\specs].isNil.not) {
+					specs = synthdef.metadata[\specs].asList;
+				}
+			};
+
 			if (specs.size == 0) {
+				// no specs defined with the synthdef
+				// construct the specs from the synth controls
 				specs = (
 					synthdef.controls
 					.reject({arg ctrl;
 						[
-							\out, \freq, \gate, \trig
+							\out, \freq, \gate, \trig, \retrig, \sustain, \bend
 						].includes(ctrl.name)
 					})
 					.collect({arg ctrl;
+						// check for a match default spec
 						var key = ctrl.name.asSymbol;
 						var spec = defaultSpecs.detect({arg assoc; assoc.key == key}).value;
 						if (spec.isNil) {
@@ -347,18 +354,36 @@ S {
 		this.prNoteOff(midinote);
 	}
 
-	pdef {
+	play {arg monitor=true, fadeTime=0, out=0, mono=false;
+		this.pdef(monitor, fadeTime, out, mono).play;
+	}
 
-		^Pdef(key, {arg monitor=true, fadeTime=0, out=0;
+	stop {
+		Pdef(this.key).stop;
+	}
 
-			monitor.debug([key, \monitor]);
-			if (node.isMonitoring.not and: monitor) {
+	pdef {arg monitor=true, fadeTime=0, out=0, mono=false;
+
+		var chain;
+
+		if (monitor) {
+			if (node.isMonitoring.not) {
 				node.play(fadeTime:fadeTime, out:out);
 			};
+		} {
+			node.stop;
+		};
 
-			Pbindef(this.psetkey)
+		if (mono) {
+			chain = Pchain(Pmono(this.instrument, \retrig, 1, \trig, 1), Pbindef(this.psetkey));
+		}{
+			chain = Pbindef(this.psetkey);
+		};
+
+		^Pdef(key,
+			chain
 			<> Pbind(
-				\instrument, instrument,
+				\instrument, Pfunc({instrument}),
 				\root, Pfunc({defaultRoot}),
 				\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
 				\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
@@ -369,7 +394,7 @@ S {
 				\beatinbar, Pfunc({thisThread.clock.beatInBar}),
 				\hit, Pseries(0, 1, inf)
 			)
-		})
+		)
 	}
 
 	clear {
@@ -397,6 +422,21 @@ S {
 		}
 	}
 
+	/*
+	copy {arg toKey;
+		var obj;
+		if(toKey.isNil){
+			toKey = App.idgen.asSymbol;
+		};
+	~muauim.set(*~itof.props.asPairs);
+		obj = S(toKey, instrument);
+		Pbindef(this.psetkey).copy(obj.psetkey);
+		obj.props = props.copy;
+		obj.node = node.copy(toKey);
+		^obj;
+	}
+	*/
+
 	gui {arg func={};
 		^Sui(this.key, this.specs, this.preset)
 		.handler_(func)
@@ -406,31 +446,36 @@ S {
 	prBuildSynth {arg inKey, inFunc;
 
 		SynthDef(inKey, {
-			var gate = \gate.kr(1);
+			var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
+			var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
 			var in_freq = \freq.ar(261).lag(\glis.kr(0));
-			var detune = \detuneratio.kr(1);
-			var bend = \bend.ar(1);
+			var detune = \detunehz.kr(0.6) * PinkNoise.ar.range(0.8, 1.2);
+
+			// bend by semitones...
+			var bend = \bend.ar(0).midiratio;
 			var freqbend = in_freq * bend;
-			var freq = Vibrato.ar([freqbend, freqbend * detune], \vrate.ar(6), \vdepth.ar(0.0));
+			var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
 
 			var adsr = {
-				var da = Done.freeSelf;
+				var da = Done.none;
 				var atk = \atk.kr(0.01);
 				var dec = \dec.kr(0.1);
 				var rel = \rel.kr(0.1);
-				var curve = \curve.kr(-4);
 				var suslevel = \suslevel.kr(0.5);
 				var ts = \ts.kr(1);
 				var atkcurve = \atkcurve.kr(-4);
 				var deccurve = \deccurve.kr(-4);
 				var relcurve = \relcurve.kr(-4);
-				var env = Env(
-					[0, 1, suslevel, 0],
-					[atk, dec, rel],
-					[atkcurve, deccurve, relcurve],
-					releaseNode:2
-				).ar(doneAction:da, gate:gate, timeScale:ts);
-				env;
+				var env = Env.adsr(
+					attackTime:atk, decayTime:dec, sustainLevel:suslevel, releaseTime:rel,
+					curve:[atkcurve, deccurve, relcurve]
+				);
+				var aeg = env.kr(doneAction:da, gate:gate, timeScale:ts);
+				aeg = aeg * \aeglfo.kr(1);
+				// control life cycle of synth
+				env.kr(doneAction:Done.freeSelf, gate:\gate.kr, timeScale:ts);
+
+				aeg;
 			};
 
 			var aeg = adsr.();
@@ -442,7 +487,6 @@ S {
 			sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
 			sig = sig * \amp.kr(-10.dbamp);
 			Out.ar(\out.kr(0), sig);
-
 		}).add;
 	}
 
@@ -488,20 +532,20 @@ S {
 			\res -> [0, 1, \lin, 0, 0.5],
 			\start -> [0, 1, \lin, 0, 0],
 			\rate -> [0.1, 4.0, \lin, 0, 1],
-			\detunehz -> [0, 100, \lin, 0, 0],
+
 			\atk -> [0, 30, \lin, 0, 0.01],
 			\dec -> [0, 30, \lin, 0, 0.2],
 			\rel -> [0, 30, \lin, 0, 0.29],
 			\suslevel -> [0, 1, \lin, 0, 0.7],
-			\sus -> [0, 30, \lin, 0, 0.1],
-			\atkcurve -> [-4,4,\lin,0,4],
-			\relcurve -> [-4,4,\lin,0,-4],
-			\curve -> [-24, 24, \lin, 0, -4],
-			\curve1 -> [-24, 24, \lin, 0, -4],
-			\curve2 -> [-24, 24, \lin, 0, -4],
-			\curve3 -> [-24, 24, \lin, 0, -4],
+			\atkcurve -> [-24, 24, \lin, 0, -4],
+			\deccurve -> [-24, 24, \lin, 0, -4],
+			\relcurve -> [-24, 24, \lin, 0, -4],
 			\ts -> [0, 100, \lin, 0, 1],
-			\bend -> [0.9, 1.1, \lin, 0, 1],
+			\aeglfo -> [1, 1, \lin, 1, 1],
+			\ts -> [0, 100, \lin, 0, 1],
+
+			\detunehz -> [0, 100, \lin, 0, 0],
+			\bend -> [-12, 12, \lin, 0, 0], // semitones
 			\vrate -> [0, 440, \lin, 0, 6],
 			\vdepth -> [0, 1, \lin, 0, 0],
 			\vel -> [0, 1, \lin, 0, 1],
