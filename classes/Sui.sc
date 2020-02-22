@@ -3,24 +3,24 @@ Sui {
 
 	classvar <all;
 
-	var <key, <specs, <ip, <port, <server, <preset, <>handler;
+	var <key, <specs, <ip, <port, <server, <synth, <>handler;
 
-	*new {arg key, specs, preset, ip="127.0.0.1", port=57120;
+	*new {arg key, specs, synth, ip="127.0.0.1", port=57120;
 
 		var res = all[key];
 		if (res.isNil) {
-			res = super.new.prInit(key, specs, preset, ip, port);
+			res = super.new.prInit(key, specs, synth, ip, port);
 			all.put(key, res);
 		};
 		^res;
 	}
 
-	prInit {arg inKey, inSpecs, inPreset=(), inIp, inPort;
+	prInit {arg inKey, inSpecs, insynth, inIp, inPort;
 		key = inKey;
 		specs = inSpecs;
 		ip = inIp;
 		port = inPort;
-		preset = inPreset;
+		synth = insynth;
 		handler = {};
 		server = NetAddr(ip, port);
 		^this;
@@ -33,10 +33,203 @@ Sui {
 		.layout_(VLayout().margins_(0.5).spacing_(0.5))
 		.palette_(QPalette.dark);
 
-		specs.do({arg assoc;
+		var envview;
+		var cutoffres = Slider2D().minHeight_(125);
+		var cutoffspec = synth.getSpec(\cutoff);
+		var resspec = synth.getSpec(\res);
+		cutoffres.setXY(cutoffspec.unmap(synth.getVal(\cutoff)), resspec.unmap(synth.getVal(\res)));
+
+		view.layout.add(cutoffres.action_({arg ctrl;
+			var cutoff = ctrl.x;
+			var res = ctrl.y;
+			var cutoffspec = specs.detect({arg assoc; assoc.key == \cutoff}).value;
+			var resspec = specs.detect({arg assoc; assoc.key == \res}).value;
+			cutoff = cutoffspec.map(cutoff);
+			res = resspec.map(res);
+			synth.set(\cutoff, cutoff, \res, res)
+		}));
+
+		envview = {arg envkeys;
+			var suslevelkey = envkeys[\suslevel];
+			var atkkey = envkeys[\atk];
+			var deckey = envkeys[\dec];
+			var relkey = envkeys[\rel];
+			var atkcurvekey = envkeys[\atkcurve];
+			var deccurvekey = envkeys[\deccurve];
+			var relcurvekey = envkeys[\relcurve];
+			var tskey = envkeys[\tskey];
+
+			var tsspec = synth.getSpec(tskey);
+			var atkspec = synth.getSpec(atkkey);
+			var decspec = synth.getSpec(deckey);
+			var relspec = synth.getSpec(relkey);
+			var atkcurvespec = synth.getSpec(atkcurvekey);
+			var deccurvespec = synth.getSpec(deccurvekey);
+			var relcurvespec = synth.getSpec(relcurvekey);
+
+			var view;
+			var envview = EnvelopeView()
+			.minHeight_(80)
+			.value_([
+				[
+					0,
+					synth.getVal(atkkey),
+					synth.getVal(deckey),
+					0.5,
+					synth.getVal(relkey)
+				].integrate,
+				[0, 1, synth.getVal(suslevelkey), synth.getVal(suslevelkey), 0]
+			])
+			.curves_([synth.getVal(atkcurvekey), synth.getVal(deccurvekey), 0, synth.getVal(relcurvekey)]);
+
+			var atkcurveview, deccurveview, relcurveview;
+			atkcurveview = Knob().mode_(\vert).action_({arg ctrl;
+				var atkcurve = atkcurvespec.map(ctrl.value);
+				var deccurve = deccurvespec.map(deccurveview.value);
+				var relcurve = relcurvespec.map(relcurveview.value);
+				envview.curves = [atkcurve, deccurve, 0, relcurve];
+				synth.set(atkcurvekey, atkcurve);
+			})
+			.value_(atkcurvespec.unmap(synth.getVal(atkcurvekey)));
+
+			deccurveview = Knob().mode_(\vert).action_({arg ctrl;
+				var atkcurve = atkcurvespec.map(atkcurveview.value);
+				var deccurve = deccurvespec.map(ctrl.value);
+				var relcurve = relcurvespec.map(relcurveview.value);
+				envview.curves = [atkcurve, deccurve, 0, relcurve];
+				synth.set(deccurvekey, deccurve);
+			})
+			.value_(deccurvespec.unmap(synth.getVal(deccurvekey)));
+
+			relcurveview = Knob().mode_(\vert).action_({arg ctrl;
+				var atkcurve = atkcurvespec.map(atkcurveview.value);
+				var deccurve = deccurvespec.map(deccurveview.value);
+				var relcurve = relcurvespec.map(ctrl.value);
+				envview.curves = [atkcurve, deccurve, 0, relcurve];
+				synth.set(relcurvekey, relcurve);
+			})
+			.value_(relcurvespec.unmap(synth.getVal(relcurvekey)));
+
+			view = View().layout_(VLayout());
+			envview.setEditable(0, false);
+			envview.setEditable(3, false);
+			view.layout.add(
+				envview
+				.keepHorizontalOrder_(true)
+				.action_({arg ctrl;
+					var xvals, yvals, val;
+					xvals = ctrl.value[0];
+					yvals = ctrl.value[1];
+					if (ctrl.index == 1) {
+						if (ctrl.y < 1) {
+							ctrl.y = 1;
+						};
+					};
+					if (ctrl.index == 3) {
+						ctrl.y = yvals[2];
+					};
+					if (ctrl.index == 4) {
+						if (ctrl.y > 0) {
+							ctrl.y = 0
+						}
+					};
+					val = ctrl.x - xvals[ctrl.index-1];
+					val = val.max(0);
+					switch (ctrl.index,
+						1, {
+							[atkkey, val].postln;
+							synth.set(atkkey, val);
+						},
+						2, {
+							[deckey, val, suslevelkey, ctrl.y].postln;
+							synth.set(deckey, val);
+							synth.set(suslevelkey, ctrl.y);
+						},
+						3, {
+							[suslevelkey, ctrl.y].postln;
+							synth.set(suslevelkey, ctrl.y);
+						},
+						4, {
+							[relkey, val].postln;
+							synth.set(relkey, val)
+						}
+					)
+				})
+				.mouseUpAction_({arg ctrl;
+					if (ctrl.index == 2) {
+						var y = ctrl.y;
+						ctrl.selectIndex(3);
+						ctrl.y = y;
+					};
+					if (ctrl.index == 3) {
+						var y = ctrl.y;
+						ctrl.selectIndex(2);
+						ctrl.y = y;
+					}
+				})
+			);
+			view.layout.add(Slider().action_({arg ctrl;
+				var val = tsspec.map(ctrl.value);
+				[tskey, val].postln;
+				synth.set(tskey, val);
+			}).orientation_(\horizontal)
+			.value_(tsspec.unmap(synth.getVal(tskey, 1)))
+			);
+			view.layout.add(HLayout(atkcurveview, deccurveview, relcurveview));
+			view;
+		};
+
+		view.layout.add(envview.(
+			(
+				\suslevel: \suslevel,
+				\atk: \atk,
+				\dec: \dec,
+				\rel: \rel,
+				\atkcurve: \atkcurve,
+				\deccurve: \deccurve,
+				\relcurve: \relcurve,
+				\tskey: \ts
+			)
+		));
+
+		view.layout.add(envview.(
+			(
+				\suslevel: \fsuslevel,
+				\atk: \fatk,
+				\dec: \fdec,
+				\rel: \frel,
+				\atkcurve: \fatkcurve,
+				\deccurve: \fdeccurve,
+				\relcurve: \frelcurve,
+				\tskey: \fts
+			)
+		));
+
+		specs.reject({arg assoc;
+			[
+				\suslevel,
+				\atk,
+				\dec,
+				\rel,
+				\atkcurve,
+				\deccurve,
+				\relcurve,
+				\ts,
+				\fsuslevel,
+				\fatk,
+				\fdec,
+				\frel,
+				\fatkcurve,
+				\fdeccurve,
+				\frelcurve,
+				\fts,
+				\cutoff,
+				\res
+			].includes(assoc.key)
+		}).do({arg assoc;
 			var k = assoc.key;
 			var v = assoc.value;
-			var ctrl = this.prCtrlView(k, v.asSpec, Color.rand, preset);
+			var ctrl = this.prCtrlView(k, v.asSpec, Color.rand, synth);
 			view.layout.add(ctrl);
 		});
 
@@ -51,9 +244,9 @@ Sui {
 		handler.(name, val);
 	}
 
-	prCtrlView {arg key, spec, color, envir=();
+	prCtrlView {arg key, spec, color, synth;
 		var controlSpec = spec;
-		var myval = envir[key] ?? controlSpec.default;
+		var myval = synth.getVal(key);
 		var stack, view;
 		var font = Font(size:10);
 		var li = LevelIndicator().value_(controlSpec.unmap(myval));
@@ -67,7 +260,6 @@ Sui {
 		.clipLo_(controlSpec.minval)
 		.clipHi_(controlSpec.maxval);
 
-		envir[key] = myval;
 		stack = StackLayout(
 			View()
 			.layout_(
@@ -91,7 +283,7 @@ Sui {
 					li.value = val;
 					st.string_(mappedVal);
 					nb.value = mappedVal;
-					envir[key] = mappedVal;
+					synth.set(key, mappedVal);
 					this.prSendMsg(key, mappedVal);
 				};
 			})
@@ -102,7 +294,7 @@ Sui {
 					li.value = controlSpec.unmap(val);
 					st.string_(val);
 					nb.value = val;
-					envir[key] = val;
+					synth.set(key, val);
 					this.prSendMsg(key, val);
 				} {
 					if (mod == 0) {
@@ -111,7 +303,7 @@ Sui {
 						li.value = val;
 						st.string_(mappedVal);
 						nb.value = mappedVal;
-						envir[key] = mappedVal;
+						synth.set(key, mappedVal);
 						this.prSendMsg(key, mappedVal);
 					};
 				};
@@ -121,7 +313,7 @@ Sui {
 				var val = ctrl.value;
 				li.value = controlSpec.unmap(val);
 				st.string_(val);
-				envir[key] = val;
+				synth.set(key, val);
 				this.prSendMsg(key, val);
 				stack.index = 0;
 			}),

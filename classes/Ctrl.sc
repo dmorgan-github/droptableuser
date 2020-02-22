@@ -113,6 +113,11 @@ MidiCtrl {
 					MIDIClient.sources
 					.select({arg src; src.device.beginsWith("IAC Driver")})
 					.first;
+				},
+				\trellis, {
+					MIDIClient.sources
+					.select({arg src; src.device.beginsWith("Adafruit Trellis M4")})
+					.first;
 				}
 			);
 			MIDIIn.connect(device:src);

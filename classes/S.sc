@@ -1,4 +1,3 @@
-
 B : S {
 
 	classvar <all;
@@ -143,7 +142,7 @@ B : S {
 
 				var donetrig = Done.kr(sig);
 				SendReply.kr(donetrig, '/rec_soundin_done', 1, 1905);
-				sig;
+				Out.ar(\out.kr(0), in);
 
 			}).add;
 		};
@@ -158,8 +157,6 @@ S {
 	var <key, <>instrument, <>node, <specs, <synths, synthdef, <scenes, <currentScene;
 
 	var <>props, <>psetkey;
-
-	var <preset;
 
 	var func;
 
@@ -189,7 +186,6 @@ S {
 		synths = Array.fill(127, {List.new});
 		specs = List.new;
 		scenes = Order.new;
-		preset = ();
 		props = ();
 		psetkey = (key ++ '_pset').asSymbol;
 		Pbindef(psetkey, key, 1); // initialize the pbindef;
@@ -279,6 +275,39 @@ S {
 		}
 	}
 
+	getSpec {arg key;
+		var spec = this.specs.detect({arg assoc; assoc.key == key});
+		if (spec.isNil.not) {
+			spec = spec.value;
+		};
+		^spec;
+	}
+
+	getVal {arg key, default;
+		var val;
+		var spec = this.specs.detect({arg assoc; assoc.key == key});
+		var prop = this.props[key];
+		var cn = node.controlNames.detect({arg cn; cn.name == key});
+
+		if (cn.isNil.not) {
+			val = node.get(key);
+			if (val.isNil) {
+				val = cn.defaultValue;
+			};
+		}{
+			if (spec.isNil.not) {
+				val = spec.value.default;
+			};
+			if (prop.isNil.not) {
+				val = prop.value;
+			};
+		};
+		if (val.isNil) {
+			val = default;
+		};
+		^val;
+	}
+
 	set {arg ...args;
 
 		if (args.size.even.not) {
@@ -286,8 +315,11 @@ S {
 		};
 
 		forBy(0, args.size-1, 2, {arg i;
+
 			var k = args[i];
 			var v = args[i+1];
+			var cn = node.controlNames.detect({arg cn; cn.name == k});
+			var isnodeprop = cn.isNil.not;
 
 			// we have to keep two copies of the keys
 			// one for patterns and one for synth args.
@@ -301,23 +333,56 @@ S {
 				var lfokey = (this.key ++ '_' ++ k).asSymbol;
 				"creating lfo node %".format(lfokey).debug(this.key);
 				lfo = Ndef(lfokey, v);
-				props.put(k, lfo);
-				Pbindef(psetkey, k, lfo);
+				if (isnodeprop) {
+					node.set(k, lfo);
+				}{
+					props.put(k, lfo);
+					Pbindef(psetkey, k, lfo);
+				};
+				this.changed(k, lfo);
 			}
 			{v.isNil} {
-				props.removeAt(args[i-1]);
-				Pbindef(psetkey, k, v);
+				if (isnodeprop){
+					node.set(k, v);
+				}{
+					props.removeAt(args[i-1]);
+					Pbindef(psetkey, k, v);
+				};
+				this.changed(k, v);
 			}
 			{
+				// can accept patterns
 				var val = v.asStream;
-				props.put(k, val);
-				Pbindef(psetkey, k, v);
+				if (isnodeprop){
+					// can't use pattern or routine as value
+					// for a node property so just get
+					// the first value from the stream
+					node.set(k, val.value);
+				}{
+					props.put(k, val);
+					Pbindef(psetkey, k, v);
+				};
+				this.changed(k, v);
 			}
 		});
 	}
 
-	filter {arg index, func;
-		node.put(index, \filter -> func);
+	doesNotUnderstand { arg selector ... args;
+		var val = args[0];
+		if (selector.isSetter) {
+			selector = selector.asGetter;
+			^this.set(selector.asSymbol, val);
+		} {
+			^this.getVal(selector.asSymbol)
+		};
+	}
+
+	fx {arg index, func;
+		if (func.isNil) {
+			node.put(index, func);
+		}{
+			node.put(index, \filter -> func);
+		}
 	}
 
 	scene {arg index, func;
@@ -438,7 +503,7 @@ S {
 	*/
 
 	gui {arg func={};
-		^Sui(this.key, this.specs, this.preset)
+		^Sui(this.key, this.specs, this)
 		.handler_(func)
 		.view.front;
 	}

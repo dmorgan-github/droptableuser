@@ -1,9 +1,8 @@
 + Array {
-	pseq { ^Pseq(this, inf) }
-	prand { ^Prand(this, inf) }
-	pwrand { ^Pwrand(this[0], this[1], inf)}
-	place { ^Ppatlace(this, inf)}
-	// Pindex
+	pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
+	prand {arg repeats=inf; ^Prand(this, repeats) }
+	pwrand {arg weights, repeats=inf; ^Pwrand(this, weights, repeats)}
+	place {arg repeats=inf, offset=0; ^Ppatlace(this, repeats, offset)}
 }
 
 + Pattern {

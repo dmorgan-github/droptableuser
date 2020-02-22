@@ -15,7 +15,7 @@ App {
 	}
 
 	*idgen {
-		var str = {"aaabcdeeefghiiijklmnooopqrstuuuvwxyz".choose}.dup(rrand(4,8)).join;
+		var str = {"aaabcdeeefghiiijklmnooopqrstuuuvwxyz".choose}.dup(rrand(3,5)).join;
 		"echo % | pbcopy".format(str).systemCmd;
 		^str
 	}
