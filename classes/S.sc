@@ -582,7 +582,7 @@ S {
 				}).play;
 
 			}{
-				vsts[index].editor;
+				^vsts[index].editor;
 			}
 		};
 	}
