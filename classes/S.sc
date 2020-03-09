@@ -1,8 +1,127 @@
+M {
+	classvar <all;
+
+	var <key, <>node, <synths;
+
+	*new {arg key;
+		var res = all[key];
+		if (res.isNil) {
+			res = super.new.prInit(key);
+			all.put(key, res);
+		};
+		^res;
+	}
+
+	prInit {arg inKey;
+		key = inKey;
+		synths = Order.new;
+		node = Ndef(key);
+		// play sets up the node for audio
+		node.play;
+	}
+
+	fx {arg index, func;
+		if (func.isNil) {
+			node.put(index, func);
+		}{
+			node.put(index, \filter -> func);
+		}
+	}
+
+	mix {arg synth;
+		synth.asArray.do({arg val;
+			var index = synths.detectIndex({arg obj; obj.key == val.key});
+			if (index.isNil) {
+				synths.add(val);
+				node[synths.lastIndex] = \mix -> {val.node.ar};
+			} {
+				// re-apply
+				node[index] = \mix -> {val.node.ar};
+			}
+		});
+	}
+
+	removeAt {arg num;
+		var index = synths.indices[num];
+		synths.removeAt(index);
+		node.removeAt(index);
+	}
+
+	set {arg ...args;
+
+		if (args.size.even.not) {
+			Error("args must be even number").throw;
+		};
+
+		forBy(0, args.size-1, 2, {arg i;
+
+			var k = args[i];
+			var v = args[i+1];
+			var cn = node.controlNames.detect({arg cn; cn.name == k});
+
+			// we have to keep two copies of the keys
+			// one for patterns and one for synth args.
+			// an event can't really be used directly
+			// within a pattern as keys like \dur when
+			// provided a pattern for their value do not
+			// resolve to the underlying primitive correctly
+			case
+			{v.isKindOf(Function)} {
+				var lfo;
+				var lfokey = (this.key ++ '_' ++ k).asSymbol;
+				"creating lfo node %".format(lfokey).debug(this.key);
+				lfo = Ndef(lfokey, v);
+				node.set(k, lfo);
+				this.changed(k, lfo);
+			}
+			{
+				node.set(k, v);
+				this.changed(k, v);
+			}
+		});
+	}
+
+	getVal {arg key;
+		var val = node.get(key);
+		^val;
+	}
+
+	play {arg fadeTime=0;
+		node.play(fadeTime:fadeTime);
+	}
+
+	stop {arg fadeTime=0;
+		node.stop(fadeTime:fadeTime);
+	}
+
+	doesNotUnderstand { arg selector ... args;
+		var val = args[0];
+		if (selector.isSetter) {
+			selector = selector.asGetter;
+			^this.set(selector.asSymbol, val);
+		} {
+			^this.getVal(selector.asSymbol)
+		};
+	}
+
+	*initClass {
+		all = ();
+		StartUp.add {
+			10.do({arg i;
+				var key = ('mix' ++ i).asSymbol;
+				Spec.add(key, [0, 1, \lin, 0, 1]);
+			});
+		}
+	}
+}
+
+
+
 B : S {
 
 	classvar <all;
 
-	var <buf;
+	var <buf, recsynth;
 
 	*new {arg key, path;
 		var res = all[key];
@@ -54,11 +173,36 @@ B : S {
 	}
 
 	recSoundIn {arg reclevel=1;
-		Synth(\rec_soundin, [\buf, buf, \run, 1, \trig, 1, \reclevel, reclevel]);
+		//Synth(\rec_soundin, [\buf, buf, \run, 1, \trig, 1, \reclevel, reclevel]);
+		if (recsynth.isNil) {
+			"Not armed!".warn
+		}{
+			"recording".debug(key);
+			recsynth.set(\run, 1, \trig, 1);
+		};
 
 		OSCFunc({arg msg;
-			msg.debug(\recSoundIn);
-		}, '/rec_soundin_done', Server.default.addr).oneShot;
+			msg.debug(key);
+			recsynth = nil;
+		}, '/rec_soundin_done', Server.default.addr)
+		.oneShot;
+	}
+
+	armSoundIn {
+		"recording armed".debug(key);
+		recsynth = Synth(\rec_soundin, [\buf, buf, \run, 0, \trig, 0]);
+	}
+
+	recLoop {arg bus=0, quant=1;
+		"recLoop".debug(key);
+		Pbind(
+			\instrument, \rec_infeedback,
+			\type, \on,
+			\run, 1,
+			\trig, 1,
+			\buf, Pseq([buf], 1),
+			\bus, bus
+		).play(quant:1);
 	}
 
 	overdubSoundIn {arg prelevel=0.7, reclevel=1;
@@ -123,12 +267,11 @@ B : S {
 
 		StartUp.add {
 			SynthDef(\rec_soundin, {
-
+				var bus = \bus.kr([0, 1]);
 				var in = SoundIn.ar([0, 1]);
 				var trig = \trig.tr;
 				var buf = \buf.kr(0);
 				var run = \run.kr(0);
-
 				var sig = RecordBuf.ar(in,
 					buf,
 					offset:0,
@@ -143,7 +286,28 @@ B : S {
 				var donetrig = Done.kr(sig);
 				SendReply.kr(donetrig, '/rec_soundin_done', 1, 1905);
 				Out.ar(\out.kr(0), in);
+			}).add;
 
+			SynthDef(\rec_infeedback, {
+				var bus = \bus.kr(0);
+				var in = InFeedback.ar(bus, 2);
+				var trig = \trig.tr;
+				var buf = \buf.kr(0);
+				var run = \run.kr(0);
+				var sig = RecordBuf.ar(in,
+					buf,
+					offset:0,
+					recLevel:\reclevel.ar(1),
+					preLevel:\prelevel.ar(0),
+					run:run,
+					loop:\loop.kr(0),
+					trigger:trig,
+					doneAction:Done.freeSelf
+				);
+
+				var donetrig = Done.kr(sig);
+				SendReply.kr(donetrig, '/\rec_infeedback_done', 1, 1905);
+				Out.ar(\out.kr(0), in);
 			}).add;
 		};
 	}
@@ -156,7 +320,9 @@ S {
 
 	var <key, <>instrument, <>node, <specs, <synths, synthdef, <scenes, <currentScene;
 
-	var <>props, <>psetkey;
+	var <>props, <>psetkey, <vsts;
+
+	var listenerfunc, setbuttonfunc;
 
 	var func;
 
@@ -186,12 +352,18 @@ S {
 		synths = Array.fill(127, {List.new});
 		specs = List.new;
 		scenes = Order.new;
+		vsts = Order.new;
 		props = ();
 		psetkey = (key ++ '_pset').asSymbol;
 		Pbindef(psetkey, key, 1); // initialize the pbindef;
+		listenerfunc = {arg obj, prop, params; [obj, prop, params].postln;};
 		node = Ndef(key);
-		// play sets up the node for audio
-		node.play;
+		node.mold(2, \audio);
+		if (node.dependants.size == 0) {
+			node.addDependant(listenerfunc);
+		};
+		// wake sets up the node for audio
+		node.wakeUp;
 
 		^this;
 	}
@@ -216,7 +388,9 @@ S {
 			// check the synthdef
 			if (synthdef.metadata.isNil.not) {
 				if (synthdef.metadata[\specs].isNil.not) {
-					specs = synthdef.metadata[\specs].asList;
+					specs = synthdef.metadata[\specs]
+					.asList
+					.collect({arg assoc; assoc.key -> assoc.value.asSpec});
 				}
 			};
 
@@ -244,26 +418,6 @@ S {
 				.asList;
 			}
 		};
-	}
-
-	freqscope {
-
-		var view = View()
-		.layout_(VLayout().spacing_(0).margins_(0))
-		.name_(key)
-		.minWidth_(200)
-		.minHeight_(150);
-
-		var fsv = FreqScopeView()
-		.active_(true)
-		.freqMode_(1)
-		.inBus_(node.bus.index);
-
-		view.layout.add(fsv);
-		view.onClose_({
-			fsv.kill;
-		});
-		view.front;
 	}
 
 	addSpec {arg key, spec;
@@ -377,12 +531,60 @@ S {
 		};
 	}
 
-	fx {arg index, func;
+	fx {arg index, func ...args;
 		if (func.isNil) {
 			node.put(index, func);
 		}{
+			if (func.isSymbol) {
+				func = Library.at(\fx, func).performKeyValuePairs(\value, args);
+			};
 			node.put(index, \filter -> func);
 		}
+	}
+
+	vst {arg index, name;
+
+		if (name.isNil) {
+			vsts.removeAt(index);
+		}{
+			if (vsts[index].isNil) {
+
+				// need to make sure each step completes
+				Routine({
+					var synthdef = (key ++ name ++ index).asSymbol;
+					var synth, fx;
+
+					SynthDef.new(synthdef, {arg in;
+						var sig = In.ar(in, 2);
+						var wet = ('wet' ++ index).asSymbol.kr(1);
+						XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
+						//ReplaceOut.ar(in, VSTPlugin.ar(In.ar(in, 2), 2)) * ('wet' ++ index).asSymbol.kr(1);
+					}).add;
+
+					1.wait;
+					node.put(index, synthdef);
+
+					1.wait;
+					synth = Synth.basicNew(synthdef, Server.default, node.objects[index].nodeID);
+					synth.set(\in, node.bus.index);
+					fx = VSTPluginController(synth);
+
+					1.wait;
+					// there can be a delay
+					fx.open(name.asString, verbose:true, editor:true);
+					vsts.put(index, fx);
+					name.debug(\loaded);
+
+					1.wait;
+
+					fx.editor;
+
+				}).play;
+
+			}{
+				vsts[index].editor;
+			}
+		};
 	}
 
 	scene {arg index, func;
@@ -411,6 +613,11 @@ S {
 		}
 	}
 
+	ddl {arg seq, dur=1;
+		var ptrn = Pddl2(seq);
+		this.set(\degree, ptrn[0], \dur, ptrn[1] * dur, \lag, ptrn[2] * dur);
+	}
+
 	on {arg midinote, vel=1;
 		this.prNoteOn(midinote, vel);
 	}
@@ -423,8 +630,15 @@ S {
 		this.pdef(monitor, fadeTime, out, mono).play;
 	}
 
-	stop {
-		Pdef(this.key).stop;
+	stop {arg fadeTime=0;
+		if (fadeTime > 0) {
+			this.node.stop(fadeTime:fadeTime);
+			{
+				Pdef(this.key).stop;
+			}.defer(fadeTime + 1);
+		}{
+			Pdef(this.key).stop;
+		};
 	}
 
 	pdef {arg monitor=true, fadeTime=0, out=0, mono=false;
@@ -432,9 +646,7 @@ S {
 		var chain;
 
 		if (monitor) {
-			if (node.isMonitoring.not) {
-				node.play(fadeTime:fadeTime, out:out);
-			};
+			node.play(fadeTime:fadeTime, out:out);
 		} {
 			node.stop;
 		};
@@ -460,6 +672,65 @@ S {
 				\hit, Pseries(0, 1, inf)
 			)
 		)
+	}
+
+	viz {arg num=7, start=60;
+
+		var root = this.props[\root] ?? defaultRoot;
+		var size = num * num;
+		var grid;
+		var black = [1,3,6,8,10];
+		var view = View();
+
+		var buttons = size.collect({arg i;
+			var color = Color.grey;
+			var num = i;
+			if (black.includes(num.mod(12))) {
+				color = Color.black.alpha_(0.7);
+			} {
+				if (num.mod(12) == 0) {
+					color = Color.grey.alpha_(0.5);
+				}
+			};
+			Button().maxWidth_(20).states_([ ["", nil, color], ["", nil, Color.white] ])
+		});
+
+		grid = num.collect({arg i;
+			var row = num-i-1 * num;
+			var btns = buttons[row..(row + num-1)];
+			row.postln;
+			btns;
+		});
+
+		setbuttonfunc = {arg index;
+			var val;
+			buttons.do({arg btn;
+				btn.value = 0;
+			});
+			val = 12 * 2 + (index+root);
+			buttons[val].value = 1;
+		};
+
+		this.set(\viz,
+			Pfunc({arg event;
+				var fr = event.use { ~freq.value };
+				var note = fr.cpsmidi.round(1).asInteger;
+				var val = note - (start+root);
+				{
+					setbuttonfunc.(val);
+				}.defer;
+				1;
+			})
+		);
+
+		view
+		.layout_(GridLayout.rows(*grid).spacing_(0).margins_(0))
+		.name_(key)
+		.onClose_({
+			\viz.debug(\clear);
+			this.set(\viz, nil)
+		})
+		.front;
 	}
 
 	clear {
@@ -514,12 +785,12 @@ S {
 			var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
 			var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
 			var in_freq = \freq.ar(261).lag(\glis.kr(0));
-			var detune = \detunehz.kr(0.6) * PinkNoise.ar.range(0.8, 1.2);
+			var detune = \detunehz.kr(0);// * PinkNoise.ar.range(0.8, 1.2);
 
 			// bend by semitones...
 			var bend = \bend.ar(0).midiratio;
 			var freqbend = in_freq * bend;
-			var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
+			var freq = Vibrato.ar([freqbend, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
 
 			var adsr = {
 				var da = Done.none;
@@ -593,31 +864,29 @@ S {
 
 		defaultSpecs = List.new
 		.addAll([
-			\cutoff -> [20, 18000, 'exp', 0, 1000],
+			\cutoff -> [20, 20000, 'exp', 0, 100],
 			\res -> [0, 1, \lin, 0, 0.5],
 			\start -> [0, 1, \lin, 0, 0],
 			\rate -> [0.1, 4.0, \lin, 0, 1],
 
-			\atk -> [0, 30, \lin, 0, 0.01],
-			\dec -> [0, 30, \lin, 0, 0.2],
-			\rel -> [0, 30, \lin, 0, 0.29],
+			\atk -> [0, 1, \lin, 0, 0.01],
+			\dec -> [0, 1, \lin, 0, 0.2],
+			\rel -> [0, 8, \lin, 0, 0.29],
 			\suslevel -> [0, 1, \lin, 0, 0.7],
-			\atkcurve -> [-24, 24, \lin, 0, -4],
-			\deccurve -> [-24, 24, \lin, 0, -4],
-			\relcurve -> [-24, 24, \lin, 0, -4],
-			\ts -> [0, 100, \lin, 0, 1],
-			\aeglfo -> [1, 1, \lin, 1, 1],
-			\ts -> [0, 100, \lin, 0, 1],
+			\atkcurve -> [-8, 8, \lin, 0, -4],
+			\deccurve -> [-8, 8, \lin, 0, -4],
+			\relcurve -> [-8, 8, \lin, 0, -4],
+			\ts -> [0.001, 100, \lin, 0, 1],
 
-			\detunehz -> [0, 100, \lin, 0, 0],
+			\detunehz -> [0, 10, \lin, 0, 0],
 			\bend -> [-12, 12, \lin, 0, 0], // semitones
 			\vrate -> [0, 440, \lin, 0, 6],
-			\vdepth -> [0, 1, \lin, 0, 0],
+			\vdepth ->[0, 1, \lin, 0, 0],
 			\vel -> [0, 1, \lin, 0, 1],
 			\spread -> [0, 1, \lin, 0, 1],
 			\center -> [0, 1, \lin, 0, 0],
 			\pan -> [-1, 1, \lin, 0, 0],
-			\amp -> [-60.dbamp, 20.dbamp, \lin, 0, -20.dbamp]
+			\amp -> [0, 1, \lin, 0, -10.dbamp]
 		]);
 	}
 }

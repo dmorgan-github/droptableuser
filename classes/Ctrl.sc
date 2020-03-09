@@ -127,6 +127,8 @@ MidiCtrl {
 
 	*trace {arg enable=true;
 		// TODO need to ensure midi is initialized and connected
+		MIDIClient.init;
+		MIDIIn.connectAll;
 		MIDIFunc.trace(enable);
 	}
 
