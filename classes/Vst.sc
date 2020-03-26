@@ -27,6 +27,11 @@ Vst {
 		^this;
 	}
 
+	ar {arg in;
+		node.source = {SinOsc.ar(220)};
+		^node.ar;
+	}
+
 	load {arg name;
 
 		func = {

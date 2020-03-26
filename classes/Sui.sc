@@ -1,4 +1,17 @@
 
+
+/*
+stethescope in custom ui
+(
+w = Window.new("scope in app", Rect(20, 20, 600, 700));
+i = View().layout_(VLayout());
+b = Button().states_([["left stuff", Color.grey, Color.white]]);
+w.layout = HLayout(b, i);
+c = Stethoscope.new(s, view:i);
+w.onClose = { c.free };
+w.front;
+)
+*/
 Sui {
 
 	classvar <all;
@@ -219,12 +232,37 @@ Sui {
 			view.layout.add(freqScopeView.());
 			view.layout.add(levelView.());
 
-			specs.do({arg assoc;
-				var k = assoc.key;
-				var v = assoc.value;
-				var ctrl = ctrlView.(k, v.asSpec, Color.rand, synth);
-				view.layout.add(ctrl);
-			});
+			{
+				// bit of a hack since the specs are configured
+				// in a dictionary which doesn't retain order
+				// so, we can overload the units prop of a controlspec
+				// as a way to gruop related controls together
+				var groups = ();
+				var specgroups;
+				specs.do({arg val; groups[val.asSpec.units.asSymbol] = 1});
+				specgroups = groups.keys.asSortedList.collect({arg group;
+					var returnval = List.new;
+					specs.keysValuesDo({arg k, v;
+						if (v.units == group.asString) {
+							returnval.add(k -> v);
+						}
+					});
+					returnval.quickSort({arg a, b; a.key < b.key})
+				});
+				specgroups.do({arg val;
+					val.do({arg assoc;
+						var k = assoc.key;
+						var v = assoc.value;
+						var ctrl = ctrlView.(k, v.asSpec, Color.rand, synth);
+						view.layout.add(ctrl);
+					});
+				});
+			}.();
+
+			//specs.keysValuesDo({arg k, v;
+			//	var ctrl = ctrlView.(k, v.asSpec, Color.rand, synth);
+			//	view.layout.add(ctrl);
+			//});
 
 			view.layout.add(nil);
 			view.onClose_({

@@ -1,3 +1,90 @@
+Q {
+	*new{arg seq;
+		^Pseq(
+			seq.asArray.collect({arg val;
+				if (val.isArray or: val.isNumber) {
+					var dur, degree;
+					#dur, degree = Ddl([val]);
+					Ptuple([
+						Pseq(degree, 1),
+						Pseq(dur, 1),
+					], 1);
+
+				}{
+					val;
+				}
+
+			}),
+		inf)
+	}
+}
+
+R {
+	*new{arg seq;
+		^Prand(
+			seq.asArray.collect({arg val;
+				if (val.isArray or: val.isNumber) {
+					var dur, degree;
+					#dur, degree = Ddl([val]);
+					Ptuple([
+						Pseq(degree, 1),
+						Pseq(dur, 1),
+					], 1);
+				}{
+					val;
+				}
+			}),
+		1)
+	}
+}
+
+Ddl {
+	*new{arg seq;
+		var func = {arg seq;
+			var durs, degrees, lag;
+			var parse, result;
+			parse = {arg seq, result=[[],[],0], div=1, isstart=true;
+				seq.do({arg val, i;
+					if (val.isRest) {
+						if(isstart) {
+							// lag only matters if we start the whole phrase
+							// with a rest. inner rests don't require anything
+							// to do with lag
+							result[2] = result[2] + 1;
+						}{
+							if (val == \r) {
+								// a rest
+								result[0] = result[0].add(Rest(div));
+								// degree
+								result[1] = result[1].add(Rest());
+							} {
+								// otherwise a tie
+								var mydurs = result[0];
+								mydurs[mydurs.lastIndex] = mydurs[mydurs.lastIndex] + div;
+							}
+						}
+					} {
+						isstart = false;
+						if (val.isArray) {
+							var myseq = val;
+							var mydiv = 1/myseq.size * div;
+							result = parse.(myseq, result, mydiv, isstart);
+						} {
+							var obj = val.value;
+							var mydegree = obj;
+							result[0] = result[0].add(div);
+							result[1] = result[1].add(mydegree);
+						}
+					}
+				});
+				result;
+			};
+			result = parse.(seq);
+		};
+		var ptrn = func.(seq.asArray);
+		^ptrn;
+	}
+}
 
 /*
 (

@@ -316,11 +316,11 @@ B : S {
 S {
 	classvar <all;
 
-	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <defaultSpecs;
+	classvar <>defaultRoot, <>defaultScale, <>defaultTuning;
 
-	var <key, <>instrument, <>node, <specs, <synths, synthdef, <scenes, <currentScene;
+	var <key, <instrument, <node, <specs, <synths, synthdef, <scenes, <currentScene;
 
-	var <>props, <>psetkey, <vsts;
+	var <props, <psetkey, <vsts;
 
 	var listenerfunc, setbuttonfunc;
 
@@ -350,7 +350,7 @@ S {
 		// and possibly having a synth floating
 		// off in outer space
 		synths = Array.fill(127, {List.new});
-		specs = List.new;
+		specs = ();
 		scenes = Order.new;
 		vsts = Order.new;
 		props = ();
@@ -362,6 +362,9 @@ S {
 		if (node.dependants.size == 0) {
 			node.addDependant(listenerfunc);
 		};
+		if (this.dependants.size == 0) {
+			this.addDependant(listenerfunc);
+		};
 		// wake sets up the node for audio
 		node.wakeUp;
 
@@ -369,6 +372,8 @@ S {
 	}
 
 	prInitSynth {arg inKey, inSynth;
+
+		var blacklist = [\out, \freq, \gate, \trig, \retrig, \sustain, \bend];
 
 		instrument = inSynth;
 
@@ -382,55 +387,41 @@ S {
 			Error("synthdef not found").throw;
 		};
 
-		// if we haven't already added the specs
-		if (specs.size == 0) {
-
-			// check the synthdef
-			if (synthdef.metadata.isNil.not) {
-				if (synthdef.metadata[\specs].isNil.not) {
-					specs = synthdef.metadata[\specs]
-					.asList
-					.collect({arg assoc; assoc.key -> assoc.value.asSpec});
-				}
-			};
-
-			if (specs.size == 0) {
-				// no specs defined with the synthdef
-				// construct the specs from the synth controls
-				specs = (
-					synthdef.controls
-					.reject({arg ctrl;
-						[
-							\out, \freq, \gate, \trig, \retrig, \sustain, \bend
-						].includes(ctrl.name)
-					})
-					.collect({arg ctrl;
-						// check for a match default spec
-						var key = ctrl.name.asSymbol;
-						var spec = defaultSpecs.detect({arg assoc; assoc.key == key}).value;
-						if (spec.isNil) {
-							var max = if (ctrl.defaultValue < 1) {1} { min(20000, ctrl.defaultValue * 2) };
-							spec = [0, max, \lin, 0, ctrl.defaultValue];
-						};
-						key -> spec.asSpec;
-					})
-				)
-				.asList;
+		// check the synthdef
+		if (synthdef.metadata.isNil.not) {
+			if (synthdef.metadata[\specs].isNil.not) {
+				specs = synthdef.metadata[\specs]
 			}
 		};
-	}
 
-	addSpec {arg key, spec;
-		var myspec = this.specs.detect({arg assoc; assoc.key == key});
-		if (myspec.isNil) {
-			this.specs.add(key -> spec.asSpec);
-		} {
-			myspec.value = spec.asSpec;
-		}
+		// add specs from the synth controls
+		synthdef.controls
+		.reject({arg ctrl;
+			specs[ctrl.name.asSymbol].isNil.not;
+		})
+		.do({arg ctrl;
+			// check for a matching default spec
+			var key = ctrl.name.asSymbol;
+			var spec = Spec.specs[key];
+			if (spec.isNil) {
+				var max = if (ctrl.defaultValue < 1) {1} { min(20000, ctrl.defaultValue * 2) };
+				spec = [0, max, \lin, 0, ctrl.defaultValue].asSpec;
+			};
+			specs[key] = spec;
+		});
+
+		specs.keys.do({arg k;
+			if (blacklist.includes(k)) {
+				specs.removeAt(k);
+			};
+			if (k.asString.endsWith("lfo")) {
+				specs.removeAt(k);
+			};
+		});
 	}
 
 	getSpec {arg key;
-		var spec = this.specs.detect({arg assoc; assoc.key == key});
+		var spec = this.specs[key];
 		if (spec.isNil.not) {
 			spec = spec.value;
 		};
@@ -439,7 +430,7 @@ S {
 
 	getVal {arg key, default;
 		var val;
-		var spec = this.specs.detect({arg assoc; assoc.key == key});
+		var spec = this.specs[key];
 		var prop = this.props[key];
 		var cn = node.controlNames.detect({arg cn; cn.name == key});
 
@@ -521,6 +512,31 @@ S {
 		});
 	}
 
+	vset {arg index ...args;
+
+		forBy(0, args.size-1, 2, {arg i;
+			var k = args[i];
+			var v = args[i+1];
+
+			if (v.isKindOf(Function)) {
+				var lfo;
+				var lfokey = (this.key ++ k ++ index).asSymbol;
+				"creating lfo node %".format(lfokey).debug(this.key);
+				lfo = Ndef(lfokey, v);
+				this.vsts[index].map(k, lfo.asBus);
+				this.changed(k, lfo);
+			}{
+				if (v.isKindOf(NodeProxy)) {
+					this.vsts[index].map(k, v.asBus);
+					this.changed(k, v);
+				}{
+					this.vsts[index].set(k, v);
+					this.changed(k, v);
+				}
+			}
+		});
+	}
+
 	doesNotUnderstand { arg selector ... args;
 		var val = args[0];
 		if (selector.isSetter) {
@@ -582,7 +598,8 @@ S {
 				}).play;
 
 			}{
-				^vsts[index].editor;
+				vsts[index].editor;
+				^vsts[index];
 			}
 		};
 	}
@@ -613,9 +630,50 @@ S {
 		}
 	}
 
-	ddl {arg seq, dur=1;
-		var ptrn = Pddl2(seq);
-		this.set(\degree, ptrn[0], \dur, ptrn[1] * dur, \lag, ptrn[2] * dur);
+	ddl {arg seq;
+		var func = {arg seq;
+			var durs, degrees, lag;
+			var parse, result;
+			parse = {arg seq, result=[[],[],0], div=1, isstart=true;
+				seq.do({arg val, i;
+					if (val.isRest) {
+						if(isstart) {
+							// lag only matters if we start the whole phrase
+							// with a rest. inner rests don't require anything
+							// to do with lag
+							result[2] = result[2] + 1;
+						}{
+							if (val == \r) {
+								// a rest
+								result[0] = result[0].add(Rest(div));
+								// degree
+								result[1] = result[1].add(Rest());
+							} {
+								// otherwise a tie
+								var mydurs = result[0];
+								mydurs[mydurs.lastIndex] = mydurs[mydurs.lastIndex] + div;
+							}
+						}
+					} {
+						isstart = false;
+						if (val.isArray) {
+							var myseq = val;
+							var mydiv = 1/myseq.size * div;
+							result = parse.(myseq, result, mydiv, isstart);
+						} {
+							var obj = val.value;
+							var mydegree = obj;
+							result[0] = result[0].add(div);
+							result[1] = result[1].add(mydegree);
+						}
+					}
+				});
+				result.postln;
+			};
+			result = parse.(seq);
+		};
+		var ptrn = func.(seq);
+		this.set(\dur, Pseq(ptrn[0], inf), \degree, Pseq(ptrn[1], inf), \lag, Pn(ptrn[2]));
 	}
 
 	on {arg midinote, vel=1;
@@ -664,14 +722,19 @@ S {
 				\root, Pfunc({defaultRoot}),
 				\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
 				\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
-				\group, Pfunc({node.group}),
-				\beatdur, Pfunc({thisThread.clock.beatDur}),
-				\elapsedbeats, Pfunc({thisThread.clock.elapsedBeats}),
-				\bar, Pfunc({thisThread.clock.bar}),
-				\beatinbar, Pfunc({thisThread.clock.beatInBar}),
-				\hit, Pseries(0, 1, inf)
+				\group, Pfunc({node.group})
 			)
 		)
+	}
+
+	tolist {arg size=16;
+		var list = List.new;
+		var stream = this.pdef.asStream;
+		size.do({arg i;
+			var evt = stream.next(Event.default);
+			list.add(evt);
+		});
+		^list;
 	}
 
 	viz {arg num=7, start=60;
@@ -773,7 +836,8 @@ S {
 	}
 	*/
 
-	gui {arg func={};
+	gui {
+		var func = {arg k, v; this.set(k, v) };
 		^Sui(this.key, this.specs, this)
 		.handler_(func)
 		.view.front;
@@ -862,31 +926,30 @@ S {
 		defaultRoot = 4;
 		defaultScale = \dorian;
 
-		defaultSpecs = List.new
-		.addAll([
-			\cutoff -> [20, 20000, 'exp', 0, 100],
-			\res -> [0, 1, \lin, 0, 0.5],
-			\start -> [0, 1, \lin, 0, 0],
-			\rate -> [0.1, 4.0, \lin, 0, 1],
+		StartUp.add({
+			Spec.add(\cutoff, [20, 20000, 'exp', 0, 100]);
+			Spec.add(\res, [0, 1, \lin, 0, 0.5]);
+			Spec.add(\start, [0, 1, \lin, 0, 0]);
+			Spec.add(\rate, [0.1, 4.0, \lin, 0, 1]);
 
-			\atk -> [0, 1, \lin, 0, 0.01],
-			\dec -> [0, 1, \lin, 0, 0.2],
-			\rel -> [0, 8, \lin, 0, 0.29],
-			\suslevel -> [0, 1, \lin, 0, 0.7],
-			\atkcurve -> [-8, 8, \lin, 0, -4],
-			\deccurve -> [-8, 8, \lin, 0, -4],
-			\relcurve -> [-8, 8, \lin, 0, -4],
-			\ts -> [0.001, 100, \lin, 0, 1],
+			Spec.add(\atk, [0, 1, \lin, 0, 0.01]);
+			Spec.add(\dec, [0, 1, \lin, 0, 0.2]);
+			Spec.add(\rel, [0, 8, \lin, 0, 0.29]);
+			Spec.add(\suslevel, [0, 1, \lin, 0, 0.7]);
+			Spec.add(\atkcurve, [-8, 8, \lin, 0, -4]);
+			Spec.add(\deccurve, [-8, 8, \lin, 0, -4]);
+			Spec.add(\relcurve, [-8, 8, \lin, 0, -4]);
+			Spec.add(\ts, [0.001, 100, \lin, 0, 1]);
 
-			\detunehz -> [0, 10, \lin, 0, 0],
-			\bend -> [-12, 12, \lin, 0, 0], // semitones
-			\vrate -> [0, 440, \lin, 0, 6],
-			\vdepth ->[0, 1, \lin, 0, 0],
-			\vel -> [0, 1, \lin, 0, 1],
-			\spread -> [0, 1, \lin, 0, 1],
-			\center -> [0, 1, \lin, 0, 0],
-			\pan -> [-1, 1, \lin, 0, 0],
-			\amp -> [0, 1, \lin, 0, -10.dbamp]
-		]);
+			Spec.add(\detunehz, [0, 10, \lin, 0, 0]);
+			Spec.add(\bend, [-12, 12, \lin, 0, 0]);
+			Spec.add(\vrate, [0, 440, \lin, 0, 6]);
+			Spec.add(\vdepth, [0, 1, \lin, 0, 0]);
+			Spec.add(\vel, [0, 1, \lin, 0, 1]);
+			Spec.add(\spread, [0, 1, \lin, 0, 1]);
+			Spec.add(\center, [0, 1, \lin, 0, 0]);
+			Spec.add(\pan, [-1, 1, \lin, 0, 0]);
+			Spec.add(\amp, [0, 1, \lin, 0, -10.dbamp]);
+		});
 	}
 }
