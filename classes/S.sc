@@ -327,7 +327,15 @@ S {
 	var func;
 
 	*new {arg key, synth;
-		var res = all[key];
+		var res;
+		if (synth.isNil) {
+			// support terser style by generating an id
+			synth = key ? \default;
+			key = ('s_' ++ UniqueID.next).asSymbol;
+		};
+		// keeping the dictionary for backwards
+		// compatibility
+		res = all[key];
 		if (res.isNil) {
 			res = super.new.prInit(key);
 			all.put(key, res);
@@ -577,20 +585,24 @@ S {
 						//ReplaceOut.ar(in, VSTPlugin.ar(In.ar(in, 2), 2)) * ('wet' ++ index).asSymbol.kr(1);
 					}).add;
 
+					// FlowVar
 					1.wait;
 					node.put(index, synthdef);
 
+					// FlowVar
 					1.wait;
 					synth = Synth.basicNew(synthdef, Server.default, node.objects[index].nodeID);
 					synth.set(\in, node.bus.index);
 					fx = VSTPluginController(synth);
 
+					// FlowVar
 					1.wait;
 					// there can be a delay
 					fx.open(name.asString, verbose:true, editor:true);
 					vsts.put(index, fx);
 					name.debug(\loaded);
 
+					// FlowVar
 					1.wait;
 
 					fx.editor;

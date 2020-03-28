@@ -1,12 +1,30 @@
+/*
+TODO:
+Pslide
+Pindex
+Pswitch
+*/
+
++ Integer {
+	peuclid {arg beats, offset=0, repeats=inf; ^Pbjorklund(this, beats, repeats, offset)}
+	peuclid2 {arg beats, offset=0, repeats=inf; ^Pbjorklund2(this, beats, repeats, offset)}
+}
+
++ Number {
+	incr {arg step, repeats=inf; ^Pseries(this, step, inf)}
+}
+
 + Array {
 	pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
 	prand {arg repeats=inf; ^Prand(this, repeats) }
 	pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
-	place {arg repeats=inf, offset=0; ^Ppatlace(this, repeats, offset)}
+	dd {arg repeats=inf; ^Dd(this, repeats)}
 }
 
 + Pattern {
-	take {arg num; ^Pfin(num, this.iter) }
+	limit {arg num; ^Pfin(num, this.iter) }
+	step {arg dur, repeats=inf; ^Pstep(this, dur, repeats)}
+	stutprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
 }
 
 /*

@@ -1,42 +1,35 @@
-Q {
-	*new{arg seq;
-		^Pseq(
-			seq.asArray.collect({arg val;
-				if (val.isArray or: val.isNumber) {
-					var dur, degree;
-					#dur, degree = Ddl([val]);
-					Ptuple([
-						Pseq(degree, 1),
-						Pseq(dur, 1),
-					], 1);
+// degree, dur
+Dd {
+	*new{arg list, repeats=inf;
 
-				}{
-					val;
+		^Routine({
+			var parse = {arg seq, div=1;
+				var myval = seq.value;
+				if (myval.isArray) {
+					var myseq = myval;
+					var mydiv = 1/myseq.size * div;
+					var stream = Pseq(myseq, 1).asStream;
+					var val = stream.next;
+					while ({val.isNil.not},
+						{
+							parse.(val, mydiv);
+							val = stream.next
+						}
+					);
+				} {
+					[myval, div].yield;
 				}
+			};
 
-			}),
-		inf)
+			var pseq = Pseq(list, repeats).asStream;
+			inf.do({
+				var val = pseq.next;
+				parse.(val);
+			});
+		})
 	}
 }
 
-R {
-	*new{arg seq;
-		^Prand(
-			seq.asArray.collect({arg val;
-				if (val.isArray or: val.isNumber) {
-					var dur, degree;
-					#dur, degree = Ddl([val]);
-					Ptuple([
-						Pseq(degree, 1),
-						Pseq(dur, 1),
-					], 1);
-				}{
-					val;
-				}
-			}),
-		1)
-	}
-}
 
 Ddl {
 	*new{arg seq;
@@ -46,23 +39,8 @@ Ddl {
 			parse = {arg seq, result=[[],[],0], div=1, isstart=true;
 				seq.do({arg val, i;
 					if (val.isRest) {
-						if(isstart) {
-							// lag only matters if we start the whole phrase
-							// with a rest. inner rests don't require anything
-							// to do with lag
-							result[2] = result[2] + 1;
-						}{
-							if (val == \r) {
-								// a rest
-								result[0] = result[0].add(Rest(div));
-								// degree
-								result[1] = result[1].add(Rest());
-							} {
-								// otherwise a tie
-								var mydurs = result[0];
-								mydurs[mydurs.lastIndex] = mydurs[mydurs.lastIndex] + div;
-							}
-						}
+						result[0] = result[0].add(Rest(div));
+						result[1] = result[1].add(Rest());
 					} {
 						isstart = false;
 						if (val.isArray) {
