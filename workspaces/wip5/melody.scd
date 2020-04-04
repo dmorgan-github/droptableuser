@@ -132,7 +132,7 @@ Pdef(\vagolor, {
 		\sus, Pkey(\dur),
 		\rel, 1,
 		\octave, 5,
-		\amp, -11.dbamp * 1.5
+		\amp, -11.dbamp * 2
 	)
 });
 
@@ -153,7 +153,7 @@ Pdef(\ivqec, {
 		\sus, Pkey(\dur),
 		\rel, 1,
 		\octave, 6,
-		\amp, -3.dbamp * 1.5
+		\amp, -3.dbamp * 2
 	)
 });
 )
@@ -168,31 +168,7 @@ Pdef(\a, Ppar(
 )
 
 Pdef(\a).play;
+Pdef(\a).stop;
 
 
 
-
-(
-{
-	var sig;
-	var curve = LFNoise1.kr(0.5).bipolar(1);
-	var input = LFTri.ar(1);
-	input = input.lincurve(-1, 1, -1, 1, curve);
-	sig = Shaper.ar(~tfBuf, input);
-}.plot(2)
-)
-
-(
-{
-	var mod = Saw.ar(1 * 2) * 0.5;
-	var sig = SinOsc.ar(1, mod.mod(2pi));
-	sig;
-}.plot(2)
-)
-
-
-var mod = Saw.ar(freq * 2) * 0.5;
-var sig = SinOsc.ar(freq * [0, 5, 7].midiratio, mod.mod(2pi));
-
-
-App.saveWorkspace
