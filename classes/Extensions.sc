@@ -24,7 +24,8 @@ Pswitch
 + Pattern {
 	limit {arg num; ^Pfin(num, this.iter) }
 	step {arg dur, repeats=inf; ^Pstep(this, dur, repeats)}
-	stutprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
+	latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
+	latch {arg func; ^Pclutch(this, Pfunc(func)) }
 }
 
 /*

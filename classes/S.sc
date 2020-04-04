@@ -330,11 +330,10 @@ S {
 		var res;
 		if (synth.isNil) {
 			// support terser style by generating an id
+			// if using a synthdef
 			synth = key ? \default;
 			key = ('s_' ++ UniqueID.next).asSymbol;
 		};
-		// keeping the dictionary for backwards
-		// compatibility
 		res = all[key];
 		if (res.isNil) {
 			res = super.new.prInit(key);
@@ -461,6 +460,7 @@ S {
 		^val;
 	}
 
+	// TODO: should clear and remove any lfo if being replaced
 	set {arg ...args;
 
 		if (args.size.even.not) {
@@ -498,8 +498,10 @@ S {
 				if (isnodeprop){
 					node.set(k, v);
 				}{
-					props.removeAt(args[i-1]);
-					Pbindef(psetkey, k, v);
+					if (props[k].isNil.not) {
+						props.removeAt(k);
+						Pbindef(psetkey, k, nil);
+					}
 				};
 				this.changed(k, v);
 			}
@@ -696,8 +698,8 @@ S {
 		this.prNoteOff(midinote);
 	}
 
-	play {arg monitor=true, fadeTime=0, out=0, mono=false;
-		this.pdef(monitor, fadeTime, out, mono).play;
+	play {arg monitor=true, fadeTime=0, reset=true, out=0, mono=false;
+		this.pdef(monitor, fadeTime, out, mono).play(doReset:true);
 	}
 
 	stop {arg fadeTime=0;
@@ -736,7 +738,7 @@ S {
 				\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
 				\group, Pfunc({node.group})
 			)
-		)
+		);//.quant_(1)
 	}
 
 	tolist {arg size=16;
