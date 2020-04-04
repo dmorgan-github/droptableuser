@@ -20,11 +20,6 @@ App {
 		^str
 	}
 
-	*recAtCommit {arg commit, folder = "~/projects/droptableuser/wip";
-		var filepath = "%/%_%.aiff".format(Platform.recordingsDir, commit, Date.getDate.asSortableString);
-		Server.default.record(filepath);
-	}
-
 	*saveWorkspace {arg name = "", folder = "~/projects/droptableuser/workspaces", rec = false, envir;
 
 		var workspace = "%/%-%-%/%%".format(name,
