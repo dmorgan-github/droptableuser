@@ -20,8 +20,14 @@ App {
 		^str
 	}
 
-	*recAtCommit {arg commit, folder = "~/projects/droptableuser/wip";
-		var filepath = "%/%_%.aiff".format(Platform.recordingsDir, commit, Date.getDate.asSortableString);
+	*recAtCommit {arg dir="", commit="";
+
+		var filepath = "%/%/".format(Platform.recordingsDir, dir);
+		if (File.exists(filepath).not) {
+			File.mkdir(filepath);
+		};
+
+		filepath = filepath ++ "%_%.aiff".format(commit, Date.getDate.asSortableString);
 		Server.default.record(filepath);
 	}
 
