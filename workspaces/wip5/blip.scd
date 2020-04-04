@@ -62,5 +62,7 @@ Ndef(\ifjog).play(fadeTime:10);
 Ndef(\ifjog).stop;
 
 
-App.recAtCommit("wip5", "6cdf88d");
+App.recAtCommit("wip5", "7f76fc8");
+Ndef(\ifjog).play(fadeTime:10);
+
 s.stopRecording;
