@@ -22,7 +22,6 @@ Ndef(\vagolor).put(0, {
 		var input = LFTri.ar({freq * Rand(-0.1,0.1).midiratio * [0, 12].midiratio}!8);
 		input = input.lincurve(-1, 1, -1, 1, curve);
 		sig = Shaper.ar(~tfBuf, input);
-		//var sig = SinOsc.ar(freq * [0, 12].midiratio, 0, 4).tanh;//.lincurve(-1, 1, -1, 1, 4);
         sig * AmpCompA.kr(freq)
     };
 
@@ -52,7 +51,7 @@ Ndef(\vagolor).put(0, {
         sig;
     };
 
-    var numvoices = 4;
+    var numvoices = 2;
     var detune = LFNoise2.kr(\drate.kr(0.1).dup(numvoices)).bipolar(\ddepth.kr(0.2)).midiratio;
     var freq = Vibrato.ar(\freq.ar(432).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.001));
     var sig = osc1.(freq);
@@ -60,12 +59,11 @@ Ndef(\vagolor).put(0, {
     sig = LeakDC.ar(sig);
     sig = sig * aeg;
     sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
-	//sig = sig.blend(PitchShift.ar(sig, 4, 1.5, 0.01, 0.01), 0.4);
 	sig = sig.blend(JPverb.ar(sig.reverse, 5, 0, 5), 0.4);
     sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
 	sig = LPF.ar(sig, 440);
 	sig = sig * \amp.kr(-3.dbamp);
-	sig;
+	Splay.ar(sig.flatten);
 });
 
 Ndef(\ivqec).put(0, {
@@ -96,7 +94,7 @@ Ndef(\ivqec).put(0, {
         env;
     };
 
-    var numvoices = 4;
+    var numvoices = 2;
     var detune = LFNoise2.kr(\drate.kr(0.1).dup(numvoices)).bipolar(\ddepth.kr(0.2)).midiratio;
     var freq = Vibrato.ar(\freq.ar(432).lag(\lag.kr(0.0)), \vrate.kr(6), \vdepth.kr(0.001));
     var sig = osc1.(freq);
@@ -109,7 +107,7 @@ Ndef(\ivqec).put(0, {
     sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
 	sig = LPF.ar(sig, 440);
 	sig = sig * \amp.kr(-3.dbamp);
-	sig;
+	Splay.ar(sig.flatten);
 })
 )
 
@@ -137,6 +135,7 @@ Pdef(\vagolor, {
 });
 
 Pdef(\ivqec, {
+
 	var node = Ndef(\ivqec);
 	if (node.isMonitoring.not) {
 		node.play;
@@ -167,8 +166,14 @@ Pdef(\a, Ppar(
 ))
 )
 
-Pdef(\a).play;
+Pdef(\a).play(doReset:true);
 Pdef(\a).stop;
+
+
+App.recAtCommit("wip5", "568da71");
+Pdef(\a).play;
+s.stopRecording;
+
 
 
 

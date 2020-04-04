@@ -109,7 +109,15 @@ Ndef(\fm7_2, {
 });
 )
 
+App.recAtCommit("wip5", "7f76fc8");
+Ndef(\fm7).play(vol:0.5);
+Ndef(\fm7).stop(fadeTime:8);
+
+App.recAtCommit("wip5", "7f76fc8");
 Ndef(\fm7_2).play(vol:0.2);
+Ndef(\fm7_2).stop(fadeTime:8);
+
+s.stopRecording;
 
 
 
