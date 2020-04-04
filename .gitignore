@@ -6,4 +6,8 @@
 *.db
 *.RTrackTemplate
 *.vpreset
+.reapeaks
 support
+samples
+bitwig
+reaktor
