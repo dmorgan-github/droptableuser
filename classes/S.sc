@@ -1,7 +1,12 @@
+/*
+TODO: refactor to reduct duplicate code
+*/
 M {
 	classvar <all;
 
-	var <key, <>node, <synths;
+	var <key, <>node, <synths, <vsts;
+
+	var listenerfunc;
 
 	*new {arg key;
 		var res = all[key];
@@ -15,38 +20,21 @@ M {
 	prInit {arg inKey;
 		key = inKey;
 		synths = Order.new;
+		vsts = Order.new;
+		listenerfunc = {arg obj, prop, params; [obj, prop, params].postln;};
 		node = Ndef(key);
-		// play sets up the node for audio
-		node.play;
+		node.mold(2, \audio);
+		if (node.dependants.size == 0) {
+			node.addDependant(listenerfunc);
+		};
+		if (this.dependants.size == 0) {
+			this.addDependant(listenerfunc);
+		};
+		// wake sets up the node for audio
+		node.wakeUp;
 	}
 
-	fx {arg index, func;
-		if (func.isNil) {
-			node.put(index, func);
-		}{
-			node.put(index, \filter -> func);
-		}
-	}
-
-	mix {arg synth;
-		synth.asArray.do({arg val;
-			var index = synths.detectIndex({arg obj; obj.key == val.key});
-			if (index.isNil) {
-				synths.add(val);
-				node[synths.lastIndex] = \mix -> {val.node.ar};
-			} {
-				// re-apply
-				node[index] = \mix -> {val.node.ar};
-			}
-		});
-	}
-
-	removeAt {arg num;
-		var index = synths.indices[num];
-		synths.removeAt(index);
-		node.removeAt(index);
-	}
-
+	// TODO: should clear and remove any lfo if being replaced
 	set {arg ...args;
 
 		if (args.size.even.not) {
@@ -58,6 +46,7 @@ M {
 			var k = args[i];
 			var v = args[i+1];
 			var cn = node.controlNames.detect({arg cn; cn.name == k});
+			var isnodeprop = cn.isNil.not;
 
 			// we have to keep two copies of the keys
 			// one for patterns and one for synth args.
@@ -74,24 +63,41 @@ M {
 				node.set(k, lfo);
 				this.changed(k, lfo);
 			}
-			{
+			{v.isNil} {
 				node.set(k, v);
+				this.changed(k, v);
+			}
+			{
+				var val = v.asStream;
+				node.set(k, val.value);
 				this.changed(k, v);
 			}
 		});
 	}
 
-	getVal {arg key;
-		var val = node.get(key);
-		^val;
-	}
+	vset {arg index ...args;
 
-	play {arg fadeTime=0;
-		node.play(fadeTime:fadeTime);
-	}
+		forBy(0, args.size-1, 2, {arg i;
+			var k = args[i];
+			var v = args[i+1];
 
-	stop {arg fadeTime=0;
-		node.stop(fadeTime:fadeTime);
+			if (v.isKindOf(Function)) {
+				var lfo;
+				var lfokey = (this.key ++ k ++ index).asSymbol;
+				"creating lfo node %".format(lfokey).debug(this.key);
+				lfo = Ndef(lfokey, v);
+				this.vsts[index].map(k, lfo.asBus);
+				this.changed(k, lfo);
+			}{
+				if (v.isKindOf(NodeProxy)) {
+					this.vsts[index].map(k, v.asBus);
+					this.changed(k, v);
+				}{
+					this.vsts[index].set(k, v);
+					this.changed(k, v);
+				}
+			}
+		});
 	}
 
 	doesNotUnderstand { arg selector ... args;
@@ -102,6 +108,95 @@ M {
 		} {
 			^this.getVal(selector.asSymbol)
 		};
+	}
+
+	fx {arg index, func ...args;
+		if (func.isNil) {
+			node.put(index, func);
+		}{
+			if (func.isSymbol) {
+				func = Library.at(\fx, func).performKeyValuePairs(\value, args);
+			};
+			node.put(index, \filter -> func);
+		}
+	}
+
+	vst {arg index, name;
+
+		if (name.isNil) {
+			vsts.removeAt(index);
+		}{
+			if (vsts[index].isNil) {
+
+				// need to make sure each step completes
+				Routine({
+					var synthdef = (key ++ name ++ index).asSymbol;
+					var synth, fx;
+
+					SynthDef.new(synthdef, {arg in;
+						var sig = In.ar(in, 2);
+						var wet = ('wet' ++ index).asSymbol.kr(1);
+						XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
+						//ReplaceOut.ar(in, VSTPlugin.ar(In.ar(in, 2), 2)) * ('wet' ++ index).asSymbol.kr(1);
+					}).add;
+
+					// FlowVar
+					1.wait;
+					node.put(index, synthdef);
+
+					// FlowVar
+					1.wait;
+					synth = Synth.basicNew(synthdef, Server.default, node.objects[index].nodeID);
+					synth.set(\in, node.bus.index);
+					fx = VSTPluginController(synth);
+
+					// FlowVar
+					1.wait;
+					// there can be a delay
+					fx.open(name.asString, verbose:true, editor:true);
+					vsts.put(index, fx);
+					name.debug(\loaded);
+
+					// FlowVar
+					1.wait;
+
+					fx.editor;
+
+				}).play;
+
+			}{
+				vsts[index].editor;
+				^vsts[index];
+			}
+		};
+	}
+
+	mix {arg synth;
+		synth.asArray.do({arg val;
+			var index = synths.detectIndex({arg obj; obj.key == val.key});
+			val.node.stop;
+			if (index.isNil) {
+				synths.add(val);
+				node[synths.lastIndex] = \mix -> {val.node.ar};
+			} {
+				// re-apply
+				node[index] = \mix -> {val.node.ar};
+			}
+		});
+	}
+
+	removeAt {arg num;
+		var index = synths.indices[num];
+		synths.removeAt(index);
+		node.removeAt(index);
+	}
+
+	play {arg fadeTime=0;
+		node.play(fadeTime:fadeTime);
+	}
+
+	stop {arg fadeTime=0;
+		node.stop(fadeTime:fadeTime);
 	}
 
 	*initClass {
@@ -121,7 +216,7 @@ B : S {
 
 	classvar <all;
 
-	var <buf, recsynth;
+	var <>buf, recsynth;
 
 	*new {arg key, path;
 		var res = all[key];
@@ -316,7 +411,7 @@ B : S {
 S {
 	classvar <all;
 
-	classvar <>defaultRoot, <>defaultScale, <>defaultTuning;
+	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <>defaultQuant;
 
 	var <key, <instrument, <node, <specs, <synths, synthdef, <scenes, <currentScene;
 
@@ -362,7 +457,7 @@ S {
 		vsts = Order.new;
 		props = ();
 		psetkey = (key ++ '_pset').asSymbol;
-		Pbindef(psetkey, key, 1); // initialize the pbindef;
+		Pbindef(psetkey, key, 1).quant_(defaultQuant); // initialize the pbindef;
 		listenerfunc = {arg obj, prop, params; [obj, prop, params].postln;};
 		node = Ndef(key);
 		node.mold(2, \audio);
@@ -939,6 +1034,7 @@ S {
 		defaultTuning = \et12;
 		defaultRoot = 4;
 		defaultScale = \dorian;
+		defaultQuant = 1;
 
 		StartUp.add({
 			Spec.add(\cutoff, [20, 20000, 'exp', 0, 100]);

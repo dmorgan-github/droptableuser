@@ -20,7 +20,7 @@ Ndef(\noise)[0] = {
 	];
 
 	var sig = SelectXFocus.ar(\which.kr(0), noises, \focus.kr(1));
-	sig = cb.(sig);
+	//sig = cb.(sig);
 	sig = LeakDC.ar(sig) * env * \amp.kr(-3.dbamp);
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 	sig;
@@ -88,12 +88,22 @@ Pdef(\noise, {
 		\rel, 0.2,
 		\dec, 0.01,
 		\dur, 0.25,
-		\amp, -3.dbamp * Pbjorklund(3, 8).collect({arg val; if (val == 1) {1}{ rrand(0.3, 0.5) }})
+		\amp, -3.dbamp * Pbjorklund(3, 8).collect({arg val; if (val == 1) {1}{ rrand(0.3, 0.5) }}) * 4
 	)
 })
 )
 
 Pdef(\noise).play;
 Pdef(\noise).stop;
+
+App.recAtCommit("wip5", "93adce4");
+Pdef(\noise).play(doReset:true);
+
+Pdef(\noise).stop;
+
+s.stopRecording
+
+App.saveWorkspace("wip5", rec:true);
+s.stopRecording
 
 

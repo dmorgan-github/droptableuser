@@ -19,6 +19,7 @@ Pswitch
 	prand {arg repeats=inf; ^Prand(this, repeats) }
 	pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
 	dd {arg repeats=inf; ^Dd(this, repeats)}
+	shuf {arg num=1, repeats=inf; ^Pn(Pshuf(this, num), repeats) }
 }
 
 + Pattern {
@@ -26,6 +27,7 @@ Pswitch
 	step {arg dur, repeats=inf; ^Pstep(this, dur, repeats)}
 	latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
 	latch {arg func; ^Pclutch(this, Pfunc(func)) }
+	dd {arg repeats=inf; ^Dd(this, repeats)}
 }
 
 /*

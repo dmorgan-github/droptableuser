@@ -30,7 +30,7 @@ Dd {
 						if (myval.isKindOf(Ref)) {
 							// if the value is a Ref
 							// unpack it and use as-is
-							// this allows use to chords
+							// this allows us to configure chords
 							// and multi-channel expansion
 							myval = myval.value;
 						};
@@ -39,7 +39,7 @@ Dd {
 				}
 			};
 
-			var pseq = Pseq(list, repeats).asStream;
+			var pseq = Pseq([list].flatten, repeats).asStream;
 			inf.do({
 				var val = pseq.next;
 				parse.(val);
@@ -88,8 +88,7 @@ PtimeChain : Pattern {
 					nextValueTime <= (structureTime + timeEpsilon);
 				} {
 					var delta;
-					//nextValueEvent = valueStream.next(inevent);
-					nextValueEvent = valueStream.next(cumulativeEvent.copy);
+					nextValueEvent = valueStream.next(inevent);
 
 					// nextValueEvent.debug("nextValueEvent");
 					// Q: Should we exit for value streams that end, or just the structure stream?

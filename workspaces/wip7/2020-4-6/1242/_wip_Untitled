@@ -1,0 +1,32 @@
+
+/////////////////////////////////////////
+// aur
+~aur = ~aur ? B(\aur, "/Users/david/projects/droptableuser/samples/freesoound/163485__erh__free-piano-acs-1.wav");
+~aur.freqmode = 1;
+~aur.harmonic = [0.5, 1, 2];
+~aur.start = 0.incr(0.01).fold(0, 1);
+~aur.amp = 0.8;
+~aur.dur_(16).legato_(1/64);
+~aur.rev = 1;
+~aur.play;
+~aur.stop;
+
+(
+~aur.fx(10, {arg in; 
+	var sig = FbC({arg fb;
+		var freq = LFDNoise3.ar(1/11).range(1.0, 2.0);// * 0.5;
+		PitchShift.ar(fb.reverse, 2, freq, 0.01, 0.01).tanh * 1.001 + in}, 3, 2 + [3/8, 5/8]
+	).tanh;
+	sig;
+})
+)
+~aur.wet10_(0.8);
+~aur.fx(30, {arg in; BLowPass.ar(in, SinOsc.ar(1/19).range(400, 4000))});
+~aur.fx(40, \reverb).t60_(10).size_(10).wet40_(0.4);
+
+
+/////////////////////////////////////////
+// record
+App.saveWorkspace("wip7", rec:true);
+s.stopRecording;
+s.record("%_%.aiff".format(commit, Date.getDate.asSortableString));

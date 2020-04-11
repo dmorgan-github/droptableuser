@@ -1,0 +1,34 @@
+~buf = Buffer.read(s, "/Users/david/projects/droptableuser/samples/freesoound/195940__maerkunst__sad-song.wav");
+/////////////////////////////////////////
+// aur
+~uio = B(\uio, ~buf);
+~uio.freqmode = 1;
+~uio.harmonic = [0.5, 1, 2];
+~uio.start = 0.incr(0.01).fold(0, 1);
+~uio.amp = 0.8;
+~uio.dur_(8).legato_(1/64);
+~uio.rev = 1;
+~uio.play;
+~uio.stop;
+~uio.node.stop;
+~uio.node.play;
+
+(
+~uio.fx(10, {arg in; 
+	var sig = FbC({arg fb;
+		var freq = LFDNoise3.ar(1/11).range(1.0, 2.0);// * 0.5;
+		PitchShift.ar(fb.reverse, 2, freq, 0.01, 0.01).tanh * 1.001 + in}, 3, 2 + [3/8, 5/8]
+	).tanh;
+	sig;
+})
+)
+~uio.wet10_(0.8);
+~uio.fx(30, {arg in; BLowPass.ar(in, SinOsc.ar(1/19).range(400, 4000))});
+~uio.fx(40, \reverb).t60_(10).size_(10).wet40_(0.4);
+
+
+/////////////////////////////////////////
+// record
+App.saveWorkspace("wip7", rec:true);
+s.stopRecording;
+s.record("%_%.aiff".format(commit, Date.getDate.asSortableString));

@@ -27,7 +27,6 @@ http://www.musicdsp.org/archive.php?classid=4#203
 )
 */
 
-
 // steal from here - https://github.com/musikinformatik/SuperDirt/blob/develop/synths/core-synths.scd
 Library.put(\fx, \sat2, {
 	{arg in;
@@ -41,8 +40,12 @@ Library.put(\fx, \sat2, {
 Library.put(\fx, \crush, {arg crush=4;
 	crush.debug(\crush);
 	{arg in;
-		var sig = in.round(0.5 ** \crush.kr(crush));
+		//var val = \crush.kr(crush);
+		//var sig = in.round(0.5 ** val);
+		var sig = Latch.ar(in, Impulse.ar(11000*0.5)).round(0.5 ** 6.7);
+		sig = LeakDC.ar(sig);
 		sig;
+		//sig * val.reciprocal.sqrt;
 	}
 });
 
@@ -290,4 +293,39 @@ Library.put(\fx, \waveloss, {
 		sig;
 	}
 });
+
+/*
+# 1408 Barry's Satan Maximiser
+> k: Decay time (samples) (2 to 30)
+> k: Knee point (dB) (-90 to 0)
+> a: Input
+< a: Output
+
+\decay -> [2, 30, \lin, 0, 10],
+\kneepoint -> [-90, 1, \lin, 0, -30],
+
+(
+{
+    var snd, envTime, knee, out;
+    snd = PlayBuf.ar(1, b, BufRateScale.kr(b), loop: 1);
+    envTime = MouseX.kr(1.0e-3, 0.1e-3);
+    knee = MouseY.kr(0, -90).dbamp;
+    out = DelayC.ar(snd, 0.01, envTime * 0.5) * EnvFollow.ar(snd, 1 - (envTime * SampleRate.ir).reciprocal).max(knee).reciprocal;
+    out * 0.1!2
+}.play;
+)
+*/
+Library.put(\fx, \barrys, {
+
+	{arg in;
+
+		var sig = LPF.ar(HPF.ar(in, \hpf.kr(20)), \lpf.kr(20000));
+		sig = LADSPA.ar(1, 1408,
+			\decay.ar(10),
+			\kneepoint.ar(-10),
+			sig
+		);
+		LeakDC.ar(sig);
+	}
+})
 )

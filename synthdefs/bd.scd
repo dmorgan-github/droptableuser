@@ -20,23 +20,13 @@
 	var mix = osc1.('B0'.namecps);
 	mix;
 })
-)
+);
 
-~tempo = 91/60;
-TempoClock.default.tempo = ~tempo;
-
-~bd_func = {arg a, b, c; [a.key, b, c].postln;};
-~bd.addDependant(~bd_func);
-~bd.dur = 1;
+~bd.dur = Pbjorklund2(5,8) * 0.5;
 ~bd.play;
 ~bd.stop;
 ~bd.vel = 1;
 ~bd.amp = 1;
-~bd.gui({arg k, v; ~bd.set(k, v) });
-~bd.viz
 
 
-/////////////////////////////////////////
-// record
-App.saveWorkspace("presets", rec:true);
-s.stopRecording;
+

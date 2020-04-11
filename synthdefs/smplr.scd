@@ -1,3 +1,7 @@
+/*
+review: https://github.com/itsyourbedtime/takt/blob/master/lib/Engine_Timber_Takt.sc
+*/
+
 (
 var func = {arg numchannels = 2;
 
@@ -26,7 +30,7 @@ var func = {arg numchannels = 2;
 	var rev = \rev.kr(0);
 	var loop = \loop.kr(0);
 	var dir = TWChoose.kr(trig, [-1, 1], [rev, 1-rev]);
-	var sig = PlayBufCF.ar(2, buf, BufRateScale.kr(buf) * rate * dir, trig, start, loop);
+	var sig = PlayBufCF.ar(numchannels, buf, BufRateScale.kr(buf) * rate * dir, trig, start, loop);
 
 	var adsr = {
 		var da = Done.none;

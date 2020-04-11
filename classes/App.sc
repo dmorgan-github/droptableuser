@@ -45,7 +45,7 @@ App {
 
 		Document.openDocuments.do({arg doc;
 			var file_name = PathName(doc.title);
-			var path = current_path ++ "/" ++ file_name.fileName;
+			var path = current_path ++ "/_wip_" ++ file_name.fileName;
 			var content = doc.string;
 			var file = File(path, "w");
 			path.debug("writing...");
