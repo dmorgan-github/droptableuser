@@ -7,13 +7,15 @@ SynthDef(\subtractr2, {
 	var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
 	var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
 	var in_freq = \freq.ar(261).lag(\glis.kr(0));
-	var detune = \detunehz.kr(0.6) * PinkNoise.ar.range(0.8, 1.2);
+	//var detune = \detunehz.kr(0.6) * PinkNoise.ar.range(0.8, 1.2);
 	var ctrllag = 0.005;
+	var detuneratio = \detuneratio.kr(1) * PinkNoise.ar(0.007).range(0.9, 1.1);
 
 	// bend by semitones...
 	var bend = \bend.ar(0).midiratio;
 	var freqbend = in_freq * bend;
-	var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
+	//var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
+	var freq = Vibrato.ar([freqbend, freqbend * detuneratio], \vrate.ar(6), \vdepth.ar(0.0));
 
 	var adsr = {
 		var da = Done.none;
@@ -30,7 +32,7 @@ SynthDef(\subtractr2, {
 			curve:[atkcurve, deccurve, relcurve]
 		);
 		var aeg = env.kr(doneAction:da, gate:gate, timeScale:ts);
-		aeg = aeg * \aeglfo.kr(1);
+		aeg = aeg * \aeglfo.kr(1);// * PinkNoise.ar(1!2).range(0.1, 1).lag(0.01);
 		// control life cycle of synth
 		env.kr(doneAction:Done.freeSelf, gate:\gate.kr, timeScale:ts);
 
@@ -39,24 +41,17 @@ SynthDef(\subtractr2, {
 
 	var filter = {arg sig, aeg;
 
-		var famt = \freqamt.kr(0).lag(ctrllag);
-		var ffreq = \cutoff.kr(100).lag(ctrllag) + (freq * famt);
+		var freqamt = \freqamt.kr(0).lag(ctrllag);
+		var ffreq = \cutoff.kr(100).lag(ctrllag) + (freq * freqamt);
 		var fvel = max(\fvel.kr(10).lag(ctrllag), 0.001);
 		var fres = \res.kr(0.5).lag(ctrllag);
+		var fcurve = \fcurve.kr(0);
+		//var famt = \famt.kr(0.9).linlin(0, 1, 10, 0);
 
 		var f1, f2;
 		var which = \fwhich.kr(0).lag(ctrllag);
 		var focus = \ffocus.kr(1).lag(ctrllag);
-		//var fatk = \fatk.kr(0.01).lag(ctrllag);
-		//var fdec = \fdec.kr(0.21).lag(ctrllag);
-		//var fsuslevel = \fsuslevel.kr(1).lag(ctrllag);
-		//var frel = \frel.kr(0.1).lag(ctrllag);
-		//var atkcurve = \fatkcurve.kr(-4).lag(ctrllag);
-		//var deccurve = \fdeccurve.kr(-4).lag(ctrllag);
-		//var relcurve = \frelcurve.kr(-4).lag(ctrllag);
-		//var ts = \fts.kr(1).lag(ctrllag);
-
-		var feg = aeg.linlin(0, 1, ffreq, ffreq * fvel);
+		var feg = aeg.lincurve(0, 1, ffreq, ffreq * fvel, fcurve);
 		feg = feg * \feglfo.kr(1);
 		feg = feg.clip(20, 20000);
 		f1 = MoogFF.ar(sig, feg, fres.linlin(0, 1, 0.001, 4)) * 4;
@@ -66,7 +61,7 @@ SynthDef(\subtractr2, {
 	};
 
 	var tri = {arg freq;
-		var width = \triwidth.ar(0.5) + (\triwidth.ar * \triwidthlfo.ar(0));
+		var width = \triwidth.ar(0.5) + \triwidthlfo.ar(0);
 		var sig = VarSaw.ar(freq, 0, width);
 		var fold = \trifold.kr(1);
 		sig = (sig * fold).fold(-1, 1) * fold.reciprocal.sqrt;
@@ -81,14 +76,14 @@ SynthDef(\subtractr2, {
 	};
 
 	var pulse = {arg freq;
-		var width = \pulsewidth.ar(0.5) + (\pulsewidth.ar * \pulsewidthlfo.ar(0));
+		var width = \pulsewidth.ar(0.5) + \pulsewidthlfo.ar(0);
 		var sig = Pulse.ar(freq, width);
 		sig * AmpCompA.kr(freq);
 	};
 
 	var sine = {arg freq;
 		//var mod = fm.(freq) * \sinefm.kr(0);
-		var skew = \sineskew.ar(0) + (\sineskew.ar * \sineskewlfo.ar(0));
+		var skew = \sineskew.ar(0) + \sineskewlfo.ar(0);
 		var sig = SinOscFB.ar(freq, skew.clip(-1, 1));
 		var fold = \sinefold.kr(1);
 		sig = (sig * fold).fold(-1, 1) * fold.reciprocal.sqrt;
@@ -133,12 +128,14 @@ SynthDef(\subtractr2, {
 		relcurve: [-8, 8, \lin, 0, -4, "aeg"].asSpec,
 		ts: [0.001, 100, \lin, 0, 1, "aeg"].asSpec,
 
-		\cutoff: [20, 20000, \exp, 0, 100, "filter"].asSpec,
-		\fvel: [0.001, 20, \lin, 0, 10, "filter"].asSpec,
-		\res: [0, 1, \lin, 0, 0.5, "filter"].asSpec,
-		\fwhich: [0, 1, \lin, 0, 0, "filter"].asSpec,
-		\ffocus: [0, 1, \lin, 0, 1, "filter"].asSpec,
-		\freqamt: [0, 4, \lin, 0, 0, "filter"].asSpec,
+		cutoff: [20, 20000, \exp, 0, 100, "filter"].asSpec,
+		fvel: [0.001, 20, \lin, 0, 10, "filter"].asSpec,
+		res: [0, 1, \lin, 0, 0.5, "filter"].asSpec,
+		fwhich: [0, 1, \lin, 0, 0, "filter"].asSpec,
+		ffocus: [0, 1, \lin, 0, 1, "filter"].asSpec,
+		freqamt: [0, 4, \lin, 0, 0, "filter"].asSpec,
+		famt: [0, 1, \lin, 0, 0.9, "filter"].asSpec,
+		fcurve: [-8, 8, \lin, 0, -4, "filter"].asSpec,
 
 		/*
 		\fatk: [0, 1, \lin, 0, 0.01, "feg"].asSpec,
@@ -172,7 +169,7 @@ SynthDef(\subtractr2, {
 		\noise: [0, 1, \lin, 0, 0, "osc5"].asSpec,
 
 		\glis: [0, 1, \lin, 0, 0, "freq"].asSpec,
-		\detunehz: [0, 10, \lin, 0, 0, "freq"].asSpec,
+		\detuneratio: [0, 1, \lin, 0, 1, "freq"].asSpec,
 		\bend: [-12, 12, \lin, 0, 0, "freq"].asSpec, // semitones
 		\vrate: [0, 440, \lin, 0, 6, "freq"].asSpec,
 		\vdepth: [0, 1, \lin, 0, 0, "freq"].asSpec,

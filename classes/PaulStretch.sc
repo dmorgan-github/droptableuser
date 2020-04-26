@@ -33,20 +33,10 @@ PaulStretch {
 		var node;
 
 		listenerfunc = {arg obj, prop, params; [obj, prop, params].postln;};
-		//buffer = Buffer.read(s, Platform.resourceDir +/+ "sounds/a11wlk01.wav");
-		if (inPath.isKindOf(Buffer)) {
-			buffer = inPath;
-		}{
-			buffer = Buffer.read(server, inPath);
-		};
-		// The grain envelope
-		envBuf = Buffer.alloc(server, server.sampleRate, 1);
-		envSignal = Signal.newClear(server.sampleRate).waveFill({|x| (1 - x.pow(2)).pow(1.25)}, -1.0, 1.0);
-		envBuf.loadCollection(envSignal);
-
 		node = Ndef(inKey, {
-			var bufnum = \buf.kr(buffer.bufnum);
-			var envBufnum = \envbuf.kr(envBuf.bufnum);
+
+			var bufnum = \buf.kr(0);
+			var envBufnum = \envbuf.kr(0);
 			var pan = \pan.kr(0);
 			var stretch = \stretch.kr(50);
 			var window = \window.kr(0.25);
@@ -81,6 +71,31 @@ PaulStretch {
 			Splay.ar(sig.sum, \spread.kr(1), center:pan) * amp;
 		});
 
+		if (inPath.isKindOf(Buffer)) {
+			buffer = inPath;
+			if (buffer.numChannels > 1) {
+				"buffer is 2 channels. only 1 channel buffers can be used".warn;
+			};
+			node.set(\buf, buffer.bufnum);
+		}{
+			Buffer.read(server, inPath, action:{arg buf;
+				buffer = buf;
+				node.set(\buf, buffer.bufnum);
+				if (buffer.numChannels > 1) {
+					"buffer is 2 channels. only 1 will be used".warn;
+					Buffer.readChannel(server, inPath, channels:[0], action:{arg buf;
+						buffer = buf;
+						node.set(\buf, buffer.bufnum);
+					});
+				}
+			});
+		};
+
+		// The grain envelope
+		envBuf = Buffer.alloc(server, server.sampleRate, 1);
+		envSignal = Signal.newClear(server.sampleRate).waveFill({|x| (1 - x.pow(2)).pow(1.25)}, -1.0, 1.0);
+		envBuf.loadCollection(envSignal);
+
 		if (node.dependants.size == 0) {
 			node.addDependant(listenerfunc);
 		};
@@ -89,6 +104,7 @@ PaulStretch {
 		};
 		// wake sets up the node for audio
 		node.wakeUp;
+		node.set(\envbuf, envBuf.bufnum);
 
 		^node;
 	}

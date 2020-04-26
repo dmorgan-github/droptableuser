@@ -71,24 +71,5 @@ TempoClock.default.tempo = 55/60;
 ~pec.stop;
 ~pec.amp = 0.4;
 
-/////////////////////////////////////////
-// ~wek
-~wek = ~wek ? S(\subtractr);
-~wek.fx(80, {arg in; LPF.ar(in, 770)});
-~wek.fx(90, \delay).wet90_(0.4);
-~wek.fx(100, \reverb).wet100_(0.4).t60_(5).size_(5);
 
-~wek.detunehz = 1;
-~wek.atk = 0.02;
-~wek.tri_(0).sine_(1);
-~wek.legato = 0.3;
-~wek.sineskew_(0.7);
-~wek.stretch = 0.5;
-~wek.octave = 5;
-~wek.set([\degree, \dur], [ [0, 1, 2], 3, 0, `[2,4], 0, 3, \, -1 ].dd);
-~wek.amp = 0.35;
-~wek.harmonic = 1;//[1, 2];
-~wek.play;
-~wek.stop;
-~wek.gui
 

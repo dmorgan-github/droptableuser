@@ -8,7 +8,8 @@ var func = {arg numchannels = 2;
 	var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
 	var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
 	var in_freq = \freq.ar(261).lag(\glis.kr(0));
-	var detune = \detunehz.kr(0.6) * PinkNoise.ar.range(0.8, 1.2);
+	//var detune = \detunehz.kr(0.6) * PinkNoise.ar.range(0.8, 1.2);
+	var detuneratio = \detuneratio.kr(1) * PinkNoise.ar(0.007).range(0.9, 1.1);
 	var ctrllag = 0.005;
 	var debug = \debug.kr(0);
 	var detected, hasFreq;
@@ -20,7 +21,8 @@ var func = {arg numchannels = 2;
 	// bend by semitones...
 	var bend = \bend.ar(0).midiratio;
 	var freqbend = in_freq * bend;
-	var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
+	//var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
+	var freq = Vibrato.ar([freqbend, freqbend * detuneratio], \vrate.ar(6), \vdepth.ar(0.0));
 
 	// either constant pitch
 	// or keytrack

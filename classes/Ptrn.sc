@@ -1,5 +1,99 @@
+Pwnrand : ListPattern {
+	var <>weights;
+
+	*new { arg list, weights, repeats=1;
+		^super.new(list, repeats).weights_(weights)
+	}
+
+	embedInStream {  arg inval;
+		var item, weightsVal, repeatStream;
+		var weightsStream = Ptuple(weights).asStream;
+		repeatStream = repeats.asStream;
+		repeatStream.next(inval).do({ arg i;
+			weightsVal = weightsStream.next(inval);
+			if(weightsVal.isNil) { ^inval };
+			weightsVal = weightsVal.extend(list.size, 0);
+			weightsVal = weightsVal.normalizeSum;
+			item = list.at(weightsVal.windex);
+			inval = item.embedInStream(inval);
+		});
+		^inval
+	}
+	storeArgs { ^[ list, weights, repeats ] }
+}
+
+
+
+Dd : Pattern {
+
+	var list, repeats;
+
+	*new { arg list, repeats=inf;
+		^super.newCopyArgs(list, repeats)
+	}
+
+	storeArgs { ^[list, repeats] }
+
+	embedInStream {arg inval;
+
+		var parse = {arg seq, div=1;
+
+			var myval = seq;
+			if (myval.class != Ref) {
+				// if the value is a ref don't unpack it here
+				myval = myval.value;
+			};
+
+			if (myval.isArray) {
+				var myseq = myval;
+				var mydiv = 1/myseq.size * div;
+				var stream = Pseq(myseq, 1).asStream;
+				var val = stream.next;
+				while ({val.isNil.not},
+					{
+						parse.(val, mydiv);
+						val = stream.next
+					}
+				);
+			} {
+				if (myval.isRest) {
+					myval = Rest();
+					div = Rest(div);
+				} {
+					if (myval.isKindOf(Ref)) {
+						// if the value is a Ref
+						// unpack it and use as-is
+						// this allows us to configure chords
+						// and multi-channel expansion
+						myval = myval.value;
+					} {
+						if (myval.isNil) {
+							div = nil;
+						}
+					}
+				};
+				inval = [myval, div].embedInStream(inval);
+			}
+		};
+
+		var pseq = if (list.isKindOf(Pattern)) {
+			list.asStream;
+		}{
+			Pseq(list, repeats).asStream;
+		};
+
+		var item;
+		var val = pseq.next;
+		while({val.isNil.not}, {
+			parse.(val);
+			val = pseq.next;
+		});
+		^inval;
+	}
+}
+
 // degree, dur
-Dd {
+Dd2 {
 	*new{arg list, repeats=inf;
 
 		^Routine({
@@ -33,16 +127,26 @@ Dd {
 							// this allows us to configure chords
 							// and multi-channel expansion
 							myval = myval.value;
-						};
+						} {
+							if (myval.isNil) {
+								div = nil;
+							}
+						}
 					};
 					[myval, div].yield;
 				}
 			};
 
-			var pseq = Pseq([list].flatten, repeats).asStream;
-			inf.do({
-				var val = pseq.next;
+			var pseq = if (list.isKindOf(Pattern)) {
+				list.asStream;
+			}{
+				Pseq(list, repeats).asStream;
+			};
+
+			var val = pseq.next;
+			while({val.isNil.not}, {
 				parse.(val);
+				val = pseq.next;
 			});
 		})
 	}

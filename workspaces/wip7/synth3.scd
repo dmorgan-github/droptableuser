@@ -9,7 +9,8 @@
 ~iaezv.harmonic = 1;//[1, 2];
 ~iaezv.decay = 2;
 ~iaezv.coef = 0.5;
-~iaezv.amp = 0.15;
+~iaezv.amp = 0.5;
+~iaezv.vel
 ~iaezv.play;
 ~iaezv.stop;
 

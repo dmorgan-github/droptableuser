@@ -49,6 +49,42 @@ Library.put(\fx, \crush, {arg crush=4;
 	}
 });
 
+Library.put(\fx, \chorus, {
+	// adapted from https://github.com/markwheeler/molly_the_poly/blob/master/lib/Engine_MollyThePoly.sc
+
+	{arg in;
+		var chorusMix = 1;//\chorusmix.kr(0);
+		var signal, chorus, chorusPreProcess, chorusLfo, chorusPreDelay = 0.01, chorusDepth = 0.0053, chorusDelay, controlLag = 0.005;
+
+		// Lag inputs
+		chorusMix = Lag.kr(chorusMix, controlLag);
+
+		signal = in * 0.4;
+
+		// Bass boost
+		signal = BLowShelf.ar(signal, freq: 400, rs: 1, db: 2, mul: 1, add: 0);
+
+		// Compression etc
+		signal = LPF.ar(in: signal, freq: 14000);
+		signal = CompanderD.ar(in: signal, thresh: 0.4, slopeBelow: 1, slopeAbove: 0.25, clampTime: 0.002, relaxTime: 0.01);
+		signal = tanh(signal).softclip;
+
+		// Chorus
+		chorusPreProcess = signal + (signal * WhiteNoise.ar(0.004));
+
+		chorusLfo = LFPar.kr(chorusMix.linlin(0.7, 1, 0.5, 0.75));
+		chorusDelay = chorusPreDelay + chorusMix.linlin(0.5, 1, chorusDepth, chorusDepth * 0.75);
+
+		chorus = Array.with(
+			DelayC.ar(in: chorusPreProcess, maxdelaytime: chorusPreDelay + chorusDepth, delaytime: chorusLfo.range(chorusPreDelay, chorusDelay)),
+			DelayC.ar(in: chorusPreProcess, maxdelaytime: chorusPreDelay + chorusDepth, delaytime: chorusLfo.range(chorusDelay, chorusPreDelay))
+		);
+		chorus = LPF.ar(chorus, 14000);
+		chorus;
+		//SelectX.ar(chorusMix * 0.5, [signal.dup, chorus]);
+	}
+});
+
 Library.put(\fx, \shaper, {
 	{arg in;
 		var sig = in;
@@ -319,7 +355,7 @@ Library.put(\fx, \barrys, {
 
 	{arg in;
 
-		var sig = LPF.ar(HPF.ar(in, \hpf.kr(20)), \lpf.kr(20000));
+		var sig = LPF.ar(HPF.ar(in, \barryhpf.kr(20)), \barrylpf.kr(20000));
 		sig = LADSPA.ar(1, 1408,
 			\decay.ar(10),
 			\kneepoint.ar(-10),

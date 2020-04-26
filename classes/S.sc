@@ -21,7 +21,7 @@ M {
 		key = inKey;
 		synths = Order.new;
 		vsts = Order.new;
-		listenerfunc = {arg obj, prop, params; [obj, prop, params].postln;};
+		listenerfunc = {arg obj, prop, params; [key, prop, params].postln;};
 		node = Ndef(key);
 		node.mold(2, \audio);
 		if (node.dependants.size == 0) {
@@ -224,11 +224,14 @@ B : S {
 			var synth = \smplr_1chan;
 			res = super.new(key, synth).bInit(path);
 			all.put(key, res);
+		} {
+			res.bInit(path);
 		};
 		^res;
 	}
 
 	bInit {arg inPath;
+
 		if (inPath.isKindOf(Buffer)) {
 			var bufnum = inPath.bufnum;
 			buf = inPath;
@@ -415,7 +418,7 @@ S {
 
 	var <key, <instrument, <node, <specs, <synths, synthdef, <scenes, <currentScene;
 
-	var <props, <psetkey, <vsts;
+	var <props, <psetkey, <vsts, <>send;
 
 	var listenerfunc, setbuttonfunc;
 
@@ -458,7 +461,7 @@ S {
 		props = ();
 		psetkey = (key ++ '_pset').asSymbol;
 		Pbindef(psetkey, key, 1).quant_(defaultQuant); // initialize the pbindef;
-		listenerfunc = {arg obj, prop, params; [obj, prop, params].postln;};
+		listenerfunc = {arg obj, prop, params; [key, prop, params].postln;};
 		node = Ndef(key);
 		node.mold(2, \audio);
 		if (node.dependants.size == 0) {
@@ -739,52 +742,6 @@ S {
 		}
 	}
 
-	ddl {arg seq;
-		var func = {arg seq;
-			var durs, degrees, lag;
-			var parse, result;
-			parse = {arg seq, result=[[],[],0], div=1, isstart=true;
-				seq.do({arg val, i;
-					if (val.isRest) {
-						if(isstart) {
-							// lag only matters if we start the whole phrase
-							// with a rest. inner rests don't require anything
-							// to do with lag
-							result[2] = result[2] + 1;
-						}{
-							if (val == \r) {
-								// a rest
-								result[0] = result[0].add(Rest(div));
-								// degree
-								result[1] = result[1].add(Rest());
-							} {
-								// otherwise a tie
-								var mydurs = result[0];
-								mydurs[mydurs.lastIndex] = mydurs[mydurs.lastIndex] + div;
-							}
-						}
-					} {
-						isstart = false;
-						if (val.isArray) {
-							var myseq = val;
-							var mydiv = 1/myseq.size * div;
-							result = parse.(myseq, result, mydiv, isstart);
-						} {
-							var obj = val.value;
-							var mydegree = obj;
-							result[0] = result[0].add(div);
-							result[1] = result[1].add(mydegree);
-						}
-					}
-				});
-				result.postln;
-			};
-			result = parse.(seq);
-		};
-		var ptrn = func.(seq);
-		this.set(\dur, Pseq(ptrn[0], inf), \degree, Pseq(ptrn[1], inf), \lag, Pn(ptrn[2]));
-	}
-
 	on {arg midinote, vel=1;
 		this.prNoteOn(midinote, vel);
 	}
@@ -793,8 +750,8 @@ S {
 		this.prNoteOff(midinote);
 	}
 
-	play {arg monitor=true, fadeTime=0, reset=true, out=0, mono=false;
-		this.pdef(monitor, fadeTime, out, mono).play(doReset:true);
+	play {arg monitor=true, fadeTime=0, reset=false, out=0, mono=false;
+		this.pdef(monitor, fadeTime, out, mono).play(doReset:reset);
 	}
 
 	stop {arg fadeTime=0;
@@ -808,14 +765,22 @@ S {
 		};
 	}
 
+	clearPattern {
+		Pbindef(this.psetkey).clear;
+	}
+
 	pdef {arg monitor=true, fadeTime=0, out=0, mono=false;
 
 		var chain;
 
-		if (monitor) {
-			node.play(fadeTime:fadeTime, out:out);
+		if (send.isNil.not) {
+			node.play(fadeTime:fadeTime, out:send.bus.index, group:send.group, addAction:\addToHead);
 		} {
-			node.stop;
+			if (monitor) {
+				node.play(fadeTime:fadeTime, out:out);
+			} {
+				node.stop;
+			};
 		};
 
 		if (mono) {
@@ -958,12 +923,12 @@ S {
 			var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
 			var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
 			var in_freq = \freq.ar(261).lag(\glis.kr(0));
-			var detune = \detunehz.kr(0);// * PinkNoise.ar.range(0.8, 1.2);
+			var detuneratio = \detuneratio.kr(1) * PinkNoise.ar(0.007).range(0.9, 1.1);
 
 			// bend by semitones...
 			var bend = \bend.ar(0).midiratio;
 			var freqbend = in_freq * bend;
-			var freq = Vibrato.ar([freqbend, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
+			var freq = Vibrato.ar([freqbend, freqbend * detuneratio], \vrate.ar(6), \vdepth.ar(0.0));
 
 			var adsr = {
 				var da = Done.none;
