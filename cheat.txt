@@ -1,0 +1,8 @@
+u : undo
+Ctrl-r : Redo
+:new filename.ext
+<Esc>A - end of line then insert
+<Esc>I - beginging of line then insert
+
+thisProcesplatform.recordingsDir_("/Users/david/projects/droptableuser/workspaces");
+

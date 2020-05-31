@@ -19,7 +19,7 @@ Pswitch
 	prand {arg repeats=inf; ^Prand(this, repeats) }
 	pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
 	dd {arg repeats=inf; ^Dd(this, repeats)}
-	shuf {arg num=1, repeats=inf; ^Pn(Pshuf(this, num), repeats) }
+	pshuf {arg num=1, repeats=inf; ^Pn(Pshuf(this, num), repeats) }
 }
 
 + Pattern {

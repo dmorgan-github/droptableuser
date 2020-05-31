@@ -6,28 +6,30 @@ SynthDef(\pm4, {
 	var numops = 4;
 	var fb = LocalIn.ar(numops);
 
-	var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
-	var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
+	// note: this won't work in mono mode
+	var gate = \gate.kr(1);
 	var in_freq = \freq.ar(261).lag(\glis.kr(0));
 	var bend = \bend.ar(0).midiratio;
 	var freqbend = in_freq * bend;
 	var freq = Vibrato.ar(freqbend, \vrate.kr(6), \vdepth.kr(0.001));
-	var detunehz = \detunehz.kr(3);
+	var detunehz = \detunehz.kr(0);
 	var vel = \vel.kr(1);
-
-	var aeg = Env.asr(
-		\atk.kr(0.01),
-		\suslevel.kr(1),
-		\rel.kr(1),
-		curve:\curve.kr(-4)
-	).kr(gate:gate) * WhiteNoise.ar(0.007).range(0.5, 1.0);
 
 	var car = numops.collect({arg i;
 		var num = i+1;
 		var ratio = ('op' ++ num ++ 'ratio').asSymbol;
-		var ccurve = ('op' ++ num ++ 'curve').asSymbol.kr(0);
-		var cvel = ('op' ++ num ++ 'cslope').asSymbol.kr(1);
-		var env = aeg.pow(cvel).lincurve(0, 1, 0, 1, ccurve);
+		var curve = ('op' ++ num ++ 'curve').asSymbol.kr(0);
+		var atk = ('op' ++ num ++ 'atk').asSymbol.kr(0.01);
+		var dec = ('op' ++ num ++ 'dec').asSymbol.kr(0.01);
+		var suslevel = ('op' ++ num ++ 'suslevel').asSymbol.kr(1);
+		var rel = ('op' ++ num ++ 'rel').asSymbol.kr(1);
+		var env = Env.adsr(
+			attackTime:atk,
+			decayTime:dec,
+			sustainLevel:suslevel,
+			releaseTime:rel,
+			curve:curve
+		).kr(gate:gate);
 		[freq * ratio.kr(1) + Rand(detunehz.neg, detunehz), env]
 	});
 
@@ -41,11 +43,14 @@ SynthDef(\pm4, {
 	});
 
 	var sig = numops.collect({arg i;
+		var num = i+1;
 		var freq = car[i][0].clip(20, 20000);
 		var index = mods[i];
 		var mod = (fb * index).sum; // also sounds good not summed here
 		var sig = SinOsc.ar(freq, mod.mod(2pi)) * car[i][1];
-		sig;//.sum;
+		var coef = ('op' ++ num ++ 'coef').asSymbol.kr(0.5).clip(-1, 1);
+		sig = OnePole.ar(sig, coef);
+		sig;
 	});
 
 	sig = LeakDC.ar(sig);
@@ -56,7 +61,7 @@ SynthDef(\pm4, {
 	sig = sig * numops.collect({arg i;
 		var num = i + 1;
 		var key = ('op' ++ num).asSymbol;
-		key.kr(1.reciprocal);
+		key.kr(1);
 	}).normalizeSum;
 
 	// set panning
@@ -76,7 +81,9 @@ SynthDef(\pm4, {
 	);
 
 	sig = sig * AmpCompA.kr(freq) * \amp.kr(0.1) * vel;
+	sig = sig.softclip;
 	DetectSilence.ar(sig, doneAction:Done.freeSelf);
+
 	Out.ar(\out.kr(0), sig);
 
 }).add;

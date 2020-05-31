@@ -20,6 +20,15 @@ App {
 		^str
 	}
 
+	*recdir {arg dir;
+		thisProcess.platform.recordingsDir_("/Users/david/projects/droptableuser/workspaces/" ++ dir);
+	}
+
+	*rec {arg dir;
+		thisProcess.platform.recordingsDir_("/Users/david/projects/droptableuser/workspaces/" ++ dir);
+		Server.default.record;
+	}
+
 	*recAtCommit {arg dir="", commit="";
 
 		var filepath = "%/%/".format(Platform.recordingsDir, dir);

@@ -1,5 +1,5 @@
 /*
-TODO: refactor to reduct duplicate code
+TODO: refactor to reduce duplicate code
 */
 M {
 	classvar <all;
@@ -404,25 +404,24 @@ B : S {
 				);
 
 				var donetrig = Done.kr(sig);
-				SendReply.kr(donetrig, '/\rec_infeedback_done', 1, 1905);
+				SendReply.kr(donetrig, '/rec_infeedback_done', 1, 1905);
 				Out.ar(\out.kr(0), in);
 			}).add;
 		};
 	}
 }
 
+
 S {
 	classvar <all;
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <>defaultQuant;
 
-	var <key, <instrument, <node, <specs, <synths, synthdef, <scenes, <currentScene;
+	var <key, <instrument, <node, <specs, <synths, synthdef;
 
-	var <props, <psetkey, <vsts, <>send;
+	var <props, <psetkey, <vsts;
 
 	var listenerfunc, setbuttonfunc;
-
-	var func;
 
 	*new {arg key, synth;
 		var res;
@@ -456,10 +455,11 @@ S {
 		// off in outer space
 		synths = Array.fill(127, {List.new});
 		specs = ();
-		scenes = Order.new;
 		vsts = Order.new;
 		props = ();
 		psetkey = (key ++ '_pset').asSymbol;
+		// need to  initialize with one key defined
+		// otherwise the empty pbindef will halt the entire pattern
 		Pbindef(psetkey, key, 1).quant_(defaultQuant); // initialize the pbindef;
 		listenerfunc = {arg obj, prop, params; [key, prop, params].postln;};
 		node = Ndef(key);
@@ -578,6 +578,10 @@ S {
 			// within a pattern as keys like \dur when
 			// provided a pattern for their value do not
 			// resolve to the underlying primitive correctly
+			// the values can be accessed via Pbindef(psetkey).source.pairs
+			// but you still have to maintain state externally
+			// to the stream so that you can call .next on each
+			// iteration
 			case
 			{v.isKindOf(Function)} {
 				var lfo;
@@ -609,7 +613,7 @@ S {
 				if (isnodeprop){
 					// can't use pattern or routine as value
 					// for a node property so just get
-					// the first value from the stream
+					// the first value from the stream to be safe
 					node.set(k, val.value);
 				}{
 					props.put(k, val);
@@ -716,32 +720,6 @@ S {
 		};
 	}
 
-	scene {arg index, func;
-		var gdef = Pdef(this.key ++ '_gptrn' ++ index, Pbind(\type, \set, \id, Pfunc({this.node.nodeID})));
-		var pattern = func.(this.pdef, gdef, this.scenes);
-		var key = (this.key ++ '_ptrn' ++ index).asSymbol;
-		pattern = Pdef(key, pattern);
-		scenes.put(index, pattern);
-	}
-
-	playScene {arg index;
-		scenes.do({arg pdef;
-			pdef.stop;
-		});
-		currentScene = index;
-		scenes[currentScene].play;
-	}
-
-	stopScene {arg index;
-		if (index.isNil) {
-			scenes.do({arg pdef;
-				pdef.stop;
-			});
-		} {
-			scenes[index].stop;
-		}
-	}
-
 	on {arg midinote, vel=1;
 		this.prNoteOn(midinote, vel);
 	}
@@ -772,16 +750,15 @@ S {
 	pdef {arg monitor=true, fadeTime=0, out=0, mono=false;
 
 		var chain;
-
-		if (send.isNil.not) {
-			node.play(fadeTime:fadeTime, out:send.bus.index, group:send.group, addAction:\addToHead);
-		} {
+		//if (send.isNil.not) {
+		//	node.play(fadeTime:fadeTime, out:send.bus.index, group:send.group, addAction:\addToHead);
+		//} {
 			if (monitor) {
 				node.play(fadeTime:fadeTime, out:out);
 			} {
 				node.stop;
 			};
-		};
+		//};
 
 		if (mono) {
 			chain = Pchain(Pmono(this.instrument, \retrig, 1, \trig, 1), Pbindef(this.psetkey));
@@ -798,7 +775,7 @@ S {
 				\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
 				\group, Pfunc({node.group})
 			)
-		);//.quant_(1)
+		).fadeTime_(fadeTime);
 	}
 
 	tolist {arg size=16;
@@ -874,10 +851,9 @@ S {
 		Ndef(key).clear;
 		Pdef(key).clear;
 		Pbindef(psetkey).clear;
-		Pbindef(psetkey, key, 1);
-		scenes.do({arg pdef;
-			pdef.clear;
-		});
+		// need to  initialize with one key defined
+		// otherwise the empty pbindef will halt the entire pattern
+		Pbindef(psetkey, key, 1).quant_(defaultQuant);
 		this.panic();
 		all[key] = nil;
 	}
@@ -894,21 +870,6 @@ S {
 			node.group.free;
 		}
 	}
-
-	/*
-	copy {arg toKey;
-		var obj;
-		if(toKey.isNil){
-			toKey = App.idgen.asSymbol;
-		};
-	~muauim.set(*~itof.props.asPairs);
-		obj = S(toKey, instrument);
-		Pbindef(this.psetkey).copy(obj.psetkey);
-		obj.props = props.copy;
-		obj.node = node.copy(toKey);
-		^obj;
-	}
-	*/
 
 	gui {
 		var func = {arg k, v; this.set(k, v) };
@@ -955,9 +916,9 @@ S {
 			var aeg = adsr.();
 			var sig = inFunc.(freq, gate, aeg);
 
+			sig = LeakDC.ar(sig);
 			sig = sig * aeg * AmpCompA.ar(freq) * \vel.kr(1);
 			sig = Splay.ar(sig, \spread.kr(0), center:\center.kr(0));
-			sig = LeakDC.ar(sig);
 			sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
 			sig = sig * \amp.kr(-10.dbamp);
 			Out.ar(\out.kr(0), sig);
