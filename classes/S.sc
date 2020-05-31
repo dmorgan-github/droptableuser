@@ -106,7 +106,7 @@ M {
 			selector = selector.asGetter;
 			^this.set(selector.asSymbol, val);
 		} {
-			^this.getVal(selector.asSymbol)
+			^this.at(selector.asSymbol)
 		};
 	}
 
@@ -411,8 +411,13 @@ B : S {
 	}
 }
 
-
-S {
+/*
+TODO: override embedInStream
+probably best to split out the noteon/noteoff to a separate class
+so essentially we can have a midi player and pattern player
+with the same interface but different implementations
+*/
+S : EventPatternProxy {
 	classvar <all;
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <>defaultQuant;
@@ -433,7 +438,7 @@ S {
 		};
 		res = all[key];
 		if (res.isNil) {
-			res = super.new.prInit(key);
+			res = super.new(nil).prInit(key);
 			all.put(key, res);
 		};
 		if (synth.isNil.not) {
@@ -472,6 +477,8 @@ S {
 		};
 		// wake sets up the node for audio
 		node.wakeUp;
+
+		this.source = this.prInitSource;
 
 		^this;
 	}
@@ -525,6 +532,52 @@ S {
 		});
 	}
 
+	prInitSource {
+
+		var chain;
+		psetkey = (key ++ '_pset').asSymbol;
+
+		/*
+		the envir property can be used to pass argument values
+		to the pattern
+		~a = S(\subtractr);
+		~a.envir = (monitor:false);
+		*/
+
+		chain = Plazy({arg evt;
+			var monitor = evt[\monitor] ?? true;
+			var mono = evt[\mono] ?? false;
+			var fadeTime = evt[\fadeTime] ?? 0;
+			var out = evt[\outbus] ?? 0;
+
+			if (monitor.debug(this.key ++ \monitor)) {
+				node.play(
+					fadeTime:fadeTime.debug(this.key ++ \fadeTime),
+					out:out.debug(this.key ++ \outbus)
+				);
+			};
+
+			if (mono) {
+				Pchain(Pmono(this.instrument, \retrig, 1, \trig, 1), Pbindef(this.psetkey, key, 1));
+			}{
+				// need to  initialize with one key defined
+				// otherwise the empty pbindef will halt the entire pattern
+				Pbindef(this.psetkey, key, 1)
+			}
+		});
+
+		^Pchain(
+			chain,
+			Pbind(
+				\instrument, Pfunc({instrument}),
+				\root, Pfunc({defaultRoot}),
+				\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
+				\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
+				\group, Pfunc({node.group})
+			)
+		);
+	}
+
 	getSpec {arg key;
 		var spec = this.specs[key];
 		if (spec.isNil.not) {
@@ -533,7 +586,7 @@ S {
 		^spec;
 	}
 
-	getVal {arg key, default;
+	at {arg key;
 		var val;
 		var spec = this.specs[key];
 		var prop = this.props[key];
@@ -551,9 +604,6 @@ S {
 			if (prop.isNil.not) {
 				val = prop.value;
 			};
-		};
-		if (val.isNil) {
-			val = default;
 		};
 		^val;
 	}
@@ -655,7 +705,7 @@ S {
 			selector = selector.asGetter;
 			^this.set(selector.asSymbol, val);
 		} {
-			^this.getVal(selector.asSymbol)
+			^this.at(selector.asSymbol)
 		};
 	}
 
@@ -728,59 +778,13 @@ S {
 		this.prNoteOff(midinote);
 	}
 
-	play {arg monitor=true, fadeTime=0, reset=false, out=0, mono=false;
-		this.pdef(monitor, fadeTime, out, mono).play(doReset:reset);
-	}
-
-	stop {arg fadeTime=0;
-		if (fadeTime > 0) {
-			this.node.stop(fadeTime:fadeTime);
-			{
-				Pdef(this.key).stop;
-			}.defer(fadeTime + 1);
-		}{
-			Pdef(this.key).stop;
-		};
-	}
-
 	clearPattern {
 		Pbindef(this.psetkey).clear;
 	}
 
-	pdef {arg monitor=true, fadeTime=0, out=0, mono=false;
-
-		var chain;
-		//if (send.isNil.not) {
-		//	node.play(fadeTime:fadeTime, out:send.bus.index, group:send.group, addAction:\addToHead);
-		//} {
-			if (monitor) {
-				node.play(fadeTime:fadeTime, out:out);
-			} {
-				node.stop;
-			};
-		//};
-
-		if (mono) {
-			chain = Pchain(Pmono(this.instrument, \retrig, 1, \trig, 1), Pbindef(this.psetkey));
-		}{
-			chain = Pbindef(this.psetkey);
-		};
-
-		^Pdef(key,
-			chain
-			<> Pbind(
-				\instrument, Pfunc({instrument}),
-				\root, Pfunc({defaultRoot}),
-				\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
-				\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
-				\group, Pfunc({node.group})
-			)
-		).fadeTime_(fadeTime);
-	}
-
 	tolist {arg size=16;
 		var list = List.new;
-		var stream = this.pdef.asStream;
+		var stream = this.asStream;
 		size.do({arg i;
 			var evt = stream.next(Event.default);
 			list.add(evt);
