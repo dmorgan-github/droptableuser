@@ -13,7 +13,6 @@ SynthDef(\pm4, {
 	var freqbend = in_freq * bend;
 	var freq = Vibrato.ar(freqbend, \vrate.kr(6), \vdepth.kr(0.0));
 	var detunehz = \detunehz.kr(0);
-	var vel = \vel.kr(1);
 
 	var car = numops.collect({arg i;
 		var num = i+1;
@@ -29,7 +28,7 @@ SynthDef(\pm4, {
 			sustainLevel:suslevel,
 			releaseTime:rel,
 			curve:curve
-		).kr(gate:gate);
+		).ar(gate:gate);
 		[freq * ratio.kr(1) + Rand(detunehz.neg, detunehz), env]
 	});
 
@@ -82,11 +81,30 @@ SynthDef(\pm4, {
 		\lpfres.kr(0).linlin(0, 1, 1, 0.001)
 	);
 
-	sig = sig * AmpCompA.kr(freq) * \amp.kr(0.1) * vel;
+	sig = (sig * \sat.kr(1)).softclip * AmpCompA.kr(freq, 32) * \amp.kr(0.3) * \vel.kr(1);
 	DetectSilence.ar(sig, doneAction:Done.freeSelf);
-	sig = sig.softclip;
+	Out.ar(\out.kr(0), sig.softclip);
 
-	Out.ar(\out.kr(0), sig);
+}, metadata: (
+	specs: (
 
-}).add;
+		atk: ControlSpec(0, 1, \lin, 0, 0.01, "aeg"),
+		dec: ControlSpec(0, 1, \lin, 0, 0.2, "aeg"),
+		rel: ControlSpec(0, 8, \lin, 0, 0.29, "aeg"),
+		suslevel: ControlSpec(0, 1, \lin, 0, 1, "aeg"),
+		curve: ControlSpec(-8, 8, \lin, 0, -4, "aeg"),
+		ts: ControlSpec(0.001, 100, \lin, 0, 1, "aeg"),
+
+		hpf: ControlSpec(20, 18000, \lin, 0, 20, "filter"),
+		hpfres: ControlSpec(0, 1, \lin, 0, 0, "filter"),
+		lpf: ControlSpec(20, 20000, \lin, 0, 20000, "filter"),
+		lpfres: ControlSpec(0, 1, \lin, 0, 0, "filter"),
+
+		spread: ControlSpec(0, 1, \lin, 0, 1, "stereo"),
+		center: ControlSpec(0, 1, \lin, 0, 0, "stereo"),
+		vel: ControlSpec(0, 1, \lin, 0, 1, "vol"),
+		amp: ControlSpec(0, 1, \lin, 0, -10.dbamp, "vol"),
+		sat: ControlSpec(1, 100, \lin, 0, 1, "dist")
+	)
+)).add;
 )

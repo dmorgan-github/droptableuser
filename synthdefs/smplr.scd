@@ -56,68 +56,34 @@ var func = {arg numchannels = 2;
 		aeg;
 	};
 
-	/*
-	var filter = {arg sig;
-		var famt = \freqamt.kr(0).lag(ctrllag);
-		var ffreq = \cutoff.kr(100).lag(ctrllag) + (freq * famt);
-		var fvel = max(\fvel.kr(10).lag(ctrllag), 0.001);
-		var fres = 1-\res.kr(0.5).lag(ctrllag);
-
-		var f1, f2;
-		var fatk = \fatk.kr(0.01).lag(ctrllag);
-		var fdec = \fdec.kr(0.21).lag(ctrllag);
-		var fsuslevel = \fsuslevel.kr(1).lag(ctrllag);
-		var frel = \frel.kr(0.1).lag(ctrllag);
-		var atkcurve = \fatkcurve.kr(-4).lag(ctrllag);
-		var deccurve = \fdeccurve.kr(-4).lag(ctrllag);
-		var relcurve = \frelcurve.kr(-4).lag(ctrllag);
-		var ts = \fts.kr(1).lag(ctrllag);
-		var feg = Env(
-			[0, 1, fsuslevel, 0],
-			[fatk, fdec, frel],
-			[atkcurve, deccurve, relcurve],
-			releaseNode:2
-		).ar(gate:gate, timeScale:ts)
-		.linlin(0, 1, ffreq, ffreq * fvel);
-
-		feg = feg * \feglfo.kr(1);
-		feg = feg.clip(20, 20000);
-		sig = RLPF.ar(sig, feg, fres.clip(0.001, 1.0));
-		sig;
-	};
-	*/
-
 	# detected, hasFreq = Tartini.kr(sig);
 	Poll.kr(Impulse.kr(10) * debug, detected, \samplr_freq);
-
-	//sig = filter.(sig);
 	sig = LeakDC.ar(sig);
-	sig = sig * adsr.() * AmpCompA.kr(freq) * \vel.kr(1);
-	sig = sig * \amp.kr(-3.dbamp);
+	sig = (sig * \sat.kr(1)).softclip * adsr.() * AmpCompA.kr(freq) * \amp.kr(0.3) * \vel.kr(1);
 	sig = Splay.ar(sig, \spread.kr(0), center:\center.kr(0));
-	sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
 	Out.ar(\out.kr(0), sig);
 };
 
 var specs = (
-	\root: ControlSpec(-12, 12, \lin, 1, 0),
-	\glis: ControlSpec(0, 1, \lin, 0, 0),
-	\loop: ControlSpec(0, 1, \lin, 1, 1),
-	\freqmode: ControlSpec(0, 1, \lin, 1, 0),
-	\rev: ControlSpec(0, 1, \lin, 1, 0),
-	\start: ControlSpec(0, 1, \lin, 0, 0),
-	\rate: ControlSpec(0.1, 4.0, \lin, 0, 1)
+	root: ControlSpec(-12, 12, \lin, 1, 0),
+	glis: ControlSpec(0, 1, \lin, 0, 0),
+	loop: ControlSpec(0, 1, \lin, 1, 1),
+	freqmode: ControlSpec(0, 1, \lin, 1, 0),
+	rev: ControlSpec(0, 1, \lin, 1, 0),
+	start: ControlSpec(0, 1, \lin, 0, 0),
+	rate: ControlSpec(0.1, 4.0, \lin, 0, 1),
+	sat: ControlSpec(1, 100, \lin, 0, 1, "dist")
 );
 
 SynthDef(\smplr_2chan, {
 	func.(2)
 }, metadata: (
-	\specs: specs
+	specs: specs
 )).add;
 
 SynthDef(\smplr_1chan, {
 	func.(1)
 }, metadata: (
-	\specs: specs
+	specs: specs
 )).add;
 )

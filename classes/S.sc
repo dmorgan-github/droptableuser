@@ -418,6 +418,8 @@ so essentially we can have a midi player and pattern player
 with the same interface but different implementations
 */
 S : EventPatternProxy {
+
+	// TODO: use pdef global dictionary
 	classvar <all;
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <>defaultQuant;
@@ -426,7 +428,9 @@ S : EventPatternProxy {
 
 	var <props, <psetkey, <vsts, <presets;
 
-	var listenerfunc, setbuttonfunc;
+	var listenerfunc;
+
+	//var setbuttonfunc;
 
 	*new {arg key, synth;
 		var res;
@@ -861,6 +865,7 @@ S : EventPatternProxy {
 		^list;
 	}
 
+	/*
 	viz {arg num=7, start=60;
 
 		var root = this.props[\root] ?? defaultRoot;
@@ -919,6 +924,7 @@ S : EventPatternProxy {
 		})
 		.front;
 	}
+	*/
 
 	clear {
 		Ndef(key).clear;
@@ -954,35 +960,32 @@ S : EventPatternProxy {
 	prBuildSynth {arg inKey, inFunc;
 
 		SynthDef(inKey, {
+
 			var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
 			var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
 			var in_freq = \freq.ar(261).lag(\glis.kr(0));
-			var detuneratio = \detuneratio.kr(1) * PinkNoise.ar(0.007).range(0.9, 1.1);
+			var detune = \detunehz.kr(0.6) * PinkNoise.ar(0.007).range(0.9, 1.1);
 
 			// bend by semitones...
 			var bend = \bend.ar(0).midiratio;
 			var freqbend = in_freq * bend;
-			var freq = Vibrato.ar([freqbend, freqbend * detuneratio], \vrate.ar(6), \vdepth.ar(0.0));
+			//var freq = freqbend + [detune, detune.neg];
+			var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
 
 			var adsr = {
-				var da = Done.none;
 				var atk = \atk.kr(0.01);
 				var dec = \dec.kr(0.1);
 				var rel = \rel.kr(0.1);
-				var suslevel = \suslevel.kr(0.5);
+				var suslevel = \suslevel.kr(1);
 				var ts = \ts.kr(1);
-				var atkcurve = \atkcurve.kr(-4);
-				var deccurve = \deccurve.kr(-4);
-				var relcurve = \relcurve.kr(-4);
+				var curve = \curve.kr(-4);
 				var env = Env.adsr(
 					attackTime:atk, decayTime:dec, sustainLevel:suslevel, releaseTime:rel,
-					curve:[atkcurve, deccurve, relcurve]
+					curve:curve
 				);
-				var aeg = env.kr(doneAction:da, gate:gate, timeScale:ts);
-				aeg = aeg * \aeglfo.kr(1);
-				// control life cycle of synth
-				env.kr(doneAction:Done.freeSelf, gate:\gate.kr, timeScale:ts);
-
+				var aeg = env.ar(doneAction:Done.freeSelf, gate:gate, timeScale:ts);
+				// control life cycle of synth (can't remember what i used this for)
+				//env.ar(doneAction:Done.freeSelf, gate:\gate.kr, timeScale:ts);
 				aeg;
 			};
 
@@ -990,11 +993,10 @@ S : EventPatternProxy {
 			var sig = inFunc.(freq, gate, aeg);
 
 			sig = LeakDC.ar(sig);
-			sig = sig * aeg * AmpCompA.ar(freq) * \vel.kr(1);
+			sig = sig * aeg * AmpCompA.ar(freq, 32) * \vel.kr(1);
 			sig = Splay.ar(sig, \spread.kr(0), center:\center.kr(0));
-			sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
 			sig = sig * \amp.kr(-10.dbamp);
-			Out.ar(\out.kr(0), sig);
+			Out.ar(\out.kr(0), sig.softclip);
 		}).add;
 	}
 

@@ -1,129 +1,97 @@
 (
-Ndef(\synth, {
+// adapted from Eli Fieldsteel
+SynthDef(\grainr, {
 
-	//arg out,
-	//effectBus, phase_out, level_out,
+	var gate = \gate.kr(1);
 	var buf = \buf.kr(0);
-	//var gate = \gate.kr(0);
-	var pos = \pos.kr(0);
-	var speed = \speed.kr(1);
-	var jitter = \jitter.kr(0);
-	var size = \size.kr(0.1);
-	var density = \density.kr(20);
-	var density_mod_amt = \density_mod_amt.kr(0);
-	var pitch = \pitch.kr(1);
-	var spread = \spread.kr(0);
-	var gain = \gain.kr(1);
-	var envscale = \envscale.kr(1);
-	var freeze = \freeze.kr(0);
-	var t_reset_pos = \reset_pos.tr(0);
-	var cutoff = \cutoff.kr(20000);
-	var q = \q.kr(0.5);
-	var mode = \mode.kr(0);
-	//, send=0;
+	var grainenv = \grainenv.kr(-1);
+	var rate = \rate.kr(1);
 
-	var grain_trig;
-	var trig_rnd;
-	var density_mod;
-	var jitter_sig;
-	var buf_dur;
-	var pan_sig;
-	var buf_pos;
-	var pos_sig;
-	var sig;
-	var env;
-	var level;
+	var aeg = {
+		var atk = \atk.kr(0.01);
+		var suslevel = \suslevel.kr(1);
+		var rel = \rel.kr(1);
+		var curve = \curve.kr(-4);
+		Env.asr(atk, suslevel, rel, curve).ar(gate:gate, doneAction:Done.freeSelf)
+	};
 
-	trig_rnd = LFNoise1.kr(density);
-	density_mod = density * (2**(trig_rnd * density_mod_amt));
-	grain_trig = Impulse.kr(density_mod);
+	var density = {
+		var dens = \density.kr(20);
+		var sync = \sync.kr(1);
+		Select.ar(sync, [Dust.ar(dens), Impulse.ar(dens)]);
+	};
 
-	buf_dur = BufDur.kr(buf);
+	var graindur = {
+		var durRand = \durRand.kr(1);
+		var dur = \grainDur.kr(0.1);
+		dur * LFNoise1.kr(100).exprange(1/durRand, durRand);
+	};
 
-	pan_sig = TRand.kr(trig: grain_trig,
-		lo: spread.neg,
-		hi: spread);
+	var pos = {
+		var offset = \pos.kr(0);
+		var speed = \posSpeed.kr(1);
+		var posRand = \posRand.kr(0);
+		var pos = Phasor.ar(0, speed * BufRateScale.ir(buf), 0, BufSamples.ir(buf)-1);
+		pos = pos + LFNoise1.kr(100).bipolar(posRand * SampleRate.ir);
+		pos = pos / BufSamples.ir(buf);
+		pos + offset;
+	};
 
-	jitter_sig = TRand.kr(trig: grain_trig,
-		lo: buf_dur.reciprocal.neg * jitter,
-		hi: buf_dur.reciprocal * jitter);
+	var pan = {
+		var pan = \pan.kr(0);
+		var panHz = \panHz.kr(0.1);
+		var panRand = \panRand.kr(0);
+		pan + LFNoise1.kr(panHz).bipolar(panRand);
+	};
 
-	buf_pos = Phasor.kr(trig: t_reset_pos,
-		rate: buf_dur.reciprocal / ControlRate.ir * speed,
-		resetPos: pos);
+	var sig = GrainBuf.ar(
+		2,
+		density.(),
+		graindur.(),
+		buf,
+		rate,
+		pos.(),
+		2,
+		pan.(),
+		grainenv
+	);
 
-	pos_sig = Wrap.kr(Select.kr(freeze, [buf_pos, pos]));
+	sig = (sig * \sat.kr(1)).softclip * aeg.() * \amp.kr(0.3) * \vel.kr(1);
 
-	sig = GrainBuf.ar(2, grain_trig, size, buf, pitch, pos_sig + jitter_sig, 4, pan_sig);
-	sig = BMoog.ar(sig, cutoff, q, mode);
+	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 
-	//env = EnvGen.kr(Env.asr(1, 1, 1), gate: gate, timeScale: envscale);
+	Out.ar(\out.kr(0), sig.softclip);
 
-	level = 1;//env;
+}, metadata: (
+	specs: (
 
-	(sig * level * gain).softclip;
-	//Out.ar(effectBus, sig * level * send).softclip;
-	//Out.kr(phase_out, pos_sig);
-	// ignore gain for level out
-	//Out.kr(level_out, level);
-})
+		\rate: ControlSpec(0, 1, \lin, 0, 0.01, "overlap"),
+		\density: ControlSpec(0, 1, \lin, 0, 0.01, "overlap"),
+		\sync: ControlSpec(0, 1, \lin, 1, 1, "overlap"),
+
+		\durRand: ControlSpec(0, 1, \lin, 0, 1, "dur"),
+		\grainDur: ControlSpec(0, 1, \lin, 0, 0.1, "dur"),
+
+		\pos: ControlSpec(0, 1, \lin, 0, 0, "pos"),
+		\posSpeed: ControlSpec(0, 1, \lin, 0, 1, "pos"),
+		\posRand: ControlSpec(0, 1, \lin, 0, 0, "pos"),
+
+		\pan: ControlSpec(0, 1, \lin, 0, 0, "pan"),
+		\panHz: ControlSpec(0, 1, \lin, 0, 0.1, "pan"),
+		\panRand: ControlSpec(0, 1, \lin, 0, 0, "pan"),
+
+		atk: ControlSpec(0, 1, \lin, 0, 0.01, "aeg"),
+		rel: ControlSpec(0, 8, \lin, 0, 0.29, "aeg"),
+		suslevel: ControlSpec(0, 1, \lin, 0, 1, "aeg"),
+		curve: ControlSpec(-8, 8, \lin, 0, -4, "aeg"),
+
+		spread: ControlSpec(0, 1, \lin, 0, 1, "stereo"),
+		center: ControlSpec(0, 1, \lin, 0, 0, "stereo"),
+		vel: ControlSpec(0, 1, \lin, 0, 1, "vol"),
+		amp: ControlSpec(0, 1, \lin, 0, -10.dbamp, "vol"),
+		sat: ControlSpec(1, 100, \lin, 0, 1, "dist")
+	)
+)).add;
 )
-
-/*
-~buf.play;
-~buf.numFrames
-
-(
-var path = "/Users/david/projects/droptableuser/samples/Hainbach - Isolation Loops (soundpack)/Hainbach - Isolation Loops (soundpack) - 31 Tape Piano.wav";
-Buffer.readChannel(s, path, channels:[0], action:{arg buf;
-	~buf = buf;
-});
-)
-
-Ndef(\synth).play;
-Ndef(\synth).set(\buf, ~buf);
-Ndef(\synth).set(\pitch, 7.midiratio)
-Ndef(\synth).set(\jitter, 0.5);
-
-
-OscCtrl.trace(false);
-
--- arc ring 1 = speed
--- arc ring 2 = pitch
--- arc ring 3 = grain size
--- arc ring 4 = density
-
-(
-OscCtrl.path('/4/rotary1', {arg msg;
-	var val = msg[0];
-	Ndef(\synth).set(\speed, val);
-});
-OscCtrl.path('/4/rotary2', {arg msg;
-	var val = msg[0];
-	Ndef(\synth).set(\pitch, val.linlin(0, 1, 0, 12).midiratio);
-});
-OscCtrl.path('/4/rotary3', {arg msg;
-	var val = msg[0];
-	Ndef(\synth).set(\size, val);
-});
-OscCtrl.path('/4/rotary4', {arg msg;
-	var val = msg[0];
-	Ndef(\synth).set(\density, val.linlin(0, 1, 1, 50));
-});
-OscCtrl.path('/4/rotary5', {arg msg;
-	var val = msg[0];
-	var numframes = ~buf.numFrames;
-	val = val * numframes;
-	Ndef(\synth).set(\pos, val.floor);
-});
-OscCtrl.path('/4/rotary6', {arg msg;
-	var val = msg[0];
-	val.postln;
-});
-)
-
-
-Ndef(\synth).filter(10, {arg in; Greyhole.ar(in)}).set(\wet10, 0.3)
-*/
 
 

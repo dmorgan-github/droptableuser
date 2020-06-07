@@ -20,7 +20,7 @@ SynthDef(\subtractr, {
 		var sus = \suslevel.kr(1);
 		var rel = \rel.kr(1);
 		var curve = \curve.kr(-4);
-		Env.adsr(atk, dec, sus,  rel,  curve)
+		Env.adsr(atk, dec, sus,  rel, curve)
 		.ar(gate:gate, doneAction:Done.freeSelf);
 	};
 
@@ -33,7 +33,7 @@ SynthDef(\subtractr, {
 			\fsuslevel.kr(1),
 			\frel.kr(1),
 			\fcurve.kr(-4)
-		).ar(gate:gate).linlin(0, 1, cutoff, cutoff * fvel);
+		).ar(gate:gate).linlin(0, 1, cutoff, cutoff * fvel).clip(20, 20000);
 		var sig = MoogFF.ar(in, feg, res) * 4;
 		sig;
 	};
@@ -44,18 +44,19 @@ SynthDef(\subtractr, {
 		var fold = \trifold.kr(1).max(1);
 		sig = (sig * fold).fold(-1, 1) * fold.reciprocal.sqrt;
 		sig = LeakDC.ar(sig);
-		sig * AmpCompA.kr(freq) * 1.5;
+		sig * AmpCompA.kr(freq, 32) * 1.5;
 	};
 
 	var saw = {arg freq;
 		var sig = Saw.ar(freq);
-		sig * AmpCompA.kr(freq);
+		sig * AmpCompA.kr(freq, 32);
 	};
 
 	var pulse = {arg freq;
 		var width = \pulsewidth.ar(0.5) + \pulsewidthlfo.ar(0);
 		var sig = Pulse.ar(freq, width);
-		sig * AmpCompA.kr(freq);
+		sig = LeakDC.ar(sig);
+		sig * AmpCompA.kr(freq, 32);
 	};
 
 	var sine = {arg freq;
@@ -65,7 +66,7 @@ SynthDef(\subtractr, {
 		var fold = \sinefold.kr(1).max(1);
 		sig = (sig * fold).fold(-1, 1) * fold.reciprocal.sqrt;
 		sig = LeakDC.ar(sig);
-		sig * AmpCompA.kr(freq);
+		sig * AmpCompA.kr(freq, 32);
 	};
 
 	var noise = {
@@ -87,9 +88,11 @@ SynthDef(\subtractr, {
 
 	sig = filter.(sig);
 
-	sig = sig * aeg * AmpCompA.kr(freq, 20) * \amp.kr(0.3) * \vel.kr(1);
+	sig = LeakDC.ar(sig);
 
-	sig = Splay.ar(sig);
+	sig = (sig * \sat.kr(1)).softclip * aeg * \amp.kr(0.3) * \vel.kr(1);
+
+	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 
 	Out.ar(\out.kr(0), sig.softclip);
 
@@ -98,19 +101,17 @@ SynthDef(\subtractr, {
 		atk: [0, 1, \lin, 0, 0.01, "aeg"].asSpec,
 		dec: [0, 1, \lin, 0, 0.2, "aeg"].asSpec,
 		rel: [0, 8, \lin, 0, 0.29, "aeg"].asSpec,
-		suslevel: [0, 1, \lin, 0, 0.7, "aeg"].asSpec,
-		atkcurve: [-8, 8, \lin, 0, -4, "aeg"].asSpec,
-		deccurve: [-8, 8, \lin, 0, -4, "aeg"].asSpec,
-		relcurve: [-8, 8, \lin, 0, -4, "aeg"].asSpec,
+		suslevel: [0, 1, \lin, 0, 1, "aeg"].asSpec,
+		curve: [-8, 8, \lin, 0, -4, "aeg"].asSpec,
 		ts: [0.001, 100, \lin, 0, 1, "aeg"].asSpec,
 
 		cutoff: [20, 20000, \exp, 0, 100, "filter"].asSpec,
 		fvel: [0.001, 20, \lin, 0, 10, "filter"].asSpec,
 		res: [0, 1, \lin, 0, 0.5, "filter"].asSpec,
+		fatk: [0, 1, \lin, 0, 0.01, "filter"].asSpec,
+		frel: [0, 8, \lin, 0, 0.29, "filter"].asSpec,
+		fsuslevel: [0, 1, \lin, 0, 1, "filter"].asSpec,
 		fcurve: [-8, 8, \lin, 0, -4, "filter"].asSpec,
-		fatk: [0, 1, \lin, 0, 0.01, "aeg"].asSpec,
-		fsuslevel: [0, 1, \lin, 0, 0.7, "aeg"].asSpec,
-		frel: [0, 8, \lin, 0, 0.29, "aeg"].asSpec,
 
 		\tri: [0, 1, \lin, 0, 1, "osc1"].asSpec,
 		\trifreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc1"].asSpec,
@@ -138,9 +139,9 @@ SynthDef(\subtractr, {
 		\vdepth: [0, 1, \lin, 0, 0, "freq"].asSpec,
 		\spread: [0, 1, \lin, 0, 1, "stereo"].asSpec,
 		\center: [0, 1, \lin, 0, 0, "stereo"].asSpec,
-		\pan: [-1, 1, \lin, 0, 0, "stereo"].asSpec,
 		\vel: [0, 1, \lin, 0, 1, "vol"].asSpec,
-		\amp: [0, 1, \lin, 0, -10.dbamp, "vol"].asSpec
+		\amp: [0, 1, \lin, 0, -10.dbamp, "vol"].asSpec,
+		\sat: [1, 100, \lin, 0, 1, "dist"].asSpec
 	)
 )
 ).add
