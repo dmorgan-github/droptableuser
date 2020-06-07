@@ -21,7 +21,7 @@ M {
 		key = inKey;
 		synths = Order.new;
 		vsts = Order.new;
-		listenerfunc = {arg obj, prop, params; [key, prop, params].postln;};
+		listenerfunc = {arg obj, prop, params; [prop, params.asCompileString].debug(obj.key);};
 		node = Ndef(key);
 		node.mold(2, \audio);
 		if (node.dependants.size == 0) {
@@ -424,7 +424,7 @@ S : EventPatternProxy {
 
 	var <key, <instrument, <node, <specs, <synths, synthdef;
 
-	var <props, <psetkey, <vsts;
+	var <props, <psetkey, <vsts, <presets;
 
 	var listenerfunc, setbuttonfunc;
 
@@ -461,12 +461,13 @@ S : EventPatternProxy {
 		synths = Array.fill(127, {List.new});
 		specs = ();
 		vsts = Order.new;
+		presets = Order.new;
 		props = ();
 		psetkey = (key ++ '_pset').asSymbol;
 		// need to  initialize with one key defined
 		// otherwise the empty pbindef will halt the entire pattern
 		Pbindef(psetkey, key, 1).quant_(defaultQuant); // initialize the pbindef;
-		listenerfunc = {arg obj, prop, params; [key, prop, params].postln;};
+		listenerfunc = {arg obj, prop, params; [prop, params.asCompileString].debug(key);};
 		node = Ndef(key);
 		node.mold(2, \audio);
 		if (node.dependants.size == 0) {
@@ -534,7 +535,7 @@ S : EventPatternProxy {
 
 	prInitSource {
 
-		var chain;
+		var plazy;
 		psetkey = (key ++ '_pset').asSymbol;
 
 		/*
@@ -544,7 +545,7 @@ S : EventPatternProxy {
 		~a.envir = (monitor:false);
 		*/
 
-		chain = Plazy({arg evt;
+		plazy = Plazy({arg evt;
 			var monitor = evt[\monitor] ?? true;
 			var mono = evt[\mono] ?? false;
 			var fadeTime = evt[\fadeTime] ?? 0;
@@ -567,7 +568,7 @@ S : EventPatternProxy {
 		});
 
 		^Pchain(
-			chain,
+			plazy,
 			Pbind(
 				\instrument, Pfunc({instrument}),
 				\root, Pfunc({defaultRoot}),
@@ -608,7 +609,66 @@ S : EventPatternProxy {
 		^val;
 	}
 
+	getPairs {
+		^Pbindef(this.psetkey)
+		.source
+		.pairs
+		.collect({arg val; if (val.class == PatternProxy) { val.pattern }{val}});
+	}
+
+	presetUi {
+		var num = 16;
+		var key = this.key;
+		var view = View().name_(key).layout_(VLayout().spacing_(0).margins_(0));
+		var func;
+		var buttons = num.collect({arg i;
+			Button()
+			.states_([ [i, Color.white, Color.grey ], [i, Color.white, Color.blue] ])
+			.action_({arg ctrl;
+				var preset;
+				buttons.do({arg btn, j;
+					if (j != i) {
+						if (this.presets[j].isNil.not) {
+							btn.states = [ [j, Color.white, Color.blue.alpha_(0.3)], [j, Color.white, Color.blue] ];
+						};
+						btn.value = 0;
+					};
+				});
+				preset = this.presets[i];
+				if (ctrl.value == 0){
+					\reset.postln;
+					this.presets[i] = this.getPairs;
+					ctrl.value = 1;
+				}{
+					if (preset.isNil.not) {
+						\play.postln;
+						this.set(*preset);
+					} {
+						\set.postln;
+						this.presets[i] = this.getPairs;
+					}
+				};
+			});
+		});
+		buttons.do({arg btn, i;
+			view.layout.add(HLayout(
+				Button()
+				.maxWidth_(10)
+				.states_([ ["x", Color.white, Color.grey] ])
+				.action_({arg ctrl;
+					this.presets[i] = nil;
+					btn
+					.states_([ [i, Color.white, Color.grey ], [i, Color.white, Color.blue] ]);
+				}),
+				btn
+			));
+		});
+		view.front;
+	}
+
 	// TODO: should clear and remove any lfo if being replaced
+	// TODO: change this to value as it overrides the set method
+	// of the base class.
 	set {arg ...args;
 
 		if (args.size.even.not) {
@@ -646,6 +706,14 @@ S : EventPatternProxy {
 				};
 				this.changed(k, lfo);
 			}
+			/*
+			{v.class == PatternProxy} {
+				var val = v.pattern.copy;
+				props.put(k, val);
+				Pbindef(psetkey, k, val);
+				this.changed(k, val);
+			}
+			*/
 			{v.isNil} {
 				if (isnodeprop){
 					node.set(k, v);
@@ -667,6 +735,7 @@ S : EventPatternProxy {
 					node.set(k, val.value);
 				}{
 					props.put(k, val);
+					Pbindef(psetkey, k, nil);
 					Pbindef(psetkey, k, v);
 				};
 				this.changed(k, v);

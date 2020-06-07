@@ -5,91 +5,36 @@ SynthDef(\subtractr, {
 	var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
 	var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
 	var in_freq = \freq.ar(261).lag(\glis.kr(0));
-	var detune = \detunehz.kr(0.6).rand * PinkNoise.ar(0.007).range(0.9, 1.1);
-	var ctrllag = 0.005;
+	var detune = \detunehz.kr(0.6) * PinkNoise.ar(0.007).range(0.9, 1.1);
 
 	// bend by semitones...
 	var bend = \bend.ar(0).midiratio;
 	var freqbend = in_freq * bend;
+	//var freq = freqbend + [detune, detune.neg];
 	var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
 	//var freq = Vibrato.ar([freqbend, freqbend * detuneratio], \vrate.ar(6), \vdepth.ar(0.0));
 
 	var adsr = {
 		var atk = \atk.kr(0.01);
-		var dec = \dec.kr(0.1);
+		var dec = \dec.kr(0);
+		var sus = \suslevel.kr(1);
 		var rel = \rel.kr(1);
-		var suslevel = \suslevel.kr(0.5);
-		var ts = \ts.kr(1);
-		var atkcurve = \atkcurve.kr(-4);
-		var deccurve = \deccurve.kr(-4);
-		var relcurve = \relcurve.kr(-4);
-		var env = Env.adsr(
-			attackTime:atk, decayTime:dec, sustainLevel:suslevel, releaseTime:rel,
-			curve:[atkcurve, deccurve, relcurve]
-		);
-		var aeg = env.kr(doneAction:Done.none, gate:gate, timeScale:ts);
-		aeg = aeg * \aeglfo.kr(1);// * PinkNoise.ar(1!2).range(0.1, 1).lag(0.01);
-
-		// control life cycle of synth
-		env.kr(doneAction:Done.freeSelf, gate:\gate.kr, timeScale:ts);
-		aeg;
+		var curve = \curve.kr(-4);
+		Env.adsr(atk, dec, sus,  rel,  curve)
+		.ar(gate:gate, doneAction:Done.freeSelf);
 	};
 
-	/*
-	var filter = {arg sig, aeg;
-
-		var freqamt = \freqamt.kr(0).lag(ctrllag);
-		var ffreq = \cutoff.kr(100).lag(ctrllag) + (freq * freqamt);
-		var fvel = max(\fvel.kr(10).lag(ctrllag), 0.001);
-		var fres = \res.kr(0.5).lag(ctrllag);
-		var fcurve = \fcurve.kr(0);
-		//var famt = \famt.kr(0.9).linlin(0, 1, 10, 0);
-
-		var f1, f2;
-		var which = \fwhich.kr(0).lag(ctrllag);
-		var focus = \ffocus.kr(1).lag(ctrllag);
-		var feg = aeg.lincurve(0, 1, ffreq, ffreq * fvel, fcurve);
-		feg = feg * \feglfo.kr(1);
-		feg = feg.clip(20, 20000);
-		f1 = MoogFF.ar(sig, feg, fres.linlin(0, 1, 0.001, 4)) * 4;
-		f2 = DFM1.ar(sig, feg, fres.clip(0.001, 1.0));
-		sig = SelectXFocus.ar(which, [f1, f2], focus);
-		sig;
-	};
-	*/
-
-	var filter = {arg sig, aeg;
-
-		var freqamt = \freqamt.kr(0).lag(ctrllag);
-		var ffreq = \cutoff.kr(100).lag(ctrllag) + (freq * freqamt);
-		var fvel = max(\fvel.kr(10).lag(ctrllag), 0.001);
-		var fres = \res.kr(0.5).lag(ctrllag);
-		var curve = \fcurve.kr(0);
-
-
-		var f1, f2;
-		var which = \fwhich.kr(0).lag(ctrllag);
-		var focus = \ffocus.kr(1).lag(ctrllag);
-
-		var atk = \fatk.kr(0.01);
-		var dec = \fdec.kr(0.1);
-		var suslevel = \fsuslevel.kr(1);
-		var rel = \frel.kr(1);
-
-		var feg = Env.adsr(
-			attackTime:atk,
-			decayTime:dec,
-			sustainLevel: suslevel,
-			releaseTime: rel,
-			curve:curve)
-		.kr(gate:gate)
-		.linlin(0, 1, ffreq, ffreq * fvel);
-
-		//feg = feg * \feglfo.kr(1);
-		feg = feg.clip(20, 20000);
-		f1 = MoogFF.ar(sig, feg, fres.linlin(0, 1, 0.001, 4)) * 4;
-		f2 = DFM1.ar(sig, feg, fres.clip(0.001, 1.0));
-		sig = SelectXFocus.ar(which, [f1, f2], focus);
+	var filter = {arg in;
+		var cutoff = \cutoff.kr(220);
+		var fvel = \fvel.kr(10);
+		var res = \res.kr(0.5).linlin(0, 1, 0, 4);
+		var feg = Env.asr(
+			\fatk.kr(0.01),
+			\fsuslevel.kr(1),
+			\frel.kr(1),
+			\fcurve.kr(-4)
+		).ar(gate:gate).linlin(0, 1, cutoff, cutoff * fvel);
+		var sig = MoogFF.ar(in, feg, res) * 4;
 		sig;
 	};
 
@@ -103,8 +48,7 @@ SynthDef(\subtractr, {
 	};
 
 	var saw = {arg freq;
-		var sync = \sawsync.ar(1);
-		var sig = SyncSaw.ar(freq, freq * sync);
+		var sig = Saw.ar(freq);
 		sig * AmpCompA.kr(freq);
 	};
 
@@ -141,13 +85,12 @@ SynthDef(\subtractr, {
 		noise.() * \noise.kr(0)
 	].sum;
 
-	sig = LeakDC.ar(sig);
-	sig = Splay.ar(sig, \spread.kr(0), center:\center.kr(0));
+	sig = filter.(sig);
 
-	sig = filter.(sig, aeg);
-	sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
-	sig = sig * aeg * \vel.kr(1);
-	sig = sig * \amp.kr(-10.dbamp);
+	sig = sig * aeg * AmpCompA.kr(freq, 20) * \amp.kr(0.3) * \vel.kr(1);
+
+	sig = Splay.ar(sig);
+
 	Out.ar(\out.kr(0), sig.softclip);
 
 }, metadata: (
@@ -164,11 +107,10 @@ SynthDef(\subtractr, {
 		cutoff: [20, 20000, \exp, 0, 100, "filter"].asSpec,
 		fvel: [0.001, 20, \lin, 0, 10, "filter"].asSpec,
 		res: [0, 1, \lin, 0, 0.5, "filter"].asSpec,
-		fwhich: [0, 1, \lin, 0, 0, "filter"].asSpec,
-		ffocus: [0, 1, \lin, 0, 1, "filter"].asSpec,
-		freqamt: [0, 4, \lin, 0, 0, "filter"].asSpec,
-		famt: [0, 1, \lin, 0, 0.9, "filter"].asSpec,
 		fcurve: [-8, 8, \lin, 0, -4, "filter"].asSpec,
+		fatk: [0, 1, \lin, 0, 0.01, "aeg"].asSpec,
+		fsuslevel: [0, 1, \lin, 0, 0.7, "aeg"].asSpec,
+		frel: [0, 8, \lin, 0, 0.29, "aeg"].asSpec,
 
 		\tri: [0, 1, \lin, 0, 1, "osc1"].asSpec,
 		\trifreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc1"].asSpec,
@@ -177,7 +119,6 @@ SynthDef(\subtractr, {
 
 		\saw: [0, 1, \lin, 0, 0, "osc2"].asSpec,
 		\sawfreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc2"].asSpec,
-		\sawsync: [1, 5, \lin, 0, 1, "osc2"].asSpec,
 
 		\pulse: [0, 1, \lin, 0, 0, "osc3"].asSpec,
 		\pulsefreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc3"].asSpec,

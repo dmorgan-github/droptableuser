@@ -11,7 +11,7 @@ SynthDef(\pm4, {
 	var in_freq = \freq.ar(261).lag(\glis.kr(0));
 	var bend = \bend.ar(0).midiratio;
 	var freqbend = in_freq * bend;
-	var freq = Vibrato.ar(freqbend, \vrate.kr(6), \vdepth.kr(0.001));
+	var freq = Vibrato.ar(freqbend, \vrate.kr(6), \vdepth.kr(0.0));
 	var detunehz = \detunehz.kr(0);
 	var vel = \vel.kr(1);
 
@@ -48,8 +48,10 @@ SynthDef(\pm4, {
 		var index = mods[i];
 		var mod = (fb * index).sum; // also sounds good not summed here
 		var sig = SinOsc.ar(freq, mod.mod(2pi)) * car[i][1];
-		var coef = ('op' ++ num ++ 'coef').asSymbol.kr(0.5).clip(-1, 1);
-		sig = OnePole.ar(sig, coef);
+		var coef = ('op' ++ num ++ 'coef').asSymbol.kr(0.5).clip(0, 1);
+		//sig = OnePole.ar(sig, coef);
+		var lpf = coef.linlin(0, 1, 20, 20000);
+		sig = LPF.ar(sig, lpf);
 		sig;
 	});
 
@@ -81,8 +83,8 @@ SynthDef(\pm4, {
 	);
 
 	sig = sig * AmpCompA.kr(freq) * \amp.kr(0.1) * vel;
-	sig = sig.softclip;
 	DetectSilence.ar(sig, doneAction:Done.freeSelf);
+	sig = sig.softclip;
 
 	Out.ar(\out.kr(0), sig);
 
