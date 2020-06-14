@@ -14,7 +14,7 @@ Pswitch
 	incr {arg step, repeats=inf; ^Pseries(this, step, inf)}
 }
 
-+ Array {
++ SequenceableCollection {
 	pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
 	prand {arg repeats=inf; ^Prand(this, repeats) }
 	pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}

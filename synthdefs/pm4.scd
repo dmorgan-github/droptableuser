@@ -81,19 +81,13 @@ SynthDef(\pm4, {
 		\lpfres.kr(0).linlin(0, 1, 1, 0.001)
 	);
 
-	sig = (sig * \sat.kr(1)).softclip * AmpCompA.kr(freq, 32) * \amp.kr(0.3) * \vel.kr(1);
 	DetectSilence.ar(sig, doneAction:Done.freeSelf);
+	sig = (sig * \sat.kr(1)).softclip * AmpCompA.kr(freq, 32) * \amp.kr(0.3) * \vel.kr(1);
+	sig = LeakDC.ar(sig);
 	Out.ar(\out.kr(0), sig.softclip);
 
 }, metadata: (
 	specs: (
-
-		atk: ControlSpec(0, 1, \lin, 0, 0.01, "aeg"),
-		dec: ControlSpec(0, 1, \lin, 0, 0.2, "aeg"),
-		rel: ControlSpec(0, 8, \lin, 0, 0.29, "aeg"),
-		suslevel: ControlSpec(0, 1, \lin, 0, 1, "aeg"),
-		curve: ControlSpec(-8, 8, \lin, 0, -4, "aeg"),
-		ts: ControlSpec(0.001, 100, \lin, 0, 1, "aeg"),
 
 		hpf: ControlSpec(20, 18000, \lin, 0, 20, "filter"),
 		hpfres: ControlSpec(0, 1, \lin, 0, 0, "filter"),
@@ -108,3 +102,4 @@ SynthDef(\pm4, {
 	)
 )).add;
 )
+

@@ -1,4 +1,118 @@
 
+/*
+TODO: pattern vis
+	viz {arg num=7, start=60;
+
+		var root = this.props[\root] ?? defaultRoot;
+		var size = num * num;
+		var grid;
+		var black = [1,3,6,8,10];
+		var view = View();
+
+		var buttons = size.collect({arg i;
+			var color = Color.grey;
+			var num = i;
+			if (black.includes(num.mod(12))) {
+				color = Color.black.alpha_(0.7);
+			} {
+				if (num.mod(12) == 0) {
+					color = Color.grey.alpha_(0.5);
+				}
+			};
+			Button().maxWidth_(20).states_([ ["", nil, color], ["", nil, Color.white] ])
+		});
+
+		grid = num.collect({arg i;
+			var row = num-i-1 * num;
+			var btns = buttons[row..(row + num-1)];
+			row.postln;
+			btns;
+		});
+
+		setbuttonfunc = {arg index;
+			var val;
+			buttons.do({arg btn;
+				btn.value = 0;
+			});
+			val = 12 * 2 + (index+root);
+			buttons[val].value = 1;
+		};
+
+		this.set(\viz,
+			Pfunc({arg event;
+				var fr = event.use { ~freq.value };
+				var note = fr.cpsmidi.round(1).asInteger;
+				var val = note - (start+root);
+				{
+					setbuttonfunc.(val);
+				}.defer;
+				1;
+			})
+		);
+
+		view
+		.layout_(GridLayout.rows(*grid).spacing_(0).margins_(0))
+		.name_(key)
+		.onClose_({
+			\viz.debug(\clear);
+			this.set(\viz, nil)
+		})
+		.front;
+	}
+	*/
+
+/*
+TODO: present ui
+	presetUi {
+		var num = 16;
+		var key = this.key;
+		var view = View().name_(key).layout_(VLayout().spacing_(0).margins_(0));
+		var func;
+		var buttons = num.collect({arg i;
+			Button()
+			.states_([ [i, Color.white, Color.grey ], [i, Color.white, Color.blue] ])
+			.action_({arg ctrl;
+				var preset;
+				buttons.do({arg btn, j;
+					if (j != i) {
+						if (this.presets[j].isNil.not) {
+							btn.states = [ [j, Color.white, Color.blue.alpha_(0.3)], [j, Color.white, Color.blue] ];
+						};
+						btn.value = 0;
+					};
+				});
+				preset = this.presets[i];
+				if (ctrl.value == 0){
+					\reset.postln;
+					this.presets[i] = this.getPairs;
+					ctrl.value = 1;
+				}{
+					if (preset.isNil.not) {
+						\play.postln;
+						this.set(*preset);
+					} {
+						\set.postln;
+						this.presets[i] = this.getPairs;
+					}
+				};
+			});
+		});
+		buttons.do({arg btn, i;
+			view.layout.add(HLayout(
+				Button()
+				.maxWidth_(10)
+				.states_([ ["x", Color.white, Color.grey] ])
+				.action_({arg ctrl;
+					this.presets[i] = nil;
+					btn
+					.states_([ [i, Color.white, Color.grey ], [i, Color.white, Color.blue] ]);
+				}),
+				btn
+			));
+		});
+		view.front;
+	}
+	*/
 
 /*
 stethescope in custom ui

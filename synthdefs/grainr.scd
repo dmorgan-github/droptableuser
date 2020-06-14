@@ -16,9 +16,14 @@ SynthDef(\grainr, {
 	};
 
 	var density = {
-		var dens = \density.kr(20);
+		var in_freq = \freq.ar(10).lag(\glis.kr(0));
+		var detune = \detunehz.kr(0.6) * PinkNoise.ar(0.007).range(0.9, 1.1);
+		// bend by semitones...
+		var bend = \bend.ar(0).midiratio;
+		var freqbend = in_freq * bend;
+		var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
 		var sync = \sync.kr(1);
-		Select.ar(sync, [Dust.ar(dens), Impulse.ar(dens)]);
+		Select.ar(sync, [Dust.ar(freq), Impulse.ar(freq)]);
 	};
 
 	var graindur = {
@@ -56,7 +61,18 @@ SynthDef(\grainr, {
 		grainenv
 	);
 
+	sig = BLowPass.ar(
+		BHiPass.ar(sig,
+			\hpf.kr(20).clip(20, 18000),
+			\hpfres.kr(0).linlin(0, 1, 1, 0.001)
+		),
+		\lpf.kr(20000).clip(20, 20000),
+		\lpfres.kr(0).linlin(0, 1, 1, 0.001)
+	);
+
 	sig = (sig * \sat.kr(1)).softclip * aeg.() * \amp.kr(0.3) * \vel.kr(1);
+
+	sig = LeakDC.ar(sig);
 
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 
@@ -93,5 +109,3 @@ SynthDef(\grainr, {
 	)
 )).add;
 )
-
-

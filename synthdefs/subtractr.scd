@@ -88,9 +88,9 @@ SynthDef(\subtractr, {
 
 	sig = filter.(sig);
 
-	sig = LeakDC.ar(sig);
-
 	sig = (sig * \sat.kr(1)).softclip * aeg * \amp.kr(0.3) * \vel.kr(1);
+
+	sig = LeakDC.ar(sig);
 
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 
