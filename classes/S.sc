@@ -13,6 +13,8 @@ S : EventPatternProxy {
 
 	var listenerfunc;
 
+	var cmdperiodfunc;
+
 	*new {arg key, synth;
 		var res;
 		if (synth.isNil) {
@@ -44,6 +46,7 @@ S : EventPatternProxy {
 		// and possibly having a synth floating
 		// off in outer space
 		synths = Array.fill(127, {List.new});
+		// TODO: move specs to Halo
 		specs = ();
 		vsts = Order.new;
 		props = ();
@@ -60,6 +63,10 @@ S : EventPatternProxy {
 		if (this.dependants.size == 0) {
 			this.addDependant(listenerfunc);
 		};
+
+		cmdperiodfunc = { { \wakeup.debug(key); Ndef(key).wakeUp }.defer(0.5) };
+		CmdPeriod.add(cmdperiodfunc);
+
 		// wake sets up the node for audio
 		node.wakeUp;
 
@@ -132,18 +139,38 @@ S : EventPatternProxy {
 			var out = evt[\outbus] ?? 0;
 
 			if (monitor) {
-				node.play(
+				this.node.play(
 					fadeTime:fadeTime,
 					out:out
 				);
 			};
 
 			if (mono) {
-				Pchain(Pmono(this.instrument, \retrig, 1, \trig, 1), Pbindef(this.psetkey, key, 1));
+				Pchain(
+					Pmono(this.instrument, \retrig, 1, \trig, 1),
+					Pbind(\fx, Pfunc({arg evt;
+						this.node.controlKeys.do({|key|
+							if (evt[key].isNil.not) {
+								this.node.set(key, evt[key]);
+							}
+						});
+						1
+					})),
+					Pbindef(this.psetkey, key, 1));
 			}{
-				// need to  initialize with one key defined
-				// otherwise the empty pbindef will halt the entire pattern
-				Pbindef(this.psetkey, key, 1)
+				Pchain(
+					Pbind(\fx, Pfunc({arg evt;
+						this.node.controlKeys.do({|key|
+							if (evt[key].isNil.not) {
+								this.node.set(key, evt[key]);
+							}
+						});
+						1
+					})),
+					// need to  initialize with one key defined
+					// otherwise the empty pbindef will halt the entire pattern
+					Pbindef(this.psetkey, key, 1)
+				);
 			}
 		});
 
@@ -153,8 +180,9 @@ S : EventPatternProxy {
 				\instrument, Pfunc({instrument}),
 				\root, Pfunc({defaultRoot}),
 				\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
-				\out, Pif(Pfunc({node.bus.isNil}), 0, Pfunc({node.bus.index})),
-				\group, Pfunc({node.group})
+				\out, Pfunc({node.bus.index}),
+				\group, Pfunc({node.group}),
+				\key, key
 			)
 		);
 	}
@@ -169,80 +197,72 @@ S : EventPatternProxy {
 		};
 	}
 
+	at {arg key;
+
+		var val;
+		var spec = this.specs[key];
+		var cn = node.controlNames.detect({arg cn; cn.name == key});
+
+		if (cn.isNil.not) {
+			val = node.get(key);
+			if (val.isNil) {
+				val = cn.defaultValue;
+			};
+		}{
+			var pairs, index;
+			if (spec.isNil.not) {
+				val = spec.value.default;
+			};
+			pairs = this.getPairs;
+			index = pairs.detectIndex({arg item; item == key});
+			if (index.isNil.not) {
+				val = pairs[index+1];
+			}
+		};
+		^val;
+	}
+
+	rec {arg name, seconds=30, play=true;
+		App.saveWorkspace(name, rec:true);
+		if (play and: this.isPlaying.not) {
+			this.play;
+		};
+		if (seconds.isNil.not) {
+			{Server.default.stopRecording}.defer(seconds);
+		}
+	}
+
 	// TODO: should clear and remove any lfo if being replaced
-	// TODO: change this to value as it overrides the set method
-	// of the base class.
 	value {arg ...args;
 
+		var pairs, clearpairs;
 		if (args.size.even.not) {
 			Error("args must be even number").throw;
 		};
 
-		forBy(0, args.size-1, 2, {arg i;
+		clearpairs = args.collect({arg v, i;
+			if (i.even) {v}{nil}
+		});
 
-			var k = args[i];
-			var v = args[i+1];
-			var cn = node.controlNames.detect({arg cn; cn.name == k});
-			var isnodeprop = cn.isNil.not;
-
-			// we have to keep two copies of the keys
-			// one for patterns and one for synth args.
-			// an event can't really be used directly
-			// within a pattern as keys like \dur when
-			// provided a pattern for their value do not
-			// resolve to the underlying primitive correctly
-			// the values can be accessed via Pbindef(psetkey).source.pairs
-			// but you still have to maintain state externally
-			// to the stream so that you can call .next on each
-			// iteration
-			case
-			{v.isKindOf(Function)} {
-				var lfo;
-				var lfokey = (this.key ++ '_' ++ k).asSymbol;
-				"creating lfo node %".format(lfokey).debug(this.key);
-				lfo = Ndef(lfokey, v);
-				if (isnodeprop) {
-					node.set(k, lfo);
+		pairs = args.collect({arg v, i;
+			if (i.even) {
+				v;
+			}{
+				var k = args[i-1];
+				if (v.isKindOf(Function)) {
+					var lfo;
+					var lfokey = (this.key ++ '_' ++ k).asSymbol;
+					"creating lfo node %".format(lfokey).debug(this.key);
+					Ndef(lfokey, v);
 				}{
-					props.put(k, lfo);
-					Pbindef(psetkey, k, nil);
-					Pbindef(psetkey, k, lfo);
-				};
-				this.changed(k, lfo);
-			}
-			{v.isNil} {
-				Pbindef(psetkey, k, nil);
-				if (isnodeprop){
-					node.set(k, v);
-				}{
-					if (props[k].isNil.not) {
-						props.removeAt(k);
-					}
-				};
-				this.changed(k, v);
-			}
-			{
-				// can accept patterns
-				var val = v.asStream;
-				// this is a bit of a hack - by first clearing
-				// the property and re-adding we can kind of ensure
-				// the ordering of properties so dependencies
-				// can kind of work
-				Pbindef(psetkey, k, nil);
-				if (isnodeprop){
-					var ptrn = Pfunc({arg evt;
-						node.set(k, val.next(evt));
-					});
-					Pbindef(psetkey, k, ptrn);
-					//node.set(k, val.value);
-				}{
-					// NOTE: this is a bit iffy
-					props.put(k, val);
-					Pbindef(psetkey, k, v);
-				};
-				this.changed(k, v);
+					v;
+				}
 			}
 		});
+
+		// try to ensure intended order
+		Pbindef(this.psetkey, *clearpairs);
+		Pbindef(this.psetkey, *pairs);
 	}
 
 	getPairs {
@@ -260,26 +280,15 @@ S : EventPatternProxy {
 		^spec;
 	}
 
-	at {arg key;
-		var val;
-		var spec = this.specs[key];
-		var prop = this.props[key];
-		var cn = node.controlNames.detect({arg cn; cn.name == key});
-
-		if (cn.isNil.not) {
-			val = node.get(key);
-			if (val.isNil) {
-				val = cn.defaultValue;
-			};
+	fx {arg index, func ...args;
+		if (func.isNil) {
+			node.put(index, func);
 		}{
-			if (spec.isNil.not) {
-				val = spec.value.default;
+			if (func.isSymbol) {
+				func = Library.at(\fx, func).performKeyValuePairs(\value, args);
 			};
-			if (prop.isNil.not) {
-				val = prop.value;
-			};
-		};
-		^val;
+			node.put(index, \filter -> func);
+		}
 	}
 
 	vset {arg index ...args;
@@ -305,17 +314,6 @@ S : EventPatternProxy {
 				}
 			}
 		});
-	}
-
-	fx {arg index, func ...args;
-		if (func.isNil) {
-			node.put(index, func);
-		}{
-			if (func.isSymbol) {
-				func = Library.at(\fx, func).performKeyValuePairs(\value, args);
-			};
-			node.put(index, \filter -> func);
-		}
 	}
 
 	vst {arg index, name;
@@ -412,15 +410,6 @@ S : EventPatternProxy {
 			node.group.free;
 		}
 	}
-
-	/*
-	gui {
-		var func = {arg k, v; this.set(k, v) };
-		^Sui(this.key, this.specs, this)
-		.handler_(func)
-		.view.front;
-	}
-	*/
 
 	prBuildSynth {arg inKey, inFunc;
 
@@ -533,6 +522,7 @@ S : EventPatternProxy {
 /*
 TODO: refactor to reduce duplicate code
 */
+/*
 M {
 	classvar <all;
 
@@ -741,9 +731,9 @@ M {
 		}
 	}
 }
+*/
 
-
-
+/*
 B : S {
 
 	classvar <all;
@@ -942,3 +932,4 @@ B : S {
 		};
 	}
 }
+*/

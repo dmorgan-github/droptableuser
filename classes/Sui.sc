@@ -792,7 +792,7 @@ L {
 		var view;
 		var pdefs = Pdef.all.keys.asArray
 		.sort
-		.select({arg k; k.asString.contains("_ptrn")})
+		.reject({arg k; k.asString.contains("_pset")})
 		.collect({arg k; Pdef(k)});
 
 		var buttons = List.new;
@@ -818,6 +818,6 @@ L {
 			);
 		});
 		view = View().layout_(GridLayout.rows(*buttons));
-		^view
+		view.front;
 	}
 }

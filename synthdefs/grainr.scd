@@ -61,6 +61,8 @@ SynthDef(\grainr, {
 		grainenv
 	);
 
+	var drive = \drive.kr(1).max(1);
+
 	sig = BLowPass.ar(
 		BHiPass.ar(sig,
 			\hpf.kr(20).clip(20, 18000),
@@ -70,13 +72,11 @@ SynthDef(\grainr, {
 		\lpfres.kr(0).linlin(0, 1, 1, 0.001)
 	);
 
-	sig = (sig * \sat.kr(1)).softclip * aeg.() * \amp.kr(0.3) * \vel.kr(1);
-
+	sig = sig * aeg.() * \amp.kr(0.3) * \vel.kr(1);
 	sig = LeakDC.ar(sig);
-
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 
-	Out.ar(\out.kr(0), sig.softclip);
+	Out.ar(\out.kr(0), sig.tanh);
 
 }, metadata: (
 	specs: (
@@ -105,7 +105,7 @@ SynthDef(\grainr, {
 		center: ControlSpec(0, 1, \lin, 0, 0, "stereo"),
 		vel: ControlSpec(0, 1, \lin, 0, 1, "vol"),
 		amp: ControlSpec(0, 1, \lin, 0, -10.dbamp, "vol"),
-		sat: ControlSpec(1, 100, \lin, 0, 1, "dist")
+		drive: ControlSpec(1, 100, \lin, 0, 1, "vol")
 	)
 )).add;
 )

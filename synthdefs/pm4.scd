@@ -81,10 +81,9 @@ SynthDef(\pm4, {
 		\lpfres.kr(0).linlin(0, 1, 1, 0.001)
 	);
 
+	sig = sig * AmpCompA.kr(freq, 32) * \amp.kr(0.3) * \vel.kr(1);
 	DetectSilence.ar(sig, doneAction:Done.freeSelf);
-	sig = (sig * \sat.kr(1)).softclip * AmpCompA.kr(freq, 32) * \amp.kr(0.3) * \vel.kr(1);
-	sig = LeakDC.ar(sig);
-	Out.ar(\out.kr(0), sig.softclip);
+	Out.ar(\out.kr(0), sig);
 
 }, metadata: (
 	specs: (
@@ -98,7 +97,7 @@ SynthDef(\pm4, {
 		center: ControlSpec(0, 1, \lin, 0, 0, "stereo"),
 		vel: ControlSpec(0, 1, \lin, 0, 1, "vol"),
 		amp: ControlSpec(0, 1, \lin, 0, -10.dbamp, "vol"),
-		sat: ControlSpec(1, 100, \lin, 0, 1, "dist")
+		drive: ControlSpec(1, 100, \lin, 0, 1, "vol")
 	)
 )).add;
 )

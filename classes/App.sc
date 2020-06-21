@@ -40,7 +40,7 @@ App {
 		Server.default.record(filepath);
 	}
 
-	*saveWorkspace {arg name = "", folder = "~/projects/droptableuser/workspaces", rec = false, envir;
+	*saveWorkspace {arg name = "", folder = "~/projects/droptableuser/workspaces", rec = true, envir;
 
 		var workspace = "%/%-%-%/%%".format(name,
 			Date.getDate.year, Date.getDate.month, Date.getDate.day, Date.getDate.hour, Date.getDate.minute);

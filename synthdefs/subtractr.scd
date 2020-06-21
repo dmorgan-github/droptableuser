@@ -27,14 +27,14 @@ SynthDef(\subtractr, {
 	var filter = {arg in;
 		var cutoff = \cutoff.kr(220);
 		var fvel = \fvel.kr(10);
-		var res = \res.kr(0.5).linlin(0, 1, 0, 4);
+		var res = \res.kr(0.5);//.linlin(0, 1, 0, 4);
 		var feg = Env.asr(
 			\fatk.kr(0.01),
 			\fsuslevel.kr(1),
 			\frel.kr(1),
 			\fcurve.kr(-4)
-		).ar(gate:gate).linlin(0, 1, cutoff, cutoff * fvel).clip(20, 20000);
-		var sig = MoogFF.ar(in, feg, res) * 4;
+		).ar(gate:gate).linexp(0, 1, cutoff, cutoff * fvel).clip(20, 20000);
+		var sig = MoogVCF.ar(in, feg, res);
 		sig;
 	};
 
@@ -44,7 +44,7 @@ SynthDef(\subtractr, {
 		var fold = \trifold.kr(1).max(1);
 		sig = (sig * fold).fold(-1, 1) * fold.reciprocal.sqrt;
 		sig = LeakDC.ar(sig);
-		sig * AmpCompA.kr(freq, 32) * 1.5;
+		sig * AmpCompA.kr(freq, 32);
 	};
 
 	var saw = {arg freq;
@@ -86,15 +86,14 @@ SynthDef(\subtractr, {
 		noise.() * \noise.kr(0)
 	].sum;
 
+	var drive = \drive.kr(1).max(1);
+	sig = Select.ar( (drive > 1), [sig, LeakDC.ar((sig * drive).softclip)]);
+	sig = sig * aeg * \amp.kr(0.3) * \vel.kr(1);
 	sig = filter.(sig);
-
-	sig = (sig * \sat.kr(1)).softclip * aeg * \amp.kr(0.3) * \vel.kr(1);
-
-	sig = LeakDC.ar(sig);
-
+	sig = sig * drive.sqrt.reciprocal;
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 
-	Out.ar(\out.kr(0), sig.softclip);
+	Out.ar(\out.kr(0), sig);
 
 }, metadata: (
 	specs: (
@@ -113,35 +112,35 @@ SynthDef(\subtractr, {
 		fsuslevel: [0, 1, \lin, 0, 1, "filter"].asSpec,
 		fcurve: [-8, 8, \lin, 0, -4, "filter"].asSpec,
 
-		\tri: [0, 1, \lin, 0, 1, "osc1"].asSpec,
-		\trifreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc1"].asSpec,
-		\triwidth: [0, 1, \lin, 0, 0.5, "osc1"].asSpec,
-		\trifold: [1, 10, \lin, 0, 1, "osc1"].asSpec,
+		tri: [0, 1, \lin, 0, 1, "osc1"].asSpec,
+		trifreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc1"].asSpec,
+		triwidth: [0, 1, \lin, 0, 0.5, "osc1"].asSpec,
+		trifold: [1, 10, \lin, 0, 1, "osc1"].asSpec,
 
-		\saw: [0, 1, \lin, 0, 0, "osc2"].asSpec,
-		\sawfreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc2"].asSpec,
+		saw: [0, 1, \lin, 0, 0, "osc2"].asSpec,
+		sawfreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc2"].asSpec,
 
-		\pulse: [0, 1, \lin, 0, 0, "osc3"].asSpec,
-		\pulsefreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc3"].asSpec,
-		\pulsewidth: [0, 1, \lin, 0, 0.5, "osc3"].asSpec,
+		pulse: [0, 1, \lin, 0, 0, "osc3"].asSpec,
+		pulsefreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc3"].asSpec,
+		pulsewidth: [0, 1, \lin, 0, 0.5, "osc3"].asSpec,
 
-		\sine: [0, 1, \lin, 0, 0, "osc4"].asSpec,
-		\sinefreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc4"].asSpec,
-		\sineskew: [-1, 1, \lin, 0, 0, "osc4"].asSpec,
-		\sinefold: [1, 10, \lin, 0, 1, "osc4"].asSpec,
+		sine: [0, 1, \lin, 0, 0, "osc4"].asSpec,
+		sinefreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc4"].asSpec,
+		sineskew: [-1, 1, \lin, 0, 0, "osc4"].asSpec,
+		sinefold: [1, 10, \lin, 0, 1, "osc4"].asSpec,
 
-		\noise: [0, 1, \lin, 0, 0, "osc5"].asSpec,
+		noise: [0, 1, \lin, 0, 0, "osc5"].asSpec,
 
-		\glis: [0, 1, \lin, 0, 0, "freq"].asSpec,
-		\detunehz: [0, 10, \lin, 0, 0, "freq"].asSpec,
-		\bend: [-12, 12, \lin, 0, 0, "freq"].asSpec, // semitones
-		\vrate: [0, 440, \lin, 0, 6, "freq"].asSpec,
-		\vdepth: [0, 1, \lin, 0, 0, "freq"].asSpec,
-		\spread: [0, 1, \lin, 0, 1, "stereo"].asSpec,
-		\center: [0, 1, \lin, 0, 0, "stereo"].asSpec,
-		\vel: [0, 1, \lin, 0, 1, "vol"].asSpec,
-		\amp: [0, 1, \lin, 0, -10.dbamp, "vol"].asSpec,
-		\sat: [1, 100, \lin, 0, 1, "dist"].asSpec
+		glis: [0, 1, \lin, 0, 0, "freq"].asSpec,
+		detunehz: [0, 10, \lin, 0, 0, "freq"].asSpec,
+		bend: [-12, 12, \lin, 0, 0, "freq"].asSpec, // semitones
+		vrate: [0, 440, \lin, 0, 6, "freq"].asSpec,
+		vdepth: [0, 1, \lin, 0, 0, "freq"].asSpec,
+		spread: [0, 1, \lin, 0, 1, "stereo"].asSpec,
+		center: [0, 1, \lin, 0, 0, "stereo"].asSpec,
+		vel: [0, 1, \lin, 0, 1, "vol"].asSpec,
+		amp: [0, 1, \lin, 0, -10.dbamp, "vol"].asSpec,
+		drive: [1, 100, \lin, 0, 1, "vol"].asSpec
 	)
 )
 ).add
