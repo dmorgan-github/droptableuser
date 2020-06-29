@@ -72,11 +72,15 @@ SynthDef(\grainr, {
 		\lpfres.kr(0).linlin(0, 1, 1, 0.001)
 	);
 
+	sig = Select.ar((drive > 1), [
+		sig,
+		LeakDC.ar((sig * drive).softclip) * drive.sqrt.reciprocal
+	]);
 	sig = sig * aeg.() * \amp.kr(0.3) * \vel.kr(1);
 	sig = LeakDC.ar(sig);
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 
-	Out.ar(\out.kr(0), sig.tanh);
+	Out.ar(\out.kr(0), sig);
 
 }, metadata: (
 	specs: (

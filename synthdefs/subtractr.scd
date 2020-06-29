@@ -6,6 +6,7 @@ SynthDef(\subtractr, {
 	var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
 	var in_freq = \freq.ar(261).lag(\glis.kr(0));
 	var detune = \detunehz.kr(0.6) * PinkNoise.ar(0.007).range(0.9, 1.1);
+	//detuneSig = LFNoise1.kr(Rand(0.05,0.1)).bipolar(detune).midiratio;
 
 	// bend by semitones...
 	var bend = \bend.ar(0).midiratio;
@@ -34,7 +35,11 @@ SynthDef(\subtractr, {
 			\frel.kr(1),
 			\fcurve.kr(-4)
 		).ar(gate:gate).linexp(0, 1, cutoff, cutoff * fvel).clip(20, 20000);
-		var sig = MoogVCF.ar(in, feg, res);
+		//var sig = MoogVCF.ar(in, feg, res) * 2;
+		//var sig = MoogFF.ar(in, feg, res.linlin(0, 1, 0, 4)) * 4;
+		var sig = DFM1.ar(in, feg, res);
+		//var sig = BLowPass4.ar(in, feg, res.linlin(0, 1, 1, 0.001));
+		//var sig = RLPF.ar(in, feg, res.linlin(0, 1, 1, 0.001));
 		sig;
 	};
 
@@ -60,11 +65,10 @@ SynthDef(\subtractr, {
 	};
 
 	var sine = {arg freq;
-		//var mod = fm.(freq) * \sinefm.kr(0);
 		var skew = \sineskew.ar(0) + \sineskewlfo.ar(0);
 		var sig = SinOscFB.ar(freq, skew.clip(-1, 1));
 		var fold = \sinefold.kr(1).max(1);
-		sig = (sig * fold).fold(-1, 1) * fold.reciprocal.sqrt;
+		sig = (sig * fold).fold(-1, 1) * fold.reciprocal.sqrt.lag(0.01);
 		sig = LeakDC.ar(sig);
 		sig * AmpCompA.kr(freq, 32);
 	};
@@ -87,12 +91,13 @@ SynthDef(\subtractr, {
 	].sum;
 
 	var drive = \drive.kr(1).max(1);
-	sig = Select.ar( (drive > 1), [sig, LeakDC.ar((sig * drive).softclip)]);
+	sig = Select.ar( (drive > 1), [
+		sig,
+		LeakDC.ar((sig * drive).softclip) * drive.sqrt.reciprocal
+	]);
 	sig = sig * aeg * \amp.kr(0.3) * \vel.kr(1);
 	sig = filter.(sig);
-	sig = sig * drive.sqrt.reciprocal;
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
-
 	Out.ar(\out.kr(0), sig);
 
 }, metadata: (

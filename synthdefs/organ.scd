@@ -99,8 +99,11 @@ SynthDef(\organ, {
 	var filtsig;
 
 	var drive = \drive.kr(1).max(1);
-	sig = Select.ar( (drive > 1), [sig, LeakDC.ar((sig * drive).softclip)]);
-	sig = sig * aeg * \amp.kr(0.3) * \vel.kr(1);
+	sig = Select.ar( (drive > 1), [
+		sig,
+		LeakDC.ar((sig * drive).softclip) * drive.sqrt.reciprocal
+	]);
+	sig = sig * aeg * AmpCompA.kr(freq, 20) * \amp.kr(0.3) * \vel.kr(1);
 	filtsig = filter.(sig);
 	sig = sig.blend(filtsig, \famt.kr(0));
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
