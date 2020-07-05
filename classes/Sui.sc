@@ -718,7 +718,7 @@ K {
 
 	*new {arg synth;
 
-		var synthEnvir = synth.envir;
+		var synthEnvir = synth.envir ? ();
 
 		var map = (
 			'z': 0,'s': 1,'x': 2,'d': 3,'c': 4,'v': 5,'g': 6,
@@ -782,7 +782,7 @@ K {
 			}
 		});
 
-		^view
+		^view.front
 	}
 }
 

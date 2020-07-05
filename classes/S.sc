@@ -1,3 +1,372 @@
+S : EventPatternProxy {
+
+	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <>defaultQuant;
+
+	var <key, <instrument, <node, <synths, <pdefset, synthdef;
+
+	var listenerfunc, cmdperiodfunc, <>debug;
+
+	*new {arg key, synth;
+		var res;
+		if (synth.isNil) {
+			// support terser style by generating an id
+			// if using a synthdef
+			synth = key ? \default;
+			key = (synth ++ '_' ++ UniqueID.next).asSymbol;
+		};
+		res = Pdef.all[key];
+		if (res.isNil) {
+			res = super.new(nil).prInit(key);
+			Pdef.all.put(key, res);
+		};
+		if (synth.isNil.not) {
+			res.prInitSynth(key, synth);
+		};
+		^res;
+	}
+
+	prInit {arg inKey;
+
+		if (inKey.isNil) {
+			Error("key not specified");
+		};
+
+		debug = false;
+
+		key = inKey;
+		pdefset = (key ++ '_set').asSymbol;
+		Pdef(pdefset, Pbind());
+		synths = Array.fill(127, {List.new});
+
+		listenerfunc = {arg obj, prop, params; [prop, params.asCompileString].debug(key);};
+		node = Ndef(key);
+		node.mold(2, \audio);
+
+		if (this.dependants.size == 0) {
+			this.addDependant(listenerfunc);
+		};
+
+		cmdperiodfunc = { { \wakeup.debug(key); Ndef(key).wakeUp }.defer(0.5) };
+		CmdPeriod.add(cmdperiodfunc);
+
+		// wake sets up the node for audio
+		node.wakeUp;
+		this.source = this.prInitSource;
+		^this;
+	}
+
+	prInitSynth {arg inKey, inSynth;
+
+		var myspecs = ();
+		var ignore = [\out, \freq, \gate, \trig, \retrig, \sustain, \bend];
+
+		instrument = inSynth;
+
+		if (inSynth.isKindOf(Function)) {
+			instrument = inKey;
+			this.prBuildSynth(instrument, inSynth);
+		};
+
+		synthdef = SynthDescLib.global.at(instrument);
+
+		if (synthdef.isNil) {
+			Error("synthdef not found").throw;
+		};
+
+		// check the synthdef
+		if (synthdef.metadata.isNil.not) {
+			if (synthdef.metadata[\specs].isNil.not) {
+				myspecs = synthdef.metadata[\specs]
+			}
+		};
+
+		// add specs from the synth controls
+		synthdef.controls
+		.reject({arg ctrl;
+			myspecs[ctrl.name.asSymbol].isNil.not;
+		})
+		.do({arg ctrl;
+			// check for a matching default spec
+			var key = ctrl.name.asSymbol;
+			var spec = Spec.specs[key];
+			if (spec.isNil) {
+				var max = if (ctrl.defaultValue < 1) {1} { min(20000, ctrl.defaultValue * 2) };
+				spec = [0, max, \lin, 0, ctrl.defaultValue].asSpec;
+			};
+			myspecs[key] = spec;
+		});
+
+		myspecs.keys.do({arg k;
+			if (ignore.includes(k)) {
+				myspecs.removeAt(k);
+			};
+			if (k.asString.endsWith("lfo")) {
+				myspecs.removeAt(k);
+			};
+		});
+
+		myspecs.keysValuesDo({arg k, v;
+			this.addSpec(k, v);
+		});
+	}
+
+	prInitSource {
+
+		// TODO: support for Pmono and PmonoArtic
+		var plazy = Plazy({arg evt;
+
+			var pchain;
+			var monitor = evt[\monitor] ?? true;
+			var fadeTime = evt[\fadeTime] ?? 0;
+			var mono = evt[\mono] ?? false;
+			var out = evt[\outbus] ?? 0;
+
+			if (monitor) {
+				this.node.play(
+					fadeTime:fadeTime,
+					out:out
+				);
+			};
+
+			pchain = if (mono) {
+				Pchain(
+					Pmono(this.instrument, \retrig, 1, \trig, 1),
+					Pdef(this.pdefset)
+				)
+			}{
+				Pdef(this.pdefset)
+			};
+
+			Pchain(
+				pchain,
+				Pbind(
+					\instrument, Pfunc({instrument}),
+					\root, Pfunc({defaultRoot}),
+					\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
+					\out, Pfunc({node.bus.index}),
+					\group, Pfunc({node.group}),
+					\key, key
+				)
+			);
+		});
+
+		^plazy;
+	}
+
+	// TODO: should clear and remove any lfo if being replaced
+	value {arg ...args;
+
+		var pairs;
+		if (args.size.even.not) {
+			Error("args must be even number").throw;
+		};
+
+		pairs = args.collect({arg v, i;
+			if (i.even) {
+				v;
+			}{
+				var k = args[i-1];
+				if (v.isKindOf(Function)) {
+					var lfo;
+					var lfokey = (this.key ++ '_' ++ k).asSymbol;
+					"creating lfo node %".format(lfokey).debug(this.key);
+					Ndef(lfokey, v);
+				}{
+					v
+				}
+			}
+		});
+
+		Pdef(this.pdefset, Pbind(*pairs));
+	}
+
+	at {arg key;
+
+		var val;
+		var spec = this.getSpec(key);
+		var cn = node.controlNames.detect({arg cn; cn.name == key});
+
+		if (cn.isNil.not) {
+			val = node.get(key);
+			if (val.isNil) {
+				val = cn.defaultValue;
+			};
+		}{
+			var evt, index;
+			if (spec.isNil.not) {
+				val = spec.value.default;
+			};
+			evt = this.asStream.next(Event.default);
+			if (evt[key].isNil.not) {
+				val = evt[key];
+			}
+		};
+		^val;
+	}
+
+	fx {arg index, func ...args;
+		if (func.isNil) {
+			node.put(index, func);
+		}{
+			if (func.isSymbol) {
+				func = Library.at(\fx, func).performKeyValuePairs(\value, args);
+			};
+			node.put(index, \filter -> func);
+		}
+	}
+
+	on {arg midinote, vel=1;
+		this.prNoteOn(midinote, vel);
+	}
+
+	off {arg midinote;
+		this.prNoteOff(midinote);
+	}
+
+	panic {
+		synths.do({arg list, i;
+			var synth = list.pop;
+			while({synth.isNil.not},{
+				synth.free;
+				synth = list.pop;
+			});
+		});
+		if (node.group.isNil.not) {
+			node.group.free;
+		}
+	}
+
+	clear {
+		// this should clear any lfos
+		Ndef(this.key).clear;
+		Ndef(this.pdefset).clear;
+		this.clear;
+		this.panic();
+	}
+
+	prNoteOn {arg midinote, vel=1;
+
+		var ignore = [\instrument,
+			\root, \scale, \out, \group, \key, \dur, \legato,
+			\delta, \freq, \degree, \octave, \gate, \fx, \vel];
+
+		if (node.isPlaying) {
+
+			/*
+			//for some reason this causes a werid click which i can't figure out
+			var evt = this.asStream
+			.next(Event.default)
+			.reject({arg v, k;
+				ignore.includes(k) or: v.isKindOf(Function);
+			});
+			*/
+
+			// may run into issues with resolving Pkey
+			var evt = Pdef(this.pdefset).asStream.next(Event.default);
+			var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps, \vel, vel] ++ evt.asPairs();
+
+			if (debug) {
+				args.postln;
+			};
+
+			if (synths[midinote].last.isNil) {
+				synths[midinote].add( Synth(instrument, args, target:node.nodeID) );
+			}
+		}
+	}
+
+	prNoteOff {arg midinote;
+		// popping from a queue seems more atomic
+		// than dealing strictly with an array
+		// removeAt(0) changes the size of the array
+		// copying seems to produce better results
+		// but i'm not sure why
+		var mysynths = synths.copy;
+		var synth = mysynths[midinote].pop;
+		while({synth.isNil.not},{
+			synth.set(\gate, 0);
+			synth = mysynths[midinote].pop;
+		});
+	}
+
+	prBuildSynth {arg inKey, inFunc;
+
+		SynthDef(inKey, {
+
+			var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
+			var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
+			var in_freq = \freq.ar(261).lag(\glis.kr(0));
+			var detune = \detunehz.kr(0.6) * PinkNoise.ar(0.007).range(0.9, 1.1);
+
+			// bend by semitones...
+			var bend = \bend.ar(0).midiratio;
+			var freqbend = in_freq * bend;
+			var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
+
+			var adsr = {
+				var atk = \atk.kr(0.01);
+				var dec = \dec.kr(0.1);
+				var rel = \rel.kr(0.1);
+				var suslevel = \suslevel.kr(1);
+				var ts = \ts.kr(1);
+				var curve = \curve.kr(-4);
+				var env = Env.adsr(
+					attackTime:atk, decayTime:dec, sustainLevel:suslevel, releaseTime:rel,
+					curve:curve
+				);
+				var aeg = env.ar(doneAction:Done.none, gate:gate, timeScale:ts);
+				// control life cycle of synth - this will work with both poly and mono synths
+				env.ar(doneAction:Done.freeSelf, gate:\gate.kr, timeScale:ts);
+				aeg;
+			};
+
+			var aeg = adsr.();
+			var sig = inFunc.(freq, gate, aeg);
+
+			sig = LeakDC.ar(sig);
+			sig = sig * aeg * AmpCompA.ar(freq, 32) * \vel.kr(1);
+			sig = Splay.ar(sig, \spread.kr(0), center:\center.kr(0));
+			sig = sig * \amp.kr(-10.dbamp);
+			Out.ar(\out.kr(0), sig);
+
+		}).add;
+	}
+
+	*initClass {
+		defaultTuning = \et12;
+		defaultRoot = 4;
+		defaultScale = \dorian;
+		defaultQuant = 1;
+
+		StartUp.add({
+			Spec.add(\cutoff, [20, 20000, 'exp', 0, 100]);
+			Spec.add(\res, [0, 1, \lin, 0, 0.5]);
+			Spec.add(\start, [0, 1, \lin, 0, 0]);
+			Spec.add(\rate, [0.1, 4.0, \lin, 0, 1]);
+
+			Spec.add(\atk, [0, 1, \lin, 0, 0.01]);
+			Spec.add(\dec, [0, 1, \lin, 0, 0.2]);
+			Spec.add(\rel, [0, 8, \lin, 0, 0.29]);
+			Spec.add(\suslevel, [0, 1, \lin, 0, 1]);
+			Spec.add(\atkcurve, [-8, 8, \lin, 0, -4]);
+			Spec.add(\deccurve, [-8, 8, \lin, 0, -4]);
+			Spec.add(\relcurve, [-8, 8, \lin, 0, -4]);
+			Spec.add(\ts, [0.001, 100, \lin, 0, 1]);
+
+			Spec.add(\detunehz, [0, 10, \lin, 0, 0]);
+			Spec.add(\bend, [-12, 12, \lin, 0, 0]);
+			Spec.add(\vrate, [0, 440, \lin, 0, 6]);
+			Spec.add(\vdepth, [0, 1, \lin, 0, 0]);
+			Spec.add(\vel, [0, 1, \lin, 0, 1]);
+			Spec.add(\spread, [0, 1, \lin, 0, 1]);
+			Spec.add(\center, [0, 1, \lin, 0, 0]);
+			Spec.add(\pan, [-1, 1, \lin, 0, 0]);
+			Spec.add(\amp, [0, 1, \lin, 0, -10.dbamp]);
+		});
+	}
+}
+
+/*
 /*
 probably best to split out the noteon/noteoff to a separate class
 so essentially we can have a midi player and pattern player
@@ -223,6 +592,7 @@ S : EventPatternProxy {
 	}
 
 	rec {arg name, seconds=30, play=true;
+
 		App.saveWorkspace(name, rec:true);
 		if (play and: this.isPlaying.not) {
 			this.play;
@@ -259,6 +629,16 @@ S : EventPatternProxy {
 				}
 			}
 		});
+
+		// this is to support noteon/noteoff midi
+		props = props ++ pairs.collect({arg v, i;
+			if (i.odd) {
+				var myval = v.asStream;
+				myval;
+			} {
+				v;
+			}
+		}).asDict;
 
 		// try to ensure intended order
 		Pbindef(this.psetkey, *clearpairs);
@@ -423,7 +803,6 @@ S : EventPatternProxy {
 			// bend by semitones...
 			var bend = \bend.ar(0).midiratio;
 			var freqbend = in_freq * bend;
-			//var freq = freqbend + [detune, detune.neg];
 			var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
 
 			var adsr = {
@@ -437,9 +816,9 @@ S : EventPatternProxy {
 					attackTime:atk, decayTime:dec, sustainLevel:suslevel, releaseTime:rel,
 					curve:curve
 				);
-				var aeg = env.ar(doneAction:Done.freeSelf, gate:gate, timeScale:ts);
-				// control life cycle of synth (can't remember what i used this for)
-				//env.ar(doneAction:Done.freeSelf, gate:\gate.kr, timeScale:ts);
+				var aeg = env.ar(doneAction:Done.none, gate:gate, timeScale:ts);
+				// control life cycle of synth - this will work with both poly and mono synths
+				env.ar(doneAction:Done.freeSelf, gate:\gate.kr, timeScale:ts);
 				aeg;
 			};
 
@@ -450,7 +829,8 @@ S : EventPatternProxy {
 			sig = sig * aeg * AmpCompA.ar(freq, 32) * \vel.kr(1);
 			sig = Splay.ar(sig, \spread.kr(0), center:\center.kr(0));
 			sig = sig * \amp.kr(-10.dbamp);
-			Out.ar(\out.kr(0), sig.softclip);
+			Out.ar(\out.kr(0), sig);
+
 		}).add;
 	}
 
@@ -500,7 +880,7 @@ S : EventPatternProxy {
 			Spec.add(\atk, [0, 1, \lin, 0, 0.01]);
 			Spec.add(\dec, [0, 1, \lin, 0, 0.2]);
 			Spec.add(\rel, [0, 8, \lin, 0, 0.29]);
-			Spec.add(\suslevel, [0, 1, \lin, 0, 0.7]);
+			Spec.add(\suslevel, [0, 1, \lin, 0, 1]);
 			Spec.add(\atkcurve, [-8, 8, \lin, 0, -4]);
 			Spec.add(\deccurve, [-8, 8, \lin, 0, -4]);
 			Spec.add(\relcurve, [-8, 8, \lin, 0, -4]);
@@ -518,6 +898,7 @@ S : EventPatternProxy {
 		});
 	}
 }
+*/
 
 /*
 TODO: refactor to reduce duplicate code

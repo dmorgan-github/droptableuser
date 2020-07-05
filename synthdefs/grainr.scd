@@ -1,4 +1,16 @@
 (
+
+/*
+~bufs = Order.new;
+(
+~func = {arg num, path;
+	Buffer.readChannel(s, path, channels:[0], action:{arg buf;
+		~bufs[num] = buf;
+	});
+};
+)
+*/
+
 // adapted from Eli Fieldsteel
 SynthDef(\grainr, {
 
@@ -62,22 +74,21 @@ SynthDef(\grainr, {
 	);
 
 	var drive = \drive.kr(1).max(1);
-
-	sig = BLowPass.ar(
-		BHiPass.ar(sig,
-			\hpf.kr(20).clip(20, 18000),
-			\hpfres.kr(0).linlin(0, 1, 1, 0.001)
-		),
-		\lpf.kr(20000).clip(20, 20000),
-		\lpfres.kr(0).linlin(0, 1, 1, 0.001)
-	);
-
 	sig = Select.ar((drive > 1), [
 		sig,
 		LeakDC.ar((sig * drive).softclip) * drive.sqrt.reciprocal
 	]);
+
+	sig = BLowPass.ar(
+		BHiPass.ar(sig,
+			\hpf.kr(20).clip(20, 18000),
+			\hpfres.kr(0).linlin(0, 1, 1.4, 0.001)
+		),
+		\lpf.kr(20000).clip(20, 20000),
+		\lpfres.kr(0).linlin(0, 1, 1.4, 0.001)
+	);
+
 	sig = sig * aeg.() * \amp.kr(0.3) * \vel.kr(1);
-	sig = LeakDC.ar(sig);
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 
 	Out.ar(\out.kr(0), sig);

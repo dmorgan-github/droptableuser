@@ -287,14 +287,6 @@ Library.put(\fx, \decimator, {
 	}
 });
 
-Library.put(\fx, \squiz, {
-	{arg in;
-		var sig = in;
-		sig = Squiz.ar(sig, [\prL.kr(1.5), \prR.kr(2)], \zcp.kr(1));
-		sig = LeakDC.ar(sig);
-		sig;
-	}
-});
 
 Library.put(\fx, \pitchshift, {arg windowSize=0.2;
 	"pitchshift windowsize: %".format(windowSize).debug(\pitchshift);

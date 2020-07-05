@@ -75,7 +75,7 @@ SynthDef(\organ, {
 		var sus = \suslevel.kr(1);
 		var rel = \rel.kr(1);
 		var curve = \curve.kr(-4);
-		Env.adsr(atk, dec, sus,  rel, curve)
+		Env.adsr(atk, dec, sus,  rel, curve: curve)
 		.ar(gate:gate, doneAction:Done.freeSelf);
 	};
 
