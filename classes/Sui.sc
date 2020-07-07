@@ -782,6 +782,8 @@ K {
 			}
 		});
 
+		view.layout.add(StaticText().minHeight_(10));
+
 		^view.front
 	}
 }

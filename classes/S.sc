@@ -32,7 +32,6 @@ S : EventPatternProxy {
 		};
 
 		debug = false;
-
 		key = inKey;
 		pdefset = (key ++ '_set').asSymbol;
 		Pdef(pdefset, Pbind());
@@ -70,7 +69,16 @@ S : EventPatternProxy {
 		synthdef = SynthDescLib.global.at(instrument);
 
 		if (synthdef.isNil) {
-			Error("synthdef not found").throw;
+			var path = "~/projects/droptableuser/library/synths/" ++ instrument.asString ++ ".scd";
+			var pathname = PathName(path.standardizePath);
+			var name = pathname.fileNameWithoutExtension;
+			var fullpath = pathname.fullPath;
+			if (File.exists(fullpath)) {
+				File.open(fullpath, "r").readAllString.interpret;
+				synthdef = SynthDescLib.global.at(instrument);
+			} {
+				Error("synthdef not found").throw;
+			}
 		};
 
 		// check the synthdef
@@ -363,6 +371,49 @@ S : EventPatternProxy {
 			Spec.add(\pan, [-1, 1, \lin, 0, 0]);
 			Spec.add(\amp, [0, 1, \lin, 0, -10.dbamp]);
 		});
+	}
+}
+
+
+N {
+	*new {arg key;
+		var path = "~/projects/droptableuser/library/fx/" ++ key.asString ++ ".scd";
+		var pathname = PathName(path.standardizePath);
+		var fullpath = pathname.fullPath;
+		if (File.exists(fullpath)) {
+			var name = pathname.fileNameWithoutExtension;
+			var obj = File.open(fullpath.postln, "r").readAllString.interpret;
+			var func = obj[\synth];
+			var specs = obj[\specs];
+			var key = (name ++ '_' ++ UniqueID.next).asSymbol;
+			Ndef.ar(key, 2);
+			Ndef(key).filter(100, func);
+
+			if (specs.isNil.not) {
+				specs.do({arg assoc;
+					Ndef(key).addSpec(assoc.key, assoc.value);
+				});
+			};
+			^Ndef(key);
+		} {
+			Error("node not found").throw;
+		};
+	}
+}
+
+U {
+	*new {arg key ...args;
+
+		var path = "~/projects/droptableuser/library/ui/" ++ key.asString ++ ".scd";
+		var pathname = PathName(path.standardizePath);
+		var fullpath = pathname.fullPath;
+		if (File.exists(fullpath)) {
+			var name = pathname.fileNameWithoutExtension;
+			File.open(fullpath.postln, "r").readAllString.interpret;
+			Fdef(key).value(*args);
+		} {
+			Error("node not found").throw;
+		};
 	}
 }
 
