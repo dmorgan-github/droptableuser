@@ -69,6 +69,7 @@ Fdef(\kb, {arg synth;
 
 	view = View()
 	.palette_(palette)
+	.name_(synth.key)
 	.layout_(GridLayout.rows(*grid).margins_(0).spacing_(1))
 	.keyDownAction_({arg ctrl, char, mod, uni, keycode, key;
 		//var val = map[char.asSymbol];
@@ -99,7 +100,6 @@ Fdef(\kb, {arg synth;
 		synth.removeDependant(func);
 	});
 
-	view.layout.add(StaticText().minHeight_(10));
 	view.front
 });
 )
