@@ -51,6 +51,7 @@ S : EventPatternProxy {
 		// wake sets up the node for audio
 		node.wakeUp;
 		this.source = this.prInitSource;
+		this.set(\root, defaultRoot, \scale, Scale.at(defaultScale).copy.tuning_(defaultTuning));
 		^this;
 	}
 
@@ -149,8 +150,8 @@ S : EventPatternProxy {
 				pchain,
 				Pbind(
 					\instrument, Pfunc({instrument}),
-					\root, Pfunc({defaultRoot}),
-					\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
+					//\root, Pfunc({defaultRoot}),
+					//\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
 					\out, Pfunc({node.bus.index}),
 					\group, Pfunc({node.group}),
 					\key, key
@@ -399,6 +400,13 @@ N {
 			Error("node not found").throw;
 		};
 	}
+
+	*list {arg path;
+		// this could be nicer
+		var mypath = path ? "/Users/david/projects/droptableuser/library/fx/";
+		PathName.new(mypath)
+		.entries.do({arg e; e.fullPath.postln;});
+	}
 }
 
 U {
@@ -414,6 +422,13 @@ U {
 		} {
 			Error("node not found").throw;
 		};
+	}
+
+	*list {arg path;
+		// this could be nicer
+		var mypath = path ? "/Users/david/projects/droptableuser/library/ui/";
+		PathName.new(mypath)
+		.entries.do({arg e; e.fullPath.postln;});
 	}
 }
 

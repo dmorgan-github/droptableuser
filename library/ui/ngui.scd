@@ -115,7 +115,37 @@ Fdef(\ngui, {arg node;
 	scrollView.canvas = view.background_(Color.clear);
 	scrollView;
 
-	win = View().layout_(VLayout().margins_(2).spacing_(2))
+	win = View().layout_(VLayout(
+		HLayout(
+			Button().states_([
+				[">"],
+				["[]"]
+			]).action_({arg ctrl;
+				if (ctrl.value == 1) {
+					node.play;
+				} {
+					node.stop;
+				}
+			})
+			.value_(node.isMonitoring.asInt)
+			.maxHeight_(18)
+			.maxWidth_(25),
+			Slider()
+			.orientation_(\horizontal)
+			.thumbSize_(7)
+			.action_({arg ctrl;
+				node.vol = ctrl.value;
+			})
+			.value_(node.vol.postln),
+			Slider()
+			.orientation_(\horizontal)
+			.thumbSize_(7)
+			.action_({arg ctrl;
+				node.fadeTime = ctrl.value;
+			})
+			.value_(node.fadeTime.postln)
+		)
+	).margins_(2).spacing_(2))
 	.palette_(palette)
 	.minWidth_(150)
 	.minHeight_(250)
@@ -124,5 +154,6 @@ Fdef(\ngui, {arg node;
 	win.layout.add(scrollView);
 	win.front;
 });
-
+//Fdef(\ngui).(~vfu);
 )
+
