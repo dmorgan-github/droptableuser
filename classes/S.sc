@@ -150,11 +150,8 @@ S : EventPatternProxy {
 				pchain,
 				Pbind(
 					\instrument, Pfunc({instrument}),
-					//\root, Pfunc({defaultRoot}),
-					//\scale, Pfunc({Scale.at(defaultScale).copy.tuning_(defaultTuning)}),
 					\out, Pfunc({node.bus.index}),
-					\group, Pfunc({node.group}),
-					\key, key
+					\group, Pfunc({node.group})
 				)
 			);
 		});
@@ -205,7 +202,7 @@ S : EventPatternProxy {
 			if (spec.isNil.not) {
 				val = spec.value.default;
 			};
-			evt = this.asStream.next(Event.default);
+			evt = this.asStream.next((monitor:false));
 			if (evt[key].isNil.not) {
 				val = evt[key];
 			}
@@ -261,17 +258,12 @@ S : EventPatternProxy {
 
 		if (node.isPlaying) {
 
-			/*
-			//for some reason this causes a werid click which i can't figure out
 			var evt = this.asStream
-			.next(Event.default)
+			.next((monitor:false))
 			.reject({arg v, k;
 				ignore.includes(k) or: v.isKindOf(Function);
 			});
-			*/
 
-			// may run into issues with resolving Pkey
-			var evt = Pdef(this.pdefset).asStream.next(Event.default);
 			var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps, \vel, vel] ++ evt.asPairs();
 
 			if (debug) {
@@ -348,29 +340,36 @@ S : EventPatternProxy {
 		defaultQuant = 1;
 
 		StartUp.add({
-			Spec.add(\cutoff, [20, 20000, 'exp', 0, 100]);
-			Spec.add(\res, [0, 1, \lin, 0, 0.5]);
-			Spec.add(\start, [0, 1, \lin, 0, 0]);
-			Spec.add(\rate, [0.1, 4.0, \lin, 0, 1]);
+			Spec.add(\cutoff, ControlSpec(20, 20000, 'exp', 0, 100, units:"filter"));
+			Spec.add(\res, ControlSpec(0, 1.4, \lin, 0, 0.5, units:"filter"));
+			Spec.add(\fvel, ControlSpec(0.001, 20, \lin, 0, 10, units:"filter"));
+			Spec.add(\fatk, ControlSpec(0, 1, \lin, 0, 0.01, units:"filter"));
+			Spec.add(\frel, ControlSpec(0, 8, \lin, 0, 0.29, units:"filter"));
+			Spec.add(\fsuslevel, ControlSpec(0, 1, \lin, 0, 1, units:"filter"));
+			Spec.add(\fcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"filter"));
 
-			Spec.add(\atk, [0, 1, \lin, 0, 0.01]);
-			Spec.add(\dec, [0, 1, \lin, 0, 0.2]);
-			Spec.add(\rel, [0, 8, \lin, 0, 0.29]);
-			Spec.add(\suslevel, [0, 1, \lin, 0, 1]);
-			Spec.add(\atkcurve, [-8, 8, \lin, 0, -4]);
-			Spec.add(\deccurve, [-8, 8, \lin, 0, -4]);
-			Spec.add(\relcurve, [-8, 8, \lin, 0, -4]);
-			Spec.add(\ts, [0.001, 100, \lin, 0, 1]);
+			Spec.add(\start, ControlSpec(0, 1, \lin, 0, 0, units:"buf"));
+			Spec.add(\rate, ControlSpec(0.1, 4.0, \lin, 0, 1, units:"buf"));
 
-			Spec.add(\detunehz, [0, 10, \lin, 0, 0]);
-			Spec.add(\bend, [-12, 12, \lin, 0, 0]);
-			Spec.add(\vrate, [0, 440, \lin, 0, 6]);
-			Spec.add(\vdepth, [0, 1, \lin, 0, 0]);
-			Spec.add(\vel, [0, 1, \lin, 0, 1]);
-			Spec.add(\spread, [0, 1, \lin, 0, 1]);
-			Spec.add(\center, [0, 1, \lin, 0, 0]);
-			Spec.add(\pan, [-1, 1, \lin, 0, 0]);
-			Spec.add(\amp, [0, 1, \lin, 0, -10.dbamp]);
+			Spec.add(\atk, ControlSpec(0, 1, \lin, 0, 0.01, units:"aeg"));
+			Spec.add(\dec, ControlSpec(0, 1, \lin, 0, 0.2, units:"aeg"));
+			Spec.add(\rel, ControlSpec(0, 8, \lin, 0, 0.29, units:"aeg"));
+			Spec.add(\suslevel, ControlSpec(0, 1, \lin, 0, 1, units:"aeg"));
+			Spec.add(\atkcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
+			Spec.add(\deccurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
+			Spec.add(\relcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
+			Spec.add(\ts, ControlSpec(0.001, 100, \lin, 0, 1, units:"aeg"));
+
+			Spec.add(\detunehz, ControlSpec(0, 10, \lin, 0, 0, units:"freq"));
+			Spec.add(\bend, ControlSpec(-12, 12, \lin, 0, 0, units:"freq"));
+			Spec.add(\vrate, ControlSpec(0, 440, \lin, 0, 6, units:"freq"));
+			Spec.add(\vdepth, ControlSpec(0, 1, \lin, 0, 0, units:"freq"));
+			Spec.add(\spread, ControlSpec(0, 1, \lin, 0, 1, units:"stereo"));
+			Spec.add(\center, ControlSpec(0, 1, \lin, 0, 0, units:"stereo"));
+			Spec.add(\pan, ControlSpec(-1, 1, \lin, 0, 0, units:"stereo"));
+			Spec.add(\vel, ControlSpec(0, 1, \lin, 0, 1, units:"vol"));
+			Spec.add(\drive, ControlSpec(1, 100, \lin, 0, 1, units:"vol"));
+			Spec.add(\amp, ControlSpec(0, 1, \lin, 0, -10.dbamp, units:"vol"));
 		});
 	}
 }

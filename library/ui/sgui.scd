@@ -233,6 +233,6 @@ Fdef(\sgui, {arg synth;
 		watcher.free;
 	});
 	scrollView.canvas = view.background_(Color.clear);
-	scrollView.postln;
+	scrollView.front;
 })
 )

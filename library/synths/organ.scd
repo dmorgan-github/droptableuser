@@ -1,46 +1,18 @@
 (
-/*
-// down an octave
-f1 = 1;
-f1ratio = -12.midiratio;
-
-// 5th
-f2 = 1/2;
-f2ratio = 7.midiratio;
-
-// fundamental
-f3 = 1/3;
-f3ratio = 1;
-
-// octave
-f4 = 1/4;
-f4ratio = 12.midiratio;
-
-// octave + 5th
-f5 = 1/5;
-f5ratio = 19.midiratio;
-
-// two octaves
-f6 = 1/6;
-f6ratio = 24.midiratio;
-
-// two octaves + major 3rd
-f7 = 1/7;
-f7ratio = 27.midiratio;
-
-// two octaves + 5th
-f8 = 1/8;
-f8ratio = 31.midiratio;
-
-// three octaves
-f9 = 1/9;
-f9ratio = 36.midiratio;
-*/
+var harms = [-12, 7, 0, 12, 19, 24, 27, 31, 36].midiratio;
+var specs = ();
+harms.do({arg harm, i;
+	var num = i + 1;
+	var key = ('f' ++ num).asSymbol;
+	specs[(key ++ 'ratio').asSymbol] = ControlSpec(-24.midiratio, harm, \lin, -12.midiratio, units:key);
+	specs[(key ++ 'atk').asSymbol] = ControlSpec(0, 1, \lin, 0, 0.01, units:key);
+	specs[(key ++ 'suslevel').asSymbol] = ControlSpec(0, 1, \lin, 0, 1, units:key);
+	specs[(key ++ 'rel').asSymbol] = ControlSpec(0, 8, \lin, 0, 0.29, units:key);
+	specs[(key ++ 'curve').asSymbol] = ControlSpec(-8, 8, \lin, 0, -4, units:key);
+});
 
 SynthDef(\organ, {
 
-	var num = 9;
-	// support mono or poly mode
 	var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
 	var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
 	var in_freq = \freq.ar(261).lag(\glis.kr(0));
@@ -52,11 +24,11 @@ SynthDef(\organ, {
 	var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
 
 	var sig = DynKlang.ar(`[
-		freq * num.collect({arg i;
+		freq * harms.collect({arg harm, i;
 			var n = i + 1;
-			('f' ++ n ++ 'ratio').asSymbol.kr(n)
+			('f' ++ n ++ 'ratio').asSymbol.kr(harm)
 		}),
-		num.collect({arg i;
+		harms.collect({arg harm, i;
 			var n = i + 1;
 			var key = ('f' ++ n);
 			Env.asr(
@@ -109,5 +81,8 @@ SynthDef(\organ, {
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 	Out.ar(\out.kr(0), sig);
 
-}).add;
+}, metadata: (
+	specs: specs
+)
+).add;
 )

@@ -59,6 +59,9 @@ Pswitch
 	kb {
 		^U(\kb, this);
 	}
+	gui {
+		^U(\sgui, this);
+	}
 }
 /*
 + NodeProxy {

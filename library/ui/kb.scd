@@ -4,6 +4,7 @@ Fdef(\kb, {arg synth;
 	var synthEnvir = synth.envir ? ();
 	var palette = QPalette.auto(Color.grey, Color.black);
 	var octave = synthEnvir[\octave] ?? 5;
+	var root = synthEnvir[\root] ? 4;
 
 	var view;
 	var map = [
@@ -63,6 +64,10 @@ Fdef(\kb, {arg synth;
 				octave = vals[\octave];
 				octave.debug(\kb);
 			};
+			if (vals[\root].isNil.not) {
+				root = vals[\root];
+				root.debug(\kb);
+			};
 		}
 	};
 	synth.addDependant(func);
@@ -72,11 +77,10 @@ Fdef(\kb, {arg synth;
 	.name_(synth.key)
 	.layout_(GridLayout.rows(*grid).margins_(0).spacing_(1))
 	.keyDownAction_({arg ctrl, char, mod, uni, keycode, key;
-		//var val = map[char.asSymbol];
 		var val = map.indexOf(char.asSymbol);
 		if (val.isNil.not) {
 			var num = val;
-			var note = 12 * octave + val;
+			var note = 12 * octave + val + root;
 			synth.on(note);
 			if (num < keyboard.size) {
 				keyboard[num].value = 1;
@@ -85,11 +89,10 @@ Fdef(\kb, {arg synth;
 		nil;
 	})
 	.keyUpAction_({arg ctrl, char;
-		//var val = map[char.asSymbol];
 		var val = map.indexOf(char.asSymbol);
 		if (val.isNil.not) {
 			var num = val;
-			var note = 12 * octave + val;
+			var note = 12 * octave + val + root;
 			synth.off(note);
 			if (num < keyboard.size) {
 				keyboard[num].value = 0;
