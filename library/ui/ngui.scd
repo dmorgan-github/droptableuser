@@ -1,4 +1,5 @@
 (
+Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\ctrlview, {arg key, spec, color, val, cb={};
 
 	var controlSpec = spec;
@@ -45,6 +46,7 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb={};
 				//envir[key] = mappedVal;
 				cb.(key, mappedVal);
 			};
+			true;
 		})
 		.mouseDownAction_({arg ctrl, x, y, mod, num, count;
 			var val = controlSpec.default;
@@ -94,6 +96,7 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb={};
 
 Fdef(\ngui, {arg node;
 
+	var baseview;
 	var win;
 	var palette = QPalette.auto(Color.grey, Color.black);
 	var ctrlView = Fdef(\ctrlview);
@@ -113,7 +116,6 @@ Fdef(\ngui, {arg node;
 
 	view.layout.add(nil);
 	scrollView.canvas = view.background_(Color.clear);
-	scrollView;
 
 	win = View().layout_(VLayout(
 		HLayout(
@@ -127,7 +129,7 @@ Fdef(\ngui, {arg node;
 					node.stop;
 				}
 			})
-			.value_(node.isMonitoring.asInt)
+			.value_(node.isMonitoring.asInteger)
 			.maxHeight_(18)
 			.maxWidth_(25),
 			Slider()
@@ -150,9 +152,10 @@ Fdef(\ngui, {arg node;
 	.minWidth_(150)
 	.minHeight_(250)
 	.name_(node.key);
-
 	win.layout.add(scrollView);
-	win.front;
+
+	baseview = Fdef(\baseview).(win, node.key);
+	baseview.front;
 });
 //Fdef(\ngui).(~vfu);
 )

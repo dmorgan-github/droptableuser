@@ -1,3 +1,87 @@
+Vst : Ndef {
+
+	var <fx, <pdata, <skipjack;
+
+	*new {arg key, vst;
+		^super.new(key).prVstInit(vst);
+	}
+
+	prVstInit {arg name;
+
+		var func;
+		var store = {
+			if (fx.isNil.not) {
+				fx.getProgramData({ arg data; pdata = data;});
+			}
+		};
+
+		var index = 100;
+		var synthdef = (name ++ '_' ++ UniqueID.next).asSymbol;
+		var synth;
+
+		SynthDef.new(synthdef, {arg in;
+			var sig = In.ar(in, 2);
+			var wet = ('wet' ++ index).asSymbol.kr(1);
+			XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
+		}).add;
+
+		func = {
+
+			Routine({
+
+				1.wait;
+				this.put(index, synthdef.debug(\synthdef));
+
+				this.wakeUp;
+
+				// FlowVar
+				1.wait;
+				synth = Synth.basicNew(synthdef, Server.default, this.objects[index].nodeID);
+				synth.set(\in, this.bus.index);
+				fx = VSTPluginController(synth);
+
+				1.wait;
+				// there can be a delay
+				fx.open(name.asString, verbose:true, editor:true);
+				name.debug(\loaded);
+
+				1.wait;
+				if (pdata.isNil.not) {
+					fx.setProgramData(pdata);
+				};
+
+			}).play;
+		};
+
+		func.();
+		skipjack = SkipJack(store, 10, name: key);
+		CmdPeriod.add(func);
+
+		^this;
+	}
+
+	editor {
+		^fx.editor;
+	}
+
+	vgui {
+		^fx.gui;
+	}
+
+	browse {
+		fx.browse;
+	}
+
+	snapshot {
+		fx.getProgramData({ arg data; pdata = data;});
+	}
+
+	restore {
+		fx.setProgramData(pdata);
+	}
+}
+
+
 /*
 Vst(\wednvoc).load('Rev PLATE-140');
 Vst(\wednvoc).node.source = S(\eqytug).node;
@@ -5,7 +89,7 @@ Vst(\wednvoc).node.play(fadeTime:4);
 Vst(\wednvoc).node.stop(fadeTime:4);
 Vst(\wednvoc).editor
 */
-Vst {
+Vst_bak {
 
 	classvar <all;
 	var <key;
@@ -25,11 +109,6 @@ Vst {
 	prInit {arg inKey;
 		key = inKey;
 		^this;
-	}
-
-	ar {arg in;
-		node.source = {SinOsc.ar(220)};
-		^node.ar;
 	}
 
 	load {arg name;

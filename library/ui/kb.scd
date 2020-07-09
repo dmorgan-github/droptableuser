@@ -1,6 +1,8 @@
 (
+Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\kb, {arg synth;
 
+	var baseview;
 	var synthEnvir = synth.envir ? ();
 	var palette = QPalette.auto(Color.grey, Color.black);
 	var octave = synthEnvir[\octave] ?? 5;
@@ -103,6 +105,8 @@ Fdef(\kb, {arg synth;
 		synth.removeDependant(func);
 	});
 
-	view.front
+	baseview = Fdef(\baseview).(view, synth.key);
+	baseview.front;
+	//view.front
 });
 )

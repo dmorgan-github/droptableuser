@@ -1,6 +1,9 @@
 (
+Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\launch, {
-	var view;
+
+	//var win = Window.new("launch", bounds:Rect(0, 500, width:100, height:100), border:false);
+	var view, baseview;
 	var pdefs = Pdef.all.keys.asArray
 	.sort
 	.reject({arg k; k.asString.contains("_pset")})
@@ -28,8 +31,8 @@ Fdef(\launch, {
 			.value_(pdef.isPlaying)
 		);
 	});
-	view = View().layout_(GridLayout.rows(*buttons))
-	.palette_(QPalette.dark);
-	view.front;
+
+	baseview = Fdef(\baseview).(GridLayout.rows(*buttons), "launch");
+	baseview.front;
 })
 )

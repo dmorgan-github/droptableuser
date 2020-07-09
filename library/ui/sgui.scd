@@ -1,19 +1,8 @@
-/*
-stethescope in custom ui
 (
-w = Window.new("scope in app", Rect(20, 20, 600, 700));
-i = View().layout_(VLayout());
-b = Button().states_([["left stuff", Color.grey, Color.white]]);
-w.layout = HLayout(b, i);
-c = Stethoscope.new(s, view:i);
-w.onClose = { c.free };
-w.front;
-)
-*/
-
-(
+Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\sgui, {arg synth;
 
+	var baseview;
 	var specs = Halo.at(synth, \spec);
 	var key = synth.key;
 	var server = Server.default;
@@ -233,6 +222,12 @@ Fdef(\sgui, {arg synth;
 		watcher.free;
 	});
 	scrollView.canvas = view.background_(Color.clear);
-	scrollView.front;
+	//scrollView.maxWidth_(150);
+	//scrollView.maxHeight_(300);
+	//scrollView.front;
+
+	baseview = Fdef(\baseview).(scrollView, synth.key);
+	baseview.front;
 })
 )
+

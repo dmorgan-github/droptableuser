@@ -53,6 +53,9 @@ Pswitch
 			}
 		};
 	}
+	nscope {
+		^U(\scope, this);
+	}
 }
 
 + S {
@@ -61,6 +64,9 @@ Pswitch
 	}
 	gui {
 		^U(\sgui, this);
+	}
+	scope {
+		^U(\scope, this.node);
 	}
 }
 /*
