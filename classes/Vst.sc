@@ -50,6 +50,8 @@ Vst : Ndef {
 					fx.setProgramData(pdata);
 				};
 
+				this.wakeUp;
+
 			}).play;
 		};
 
@@ -58,6 +60,13 @@ Vst : Ndef {
 		CmdPeriod.add(func);
 
 		^this;
+	}
+
+	*directory {
+		var result = List.new;
+		VSTPlugin.search(verbose:false);
+		VSTPlugin.readPlugins.keysValuesDo({arg k, v; result.add(k)});
+		^result.asArray;
 	}
 
 	editor {
@@ -89,6 +98,7 @@ Vst(\wednvoc).node.play(fadeTime:4);
 Vst(\wednvoc).node.stop(fadeTime:4);
 Vst(\wednvoc).editor
 */
+/*
 Vst_bak {
 
 	classvar <all;
@@ -200,3 +210,4 @@ Vst_bak {
 		all = ();
 	}
 }
+*/

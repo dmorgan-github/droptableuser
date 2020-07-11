@@ -34,7 +34,7 @@ Pswitch
 	ngui {
 		^U(\ngui, this);
 	}
-	mix {arg index, obj;
+	mix {arg index=0, obj;
 
 		if (obj.isKindOf(Function)) {
 			this.put(index, \mix -> obj);
@@ -46,9 +46,9 @@ Pswitch
 				// not using \mix role so that we can show
 				// helpful names in gui instead of \mix0, \mix1, etc
 				if (obj.class == S) {
-					this.put(index, { obj.node.ar * Control.names([key++(index ? 0)]).kr(1.0) });
+					this.put(index, { obj.node.ar * Control.names([key]).kr(1.0) });
 				}{
-					this.put(index, {obj.ar * Control.names([key++(index ? 0)]).kr(1.0)});
+					this.put(index, {obj.ar * Control.names([key]).kr(1.0)});
 				}
 			}
 		};

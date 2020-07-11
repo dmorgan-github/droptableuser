@@ -376,16 +376,25 @@ S : EventPatternProxy {
 
 
 N {
-	*new {arg key;
-		var path = "~/projects/droptableuser/library/fx/" ++ key.asString ++ ".scd";
-		var pathname = PathName(path.standardizePath);
-		var fullpath = pathname.fullPath;
+	*new {arg key, fx;
+
+		var path, pathname, fullpath;
+
+		if (fx.isNil) {
+			fx = key;
+		};
+
+		path = "~/projects/droptableuser/library/fx/" ++ fx.asString ++ ".scd";
+		pathname = PathName(path.standardizePath);
+		fullpath = pathname.fullPath;
 		if (File.exists(fullpath)) {
 			var name = pathname.fileNameWithoutExtension;
 			var obj = File.open(fullpath.postln, "r").readAllString.interpret;
 			var func = obj[\synth];
 			var specs = obj[\specs];
-			var key = (name ++ '_' ++ UniqueID.next).asSymbol;
+			if (fx == key) {
+				key = (name ++ '_' ++ UniqueID.next).asSymbol;
+			};
 			Ndef.ar(key, 2);
 			Ndef(key).filter(100, func);
 
@@ -400,7 +409,7 @@ N {
 		};
 	}
 
-	*list {arg path;
+	*directory {arg path;
 		// this could be nicer
 		var mypath = path ? "/Users/david/projects/droptableuser/library/fx/";
 		PathName.new(mypath)
@@ -423,7 +432,7 @@ U {
 		};
 	}
 
-	*list {arg path;
+	*directory {arg path;
 		// this could be nicer
 		var mypath = path ? "/Users/david/projects/droptableuser/library/ui/";
 		PathName.new(mypath)

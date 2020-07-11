@@ -82,7 +82,7 @@ MidiCtrl {
 
 	classvar <all;
 
-	var <key, <src, <chan;
+	var <key, <src, <chan, <>enabled;
 
 	*new {arg key, src=\iac, chan;
 		var res = all[key];
@@ -96,6 +96,7 @@ MidiCtrl {
 	init {arg inKey, inSrcKey, inChan;
 		key = inKey;
 		chan = inChan;
+		enabled = true;
 		MIDIClient.init;
 		if (inSrcKey.isNil.not) {
 			src = switch(inSrcKey,
@@ -118,6 +119,11 @@ MidiCtrl {
 					MIDIClient.sources
 					.select({arg src; src.device.beginsWith("Adafruit Trellis M4")})
 					.first;
+				},
+				\microlab, {
+					MIDIClient.sources
+					.select({arg src; src.device.beginsWith("Arturia MicroLab")})
+					.first;
 				}
 			);
 			MIDIIn.connect(device:src);
@@ -134,6 +140,7 @@ MidiCtrl {
 
 	note {arg on, off;
 
+
 		var mychan = if (chan.isNil) {"all"}{chan};
 		var srcid = if (this.src.isNil.not){src.uid}{nil};
 		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
@@ -146,7 +153,9 @@ MidiCtrl {
 		}{
 			"register %".format(onkey).debug(this.key);
 			MIDIdef.noteOn(onkey, func:{arg vel, note, chan, src;
-				on.(note, vel, chan);
+				if (enabled) {
+					on.(note, vel, chan);
+				}
 			}, chan:chan, srcID:srcid)
 			.permanent_(true);
 		};
@@ -157,7 +166,9 @@ MidiCtrl {
 		}{
 			"register %".format(offkey).debug(this.key);
 			MIDIdef.noteOff(offkey, func:{arg vel, note, chan, src;
-				off.(note, chan);
+				if (enabled) {
+					off.(note, chan);
+				}
 			}, chan:chan, srcID:srcid)
 			.permanent_(true);
 		};
@@ -176,7 +187,9 @@ MidiCtrl {
 		}{
 			"register %".format(key).debug(this.key);
 			MIDIdef.cc(key, {arg val, num, chan, src;
-				func.(val, num, chan);
+				if (enabled) {
+					func.(val, num, chan);
+				}
 			}, chan:chan, srcID:srcid)
 			.permanent_(true);
 		}
@@ -194,7 +207,9 @@ MidiCtrl {
 			"register %".format(key).debug(this.key);
 			MIDIdef.bend(key, {arg val, chan, src;
 				// var bend = val.linlin(0, 16383, 0.9, 1.1);
-				func.(val, chan);
+				if (enabled) {
+					func.(val, chan);
+				}
 			}, chan:chan, srcID:srcid)
 			.permanent_(true);
 		}
@@ -212,7 +227,9 @@ MidiCtrl {
 		}{
 			"register %".format(key).debug(this.key);
 			MIDIdef.touch(key, {arg val, chan, src;
-				func.(val, chan);
+				if (enabled) {
+					func.(val, chan);
+				}
 			}, chan:chan, srcID:srcid)
 			.permanent_(true);
 		}

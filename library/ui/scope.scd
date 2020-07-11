@@ -1,4 +1,20 @@
 (
+/*
+Nice color combos
+--
+Color(0.36152021884918, 0.85237412452698, 0.45180509090424)
+Color(0.40423951148987, 0.41675183773041, 0.33699252605438)
+--
+
+Color(0.83572676181793, 0.47834537029266, 0.51227059364319)
+Color(0.69734115600586, 0.31087968349457, 0.53193626403809)
+
+--
+Color(0.60458264350891, 0.35867228507996, 0.43469803333282)
+Color(0.74560611248016, 0.83032672405243, 0.84340102672577)
+
+*/
+
 Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\scope, {arg node;
 
@@ -13,9 +29,9 @@ Fdef(\scope, {arg node;
 	4.do({
 		view.children[0].children[0].remove
 	});
-	view.children[0].children[0].waveColors_([Color.rand, Color.rand]);
+	view.children[0].children[0].waveColors_([Color.rand.debug(\scope), Color.rand.debug(scope)]);
 
-	win = win.asView.fixedSize_(200@200);
+	win = win.asView.fixedSize_(Size(200,200));
 
 	baseview = Fdef(\baseview).(win, key);
 	baseview.front;

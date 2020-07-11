@@ -3,6 +3,7 @@ Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\sgui, {arg synth;
 
 	var baseview;
+	var ctrlView = Fdef(\ctrlview);
 	var specs = Halo.at(synth, \spec);
 	var key = synth.key;
 	var server = Server.default;
@@ -83,107 +84,13 @@ Fdef(\sgui, {arg synth;
 		view;
 	};
 
-	var ctrlView = {arg key, spec, color, synth;
-
-		var controlSpec = spec;
-		var myval = synth.at(key);
-		var stack, view;
-		var font = Font(size:10);
-
-		if (myval.isNumber) {
-
-			var li = LevelIndicator().value_(controlSpec.unmap(myval));
-			var labelView = StaticText().string_(key ++ ": ").font_(font).stringColor_(Color.white);
-			var st = StaticText().string_(myval).font_(font).stringColor_(Color.white);
-			var nb = NumberBox()
-			.font_(font)
-			.value_(myval)
-			.background_(Color.white)
-			.minDecimals_(3)
-			.clipLo_(controlSpec.minval)
-			.clipHi_(controlSpec.maxval);
-
-			stack = StackLayout(
-				View()
-				.layout_(
-					StackLayout(
-						View().layout_(HLayout(labelView, st, nil).margins_(1).spacing_(1)),
-						li
-						.style_(\continuous)
-						.meterColor_(color.alpha_(0.5))
-						.warningColor_(color.alpha_(0.5))
-						.criticalColor_(color.alpha_(0.5))
-						.background_(color.alpha_(0.2))
-					)
-					.mode_(\stackAll)
-					.margins_(0)
-					.spacing_(0)
-				)
-				.mouseMoveAction_({arg ctrl, x, y, mod;
-					var val = x.linlin(0, ctrl.bounds.width, 0, 1);
-					var mappedVal = controlSpec.map(val);
-					if (mod == 0) {
-						li.value = val;
-						st.string_(mappedVal);
-						nb.value = mappedVal;
-						synth.set(key, mappedVal);
-						//this.prSendMsg(key, mappedVal);
-					};
-				})
-				.mouseDownAction_({arg ctrl, x, y, mod, num, count;
-					var val = controlSpec.default;
-
-					if (count == 2) {
-						li.value = controlSpec.unmap(val);
-						st.string_(val);
-						nb.value = val;
-						synth.set(key, val);
-						//this.prSendMsg(key, val);
-					} {
-						if (mod == 0) {
-							var val = x.linlin(0, ctrl.bounds.width, 0, 1);
-							var mappedVal = controlSpec.map(val);
-							li.value = val;
-							st.string_(mappedVal);
-							nb.value = mappedVal;
-							synth.set(key, mappedVal);
-							//this.prSendMsg(key, mappedVal);
-						};
-					};
-				}),
-				nb
-				.action_({arg ctrl;
-					var val = ctrl.value;
-					li.value = controlSpec.unmap(val);
-					st.string_(val);
-					synth.set(key, val);
-					//this.prSendMsg(key, val);
-					stack.index = 0;
-				}),
-			).mode_(\stackOne)
-			.margins_(0)
-			.spacing_(0);
-
-			view = View().layout_(HLayout(
-				View()
-				.layout_(stack)
-				.mouseDownAction_({arg ctrl, x, y, mod, num, count;
-					if (mod == 262144) {
-						stack.index = 1;
-					}
-				}).fixedHeight_(25),
-			).margins_(0).spacing_(1));
-		};
-		view;
+	var scrollView = ScrollView();
+	var cb = {arg key, val;
+		synth.set(key, val)
 	};
 
-	var scrollView = ScrollView()
-	.name_(key).postln;
-
 	var view = View()
-	.layout_(VLayout().margins_(0.5).spacing_(0.5))
-	.palette_(QPalette.dark);
-
+	.layout_(VLayout().margins_(0.5).spacing_(0.5));
 	view.layout.add(freqScopeView.());
 	view.layout.add(levelView.());
 
@@ -209,7 +116,7 @@ Fdef(\sgui, {arg synth;
 			val.do({arg assoc;
 				var k = assoc.key;
 				var v = assoc.value;
-				var ctrl = ctrlView.(k, v.asSpec, Color.rand, synth);
+				var ctrl = ctrlView.(k, v.asSpec, Color.rand, synth.at(k), cb);
 				view.layout.add(ctrl);
 			});
 		});
@@ -222,12 +129,12 @@ Fdef(\sgui, {arg synth;
 		watcher.free;
 	});
 	scrollView.canvas = view.background_(Color.clear);
-	//scrollView.maxWidth_(150);
-	//scrollView.maxHeight_(300);
-	//scrollView.front;
+	scrollView.fixedSize = Size(150, 175);
 
-	baseview = Fdef(\baseview).(scrollView, synth.key);
+
+	baseview = Fdef(\baseview).(scrollView, synth.key, 150, 175);
 	baseview.front;
-})
+});
+//Fdef(\sgui).(~etf);
 )
 

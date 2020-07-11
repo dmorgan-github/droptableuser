@@ -4,7 +4,6 @@ Fdef(\kb, {arg synth;
 
 	var baseview;
 	var synthEnvir = synth.envir ? ();
-	var palette = QPalette.auto(Color.grey, Color.black);
 	var octave = synthEnvir[\octave] ?? 5;
 	var root = synthEnvir[\root] ? 4;
 
@@ -75,9 +74,8 @@ Fdef(\kb, {arg synth;
 	synth.addDependant(func);
 
 	view = View()
-	.palette_(palette)
 	.name_(synth.key)
-	.layout_(GridLayout.rows(*grid).margins_(0).spacing_(1))
+	.layout_(GridLayout.rows(*grid).margins_(0).spacing_(0))
 	.keyDownAction_({arg ctrl, char, mod, uni, keycode, key;
 		var val = map.indexOf(char.asSymbol);
 		if (val.isNil.not) {
