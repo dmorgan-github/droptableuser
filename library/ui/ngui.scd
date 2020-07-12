@@ -5,12 +5,15 @@ Fdef(\ngui, {arg node;
 	var baseview;
 	var win;
 	var view = View().layout_(VLayout().margins_(0.2).spacing_(0.2));
-	var ctrlView = Fdef(\ctrlview).(view);
-	var playview = Fdef(\playview).(view);
-	var baseViewFunc = Fdef(\baseview).(view);
+	var ctrlView = Fdef(\ctrlview);
+	var playview = Fdef(\playview);
+	var baseViewFunc = Fdef(\baseview);
 	var scrollView = ScrollView(bounds:Rect(0,0,160,300));
 	var cb = {arg key, val;
 		node.set(key, val)
+	};
+	var viewListener = {arg obj, key, val;
+		win.changed(key, val);
 	};
 
 	node.controlNames.do({arg cn;
@@ -23,13 +26,16 @@ Fdef(\ngui, {arg node;
 
 	view.layout.add(nil);
 	scrollView.canvas = view.background_(Color.clear);
+	playview = playview.(node).addDependant(viewListener);
 
 	win = View().layout_(VLayout(
-		playview.(node);
+		playview
 	).margins_(2).spacing_(2));
 
 	win.layout.add(scrollView);
-	win = win.fixedSize_(Size(150, 170));
+	win = win.fixedSize_(Size(150, 170)).onClose_({
+		playview.removeDependant(viewListener);
+	});
 	baseview = baseViewFunc.(win, node.key, 150, 170);
 	baseview.front;
 });

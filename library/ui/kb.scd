@@ -4,7 +4,7 @@ Fdef(\kb, {arg synth;
 
 	var view = View();
 	var baseview;
-	var baseViewFunc = Fdef(\baseview).(view);
+	var baseViewFunc = Fdef(\baseview);
 	var synthEnvir = synth.envir ? ();
 	var octave = synthEnvir[\octave] ?? 5;
 	var root = synthEnvir[\root] ? 4;

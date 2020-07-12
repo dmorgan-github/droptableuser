@@ -6,8 +6,8 @@ Fdef(\sgui, {arg synth;
 	.layout_(VLayout().margins_(0.5).spacing_(0.5));
 
 	var baseview;
-	var ctrlView = Fdef(\ctrlview).(view);
-	var baseViewFunc = Fdef(\baseview).(view);
+	var ctrlView = Fdef(\ctrlview);
+	var baseViewFunc = Fdef(\baseview);
 	var specs = Halo.at(synth, \spec);
 	var key = synth.key;
 	var server = Server.default;
@@ -85,7 +85,7 @@ Fdef(\sgui, {arg synth;
 			fsv.debug(\close);
 			fsv.kill;
 		});
-		view;
+		view.maxHeight_(50)
 	};
 
 	var scrollView = ScrollView();
@@ -127,7 +127,7 @@ Fdef(\sgui, {arg synth;
 
 	view.layout.add(nil);
 	view.onClose_({
-		[watcher].debug(\free);
+		watcher.debug(\free);
 		watcher.free;
 	});
 	scrollView.canvas = view.background_(Color.clear);

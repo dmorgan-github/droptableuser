@@ -19,14 +19,14 @@ Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\scope, {arg node;
 
 	var view = View().layout_(VLayout().margins_(0).spacing_(0)).palette_(QPalette.dark);
-	var baseViewFunc = Fdef(\baseview).(view);
+	var baseViewFunc = Fdef(\baseview);
 	var baseview;
 	var key = node.key;
 	var win = Window.new(key, bounds:Rect(width:200, height:200));
 	var scope;
 	win.layout = HLayout(view).margins_(0).spacing_(0);
 	scope = Stethoscope.new(s, view:view).style_(1).index_(node.bus.index).numChannels_(2);
-	win.onClose = { scope.free };
+	win.onClose = { scope.free;  };
 	4.do({
 		view.children[0].children[0].remove
 	});

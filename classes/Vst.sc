@@ -1,6 +1,6 @@
 Vst : Ndef {
 
-	var <fx, <pdata, <skipjack;
+	var <fx, <pdata, <skipjack, <synth;
 
 	*new {arg key, vst;
 		^super.new(key).prVstInit(vst);
@@ -17,7 +17,6 @@ Vst : Ndef {
 
 		var index = 100;
 		var synthdef = (name ++ '_' ++ UniqueID.next).asSymbol;
-		var synth;
 
 		SynthDef.new(synthdef, {arg in;
 			var sig = In.ar(in, 2);
@@ -87,6 +86,18 @@ Vst : Ndef {
 
 	restore {
 		fx.setProgramData(pdata);
+	}
+
+	bypass {arg bypass=0;
+		synth.set(\bypass, bypass)
+	}
+
+	set {arg key, val;
+		fx.set(key, val)
+	}
+
+	map {arg key, val;
+		fx.map(key, val)
 	}
 }
 
