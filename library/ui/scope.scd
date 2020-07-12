@@ -18,10 +18,11 @@ Color(0.74560611248016, 0.83032672405243, 0.84340102672577)
 Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\scope, {arg node;
 
+	var view = View().layout_(VLayout().margins_(0).spacing_(0)).palette_(QPalette.dark);
+	var baseViewFunc = Fdef(\baseview).(view);
 	var baseview;
 	var key = node.key;
 	var win = Window.new(key, bounds:Rect(width:200, height:200));
-	var view = View().layout_(VLayout().margins_(0).spacing_(0)).palette_(QPalette.dark);
 	var scope;
 	win.layout = HLayout(view).margins_(0).spacing_(0);
 	scope = Stethoscope.new(s, view:view).style_(1).index_(node.bus.index).numChannels_(2);
@@ -33,7 +34,7 @@ Fdef(\scope, {arg node;
 
 	win = win.asView.fixedSize_(Size(200,200));
 
-	baseview = Fdef(\baseview).(win, key);
+	baseview = baseViewFunc.(win, key);
 	baseview.front;
 })
 )

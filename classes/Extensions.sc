@@ -34,7 +34,7 @@ Pswitch
 	ngui {
 		^U(\ngui, this);
 	}
-	mix {arg index=0, obj;
+	mix {arg index=0, obj, stopmonitor=false;
 
 		if (obj.isKindOf(Function)) {
 			this.put(index, \mix -> obj);
@@ -46,9 +46,19 @@ Pswitch
 				// not using \mix role so that we can show
 				// helpful names in gui instead of \mix0, \mix1, etc
 				if (obj.class == S) {
+					var l = (key ++ 'L').asSymbol;
+					var r = (key ++ 'R').asSymbol;
 					this.put(index, { obj.node.ar * Control.names([key]).kr(1.0) });
+					if (stopmonitor) {
+						obj.node.stop;
+					}
 				}{
-					this.put(index, {obj.ar * Control.names([key]).kr(1.0)});
+					var l = (key ++ 'L').asSymbol;
+					var r = (key ++ 'R').asSymbol;
+					this.put(index, {obj.ar * Control.names([key]).kr(1.0) });
+					if (stopmonitor) {
+						obj.stop;
+					}
 				}
 			}
 		};

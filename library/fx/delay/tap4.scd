@@ -30,7 +30,7 @@ synth: {arg sig_in;
 	Splay.ar([tap1 * tap1_mul, tap2 * tap2_mul, tap3 * tap3_mul, tap4 * tap4_mul],
 		\spread.ar(1),
 		center:\center.ar(0)
-	) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
+	) * [\ampL.ar(0.dbamp), \ampR.ar(0.dbamp)];
 },
 specs: [
 
@@ -51,7 +51,8 @@ specs: [
 
 	\spread -> [0, 1, \lin, 0, 1],
 	\center -> [-1, 1, \lin, 0, 0],
-	\amp -> [0,4,\lin,0,1],
+	\ampL -> [0,4,\lin,0,1],
+	\ampR -> [0,4,\lin,0,1],
 	\input -> [0, 10, \lin, 0, 1]
 ]
 )

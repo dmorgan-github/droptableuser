@@ -2,14 +2,14 @@
 Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\matrix, {arg matrix;
 
-	var baseview = Fdef(\baseview);
-	var playview = Fdef(\playview);
-	var ctrlView = Fdef(\ctrlview);
-	var skipjack;
-
 	var view = View().layout_(VLayout().margins_(5).spacing_(5)).palette_(QPalette.dark);
+	var baseViewFunc = Fdef(\baseview).(view);
+	var playview = Fdef(\playview).(view);
+	var ctrlView = Fdef(\ctrlview).(view);
+
+	var baseview;
 	var outergrid = View().layout_(VLayout().margins_(0).spacing_(0));
-	var width = 100;
+	var width = 75;
 	var colors = 30.collect({ Color.rand });
 
 	var grid = {
@@ -71,15 +71,14 @@ Fdef(\matrix, {arg matrix;
 		}
 	};
 
-	matrix.addDependant(func);
+	matrix.addDependant(listener);
 	view.layout.add(playview.(matrix));
 	outergrid.layout.add(gridview);
 	view.layout.add(outergrid);
-	//skipjack = SkipJack.new(func, 1, { view.isClosed; });
 
-	baseview = baseview.(view, matrix.key);
+	baseview = baseViewFunc.(view, matrix.key);
 	baseview.onClose({
-		matrix.removeDependant(func);
+		matrix.removeDependant(listener);
 	});
 	baseview.front;
 });

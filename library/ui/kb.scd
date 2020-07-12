@@ -2,12 +2,13 @@
 Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\kb, {arg synth;
 
+	var view = View();
 	var baseview;
+	var baseViewFunc = Fdef(\baseview).(view);
 	var synthEnvir = synth.envir ? ();
 	var octave = synthEnvir[\octave] ?? 5;
 	var root = synthEnvir[\root] ? 4;
 
-	var view;
 	var map = [
 		'z', 'x', 'c', 'v', 'b',
 		'a', 's', 'd', 'f', 'g',
@@ -73,7 +74,7 @@ Fdef(\kb, {arg synth;
 	};
 	synth.addDependant(func);
 
-	view = View()
+	view = view
 	.name_(synth.key)
 	.layout_(GridLayout.rows(*grid).margins_(0).spacing_(0))
 	.keyDownAction_({arg ctrl, char, mod, uni, keycode, key;
@@ -103,7 +104,7 @@ Fdef(\kb, {arg synth;
 		synth.removeDependant(func);
 	});
 
-	baseview = Fdef(\baseview).(view, synth.key);
+	baseview = baseViewFunc.(view, synth.key);
 	baseview.front;
 	//view.front
 });

@@ -28,7 +28,7 @@ SynthDef(\grainr, {
 	};
 
 	var density = {
-		var in_freq = \freq.ar(10).lag(\glis.kr(0));
+		var in_freq = \freq.ar(20).lag(\glis.kr(0));
 		var detune = \detunehz.kr(0.6) * PinkNoise.ar(0.007).range(0.9, 1.1);
 		// bend by semitones...
 		var bend = \bend.ar(0).midiratio;
@@ -45,13 +45,14 @@ SynthDef(\grainr, {
 	};
 
 	var pos = {
-		var offset = \pos.kr(0);
+		var offset =  \pos.ar(0);
 		var speed = \posSpeed.kr(1);
 		var posRand = \posRand.kr(0);
-		var pos = Phasor.ar(0, speed * BufRateScale.ir(buf), 0, BufSamples.ir(buf)-1);
+		var pos = Phasor.ar(0, speed * BufRateScale.ir(buf), 0, BufSamples.ir(buf));
 		pos = pos + LFNoise1.kr(100).bipolar(posRand * SampleRate.ir);
 		pos = pos / BufSamples.ir(buf);
-		pos + offset;
+		pos = pos + offset;
+		pos
 	};
 
 	var pan = {
@@ -62,22 +63,16 @@ SynthDef(\grainr, {
 	};
 
 	var sig = GrainBuf.ar(
-		2,
-		density.(),
-		graindur.(),
-		buf,
-		rate,
-		pos.(),
-		2,
-		pan.(),
-		grainenv
+		numChannels:2,
+		trigger:density.(),
+		dur:graindur.(),
+		sndbuf:buf,
+		rate:rate,
+		pos:pos.(),
+		interp:2,
+		pan:0,
+		envbufnum:-1
 	);
-
-	var drive = \drive.kr(1).max(1);
-	sig = Select.ar((drive > 1), [
-		sig,
-		LeakDC.ar((sig * drive).softclip) * drive.sqrt.reciprocal
-	]);
 
 	sig = BLowPass.ar(
 		BHiPass.ar(sig,
@@ -96,8 +91,8 @@ SynthDef(\grainr, {
 }, metadata: (
 	specs: (
 
-		\rate: ControlSpec(0, 1, \lin, 0, 0.01, "overlap"),
-		\density: ControlSpec(0, 1, \lin, 0, 0.01, "overlap"),
+		\rate: ControlSpec(-48.midicps, 24.midicps, \lin, 0, 1, "pitch"),
+		\freq: ControlSpec(0.1, 20000, \lin, 0, 20, "overlap"),
 		\sync: ControlSpec(0, 1, \lin, 1, 1, "overlap"),
 
 		\durRand: ControlSpec(0, 1, \lin, 0, 1, "dur"),
@@ -119,8 +114,7 @@ SynthDef(\grainr, {
 		spread: ControlSpec(0, 1, \lin, 0, 1, "stereo"),
 		center: ControlSpec(0, 1, \lin, 0, 0, "stereo"),
 		vel: ControlSpec(0, 1, \lin, 0, 1, "vol"),
-		amp: ControlSpec(0, 1, \lin, 0, -10.dbamp, "vol"),
-		drive: ControlSpec(1, 100, \lin, 0, 1, "vol")
+		amp: ControlSpec(0, 1, \lin, 0, -10.dbamp, "vol")
 	)
 )).add;
 )

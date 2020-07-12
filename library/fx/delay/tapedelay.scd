@@ -23,7 +23,10 @@ synth: {arg sig_in;
 		input
 	);
 
-	Splay.ar(sig, spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
+	Splay.ar(sig,
+		spread:\spread.ar(1),
+		center:\center.ar(0)
+	) * [\ampL.ar(0.dbamp), \ampR.ar(0.dbamp)];
 },
 specs: [
 	\tape_speed -> [0,10,\lin,0,1],
@@ -35,7 +38,8 @@ specs: [
 	\tap3_level -> [0,1,\lin,0,0],
 	\tap4_distance -> [0,4,\lin,0,4],
 	\tap4_level -> [0,1,\lin,0,0],
-	\amp -> [0,4,\lin,0,1],
+	\ampL -> [0,4,\lin,0,1],
+	\ampR -> [0,4,\lin,0,1],
 	\input -> [0, 10, \lin, 0, 1],
 	\spread -> [0,1,\lin,0, 1],
 	\center -> [-1,1,\lin,0,0],

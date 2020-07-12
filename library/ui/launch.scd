@@ -3,7 +3,9 @@ Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\launch, {
 
 	//var win = Window.new("launch", bounds:Rect(0, 500, width:100, height:100), border:false);
-	var view, baseview;
+	var view = View().layout_(VLayout());
+	var baseview;
+	var baseViewFunc = Fdef(\baseview).(view);
 	var pdefs = Pdef.all.keys.asArray
 	.sort
 	.reject({arg k; k.asString.contains("_pset")})
@@ -32,7 +34,8 @@ Fdef(\launch, {
 		);
 	});
 
-	baseview = Fdef(\baseview).(GridLayout.rows(*buttons), "launch");
+	view.layout.add(GridLayout.rows(*buttons));
+	baseview = baseViewFunc.(view, "launch");
 	baseview.front;
 })
 )

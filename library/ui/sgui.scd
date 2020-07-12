@@ -2,8 +2,12 @@
 Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\sgui, {arg synth;
 
+	var view = View()
+	.layout_(VLayout().margins_(0.5).spacing_(0.5));
+
 	var baseview;
-	var ctrlView = Fdef(\ctrlview);
+	var ctrlView = Fdef(\ctrlview).(view);
+	var baseViewFunc = Fdef(\baseview).(view);
 	var specs = Halo.at(synth, \spec);
 	var key = synth.key;
 	var server = Server.default;
@@ -89,8 +93,6 @@ Fdef(\sgui, {arg synth;
 		synth.set(key, val)
 	};
 
-	var view = View()
-	.layout_(VLayout().margins_(0.5).spacing_(0.5));
 	view.layout.add(freqScopeView.());
 	view.layout.add(levelView.());
 
@@ -131,8 +133,7 @@ Fdef(\sgui, {arg synth;
 	scrollView.canvas = view.background_(Color.clear);
 	scrollView.fixedSize = Size(150, 175);
 
-
-	baseview = Fdef(\baseview).(scrollView, synth.key, 150, 175);
+	baseview = baseViewFunc.(scrollView, synth.key, 150, 175);
 	baseview.front;
 });
 //Fdef(\sgui).(~etf);
