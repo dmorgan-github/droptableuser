@@ -22,6 +22,7 @@ Fdef(\matrix, {arg matrix;
 		var rows = data.indices.collect({arg i;
 			var src = data[i];
 			var val = matrix.get(src);
+
 			var row = ctrlView.(src, [0, 1, \lin, 0, 0].asSpec, colors[i], val, {arg key, val;
 				matrix.set(src, val);
 			}).minWidth_(width);
@@ -80,11 +81,13 @@ Fdef(\matrix, {arg matrix;
 	outergrid.layout.add(gridview);
 	view.layout.add(outergrid);
 
-	baseview = baseViewFunc.(view, matrix.key);
-	baseview.onClose({
+	view.onClose_({
+		\onclose.debug(\matrix);
 		matrix.removeDependant(listener);
 		playview.removeDependant(viewListener);
 	});
+
+	baseview = baseViewFunc.(view, matrix.key);
 	baseview.front;
 });
 )

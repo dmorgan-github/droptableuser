@@ -10,10 +10,10 @@ synth: {arg sig_in;
 
 	var in = sig_in * \input.ar(1);
 	var sig = LADSPA.ar(1, 1408,
-		\decay.ar(10),
+		\decay.ar(10).lag(0.01),
 		[
-			\kneepointL.ar(-10),
-			\kneepointR.ar(-10)
+			\kneepointL.ar(-30).lag(0.01),
+			\kneepointR.ar(-30).lag(0.01)
 		],
 		in
 	);
@@ -22,7 +22,7 @@ synth: {arg sig_in;
 	Splay.ar(sig, spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
 },
 specs: [
-	\decay -> [2, 30, \lin, 0, 10],
+	\decay -> [2, 30, \lin, 0, 60],
 	\kneepointL -> [-90, 1, \lin, 0, -30],
 	\kneepointR -> [-90, 1, \lin, 0, -30],
 	\amp -> [0,4,\lin,0,1],

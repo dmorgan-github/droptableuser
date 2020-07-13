@@ -92,13 +92,13 @@ Vst : Ndef {
 		synth.set(\bypass, bypass)
 	}
 
-	set {arg key, val;
-		fx.set(key, val)
-	}
+	//set {arg key, val;
+	//	fx.set(key, val)
+	//}
 
-	map {arg key, val;
-		fx.map(key, val)
-	}
+	//map {arg key, val;
+	//	fx.map(key, val)
+	//}
 }
 
 

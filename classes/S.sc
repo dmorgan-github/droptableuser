@@ -37,7 +37,8 @@ S : EventPatternProxy {
 		Pdef(pdefset, Pbind());
 		synths = Array.fill(127, {List.new});
 
-		listenerfunc = {arg obj, prop, params; [prop, params.asCompileString].debug(key);};
+		// this isn't doing anything
+		listenerfunc = {arg obj, prop, params; [prop, params.asCompileString];};
 		node = Ndef(key);
 		node.mold(2, \audio);
 
@@ -389,7 +390,7 @@ N {
 		fullpath = pathname.fullPath;
 		if (File.exists(fullpath)) {
 			var name = pathname.fileNameWithoutExtension;
-			var obj = File.open(fullpath.postln, "r").readAllString.interpret;
+			var obj = File.open(fullpath, "r").readAllString.interpret;
 			var func = obj[\synth];
 			var specs = obj[\specs];
 			if (fx == key) {
@@ -425,7 +426,7 @@ U {
 		var fullpath = pathname.fullPath;
 		if (File.exists(fullpath)) {
 			var name = pathname.fileNameWithoutExtension;
-			File.open(fullpath.postln, "r").readAllString.interpret;
+			File.open(fullpath, "r").readAllString.interpret;
 			Fdef(key).value(*args);
 		} {
 			Error("node not found").throw;
