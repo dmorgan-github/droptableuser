@@ -15,11 +15,61 @@ Fdef(\matrix, {arg matrix;
 	var width = 75;
 	var colors = 30.collect({ Color.rand });
 
+	var path = "/Users/david/projects/droptableuser/library/fx/";
+	var browse = {arg path, files=List.new;
+		var folder = PathName.new(path);
+		if (folder.isFolder) {
+			var folders = folder.folders;
+			files = files.addAll(folder.files);
+			folders.do({arg folder;
+				browse.(folder.fullPath, files);
+			});
+		};
+		files;
+	};
+
+
+	var vsts = {
+		var list = Vst
+		.directory
+		.reject({arg val;
+			val.asString.endsWith(".vst3") or: val.asString.contains("/");
+		});
+		list.sort
+	};
+
+	var paths = browse.(path);
+	var st = {
+		StaticText().string_("...")
+		.setContextMenuActions(
+			*(
+				paths.collect({arg path;
+					var name = path.folderName ++ '/' ++ path.fileNameWithoutExtension;
+					MenuAction( name, {arg action, what, value;
+						//[action.string, what, value].postln;
+						var id = action.string;
+						var node = N(id.asSymbol);
+						matrix.add(node.key);
+					});
+				})
+				++ vsts.().collect({arg vst;
+					MenuAction(vst, {arg action;
+						var id = action.string;
+						var uniqe = (id ++ '_' ++ UniqueID.next).asSymbol;
+						var node = Vst(uniqe, id.asSymbol.postln);
+						matrix.add(node.key);
+					})
+				})
+			)
+		);
+	};
+
 	var grid = {
 
 		var data = matrix.map;
-		var header = [nil] ++ data.indices.collect({arg i; StaticText().string_(data[i])});
+		var header = [st.(), nil, nil] ++ data.indices.collect({arg i; StaticText().string_(data[i])});
 		var rows = data.indices.collect({arg i;
+
 			var src = data[i];
 			var val = matrix.get(src);
 
@@ -51,7 +101,29 @@ Fdef(\matrix, {arg matrix;
 				}
 			});
 
-			[row] ++ cols;
+			[
+				Button()
+				.action_({ Ndef(src).nscope; })
+				.fixedWidth_(15)
+				.fixedHeight_(25)
+				.states_([ [nil, nil, colors[i]] ]),
+				Button()
+				.action_({
+					if (Pdef.all[src].isKindOf(S)) {
+						Pdef.all[src].sgui;
+					}{
+						if (Ndef(src).isKindOf(Vst)) {
+							Ndef(src).editor;
+						}{
+							Ndef(src).ngui;
+						}
+					}
+				})
+				.fixedWidth_(15)
+				.fixedHeight_(25)
+				.states_([ [nil, nil, colors[i]] ]),
+				row
+			] ++ cols;
 		});
 
 		var val = [header] ++ rows;
@@ -77,6 +149,8 @@ Fdef(\matrix, {arg matrix;
 
 	matrix.addDependant(listener);
 	playview = playview.(matrix).addDependant(viewListener);
+
+
 	view.layout.add(playview);
 	outergrid.layout.add(gridview);
 	view.layout.add(outergrid);

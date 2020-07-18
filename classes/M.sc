@@ -4,7 +4,13 @@ M : Ndef {
 	var <slot;
 
 	*new {arg key;
-		^super.new(key).prMInit();
+		var res;
+		if (Ndef.all[key].isNil) {
+			res = super.new(key).prMInit();
+		} {
+			res = Ndef.all[key];
+		};
+		^res;
 	}
 
 	prMInit {

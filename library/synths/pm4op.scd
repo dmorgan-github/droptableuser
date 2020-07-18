@@ -1,5 +1,5 @@
 (
-SynthDef(\fm1, {
+SynthDef(\pm4op, {
 
 	var gate = \gate.kr(1);
 	var in_freq = \freq.ar(261).lag(\glis.kr(0));
@@ -48,5 +48,12 @@ SynthDef(\fm1, {
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 	Out.ar(\out.kr(0), sig);
 
-}).add;
+}, metadata: (
+	specs: (
+		fb: ControlSpec(-1, 1, 0, \lin, 0, 0.3),
+		m4: ControlSpec(0, 2pi, \lin, 0, 0.5pi),
+		m2: ControlSpec(0, 2pi, \lin, 0, 0.5pi),
+		fb: ControlSpec(0, 1, \lin, 0, 0.5)
+	)
+)).add;
 )

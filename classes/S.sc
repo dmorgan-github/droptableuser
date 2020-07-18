@@ -342,6 +342,8 @@ S : EventPatternProxy {
 
 		StartUp.add({
 			Spec.add(\cutoff, ControlSpec(20, 20000, 'exp', 0, 100, units:"filter"));
+			Spec.add(\hpf, ControlSpec(20, 20000, 'exp', 0, 20, units:"filter"));
+			Spec.add(\lpf, ControlSpec(20, 20000, 'exp', 0, 20000, units:"filter"));
 			Spec.add(\res, ControlSpec(0, 1.4, \lin, 0, 0.5, units:"filter"));
 			Spec.add(\fvel, ControlSpec(0.001, 20, \lin, 0, 10, units:"filter"));
 			Spec.add(\fatk, ControlSpec(0, 1, \lin, 0, 0.01, units:"filter"));
@@ -356,6 +358,7 @@ S : EventPatternProxy {
 			Spec.add(\dec, ControlSpec(0, 1, \lin, 0, 0.2, units:"aeg"));
 			Spec.add(\rel, ControlSpec(0, 8, \lin, 0, 0.29, units:"aeg"));
 			Spec.add(\suslevel, ControlSpec(0, 1, \lin, 0, 1, units:"aeg"));
+			Spec.add(\curve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
 			Spec.add(\atkcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
 			Spec.add(\deccurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
 			Spec.add(\relcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
@@ -366,7 +369,7 @@ S : EventPatternProxy {
 			Spec.add(\vrate, ControlSpec(0, 440, \lin, 0, 6, units:"freq"));
 			Spec.add(\vdepth, ControlSpec(0, 1, \lin, 0, 0, units:"freq"));
 			Spec.add(\spread, ControlSpec(0, 1, \lin, 0, 1, units:"stereo"));
-			Spec.add(\center, ControlSpec(0, 1, \lin, 0, 0, units:"stereo"));
+			Spec.add(\center, ControlSpec(-1, 1, \lin, 0, 0, units:"stereo"));
 			Spec.add(\pan, ControlSpec(-1, 1, \lin, 0, 0, units:"stereo"));
 			Spec.add(\vel, ControlSpec(0, 1, \lin, 0, 1, units:"vol"));
 			Spec.add(\drive, ControlSpec(1, 100, \lin, 0, 1, units:"vol"));
@@ -375,6 +378,49 @@ S : EventPatternProxy {
 	}
 }
 
+// eq
+Q : Ndef {
+
+	var <guikey;
+
+	*new {arg key;
+		var res;
+		if (Ndef.all[key].isNil) {
+			res = super.new(key).prQInit();
+		} {
+			res = Ndef.all[key];
+		};
+		^res
+	}
+
+	prQInit {
+
+		var fromControl;
+
+		fromControl = {arg controls;
+			controls.clump(3).collect({arg item;
+				[(item[0] + 1000.cpsmidi).midicps, item[1], 10**item[2]]
+			});
+		};
+
+		guikey = \eq;
+		this.wakeUp;
+		this.play;
+
+		this.put(100, \filter -> {arg in;
+
+			var frdb, input = in;
+			frdb = fromControl.(Control.names([\eq_controls]).kr(0!15));
+			input = BLowShelf.ar(input, *frdb[0][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[1][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[2][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[3][[0,2,1]].lag(0.1));
+			input = BHiShelf.ar(input, *frdb[4][[0,2,1]].lag(0.1));
+			input = RemoveBadValues.ar(input);
+			input;
+		});
+	}
+}
 
 N {
 	*new {arg key, fx;

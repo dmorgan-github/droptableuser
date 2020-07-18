@@ -65,7 +65,10 @@ SynthDef(\plaits, {
 		\lpfres.kr(0).linlin(0, 1, 1.4, 0.001)
 	);
 
+	//sig = sig.asArray.sum;
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
+	//sig = Balance2.ar(sig[0], sig[1], 0);
+	sig;
 	Out.ar(\out.kr(0), sig);
 
 }, metadata: (

@@ -32,7 +32,11 @@ Pswitch
 
 + NodeProxy {
 	ngui {
-		^U(\ngui, this);
+		var key = \ngui;
+		if (this.respondsTo(\guikey)) {
+			key = this.guikey;
+		};
+		^U(key, this);
 	}
 	mix {arg index=0, obj, stopmonitor=false;
 
@@ -72,10 +76,10 @@ Pswitch
 	kb {
 		^U(\kb, this);
 	}
-	gui {
+	sgui {
 		^U(\sgui, this);
 	}
-	scope {
+	nscope {
 		^U(\scope, this.node);
 	}
 }

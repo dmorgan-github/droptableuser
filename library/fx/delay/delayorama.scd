@@ -42,16 +42,16 @@ synth: {arg sig_in;
 
 	var in = sig_in * \input.ar(1);
 	var sig = LADSPA.ar(1, 1402,
-		RandSeed.ir(1000),
-		\inputgain.ar(0),
-		\feedback.ar(30),
-		\numtaps.ar(1),
-		\firstdelay.ar(1),
-		\delayrange.ar(1),
-		\delaychange.ar(1),
-		\delayrandom.ar(30),
-		\ampchange.ar(0.5),
-		\amprand.ar(50),
+		RandSeed.kr(1000.rand),
+		\inputgain.ar(0).lag(0.001),
+		\feedback.ar(30).lag(0.001),
+		\numtaps.ar(1).lag(0.001),
+		\firstdelay.ar(1).lag(0.001),
+		\delayrange.ar(1).lag(0.001),
+		\delaychange.ar(1).lag(0.001),
+		\delayrandom.ar(30).lag(0.001),
+		\ampchange.ar(0.5).lag(0.001),
+		\amprand.ar(50).lag(0.001),
 		/*dry/wet*/1,
 		in
 	);

@@ -1,4 +1,5 @@
 (
+//https://doc.sccode.org/Classes/ScopeView.html
 /*
 Nice color combos
 --

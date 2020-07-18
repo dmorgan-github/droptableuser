@@ -25,7 +25,7 @@ Fdef(\baseview, {arg view, title, w, h;
 					Button().states_([ ["x", Color.white, nil] ])
 					.action_({ win.close })
 					.maxWidth_(25)
-				).margins_(0).spacing_(0)
+				).margins_(3).spacing_(0)
 			).background_(Color.black.alpha_(0.1)),
 			view,
 			status;
@@ -194,7 +194,7 @@ Fdef(\playview, {arg node;
 			.minWidth_(50)
 			.maxWidth_(75),
 			nil
-		).spacing_(2).margins_(2)
+		).spacing_(1).margins_(1)
 	);
 
 	view;
