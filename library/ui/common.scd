@@ -24,8 +24,9 @@ Fdef(\baseview, {arg view, title, w, h;
 					nil,
 					Button().states_([ ["x", Color.white, nil] ])
 					.action_({ win.close })
-					.maxWidth_(25)
-				).margins_(3).spacing_(0)
+					.maxWidth_(15)
+					.maxHeight_(15)
+				).margins_(1).spacing_(0)
 			).background_(Color.black.alpha_(0.1)),
 			view,
 			status;
@@ -59,7 +60,10 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 	var stack, view;
 	var font = Font(size:8);
 	var label = if (key.asString.size > 0) {key ++ ": "}{""};
-	var labelView = StaticText().string_(label).font_(font).stringColor_(Color.white);
+	var labelView = StaticText().string_(label)
+	.font_(font)
+	.stringColor_(Color.white)
+	.toolTip_(label);
 
 	if (myval.isNumber) {
 		var li = LevelIndicator().value_(controlSpec.unmap(myval));
@@ -178,7 +182,8 @@ Fdef(\playview, {arg node;
 			})
 			.value_(node.vol.linlin(0, 4, 0, 1))
 			.minWidth_(50)
-			.maxWidth_(75),
+			.maxWidth_(75)
+			.toolTip_("vol"),
 
 			Slider()
 			.orientation_(\horizontal)
@@ -192,7 +197,8 @@ Fdef(\playview, {arg node;
 			})
 			.value_(node.fadeTime.linlin(0, 120, 0, 1))
 			.minWidth_(50)
-			.maxWidth_(75),
+			.maxWidth_(75)
+			.toolTip_("fade time"),
 			nil
 		).spacing_(1).margins_(1)
 	);

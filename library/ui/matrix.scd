@@ -12,7 +12,7 @@ Fdef(\matrix, {arg matrix;
 
 	var baseview;
 	var outergrid = View().layout_(VLayout().margins_(0).spacing_(0));
-	var width = 75;
+	var width = 50;
 	var colors = 30.collect({ Color.rand });
 
 	var path = "/Users/david/projects/droptableuser/library/fx/";
@@ -27,7 +27,6 @@ Fdef(\matrix, {arg matrix;
 		};
 		files;
 	};
-
 
 	var vsts = {
 		var list = Vst
@@ -67,7 +66,15 @@ Fdef(\matrix, {arg matrix;
 	var grid = {
 
 		var data = matrix.map;
-		var header = [st.(), nil, nil] ++ data.indices.collect({arg i; StaticText().string_(data[i])});
+		var header = [st.(), nil, nil] ++ data.indices.collect({arg i;
+			var name = data[i].asString;
+			var len = min(name.size, 5);
+			if (Pdef.all[name.asSymbol].isNil) {
+				StaticText().string_(name[0..len]).toolTip_(name)
+			} {
+				nil
+			}
+		});
 		var rows = data.indices.collect({arg i;
 
 			var src = data[i];
@@ -106,7 +113,9 @@ Fdef(\matrix, {arg matrix;
 				.action_({ Ndef(src).nscope; })
 				.fixedWidth_(15)
 				.fixedHeight_(25)
-				.states_([ [nil, nil, colors[i]] ]),
+				.states_([ [nil, nil, colors[i]] ])
+				.toolTip_("scope"),
+
 				Button()
 				.action_({
 					if (Pdef.all[src].isKindOf(S)) {
@@ -121,7 +130,8 @@ Fdef(\matrix, {arg matrix;
 				})
 				.fixedWidth_(15)
 				.fixedHeight_(25)
-				.states_([ [nil, nil, colors[i]] ]),
+				.states_([ [nil, nil, colors[i]] ])
+				.toolTip_("gui"),
 				row
 			] ++ cols;
 		});

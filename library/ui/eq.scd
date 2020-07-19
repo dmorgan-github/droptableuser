@@ -11,9 +11,13 @@ Fdef(\eq, {arg node;
 	};
 
 	var fromControl = {arg controls;
-		controls.clump(3).collect({arg item;
-			[(item[0] + 1000.cpsmidi).midicps, item[1], 10**item[2]]
-		});
+		if (controls.sum == 0) {
+			frdb;
+		}{
+			controls.clump(3).collect({arg item;
+				[(item[0] + 1000.cpsmidi).midicps, item[1], 10**item[2]]
+			});
+		}
 	};
 
 	var sendCurrent = {
@@ -300,6 +304,7 @@ Fdef(\eq, {arg node;
         uvw.mouseMoveAction_ { |vw, x, y, mod| mouseMoveAction.(vw, x, y, mod); };
         uvw.drawFunc = { |vw| drawFunc.(vw); };
 
+		/*
         bypassButton = RoundButton.new(window, 17@17)
 		.extrude_(true).border_(1)
 		.states_([
@@ -313,6 +318,7 @@ Fdef(\eq, {arg node;
 			);
 		})
 		.resize_(7);
+		*/
 
         window.refresh;
 
@@ -320,8 +326,8 @@ Fdef(\eq, {arg node;
 			\onclose.debug(\eq);
 		});
 
-		window = window.asView.fixedSize_(Size(337, 213));
-		baseview = baseViewFunc.(window, node.key, 337, 213);
+		window = window.asView.fixedSize_(Size(337, 185));
+		baseview = baseViewFunc.(window, node.key, 337, 185);
 		baseview.front;
     };
 
