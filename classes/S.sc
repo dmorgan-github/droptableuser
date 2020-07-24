@@ -122,7 +122,6 @@ S : EventPatternProxy {
 
 	prInitSource {
 
-		// TODO: support for Pmono and PmonoArtic
 		var plazy = Plazy({arg evt;
 
 			var pchain;
@@ -375,6 +374,94 @@ S : EventPatternProxy {
 			Spec.add(\drive, ControlSpec(1, 100, \lin, 0, 1, units:"vol"));
 			Spec.add(\amp, ControlSpec(0, 1, \lin, 0, -10.dbamp, units:"vol"));
 		});
+	}
+}
+
+
+B {
+	classvar <envir;
+
+	*new {arg key;
+		^envir[key]
+	}
+
+	*read {arg key, path, channels=nil;
+		if (channels.isNil) {
+			channels = [0,1];
+		}{
+			channels = channels.asArray;
+		};
+		Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
+			envir.put(key, buf);
+		});
+	}
+
+	*initClass {
+		envir = ();
+	}
+}
+
+O : Ndef {
+
+	*new {arg key, func;
+		var res;
+		if (Ndef.all[key].isNil) {
+			res = super.new(key).prOInit(key, func);
+		} {
+			res = Ndef.all[key];
+		};
+		^res
+	}
+
+	prOInit {arg inKey, inFunc;
+
+		var osckey = ('/' ++ inKey ++ 'pos').asSymbol;
+		if (inFunc.isNil) {
+			inFunc = {arg startPos, endPos, dur, freq, duty, rate;
+				var phase = LFSaw.ar(dur.reciprocal, 1).range(startPos, endPos);
+				phase;
+			};
+		};
+
+		this.put(0, {
+
+			var buf = \buf.kr(0);
+			var rate = \rate.kr(1);
+			var trig = \trig.tr(1);
+			var startPos = \startPos.kr(0) * BufFrames.kr(buf);
+			var endPos = \endPos.kr(1) * BufFrames.kr(buf);
+			var updateFreq = 60;
+
+			var dur = ( (endPos - startPos) / BufSampleRate.kr(buf) ) * rate.abs.reciprocal;
+			var duty = TDuty.ar(dur, trig, 1);
+			var index = Stepper.ar(duty, 0, 0, 1 );
+			var phase = inFunc.(startPos, endPos, dur, dur.reciprocal, duty, rate);
+
+			/*
+			var phase = Phasor.ar(
+			duty,
+			myrate,
+			startPos,
+			endPos,
+			startPos
+			);
+			//var phase = LFSaw.ar(dur.reciprocal, 1).range(startPos, endPos);
+			//var phase = LFPar.ar(dur.reciprocal * [-1, 2]).range(startPos, endPos);
+			//var phase = Env([0, 0, 1], [0, dur], curve: 0).ar(gate:duty).linlin(0, 1, startPos, endPos);
+			*/
+
+			var sig = BufRd.ar(1, buf, phase!2, 0);
+			sig = SelectCF.ar(index, sig);
+
+			SendReply.kr(Impulse.kr(updateFreq), osckey, [buf, phase % BufFrames.kr(buf) ]);
+			Splay.ar(sig) * \amp.kr(1);
+		});
+		this.wakeUp;
+		^this
+	}
+
+	ngui {
+		^U(\buf, this)
 	}
 }
 

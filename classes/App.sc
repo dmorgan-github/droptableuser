@@ -21,11 +21,11 @@ App {
 	}
 
 	*recdir {arg dir;
-		thisProcess.platform.recordingsDir_("/Users/david/projects/droptableuser/workspaces/" ++ dir);
+		thisProcess.platform.recordingsDir_("~/Documents/supercollider/workspaces/".standardizePath ++ dir);
 	}
 
 	*rec {arg dir;
-		thisProcess.platform.recordingsDir_("/Users/david/projects/droptableuser/workspaces/" ++ dir);
+		thisProcess.platform.recordingsDir_("~/Documents/supercollider/workspaces/".standardizePath ++ dir);
 		Server.default.record;
 	}
 
@@ -40,7 +40,7 @@ App {
 		Server.default.record(filepath);
 	}
 
-	*saveWorkspace {arg name = "", folder = "~/projects/droptableuser/workspaces", rec = true, envir;
+	*saveWorkspace {arg name = "", folder = "~/Documents/supercollider/workspaces".standardizePath, rec = true, envir;
 
 		var workspace = "%/%-%-%/%%".format(name,
 			Date.getDate.year, Date.getDate.month, Date.getDate.day, Date.getDate.hour, Date.getDate.minute);
