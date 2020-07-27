@@ -123,7 +123,7 @@ Fdef(\sgui, {arg synth;
 			val.do({arg assoc;
 				var k = assoc.key;
 				var v = assoc.value;
-				var ctrl = ctrlView.(k, v.asSpec, Color.rand, synth.at(k), cb);
+				var ctrl = ctrlView.(k, v.asSpec, Color.rand, synth.get(k), cb);
 				view.layout.add(ctrl);
 			});
 		});

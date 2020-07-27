@@ -52,7 +52,12 @@ S : EventPatternProxy {
 		// wake sets up the node for audio
 		node.wakeUp;
 		this.source = this.prInitSource;
-		this.set(\root, defaultRoot, \scale, Scale.at(defaultScale).copy.tuning_(defaultTuning));
+		this.set(
+			\root, {defaultRoot},
+			\scale, Scale.at(defaultScale).copy.tuning_(defaultTuning)
+			//\out, {node.bus.index},
+			//\group, {node.group}
+		);
 		^this;
 	}
 
@@ -118,6 +123,8 @@ S : EventPatternProxy {
 		myspecs.keysValuesDo({arg k, v;
 			this.addSpec(k, v);
 		});
+
+		this.set(\instrument, instrument);
 	}
 
 	prInitSource {
@@ -149,7 +156,8 @@ S : EventPatternProxy {
 			Pchain(
 				pchain,
 				Pbind(
-					\instrument, Pfunc({instrument}),
+					// this seems to work better than adding to the envir
+					// though that would be simpler and preferable
 					\out, Pfunc({node.bus.index}),
 					\group, Pfunc({node.group})
 				)
@@ -186,7 +194,7 @@ S : EventPatternProxy {
 		Pdef(this.pdefset, Pbind(*pairs));
 	}
 
-	at {arg key;
+	get {arg key;
 
 		var val;
 		var spec = this.getSpec(key);
@@ -242,14 +250,6 @@ S : EventPatternProxy {
 		}
 	}
 
-	clear {
-		// this should clear any lfos
-		Ndef(this.key).clear;
-		Ndef(this.pdefset).clear;
-		this.clear;
-		this.panic();
-	}
-
 	prNoteOn {arg midinote, vel=1;
 
 		var ignore = [\instrument,
@@ -258,8 +258,7 @@ S : EventPatternProxy {
 
 		if (node.isPlaying) {
 
-			var evt = this.asStream
-			.next((monitor:false))
+			var evt = this.envir
 			.reject({arg v, k;
 				ignore.includes(k) or: v.isKindOf(Function);
 			});
@@ -415,11 +414,10 @@ O : Ndef {
 
 	prOInit {arg inKey, inFunc;
 
-		var osckey = ('/' ++ inKey ++ 'pos').asSymbol;
+		//var osckey = ('/' ++ inKey ++ 'pos').asSymbol;
 		if (inFunc.isNil) {
-			inFunc = {arg startPos, endPos, dur, freq, duty, rate;
-				var phase = LFSaw.ar(dur.reciprocal, 1).range(startPos, endPos);
-				phase;
+			inFunc = {arg dur, freq, duty, rate;
+				LFSaw.ar(freq, 1);
 			};
 		};
 
@@ -428,32 +426,29 @@ O : Ndef {
 			var buf = \buf.kr(0);
 			var rate = \rate.kr(1);
 			var trig = \trig.tr(1);
+			var replyid = \bufposreplyid.kr(-1);
 			var startPos = \startPos.kr(0) * BufFrames.kr(buf);
 			var endPos = \endPos.kr(1) * BufFrames.kr(buf);
 			var updateFreq = 60;
+			var sig;
 
-			var dur = ( (endPos - startPos) / BufSampleRate.kr(buf) ) * rate.abs.reciprocal;
-			var duty = TDuty.ar(dur, trig, 1);
+			var dur = ( (endPos - startPos) / BufSampleRate.kr(buf) ) * rate.reciprocal;
+			var duty = TDuty.ar(dur.abs, trig, 1);
 			var index = Stepper.ar(duty, 0, 0, 1 );
-			var phase = inFunc.(startPos, endPos, dur, dur.reciprocal, duty, rate);
+			var phase = inFunc.(dur, dur.reciprocal, duty, rate);
+			phase = phase.range(startPos, endPos);
 
 			/*
-			var phase = Phasor.ar(
-			duty,
-			myrate,
-			startPos,
-			endPos,
-			startPos
-			);
+			var phase = Phasor.ar(duty, myrate, startPos, endPos, startPos);
 			//var phase = LFSaw.ar(dur.reciprocal, 1).range(startPos, endPos);
 			//var phase = LFPar.ar(dur.reciprocal * [-1, 2]).range(startPos, endPos);
 			//var phase = Env([0, 0, 1], [0, dur], curve: 0).ar(gate:duty).linlin(0, 1, startPos, endPos);
 			*/
 
-			var sig = BufRd.ar(1, buf, phase!2, 0);
+			sig = BufRd.ar(1, buf, phase!2, 0);
 			sig = SelectCF.ar(index, sig);
 
-			SendReply.kr(Impulse.kr(updateFreq), osckey, [buf, phase % BufFrames.kr(buf) ]);
+			SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [buf, phase % BufFrames.kr(buf)], replyid);
 			Splay.ar(sig) * \amp.kr(1);
 		});
 		this.wakeUp;
@@ -573,205 +568,3 @@ U {
 		.entries.do({arg e; e.fullPath.postln;});
 	}
 }
-
-
-/*
-B : S {
-
-	classvar <all;
-
-	var <>buf, recsynth;
-
-	*new {arg key, path;
-		var res = all[key];
-		if (res.isNil) {
-			var synth = \smplr_1chan;
-			res = super.new(key, synth).bInit(path);
-			all.put(key, res);
-		} {
-			res.bInit(path);
-		};
-		^res;
-	}
-
-	bInit {arg inPath;
-
-		if (inPath.isKindOf(Buffer)) {
-			var bufnum = inPath.bufnum;
-			buf = inPath;
-			this.specs.add(\buf -> ControlSpec(bufnum, bufnum, \lin, 0, bufnum));
-			this.value(\buf, buf);
-			if (buf.numChannels == 2) {
-				this.instrument = \smplr_2chan
-			}
-		}{
-			if (inPath.isNumber) {
-				var bufnum;
-				buf = B.alloc(inPath);
-				bufnum = buf.bufnum;
-				this.specs.add(\buf -> ControlSpec(bufnum, bufnum, \lin, 0, bufnum));
-				this.value(\buf, buf);
-				this.instrument = \smplr_2chan;
-			}{
-				Buffer.read(Server.default, inPath, action:{arg mybuf;
-					var bufnum;
-					"buffer loaded; numchannels: %".format(mybuf.numChannels).debug(\b);
-					bufnum = mybuf.bufnum;
-					buf = mybuf;
-					this.specs.add(\buf -> ControlSpec(bufnum, bufnum, \lin, 0, bufnum));
-					this.value(\buf, buf);
-					if (buf.numChannels == 2) {
-						this.instrument = \smplr_2chan;
-					};
-				});
-			}
-		};
-		^this;
-	}
-
-	*alloc {arg seconds;
-		var numChannels = 2;
-		^Buffer.alloc(Server.default, 44100 * seconds, numChannels);
-	}
-
-	recSoundIn {arg reclevel=1;
-		//Synth(\rec_soundin, [\buf, buf, \run, 1, \trig, 1, \reclevel, reclevel]);
-		if (recsynth.isNil) {
-			"Not armed!".warn
-		}{
-			"recording".debug(key);
-			recsynth.set(\run, 1, \trig, 1);
-		};
-
-		OSCFunc({arg msg;
-			msg.debug(key);
-			recsynth = nil;
-		}, '/rec_soundin_done', Server.default.addr)
-		.oneShot;
-	}
-
-	armSoundIn {
-		"recording armed".debug(key);
-		recsynth = Synth(\rec_soundin, [\buf, buf, \run, 0, \trig, 0]);
-	}
-
-	recLoop {arg bus=0, quant=1;
-		"recLoop".debug(key);
-		Pbind(
-			\instrument, \rec_infeedback,
-			\type, \on,
-			\run, 1,
-			\trig, 1,
-			\buf, Pseq([buf], 1),
-			\bus, bus
-		).play(quant:1);
-	}
-
-	overdubSoundIn {arg prelevel=0.7, reclevel=1;
-		Synth(\rec_soundin, [\buf, buf, \run, 1, \trig, 1, \reclevel, reclevel, \prelevel, prelevel]);
-
-		OSCFunc({arg msg;
-			msg.debug(\overdubSoundIn);
-		}, '/rec_soundin_done', Server.default.addr).oneShot;
-	}
-
-	gui {
-		var sfv;
-		var defaultDur = 1;
-		var view = View().layout_(VLayout().margins_(0.5).spacing_(0.5))
-		.minHeight_(200)
-		.minWidth_(200)
-		.palette_(QPalette.dark);
-
-		var start = NumberBox().normalColor_(Color.white);
-		var beats = NumberBox().action_({arg ctrl;
-			var begin = sfv.selection(0)[0];
-			var dur = ctrl.value;
-			var size = dur * TempoClock.default.tempo * buf.sampleRate;
-			var end = size + begin;
-			this.value(\dur, dur);
-			sfv.setSelection(0, [begin, size]);
-		})
-		.normalColor_(Color.white)
-		.value_(defaultDur);
-
-		sfv = SoundFileView()
-		.background_(Color.gray(0.3))
-		.timeCursorOn_(true)
-		.gridOn_(true)
-		.gridResolution_(0)
-		.mouseUpAction = ({arg ctrl;
-			var loFrames, hiFrames;
-			var msg;
-			var begin = ctrl.selection(0)[0];
-			var end = ctrl.selection(0)[1] + begin;
-			var dur = (end - begin)/buf.sampleRate;
-			var start = begin/buf.numFrames;
-			this.value(\start, start, \dur, dur);
-			beats.value = dur;
-		});
-		buf.loadToFloatArray(action:{arg a;
-			{
-				sfv.setData(a, channels: buf.numChannels);
-				sfv.setSelection (0, [0, buf.numFrames]);
-				sfv.mouseUpAction.value(sfv);
-			}.defer
-		});
-
-		view.layout.add(HLayout(start, beats));
-		view.layout.add(sfv);
-		^view.front;
-	}
-
-	*initClass {
-
-		all = ();
-
-		StartUp.add {
-			SynthDef(\rec_soundin, {
-				var bus = \bus.kr([0, 1]);
-				var in = SoundIn.ar([0, 1]);
-				var trig = \trig.tr;
-				var buf = \buf.kr(0);
-				var run = \run.kr(0);
-				var sig = RecordBuf.ar(in,
-					buf,
-					offset:0,
-					recLevel:\reclevel.ar(1),
-					preLevel:\prelevel.ar(0),
-					run:run,
-					loop:\loop.kr(0),
-					trigger:trig,
-					doneAction:Done.freeSelf
-				);
-
-				var donetrig = Done.kr(sig);
-				SendReply.kr(donetrig, '/rec_soundin_done', 1, 1905);
-				Out.ar(\out.kr(0), in);
-			}).add;
-
-			SynthDef(\rec_infeedback, {
-				var bus = \bus.kr(0);
-				var in = InFeedback.ar(bus, 2);
-				var trig = \trig.tr;
-				var buf = \buf.kr(0);
-				var run = \run.kr(0);
-				var sig = RecordBuf.ar(in,
-					buf,
-					offset:0,
-					recLevel:\reclevel.ar(1),
-					preLevel:\prelevel.ar(0),
-					run:run,
-					loop:\loop.kr(0),
-					trigger:trig,
-					doneAction:Done.freeSelf
-				);
-
-				var donetrig = Done.kr(sig);
-				SendReply.kr(donetrig, '/rec_infeedback_done', 1, 1905);
-				Out.ar(\out.kr(0), in);
-			}).add;
-		};
-	}
-}
-*/

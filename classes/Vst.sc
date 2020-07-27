@@ -24,12 +24,16 @@ Vst : Ndef {
 			XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
 		}).add;
 
+		Routine({
+			1.wait;
+			this.put(index, synthdef.debug(\synthdef));
+		}).play;
+
 		func = {
 
 			Routine({
 
-				1.wait;
-				this.put(index, synthdef.debug(\synthdef));
+				2.wait;
 
 				this.wakeUp;
 

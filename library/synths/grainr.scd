@@ -1,16 +1,4 @@
 (
-
-/*
-~bufs = Order.new;
-(
-~func = {arg num, path;
-	Buffer.readChannel(s, path, channels:[0], action:{arg buf;
-		~bufs[num] = buf;
-	});
-};
-)
-*/
-
 // adapted from Eli Fieldsteel
 SynthDef(\grainr, {
 

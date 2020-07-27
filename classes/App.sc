@@ -21,7 +21,9 @@ App {
 	}
 
 	*recdir {arg dir;
-		thisProcess.platform.recordingsDir_("~/Documents/supercollider/workspaces/".standardizePath ++ dir);
+		var path = "~/Documents/supercollider/workspaces/".standardizePath ++ dir;
+		path.debug(\recordingsDir);
+		thisProcess.platform.recordingsDir_(path);
 	}
 
 	*rec {arg dir;

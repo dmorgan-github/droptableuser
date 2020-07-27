@@ -20,29 +20,51 @@ wavecolors: [ Color(0.60651075839996, 0.8049923658371, 0.70752568244934), Color(
 cursorcolor: Color(0.36555833816528, 0.37462205886841, 0.48073024749756)
 selectioncolor: Color(0.57690789699554, 0.77623701095581, 0.75495657920837, 0.3)
 
+very nice
+wavecolors: [ Color(0.78598186969757, 0.75455839633942, 0.59287083148956), Color(0.34656608104706, 0.33435337543488, 0.45881831645966) ]
+cursorcolor: Color(0.48647997379303, 0.57335543632507, 0.37658343315125)
+selectioncolor: Color(0.78476850986481, 0.36488585472107, 0.75622744560242, 0.3)
+
 */
 Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\buf, {arg node;
 
-
+	var id = UniqueID.next;//node.key.identityHash;
 	var baseview;
 	var baseViewFunc = Fdef(\baseview);
 	var key = node.key;
 	var buf = node.get(\buf);
 	var numframes = buf.numFrames;
-	var osckey = (key ++ 'pos').asSymbol;
+	var osckey = 'bufpos';//(key ++ 'pos').asSymbol;
 	var wavecolors = [Color.rand, Color.rand].debug(\wavecolors);
 	var cursorcolor = Color.rand.debug(\cursorcolor);
 	var selectioncolor = Color.rand.alpha_(0.3).debug(\selectioncolor);
 	var gridcolor = Color.rand;
 	var startPos = node.get(\startPos);
 	var endPos = node.get(\endPos);
+	var sfv;
+
+	var func = {arg obj, key, vals;
+		if (key == \set) {
+			var dict = vals.asDict;
+			if (dict[\buf].isNil.not) {
+				dict[\buf].loadToFloatArray(action:{arg a;
+					{
+						var start = startPos * numframes;
+						var end = (endPos * numframes) - start;
+						sfv.setData(a, channels: buf.numChannels);
+						sfv.setSelection (0, [start, end]);
+					}.defer
+				});
+			}
+		}
+	};
 
 	var view = View()
 	.layout_(VLayout().margins_(2).spacing_(2))
 	.palette_(QPalette.dark);
 
-	var sfv = SoundFileView()
+	sfv = SoundFileView()
 	.background_(Color.rand.alpha_(0.3))
 	.timeCursorOn_(true)
 	.gridOn_(true)
@@ -53,8 +75,8 @@ Fdef(\buf, {arg node;
 	.timeCursorColor_(cursorcolor)
 	.gridColor_(gridcolor)
 	.drawsRMS_(false)
-	.mouseDownAction_({arg ctrl;
-		true;
+	.mouseDownAction_({arg ctrl, x, y, mod, num, click;
+		if (num == 1) {nil;} {true;}
 	});
 	sfv.setSelectionColor(0, selectioncolor);
 
@@ -67,9 +89,14 @@ Fdef(\buf, {arg node;
 		}.defer
 	});
 
-	OSCdef(osckey, {arg msg;
+	node.set(\bufposreplyid, id);
+	OSCdef(node.key, {arg msg;
+		var val = msg[4];
+		var replyid = msg[2];
 		{
-			sfv.timeCursorPosition = msg[4];
+			if (replyid == id) {
+				sfv.timeCursorPosition = msg[4];
+			}
 		}.defer;
 	}, osckey);
 
@@ -87,10 +114,13 @@ Fdef(\buf, {arg node;
 		.hi_(endPos)
 	);
 
+	node.addDependant(func);
+
 	view.layout.add(sfv);
 	view = view.onClose_({
 		\free.debug(osckey);
-		OSCdef(osckey).free;
+		node.removeDependant(func);
+		OSCdef(node.key).free;
 	})
 	.fixedWidth_(200)
 	.fixedHeight_(100);
