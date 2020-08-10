@@ -1,6 +1,6 @@
 Vst : Ndef {
 
-	var <fx, <pdata, <skipjack, <synth;
+	var <fx, <pdata, <skipjack, <synth, <vst;
 
 	*new {arg key, vst;
 		^super.new(key).prVstInit(vst);
@@ -11,7 +11,8 @@ Vst : Ndef {
 		var func;
 		var store = {
 			if (fx.isNil.not) {
-				fx.getProgramData({ arg data; pdata = data;});
+				//\store.debug(name);
+				fx.getProgramData({ arg data; pdata = data;}, async:true);
 			}
 		};
 
@@ -59,8 +60,10 @@ Vst : Ndef {
 		};
 
 		func.();
-		skipjack = SkipJack(store, 10, name: key);
+		skipjack = SkipJack(store, 60, name: key);
 		CmdPeriod.add(func);
+
+		vst = name;
 
 		^this;
 	}
@@ -94,6 +97,11 @@ Vst : Ndef {
 
 	bypass {arg bypass=0;
 		synth.set(\bypass, bypass)
+	}
+
+	parameters {
+		^fx.info.printParameters
+		//^VSTPlugin.plugins[this.vst].printParameters;
 	}
 
 	//set {arg key, val;

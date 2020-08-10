@@ -59,7 +59,7 @@ var func = {arg numchannels = 2;
 	# detected, hasFreq = Tartini.kr(sig);
 	Poll.kr(Impulse.kr(10) * debug, detected, \samplr_freq);
 	sig = LeakDC.ar(sig);
-	sig = (sig * \sat.kr(1)).softclip * adsr.() * AmpCompA.kr(freq) * \amp.kr(0.3) * \vel.kr(1);
+	sig = sig * AmpCompA.kr(freq) * \amp.kr(0.3) * \vel.kr(1);
 	sig = Splay.ar(sig, \spread.kr(0), center:\center.kr(0));
 	Out.ar(\out.kr(0), sig);
 };

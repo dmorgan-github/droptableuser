@@ -256,3 +256,31 @@ MidiCtrl {
 
 	*initClass { all = () }
 }
+
+Microlab : MidiCtrl {
+
+	classvar id;
+
+	*new {|chan=2|
+		^super.new(id, \microlab, chan);
+	}
+
+	*initClass {
+		id = ('microlab_' ++ UniqueID.next).asSymbol;
+	}
+}
+
+Roli : MidiCtrl {
+
+	classvar id;
+
+	*new {|chan=1|
+		^super.new(id, \roli_usb, chan);
+	}
+
+	*initClass {
+		id = ('roli_' ++ UniqueID.next).asSymbol;
+	}
+}
+
+

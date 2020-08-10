@@ -8,7 +8,7 @@ synth: {arg sig_in;
 		size: \size.ar(1).lag(0.1),
 		earlyDiff: \earlyDiff.ar(0.707),
 		modDepth: \modDepth.ar,
-		modFreq: \modFreq.ar(1),
+		modFreq: \modFreq.ar(2),
 		low: \low.ar(1),
 		mid: \mid.ar(1),
 		high: \high.ar(1),

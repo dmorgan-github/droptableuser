@@ -95,7 +95,7 @@ Fdef(\buf, {arg node;
 		var replyid = msg[2];
 		{
 			if (replyid == id) {
-				sfv.timeCursorPosition = msg[4];
+				sfv.timeCursorPosition = val;
 			}
 		}.defer;
 	}, osckey);

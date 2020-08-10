@@ -34,7 +34,7 @@ SynthDef(\subtractr, {
 			\fsuslevel.kr(1),
 			\frel.kr(1),
 			\fcurve.kr(-4)
-		).ar(gate:gate).linexp(0, 1, cutoff, cutoff * fvel).clip(20, 20000);
+		).ar(gate:gate).linexp(0, 1, cutoff, cutoff * fvel).clip(20, 10000);
 		//var sig = MoogVCF.ar(in, feg, res) * 2;
 		//var sig = MoogFF.ar(in, feg, res.linlin(0, 1, 0, 4)) * 4;
 		var sig = DFM1.ar(in, feg, res);
@@ -80,7 +80,12 @@ SynthDef(\subtractr, {
 
 	var aeg = adsr.();
 
-	var vols = [\tri.kr(1), \saw.kr(0), \pulse.kr(0), \sine.kr(0)].normalizeSum.max(0);
+	var vols = [
+		\tri.kr(1),
+		\saw.kr(0),
+		\pulse.kr(0),
+		\sine.kr(0)
+	].normalizeSum.max(0);
 
 	var sig = [
 		tri.(freq * \trifreqmul.kr(1)) * vols[0],
@@ -102,50 +107,50 @@ SynthDef(\subtractr, {
 
 }, metadata: (
 	specs: (
-		atk: [0, 1, \lin, 0, 0.01, "aeg"].asSpec,
-		dec: [0, 1, \lin, 0, 0.2, "aeg"].asSpec,
-		rel: [0, 8, \lin, 0, 0.29, "aeg"].asSpec,
-		suslevel: [0, 1, \lin, 0, 1, "aeg"].asSpec,
-		curve: [-8, 8, \lin, 0, -4, "aeg"].asSpec,
-		ts: [0.001, 100, \lin, 0, 1, "aeg"].asSpec,
+		atk: [0.0, 1.0, \lin, 0, 0.01, "aeg"].asSpec,
+		dec: [0.0, 1.0, \lin, 0, 0.2, "aeg"].asSpec,
+		rel: [0.0, 8.0, \lin, 0, 0.29, "aeg"].asSpec,
+		suslevel: [0.0, 1.0, \lin, 0, 1, "aeg"].asSpec,
+		curve: [-8.0, 8.0, \lin, 0, -4, "aeg"].asSpec,
+		ts: [0.001, 100.0, \lin, 0, 1, "aeg"].asSpec,
 
-		cutoff: [20, 20000, \exp, 0, 100, "filter"].asSpec,
-		fvel: [0.001, 20, \lin, 0, 10, "filter"].asSpec,
-		res: [0, 1, \lin, 0, 0.5, "filter"].asSpec,
-		fatk: [0, 1, \lin, 0, 0.01, "filter"].asSpec,
-		frel: [0, 8, \lin, 0, 0.29, "filter"].asSpec,
-		fsuslevel: [0, 1, \lin, 0, 1, "filter"].asSpec,
-		fcurve: [-8, 8, \lin, 0, -4, "filter"].asSpec,
+		cutoff: [20.0, 20000.0, \exp, 0, 100, "filter"].asSpec,
+		fvel: [0.001, 20.0, \lin, 0, 10, "filter"].asSpec,
+		res: [0.0, 1.0, \lin, 0, 0.5, "filter"].asSpec,
+		fatk: [0.0, 1.0, \lin, 0, 0.01, "filter"].asSpec,
+		frel: [0.0, 8.0, \lin, 0, 0.29, "filter"].asSpec,
+		fsuslevel: [0.0, 1.0, \lin, 0, 1, "filter"].asSpec,
+		fcurve: [-8.0, 8.0, \lin, 0, -4, "filter"].asSpec,
 
-		tri: [0, 1, \lin, 0, 1, "osc1"].asSpec,
+		tri: [0.0, 1.0, \lin, 0, 1, "osc1"].asSpec,
 		trifreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc1"].asSpec,
-		triwidth: [0, 1, \lin, 0, 0.5, "osc1"].asSpec,
-		trifold: [1, 10, \lin, 0, 1, "osc1"].asSpec,
+		triwidth: [0.0, 1.0, \lin, 0, 0.5, "osc1"].asSpec,
+		trifold: [1.0, 10.0, \exp, 0, 1, "osc1"].asSpec,
 
-		saw: [0, 1, \lin, 0, 0, "osc2"].asSpec,
+		saw: [0.0, 1.0, \lin, 0, 0, "osc2"].asSpec,
 		sawfreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc2"].asSpec,
 
-		pulse: [0, 1, \lin, 0, 0, "osc3"].asSpec,
+		pulse: [0.0, 1.0, \lin, 0, 0, "osc3"].asSpec,
 		pulsefreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc3"].asSpec,
-		pulsewidth: [0, 1, \lin, 0, 0.5, "osc3"].asSpec,
+		pulsewidth: [0.0, 1.0, \lin, 0, 0.5, "osc3"].asSpec,
 
-		sine: [0, 1, \lin, 0, 0, "osc4"].asSpec,
+		sine: [0.0, 1.0, \lin, 0, 0, "osc4"].asSpec,
 		sinefreqmul: [-24.midiratio, 24.midiratio, \lin, 0, 0.midiratio, "osc4"].asSpec,
-		sineskew: [-1, 1, \lin, 0, 0, "osc4"].asSpec,
-		sinefold: [1, 10, \lin, 0, 1, "osc4"].asSpec,
+		sineskew: [-1.0, 1.0, \lin, 0, 0, "osc4"].asSpec,
+		sinefold: [1.0, 10.0, \exp, 0, 1, "osc4"].asSpec,
 
-		noise: [0, 1, \lin, 0, 0, "osc5"].asSpec,
+		noise: [0.0, 1.0, \lin, 0, 0, "osc5"].asSpec,
 
-		glis: [0, 1, \lin, 0, 0, "freq"].asSpec,
-		detunehz: [0, 10, \lin, 0, 0, "freq"].asSpec,
-		bend: [-12, 12, \lin, 0, 0, "freq"].asSpec, // semitones
-		vrate: [0, 440, \lin, 0, 6, "freq"].asSpec,
-		vdepth: [0, 1, \lin, 0, 0, "freq"].asSpec,
-		spread: [0, 1, \lin, 0, 1, "stereo"].asSpec,
-		center: [0, 1, \lin, 0, 0, "stereo"].asSpec,
-		vel: [0, 1, \lin, 0, 1, "vol"].asSpec,
-		amp: [0, 1, \lin, 0, -10.dbamp, "vol"].asSpec,
-		drive: [1, 100, \lin, 0, 1, "vol"].asSpec
+		glis: [0.0, 1.0, \lin, 0, 0, "freq"].asSpec,
+		detunehz: [0.0, 10.0, \lin, 0, 0, "freq"].asSpec,
+		bend: [-12.0, 12.0, \lin, 0, 0, "freq"].asSpec, // semitones
+		vrate: [0.0, 440.0, \lin, 0, 6, "freq"].asSpec,
+		vdepth: [0.0, 1.0, \lin, 0, 0, "freq"].asSpec,
+		spread: [0.0, 1.0, \lin, 0, 1, "stereo"].asSpec,
+		center: [0.0, 1.0, \lin, 0, 0, "stereo"].asSpec,
+		vel: [0.0, 1.0, \lin, 0, 1, "vol"].asSpec,
+		amp: [0.0, 1.0, \lin, 0, -10.dbamp, "vol"].asSpec,
+		drive: [1.0, 100.0, \lin, 0, 1, "vol"].asSpec
 	)
 )
 ).add

@@ -1,6 +1,11 @@
 App {
 
+	classvar <>workspacedir, <>mediadir, <>librarydir;
+
 	*initClass {
+		workspacedir = "~/Documents/supercollider/workspaces/".standardizePath;
+		mediadir = "~/Documents/supercollider/media/".standardizePath;
+		librarydir = "~/projects/droptableuser/library/".standardizePath;
 	}
 
 	*midiInit {
@@ -21,13 +26,13 @@ App {
 	}
 
 	*recdir {arg dir;
-		var path = "~/Documents/supercollider/workspaces/".standardizePath ++ dir;
+		var path = workspacedir ++ dir;
 		path.debug(\recordingsDir);
 		thisProcess.platform.recordingsDir_(path);
 	}
 
 	*rec {arg dir;
-		thisProcess.platform.recordingsDir_("~/Documents/supercollider/workspaces/".standardizePath ++ dir);
+		thisProcess.platform.recordingsDir_(workspacedir ++ dir);
 		Server.default.record;
 	}
 
@@ -68,61 +73,5 @@ App {
 			var tempo = TempoClock.default.tempo;
 			Server.default.record(current_path ++ "/SC_" ++ Date.getDate.stamp ++ ".aiff");
 		}
-	}
-
-	*freqscope {
-		var view = View()
-		.layout_(VLayout().spacing_(0).margins_(0))
-		.name_("Freq Analyzer")
-		.minWidth_(200)
-		.minHeight_(150);
-
-		var fsv = FreqScopeView()
-		.active_(true)
-		.freqMode_(1);
-
-		view.layout.add(fsv);
-		view.onClose_({
-			fsv.kill;
-		});
-		view.front;
-	}
-
-	*guiHelper {arg proxy, name;
-
-		var width = 390;
-		var rowHeight = 22;
-		var numItems = proxy.controlNames.size;
-		var view;
-		var win = Window();
-		win.addFlowLayout(2@2,2@2);
-		NdefGui(proxy, numItems:numItems, parent:win);
-
-		view = View().name_(name)
-		.layout_(VLayout().margins_(0).spacing_(0))
-		.minHeight_(numItems*rowHeight)
-		.minWidth_(width); // ?
-
-		view.layout.add(HLayout(
-			Button().states_([ ["_"],["-"] ]).action_({arg ctrl;
-				if (ctrl.value == 1) {
-					view.alwaysOnTop_(true)
-				}{
-					view.alwaysOnTop_(false)
-				};
-			}),
-			Button().states_([["><"],["<>"]]).action_({arg ctrl;
-				if (ctrl.value == 1) {
-					view.maxHeight = rowHeight;
-					view.minHeight = rowHeight;
-					view.resizeTo(width, rowHeight);
-				}{
-					view.minHeight = numItems*rowHeight;
-					view.maxHeight = numItems*rowHeight * 2;
-				}
-			})
-		));
-		view.layout.add(win.asView);
-		^view;
 	}
 }

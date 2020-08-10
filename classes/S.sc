@@ -8,12 +8,6 @@ S : EventPatternProxy {
 
 	*new {arg key, synth;
 		var res;
-		if (synth.isNil) {
-			// support terser style by generating an id
-			// if using a synthdef
-			synth = key ? \default;
-			key = (synth ++ '_' ++ UniqueID.next).asSymbol;
-		};
 		res = Pdef.all[key];
 		if (res.isNil) {
 			res = super.new(nil).prInit(key);
@@ -21,6 +15,15 @@ S : EventPatternProxy {
 		};
 		if (synth.isNil.not) {
 			res.prInitSynth(key, synth);
+		};
+		"S with key % initialied".format(key).inform;
+		^res;
+	}
+
+	*doesNotUnderstand {|key|
+		var res = Pdef.all[key];
+		if (res.isNil){
+			"% does not exist".format(key).warn;
 		};
 		^res;
 	}
@@ -137,6 +140,10 @@ S : EventPatternProxy {
 			var mono = evt[\mono] ?? false;
 			var out = evt[\outbus] ?? 0;
 
+			if (debug) {
+				evt.debug(key);
+			};
+
 			if (monitor) {
 				this.node.play(
 					fadeTime:fadeTime,
@@ -165,6 +172,80 @@ S : EventPatternProxy {
 		});
 
 		^plazy;
+	}
+
+	randomize {|ignore, seed=nil, func|
+		ignore = (ignore ?? []) ++ [\amp, \vel, \center, \spread];
+		thisThread.randSeed = seed ?? 1000000000.rand.debug(\randseed);
+		this.checkSpec
+		.reject({|v,k| ignore.includes(k) })
+		.keysValuesDo({|k, v|
+			var val;
+			if (v.warp.isKindOf(ExponentialWarp)) {
+				if (v.minval > 0) {
+					val = exprand(v.minval, v.maxval);
+				} {
+					val = rrand(v.minval, v.maxval);
+				}
+			}{
+				val = rrand(v.minval, v.maxval);
+			};
+
+			this.set(k, val);
+		});
+
+		if (func.isNil.not) {
+			func.value(this);
+		}
+	}
+
+	reset {
+		this.checkSpec
+		.keysValuesDo({|k, v|
+			var val = v.default;
+			this.set(k, val);
+		});
+	}
+
+	asPreset {
+		^this.envir.asDict.reject({|v, k| v.isNumber.not })
+	}
+
+	fromPreset {|preset|
+		this.set(*preset.asPairs);
+	}
+
+	savePreset {|name|
+		var node = this;
+		var dir = App.librarydir ++ "synths/presets/";
+		var synthDef = node.instrument;
+		var path = dir ++ synthDef;
+		var preset = node.asPreset.asCompileString;
+		var file;
+		if (File.exists(path).not) {
+			File.mkdir(path);
+		};
+		path = path ++ "/" ++ name.asString ++ ".scd";
+		path.postln;
+		file = File(path, "w");
+		file.write(preset);
+		file.close;
+	}
+
+	loadPreset {|name|
+		var node = this;
+		var dir = App.librarydir ++ "/synths/presets/";
+		var synthDef = node.instrument;
+		var path = dir ++ synthDef ++ "/" ++ name.asString ++ ".scd";
+		var dict = thisProcess.interpreter.executeFile(path);
+		node.fromPreset(dict);
+	}
+
+	presetNames {
+		var dir = App.librarydir ++ "/synths/presets/";
+		var synthDef = node.instrument;
+		var path = dir ++ synthDef;
+		^PathName(path).entries.collect({|pn| pn.fileNameWithoutExtension})
 	}
 
 	// TODO: should clear and remove any lfo if being replaced
@@ -403,13 +484,21 @@ B {
 O : Ndef {
 
 	*new {arg key, func;
-		var res;
-		if (Ndef.all[key].isNil) {
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil) {
 			res = super.new(key).prOInit(key, func);
-		} {
-			res = Ndef.all[key];
+		}
+		^res;
+	}
+
+	*doesNotUnderstand {|key|
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil){
+			"% does not exist".format(key).warn;
 		};
-		^res
+		^res;
 	}
 
 	prOInit {arg inKey, inFunc;
@@ -466,13 +555,21 @@ Q : Ndef {
 	var <guikey;
 
 	*new {arg key;
-		var res;
-		if (Ndef.all[key].isNil) {
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil) {
 			res = super.new(key).prQInit();
-		} {
-			res = Ndef.all[key];
+		}
+		^res;
+	}
+
+	*doesNotUnderstand {|key|
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil){
+			"% does not exist".format(key).warn;
 		};
-		^res
+		^res;
 	}
 
 	prQInit {
@@ -504,43 +601,58 @@ Q : Ndef {
 	}
 }
 
-N {
+N : Ndef {
+
 	*new {arg key, fx;
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil) {
+			res = super.new(key).prNInit(fx);
+		}
+		^res;
+	}
 
-		var path, pathname, fullpath;
-
-		if (fx.isNil) {
-			fx = key;
+	*doesNotUnderstand {|key|
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil){
+			"% does not exist".format(key).warn;
 		};
+		^res;
+	}
 
-		path = "~/projects/droptableuser/library/fx/" ++ fx.asString ++ ".scd";
-		pathname = PathName(path.standardizePath);
-		fullpath = pathname.fullPath;
+	prNInit {|argFx|
+
+		var path = App.librarydir ++ "fx/" ++ argFx.asString ++ ".scd";
+		var pathname = PathName(path.standardizePath);
+		var fullpath = pathname.fullPath;
+
 		if (File.exists(fullpath)) {
+
 			var name = pathname.fileNameWithoutExtension;
 			var obj = File.open(fullpath, "r").readAllString.interpret;
 			var func = obj[\synth];
 			var specs = obj[\specs];
-			if (fx == key) {
-				key = (name ++ '_' ++ UniqueID.next).asSymbol;
-			};
-			Ndef.ar(key, 2);
-			Ndef(key).filter(100, func);
+			//this.numChannels = 2;
+			//this.rate = \audio;
+			this.ar(numChannels:2);
+			this.wakeUp;
+			this.filter(100, func);
 
 			if (specs.isNil.not) {
 				specs.do({arg assoc;
 					Ndef(key).addSpec(assoc.key, assoc.value);
 				});
 			};
-			^Ndef(key);
 		} {
 			Error("node not found").throw;
-		};
+		}
+		^this;
 	}
 
-	*directory {arg path;
+	*ls {arg path;
 		// this could be nicer
-		var mypath = path ? "/Users/david/projects/droptableuser/library/fx/";
+		var mypath = path ? App.librarydir ++ "fx/";
 		PathName.new(mypath)
 		.entries.do({arg e; e.fullPath.postln;});
 	}
@@ -549,7 +661,7 @@ N {
 U {
 	*new {arg key ...args;
 
-		var path = "~/projects/droptableuser/library/ui/" ++ key.asString ++ ".scd";
+		var path = App.librarydir ++ "ui/" ++ key.asString ++ ".scd";
 		var pathname = PathName(path.standardizePath);
 		var fullpath = pathname.fullPath;
 		if (File.exists(fullpath)) {
@@ -561,10 +673,192 @@ U {
 		};
 	}
 
-	*directory {arg path;
+	*ls {arg path;
 		// this could be nicer
-		var mypath = path ? "/Users/david/projects/droptableuser/library/ui/";
+		var mypath = path ? App.librarydir ++ "ui/";
 		PathName.new(mypath)
 		.entries.do({arg e; e.fullPath.postln;});
 	}
+}
+
+E {
+	var <>events, <>duration;
+
+	*new {
+		^super.new.init();
+	}
+
+	*fromPattern {|pattern, duration|
+		var seq = E();
+		seq.events = E.order(pattern, duration);
+		seq.duration = duration;
+		^seq;
+	}
+
+	init {
+		^this;
+	}
+
+	*order {|pattern, duration|
+		var order = Order.new;
+		var time = 0;
+		var stream = pattern.asStream;
+		var evt = stream.next(Event.default);
+		while ( {evt.isNil.not and: (time < duration) }, {
+			var dur = evt[\dur];
+			if ((time + dur) > duration) {
+				dur = duration - time;
+				evt[\dur] = dur;
+			};
+			order.put(time, evt);
+			time = time + dur;
+			evt = stream.next(evt);
+		});
+		^order;
+	}
+
+	put {|time, event|
+		// need to handle adding to beginning and end of sequence
+		if (time > this.duration) {
+			"time is greater than duration".error;
+		} {
+			var nextIndex = this.events.nextSlotFor(time);
+			var prevIndex = nextIndex-1;
+			var prevTime = this.events.indices[prevIndex];
+			var prevEvent = this.events.array[prevIndex];
+			var nextTime = this.events.indices[nextIndex];
+			var dur = nextTime - time;
+			prevEvent[\dur] = time - prevTime;
+			event[\dur] = dur;
+			this.events.put(time, event);
+		}
+	}
+
+	remove {|time|
+		var nextIndex = events.nextSlotFor(time);
+		var prevIndex = nextIndex-2;
+		var prevTime = events.indices[prevIndex];
+		var prevEvent = events.array[prevIndex];
+		var nextTime = events.indices[nextIndex];
+		var dur = nextTime - prevTime;
+		prevEvent[\dur] = dur;
+		events.removeAt(time);
+	}
+
+	copy {
+		var eventsCopy = this.events.collect({|evt| evt.copy});
+		var seq = E();
+		seq.events = eventsCopy;
+		^seq;
+	}
+
+	perform {|selector ...args|
+		var pseq, order;
+		var array = this.events.array.perform(selector, *args);
+		pseq = Pseq(array, inf);
+		order = E.order(pseq, this.duration);
+		this.events = order;
+	}
+
+	set {|pattern, duration|
+		this.events = E.order(pattern, duration);
+		this.duration = duration;
+	}
+
+	asArray {
+		^events.array;
+	}
+
+	asStream {|repeats=inf|
+
+		^Prout({|inevent|
+			repeats.do({|i|
+				var evts = this.asArray.collect({|evt| evt.copy});
+				var seq = Pseq(evts, 1).asStream;
+				var next = seq.next(inevent);
+				while ({ next.isNil.not}, {
+					next.yield;
+					next = seq.next(inevent)
+				})
+			});
+		})
+	}
+}
+
+
+F {
+	*morph {|node, from, to, numsteps=20, wait=0.1|
+		Routine({
+			var numsteps = 20;
+			var fromCopy = from.copy;
+			numsteps.do({|i|
+				var blend = 1 + i / numsteps;
+				fromCopy = fromCopy.blend(to, blend);
+				node.set(*fromCopy.getPairs);
+				wait.wait;
+			});
+			\morphdone.debug(node.key);
+		}).play;
+	}
+}
+
+
+W {
+	classvar <all;
+
+	var <key;
+
+	*new {|key|
+		var res = all[key];
+		if (res.isNil) {
+			res = super.new.init(key);
+			all[key] = res;
+		};
+		^res;
+	}
+
+	init {|argKey|
+		key = argKey;
+		^this
+	}
+
+	*doesNotUnderstand {|key|
+		var res = all[key];
+		if (res.isNil){
+			"% does not exist".format(key).warn;
+		};
+		^res;
+	}
+
+	saveResource {|name, content|
+		var file, path;
+		var dir = "%%/%/".format(App.workspacedir, key.asString, "resources");
+		if (File.exists(dir).not) {
+			File.mkdir(dir);
+		};
+		path = "%%.scd".format(dir, name);
+		\saving.debug(path);
+		if (content.isString.not) {
+			content = content.asCompileString;
+		};
+		file = File(path, "w");
+		file.write(content);
+		file.close;
+	}
+
+	loadResource {|name|
+		var path = "%%/%/%.scd".format(App.workspacedir, key.asString, "resources", name);
+		var obj = thisProcess.interpreter.executeFile(path);
+		^obj
+	}
+
+	ls {
+		var path = "%%%".format(App.workspacedir, key.asString, "/resources/");
+		^PathName(path).entries.collect({|pn| pn.fileNameWithoutExtension})
+	}
+
+	*initClass {
+		all = IdentityDictionary();
+	}
+
 }
