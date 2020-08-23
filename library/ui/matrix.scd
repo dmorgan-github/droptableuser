@@ -15,7 +15,8 @@ Fdef(\matrix, {arg matrix;
 	var width = 50;
 	var colors = 30.collect({ Color.rand });
 
-	var path = "/Users/david/projects/droptableuser/library/fx/";
+	var path = App.librarydir ++ "fx/";
+
 	var browse = {arg path, files=List.new;
 		var folder = PathName.new(path);
 		if (folder.isFolder) {
@@ -46,8 +47,9 @@ Fdef(\matrix, {arg matrix;
 					var name = path.folderName ++ '/' ++ path.fileNameWithoutExtension;
 					MenuAction( name, {arg action, what, value;
 						//[action.string, what, value].postln;
-						var id = action.string;
-						var node = N(id.asSymbol);
+						var id = action.string.postln;
+						var nodeid = path.fileNameWithoutExtension;
+						var node = N((nodeid ++ '_' ++ UniqueID.next).asSymbol,  id.asSymbol);
 						matrix.add(node.key);
 					});
 				})
@@ -66,6 +68,7 @@ Fdef(\matrix, {arg matrix;
 	var grid = {
 
 		var data = matrix.map;
+
 		var header = [st.(), nil, nil] ++ data.indices.collect({arg i;
 			var name = data[i].asString;
 			var len = min(name.size, 5);
@@ -75,6 +78,7 @@ Fdef(\matrix, {arg matrix;
 				nil
 			}
 		});
+
 		var rows = data.indices.collect({arg i;
 
 			var src = data[i];
@@ -143,6 +147,7 @@ Fdef(\matrix, {arg matrix;
 	};
 
 	var gridview = grid.();
+
 	var func = {
 		outergrid.children.do({arg child;
 			child.remove();

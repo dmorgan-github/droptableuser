@@ -75,9 +75,9 @@ SynthDef(\organ, {
 		sig,
 		LeakDC.ar((sig * drive).softclip) * drive.sqrt.reciprocal
 	]);
+	sig = filter.(sig);
 	sig = sig * aeg * AmpCompA.kr(freq, 20) * \amp.kr(0.3) * \vel.kr(1);
-	filtsig = filter.(sig);
-	sig = sig.blend(filtsig, \famt.kr(0));
+	//sig = sig.blend(filtsig, \famt.kr(0));
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 	Out.ar(\out.kr(0), sig);
 

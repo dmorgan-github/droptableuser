@@ -35,7 +35,7 @@ SynthDef(\subtractr, {
 			\frel.kr(1),
 			\fcurve.kr(-4)
 		).ar(gate:gate).linexp(0, 1, cutoff, cutoff * fvel).clip(20, 10000);
-		//var sig = MoogVCF.ar(in, feg, res) * 2;
+		//var sig = MoogVCF.ar(in, feg, res) * 4;
 		//var sig = MoogFF.ar(in, feg, res.linlin(0, 1, 0, 4)) * 4;
 		var sig = DFM1.ar(in, feg, res);
 		//var sig = BLowPass4.ar(in, feg, res.linlin(0, 1, 1, 0.001));
@@ -100,9 +100,13 @@ SynthDef(\subtractr, {
 		sig,
 		LeakDC.ar((sig * drive).softclip) * drive.sqrt.reciprocal
 	]);
+
+	sig = filter.(sig); // filter before aeg
+
 	sig = sig * aeg * \amp.kr(0.3) * \vel.kr(1);
-	sig = filter.(sig);
+
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
+
 	Out.ar(\out.kr(0), sig);
 
 }, metadata: (

@@ -2,7 +2,7 @@ S : EventPatternProxy {
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <>defaultQuant;
 
-	var <key, <instrument, <node, <synths, <pdefset, synthdef;
+	var <key, <instrument, <node, <synths;
 
 	var listenerfunc, cmdperiodfunc, <>debug;
 
@@ -15,17 +15,21 @@ S : EventPatternProxy {
 		};
 		if (synth.isNil.not) {
 			res.prInitSynth(key, synth);
+			"S with key % initialied".format(key).inform;
 		};
-		"S with key % initialied".format(key).inform;
 		^res;
 	}
 
 	*doesNotUnderstand {|key|
 		var res = Pdef.all[key];
 		if (res.isNil){
-			"% does not exist".format(key).warn;
+			res = S(key);
 		};
 		^res;
+	}
+
+	synth_ {|synth|
+		this.prInitSynth(key, synth);
 	}
 
 	prInit {arg inKey;
@@ -36,8 +40,6 @@ S : EventPatternProxy {
 
 		debug = false;
 		key = inKey;
-		pdefset = (key ++ '_set').asSymbol;
-		Pdef(pdefset, Pbind());
 		synths = Array.fill(127, {List.new});
 
 		// this isn't doing anything
@@ -49,23 +51,30 @@ S : EventPatternProxy {
 			this.addDependant(listenerfunc);
 		};
 
-		cmdperiodfunc = { { \wakeup.debug(key); Ndef(key).wakeUp }.defer(0.5) };
+		cmdperiodfunc = {
+			{
+				\wakeup.debug(key);
+				Ndef(key).wakeUp
+			}.defer(0.5)
+		};
 		CmdPeriod.add(cmdperiodfunc);
 
-		// wake sets up the node for audio
-		node.wakeUp;
-		this.source = this.prInitSource;
+		// adding to envir just doesn't seem to work
+		this.source = Pbind(
+			\out, Pfunc({ node.bus.index }),
+			\group, Pfunc({node.group})
+		);
+
 		this.set(
 			\root, {defaultRoot},
-			\scale, Scale.at(defaultScale).copy.tuning_(defaultTuning)
-			//\out, {node.bus.index},
-			//\group, {node.group}
+			\scale, Scale.at(defaultScale).copy.tuning_(defaultTuning),
 		);
 		^this;
 	}
 
 	prInitSynth {arg inKey, inSynth;
 
+		var synthdef;
 		var myspecs = ();
 		var ignore = [\out, \freq, \gate, \trig, \retrig, \sustain, \bend];
 
@@ -111,7 +120,7 @@ S : EventPatternProxy {
 				var max = if (ctrl.defaultValue < 1) {1} { min(20000, ctrl.defaultValue * 2) };
 				spec = [0, max, \lin, 0, ctrl.defaultValue].asSpec;
 			};
-			myspecs[key] = spec;
+			myspecs[key] = spec.default_(ctrl.defaultValue);
 		});
 
 		myspecs.keys.do({arg k;
@@ -128,50 +137,6 @@ S : EventPatternProxy {
 		});
 
 		this.set(\instrument, instrument);
-	}
-
-	prInitSource {
-
-		var plazy = Plazy({arg evt;
-
-			var pchain;
-			var monitor = evt[\monitor] ?? true;
-			var fadeTime = evt[\fadeTime] ?? 0;
-			var mono = evt[\mono] ?? false;
-			var out = evt[\outbus] ?? 0;
-
-			if (debug) {
-				evt.debug(key);
-			};
-
-			if (monitor) {
-				this.node.play(
-					fadeTime:fadeTime,
-					out:out
-				);
-			};
-
-			pchain = if (mono) {
-				Pchain(
-					Pmono(this.instrument, \retrig, 1, \trig, 1),
-					Pdef(this.pdefset)
-				)
-			}{
-				Pdef(this.pdefset)
-			};
-
-			Pchain(
-				pchain,
-				Pbind(
-					// this seems to work better than adding to the envir
-					// though that would be simpler and preferable
-					\out, Pfunc({node.bus.index}),
-					\group, Pfunc({node.group})
-				)
-			);
-		});
-
-		^plazy;
 	}
 
 	randomize {|ignore, seed=nil, func|
@@ -208,7 +173,7 @@ S : EventPatternProxy {
 	}
 
 	asPreset {
-		^this.envir.asDict.reject({|v, k| v.isNumber.not })
+		^this.envir.asDict.reject({|v, k| v.isNumber.not and: v.isArray.not })
 	}
 
 	fromPreset {|preset|
@@ -249,7 +214,7 @@ S : EventPatternProxy {
 	}
 
 	// TODO: should clear and remove any lfo if being replaced
-	value {arg ...args;
+	pset {arg ...args;
 
 		var pairs;
 		if (args.size.even.not) {
@@ -272,31 +237,9 @@ S : EventPatternProxy {
 			}
 		});
 
-		Pdef(this.pdefset, Pbind(*pairs));
-	}
-
-	get {arg key;
-
-		var val;
-		var spec = this.getSpec(key);
-		var cn = node.controlNames.detect({arg cn; cn.name == key});
-
-		if (cn.isNil.not) {
-			val = node.get(key);
-			if (val.isNil) {
-				val = cn.defaultValue;
-			};
-		}{
-			var evt, index;
-			if (spec.isNil.not) {
-				val = spec.value.default;
-			};
-			evt = this.asStream.next((monitor:false));
-			if (evt[key].isNil.not) {
-				val = evt[key];
-			}
-		};
-		^val;
+		this.source = Pbind(*args)
+		<>
+		Pbind(\out, Pfunc({ node.bus.index }), \group, Pfunc({node.group}));
 	}
 
 	fx {arg index, func ...args;
@@ -392,7 +335,10 @@ S : EventPatternProxy {
 				var ts = \ts.kr(1);
 				var curve = \curve.kr(-4);
 				var env = Env.adsr(
-					attackTime:atk, decayTime:dec, sustainLevel:suslevel, releaseTime:rel,
+					attackTime:atk,
+					decayTime:dec,
+					sustainLevel:suslevel,
+					releaseTime:rel,
 					curve:curve
 				);
 				var aeg = env.ar(doneAction:Done.none, gate:gate, timeScale:ts);
@@ -456,7 +402,6 @@ S : EventPatternProxy {
 		});
 	}
 }
-
 
 B {
 	classvar <envir;
@@ -598,6 +543,81 @@ Q : Ndef {
 			input = RemoveBadValues.ar(input);
 			input;
 		});
+	}
+}
+
+M : Ndef {
+
+	var <map;
+	var <slot;
+
+	*new {arg key;
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil) {
+			res = super.new(key).prMInit();
+		}
+		^res;
+	}
+
+	*doesNotUnderstand {|key|
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil){
+			res = M(key);
+		};
+		^res;
+	}
+
+	prMInit {
+		map = Order.new;
+		slot = 0;
+		this.wakeUp;
+	}
+
+	add {arg src, stop=false;
+
+		var srcIndex = map.detectIndex({arg v; v == src});
+
+		if (srcIndex.isNil) {
+			srcIndex = slot;
+			map.put(srcIndex, src);
+			this.mix(srcIndex, Ndef(src));
+			if (stop) {
+				Ndef(src).stop;
+			};
+			slot = slot + 1;
+		}
+	}
+
+	mgui {
+		^U(\matrix, this)
+	}
+
+	save {
+		var settings = List.new;
+		var parent = PathName(thisProcess.nowExecutingPath).parentPath;
+		var ts = Date.getDate.asSortableString;
+		var path = parent ++ this.key.asString ++ "_" ++ ts ++ ".txt";
+		var file;
+
+		this.map.do({arg val;
+			var props = List.new;
+			var node = Ndef(val.asSymbol);
+			if (node.isKindOf(Vst) ) {
+				props.add(\pdata -> node.pdata)
+			}{
+				node.controlNames.do({arg cn;
+					props.add(cn.name.asSymbol -> node.get(cn.name.asSymbol));
+				});
+			};
+			settings.add( val ->  props );
+		});
+
+		file = File(path, "w");
+		file.write(settings.asCompileString);
+		file.close;
+		path.debug(\saving);
 	}
 }
 
@@ -803,31 +823,68 @@ F {
 }
 
 
-W {
+W : Environment {
+
 	classvar <all;
 
-	var <key;
+	var <key, <>daw;
 
 	*new {|key|
 		var res = all[key];
 		if (res.isNil) {
-			res = super.new.init(key);
+			res = super.new(8, nil, nil, true).prWInit;
 			all[key] = res;
 		};
 		^res;
 	}
 
-	init {|argKey|
-		key = argKey;
-		^this
-	}
-
 	*doesNotUnderstand {|key|
 		var res = all[key];
 		if (res.isNil){
-			"% does not exist".format(key).warn;
+			res = W(key);
 		};
 		^res;
+	}
+
+	prWInit {
+		this.daw = \bitwig;
+		^this;
+	}
+
+	record {
+		if (daw == \bitwig) {
+			Bitwig.record;
+		};
+		if (daw == \reaper) {
+			Reaper.record
+		}
+	}
+
+	stopRecording {
+		if (daw == \bitwig) {
+			Bitwig.stop;
+		};
+		if (daw == \reaper) {
+			Reaper.stopRecording;
+		}
+	}
+
+	tempo {|bps=1|
+		if (daw == \bitwig) {
+			Bitwig.tempo(bps)
+		};
+		if (daw == \reaper) {
+			Reaper.tempo(bps)
+		}
+	}
+
+	time {|val=0|
+		if (daw == \bitwig) {
+			Bitwig.time(val)
+		};
+		if (daw == \reaper) {
+			Reaper.time(val);
+		}
 	}
 
 	saveResource {|name, content|

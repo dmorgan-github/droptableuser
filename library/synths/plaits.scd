@@ -54,7 +54,6 @@ SynthDef(\plaits, {
 		sig,
 		LeakDC.ar((sig * drive).softclip) * drive.sqrt.reciprocal
 	]);
-	sig = sig * aeg * \amp.kr(0.3) * \vel.kr(1);
 
 	sig = BLowPass.ar(
 		BHiPass.ar(sig,
@@ -66,6 +65,7 @@ SynthDef(\plaits, {
 	);
 
 	//sig = sig.asArray.sum;
+	sig = sig * aeg * AmpCompA.kr(freq, 32) * \amp.kr(0.3) * \vel.kr(1);
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 	//sig = Balance2.ar(sig[0], sig[1], 0);
 	sig;

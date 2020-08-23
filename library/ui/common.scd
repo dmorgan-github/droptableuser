@@ -54,6 +54,7 @@ Fdef(\baseview, {arg view, title, w, h;
 });
 
 Fdef(\ctrlview, {arg key, spec, color, val, cb;
+
 	var controlSpec = spec;
 	var myval = val ?? controlSpec.default;
 

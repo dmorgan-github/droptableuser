@@ -7,6 +7,7 @@ SendPeakRMS
 Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\sgui, {arg synth;
 
+
 	var view = View()
 	.layout_(VLayout().margins_(0.5).spacing_(0.5));
 
@@ -14,27 +15,30 @@ Fdef(\sgui, {arg synth;
 	var ctrlView = Fdef(\ctrlview);
 	var baseViewFunc = Fdef(\baseview);
 	var specs = Halo.at(synth, \spec);
-	var key = synth.key;
-	var server = Server.default;
-	var decay = 60;
-	var rate = 30;
-	var bus = synth.node.bus.index;
-	var addAction = \addToTail;
-	var target = synth.node.group;
+	//var key = synth.key;
+	//var server = Server.default;
+	//var decay = 60;
+	//var rate = 30;
+	//var bus = synth.node.bus.index;
+	//var addAction = \addToTail;
+	//var target = synth.node.group;
 
-	var decayrate = {arg value;
-		value.neg.dbamp ** server.sampleRate.reciprocal;
-	};
+	//var decayrate = {arg value;
+	//	value.neg.dbamp ** server.sampleRate.reciprocal;
+	//};
 
-	var osckey = "/%levels".format(key).asSymbol;
+	//var osckey = "/%levels".format(key).asSymbol;
 
+	/*
 	var watcher = SynthDef((key ++ '_amps').asSymbol, {arg decay=0.99994, rate=20;
 		var in = In.ar(bus, 2);
 		var pf = PeakFollower.ar(in, decay);
 		var imp = Impulse.kr(rate);
 		SendReply.kr(imp, osckey, [pf, pf.lag(0, 3)].flatten, 1000.rand);
 	}).play(target, addAction:addAction);
+	*/
 
+	/*
 	var levelView = {
 
 		var lileft = LevelIndicator()
@@ -74,7 +78,9 @@ Fdef(\sgui, {arg synth;
 		.minHeight_(15)
 		.maxHeight_(15)
 	};
+	*/
 
+	/*
 	var freqScopeView = {
 		var node = synth.node;
 		var view = View()
@@ -92,14 +98,15 @@ Fdef(\sgui, {arg synth;
 		});
 		view.maxHeight_(50)
 	};
+	*/
 
 	var scrollView = ScrollView();
 	var cb = {arg key, val;
 		synth.set(key, val)
 	};
 
-	view.layout.add(freqScopeView.());
-	view.layout.add(levelView.());
+	//view.layout.add(freqScopeView.());
+	//view.layout.add(levelView.());
 
 	{
 		// bit of a hack since the specs are configured
@@ -132,8 +139,8 @@ Fdef(\sgui, {arg synth;
 
 	view.layout.add(nil);
 	view.onClose_({
-		watcher.debug(\free);
-		watcher.free;
+		//watcher.debug(\free);
+		//watcher.free;
 	});
 	scrollView.canvas = view.background_(Color.clear);
 	scrollView.fixedSize = Size(150, 175);
@@ -143,4 +150,3 @@ Fdef(\sgui, {arg synth;
 });
 //Fdef(\sgui).(~etf);
 )
-

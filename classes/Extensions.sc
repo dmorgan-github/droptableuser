@@ -70,6 +70,13 @@ Pswitch
 	nscope {
 		^U(\scope, this);
 	}
+
+	forPattern {
+		^Pbind(
+			\out, Pfunc({ this.bus.index }),
+			\group, Pfunc({this.group})
+		)
+	}
 }
 
 + S {
@@ -81,6 +88,12 @@ Pswitch
 	}
 	nscope {
 		^U(\scope, this.node);
+	}
+}
+
++ Pdef {
+	sgui {
+		^U(\sgui, this);
 	}
 }
 /*

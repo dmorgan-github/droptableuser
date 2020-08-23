@@ -109,7 +109,8 @@ SynthDef(\pm6algo9, {
 
 	sig = LPF.ar(sig, \lpf.kr(20000));
 
-	sig = sig * aeg * \amp.kr(0.3) * \vel.kr(1);
+	sig = sig * aeg * AmpCompA.kr(freq, 32) * \amp.kr(0.3) * \vel.kr(1);
+
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 	Out.ar(\out.kr(0), sig);
 

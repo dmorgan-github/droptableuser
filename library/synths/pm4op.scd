@@ -34,7 +34,6 @@ SynthDef(\pm4op, {
 		sig,
 		LeakDC.ar((sig * drive).softclip) * drive.sqrt.reciprocal
 	]);
-	sig = sig * aeg * \amp.kr(0.3) * \vel.kr(1);
 
 	sig = BLowPass.ar(
 		BHiPass.ar(sig,
@@ -44,6 +43,8 @@ SynthDef(\pm4op, {
 		\lpf.kr(20000).clip(20, 20000),
 		\lpfres.kr(0).linlin(0, 1, 1.4, 0.001)
 	);
+
+	sig = sig * aeg * AmpCompA.kr(freq, 32) * \amp.kr(0.3) * \vel.kr(1);
 
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 	Out.ar(\out.kr(0), sig);
