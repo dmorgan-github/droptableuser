@@ -14,6 +14,7 @@ Fdef(\matrix, {arg matrix;
 	var outergrid = View().layout_(VLayout().margins_(0).spacing_(0));
 	var width = 50;
 	var colors = 30.collect({ Color.rand });
+	var vstlist;
 
 	var path = App.librarydir ++ "fx/";
 
@@ -30,12 +31,45 @@ Fdef(\matrix, {arg matrix;
 	};
 
 	var vsts = {
-		var list = Vst
-		.directory
-		.reject({arg val;
-			val.asString.endsWith(".vst3") or: val.asString.contains("/");
-		});
-		list.sort
+
+		/*
+		if (vstlist.isNil) {
+			vstlist = Vst
+			.directory
+			.reject({arg val;
+				val.asString.endsWith(".vst3") or: val.asString.contains("/");
+			});
+			vstlist = vstlist.sort;
+		};
+		vstlist
+		*/
+
+		[
+			'++binaural',
+			'++bubbler',
+			'++chebyshev',
+			'++compand',
+			'++decimate',
+			'++delay',
+			'++flipper',
+			'++matrix',
+			'++morphfilter',
+			'++phasemash',
+			'++phasor',
+			'++pitchdelay',
+			'++pitchsift',
+			'++pvocloop',
+			'++spectralcompand',
+			'++spiralstretch',
+			'++spectralgate',
+			'TDR Kotelnikov',
+			'Raum',
+			'Rev PLATE-140',
+			'ValhallaDelay',
+			'ValhallaSupermassive',
+			'Limiter No6',
+			'OrilRiver'
+		]
 	};
 
 	var paths = browse.(path);
@@ -47,7 +81,7 @@ Fdef(\matrix, {arg matrix;
 					var name = path.folderName ++ '/' ++ path.fileNameWithoutExtension;
 					MenuAction( name, {arg action, what, value;
 						//[action.string, what, value].postln;
-						var id = action.string.postln;
+						var id = action.string;
 						var nodeid = path.fileNameWithoutExtension;
 						var node = N((nodeid ++ '_' ++ UniqueID.next).asSymbol,  id.asSymbol);
 						matrix.add(node.key);
@@ -57,7 +91,7 @@ Fdef(\matrix, {arg matrix;
 					MenuAction(vst, {arg action;
 						var id = action.string;
 						var uniqe = (id ++ '_' ++ UniqueID.next).asSymbol;
-						var node = Vst(uniqe, id.asSymbol.postln);
+						var node = Vst(uniqe, id.asSymbol);
 						matrix.add(node.key);
 					})
 				})
@@ -69,7 +103,7 @@ Fdef(\matrix, {arg matrix;
 
 		var data = matrix.map;
 
-		var header = [st.(), nil, nil] ++ data.indices.collect({arg i;
+		var header = [st.(), nil, nil, nil] ++ data.indices.collect({arg i;
 			var name = data[i].asString;
 			var len = min(name.size, 5);
 			if (Pdef.all[name.asSymbol].isNil) {
@@ -114,6 +148,24 @@ Fdef(\matrix, {arg matrix;
 
 			[
 				Button()
+				.states_([ ["x", nil, colors[i]] ])
+				.fixedSize_(Size(15, 25))
+				.action_({|ctrl|
+
+					//var n = Ndef(src);
+					//data.do({|key|
+						//key.debug(\remove);
+					//	Ndef(key).removeAt(i);
+					//	Ndef(key).nodeMap.removeAt(src);
+					//});
+					//n.clear;
+					//data.removeAt(i);
+					//matrix.removeAt(i);
+					matrix.removeSrc(src);
+				})
+				.toolTip_("remove"),
+
+				Button()
 				.action_({ Ndef(src).nscope; })
 				.fixedWidth_(15)
 				.fixedHeight_(25)
@@ -157,14 +209,13 @@ Fdef(\matrix, {arg matrix;
 	};
 
 	var listener = {arg node, event;
-		if (event == \source) {
+		if ((event == \source)) {
 			func.();
 		}
 	};
 
 	matrix.addDependant(listener);
 	playview = playview.(matrix).addDependant(viewListener);
-
 
 	view.layout.add(playview);
 	outergrid.layout.add(gridview);

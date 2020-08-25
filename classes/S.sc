@@ -1,3 +1,16 @@
+/*
+B = buffer
+E = event sequencer
+F = preset morph
+M = matrix
+N = node
+O = looper
+Q = eq
+S = synth
+U = ui
+W = workspace
+*/
+
 S : EventPatternProxy {
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <>defaultQuant;
@@ -404,10 +417,18 @@ S : EventPatternProxy {
 }
 
 B {
-	classvar <envir;
+	classvar <all;
 
 	*new {arg key;
-		^envir[key]
+		^all[key]
+	}
+
+	*doesNotUnderstand {|key|
+		var res = all[key];
+		if (res.isNil){
+			"% does not exist".format(key).warn;
+		};
+		^res;
 	}
 
 	*read {arg key, path, channels=nil;
@@ -417,22 +438,43 @@ B {
 			channels = channels.asArray;
 		};
 		Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
-			envir.put(key, buf);
+			all.put(key, buf);
+			path.postln;
+			"added buffer with key: %".format(key).inform;
 		});
 	}
 
+	*open {|channels=0|
+		var path = App.mediadir;
+		Dialog.openPanel({|path|
+
+			var id = PathName(path)
+			.fileNameWithoutExtension
+			.replace("-", "")
+			.replace(" ", "")
+			.replace("_", "")
+			.toLower;
+
+			B.read(id, path, channels);
+		},{
+			"cancelled".postln;
+		}, path:path);
+	}
+
 	*initClass {
-		envir = ();
+		all = IdentityDictionary();
 	}
 }
 
 O : Ndef {
 
-	*new {arg key, func;
+	var <phase;
+
+	*new {arg key;
 		var envir = this.dictFor(Server.default).envir;
 		var res = envir[key];
 		if (res.isNil) {
-			res = super.new(key).prOInit(key, func);
+			res = super.new(key).prOInit();
 		}
 		^res;
 	}
@@ -441,19 +483,26 @@ O : Ndef {
 		var envir = this.dictFor(Server.default).envir;
 		var res = envir[key];
 		if (res.isNil){
-			"% does not exist".format(key).warn;
+			res = O(key);
 		};
 		^res;
 	}
 
-	prOInit {arg inKey, inFunc;
+	phase_ {|func|
+		phase = func;
+		this.rebuildsynth;
+	}
 
-		//var osckey = ('/' ++ inKey ++ 'pos').asSymbol;
-		if (inFunc.isNil) {
-			inFunc = {arg dur, freq, duty, rate;
-				LFSaw.ar(freq, 1);
-			};
-		};
+	prOInit {
+		this.phase_({arg dur, freq, duty, rate;
+			LFSaw.ar(freq, 1);
+		});
+		^this;
+	}
+
+	rebuildsynth {
+
+		var func = this.phase;
 
 		this.put(0, {
 
@@ -469,7 +518,7 @@ O : Ndef {
 			var dur = ( (endPos - startPos) / BufSampleRate.kr(buf) ) * rate.reciprocal;
 			var duty = TDuty.ar(dur.abs, trig, 1);
 			var index = Stepper.ar(duty, 0, 0, 1 );
-			var phase = inFunc.(dur, dur.reciprocal, duty, rate);
+			var phase = func.(dur, dur.reciprocal, duty, rate);
 			phase = phase.range(startPos, endPos);
 
 			/*
@@ -479,14 +528,15 @@ O : Ndef {
 			//var phase = Env([0, 0, 1], [0, dur], curve: 0).ar(gate:duty).linlin(0, 1, startPos, endPos);
 			*/
 
-			sig = BufRd.ar(1, buf, phase!2, 0);
-			sig = SelectCF.ar(index, sig);
+			sig = BufRd.ar(1, buf, phase, 0);
+			// try to remove any clicks
+			//sig = SelectCF.ar(index, sig);
 
-			SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [buf, phase % BufFrames.kr(buf)], replyid);
-			Splay.ar(sig) * \amp.kr(1);
+			SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase % BufFrames.kr(buf)], replyid);
+			Splay.ar(sig, \spread.kr(1), center:\center.kr(0)) * \amp.kr(1);
 		});
+
 		this.wakeUp;
-		^this
 	}
 
 	ngui {
@@ -588,6 +638,21 @@ M : Ndef {
 			};
 			slot = slot + 1;
 		}
+	}
+
+	removeSrc {|src, clear=true|
+
+		var ndef = Ndef(src);
+		var index = map.indexOf(src);
+		map.do({|key|
+			Ndef(key).removeAt(index);
+			Ndef(key).nodeMap.removeAt(src);
+		});
+		if (clear) {
+			ndef.clear;
+		};
+		map.removeAt(index);
+		this.removeAt(index);
 	}
 
 	mgui {
@@ -832,7 +897,7 @@ W : Environment {
 	*new {|key|
 		var res = all[key];
 		if (res.isNil) {
-			res = super.new(8, nil, nil, true).prWInit;
+			res = super.new(8, nil, nil, true).prWInit(key);
 			all[key] = res;
 		};
 		^res;
@@ -846,8 +911,15 @@ W : Environment {
 		^res;
 	}
 
-	prWInit {
-		this.daw = \bitwig;
+	prWInit {|argKey|
+		var path = "%%/".format(App.workspacedir, key);
+		if (File.exists(path).not) {
+			"init workspace %".format(path).inform;
+			File.makeDir(path);
+		};
+		key = argKey;
+		daw = \bitwig;
+		this.recdir;
 		^this;
 	}
 
@@ -884,6 +956,41 @@ W : Environment {
 		};
 		if (daw == \reaper) {
 			Reaper.time(val);
+		}
+	}
+
+	recdir {
+		var path = App.workspacedir ++ key;
+		path.debug(\recordingsDir);
+		thisProcess.platform.recordingsDir_(path);
+	}
+
+	save {|rec=true|
+
+		var folder = App.workspacedir;
+		var workspace = "%/%-%-%/%%".format(key,
+			Date.getDate.year, Date.getDate.month, Date.getDate.day, Date.getDate.hour, Date.getDate.minute);
+		var current_doc = Document.current;
+		var current_path = folder.standardizePath ++ workspace;
+		var dirname;
+
+		if (File.exists(current_path).not) {
+			File.mkdir(current_path);
+		};
+
+		Document.openDocuments.do({arg doc;
+			var file_name = PathName(doc.title);
+			var path = current_path ++ "/_wip_" ++ file_name.fileName;
+			var content = doc.string;
+			var file = File(path, "w");
+			path.debug("writing...");
+			file.write(content);
+			file.close();
+		});
+
+		if (rec) {
+			var tempo = TempoClock.default.tempo;
+			Server.default.record(current_path ++ "/SC_" ++ Date.getDate.stamp ++ ".aiff");
 		}
 	}
 
