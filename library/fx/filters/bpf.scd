@@ -24,5 +24,3 @@ specs: [
 	\center -> [-1,1,\lin,0,0]
 ]
 )
-
--3.dbamp

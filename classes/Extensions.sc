@@ -89,6 +89,17 @@ Pswitch
 	nscope {
 		^U(\scope, this.node);
 	}
+	microlab {
+		Microlab().note(
+			{|note, vel|
+				vel = 127/vel;
+				this.on(note, vel);
+			},
+			{|note|
+				this.off(note);
+			}
+		);
+	}
 }
 
 + Pdef {

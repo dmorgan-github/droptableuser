@@ -66,6 +66,7 @@ Fdef(\buf, {arg node;
 	});
 	sfv.setSelectionColor(0, selectioncolor);
 
+	// TODO: refactor to use func from above
 	buf.loadToFloatArray(action:{arg a;
 		{
 			var start = startPos * numframes;

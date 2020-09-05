@@ -1,4 +1,13 @@
 /*
+thisProcess.platform.recordingsDir_(Document.current.dir);
+s.makeGui;
+a = NdefMixer(s);
+ProxyMeter.addMixer(a);
+NdefPreset(\benjolis); // make a preset instance
+ProxyPresetGui(NdefPreset(\benjolis)); // and it's GUI. stores preset as text file
+*/
+
+/*
 B = buffer
 E = event sequencer
 F = preset morph
@@ -8,6 +17,7 @@ O = looper
 Q = eq
 S = synth
 U = ui
+V = vst
 W = workspace
 */
 
@@ -59,6 +69,7 @@ S : EventPatternProxy {
 		listenerfunc = {arg obj, prop, params; [prop, params.asCompileString];};
 		node = Ndef(key);
 		node.mold(2, \audio);
+		node.play;
 
 		if (this.dependants.size == 0) {
 			this.addDependant(listenerfunc);
@@ -466,133 +477,123 @@ B {
 	}
 }
 
-O : Ndef {
+E {
+	var <>events, <>duration;
 
-	var <phase;
-
-	*new {arg key;
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil) {
-			res = super.new(key).prOInit();
-		}
-		^res;
+	*new {
+		^super.new.init();
 	}
 
-	*doesNotUnderstand {|key|
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil){
-			res = O(key);
-		};
-		^res;
+	*fromPattern {|pattern, duration|
+		var seq = E();
+		seq.events = E.order(pattern, duration);
+		seq.duration = duration;
+		^seq;
 	}
 
-	phase_ {|func|
-		phase = func;
-		this.rebuildsynth;
-	}
-
-	prOInit {
-		this.phase_({arg dur, freq, duty, rate;
-			LFSaw.ar(freq, 1);
-		});
+	init {
 		^this;
 	}
 
-	rebuildsynth {
-
-		var func = this.phase;
-
-		this.put(0, {
-
-			var buf = \buf.kr(0);
-			var rate = \rate.kr(1);
-			var trig = \trig.tr(1);
-			var replyid = \bufposreplyid.kr(-1);
-			var startPos = \startPos.kr(0) * BufFrames.kr(buf);
-			var endPos = \endPos.kr(1) * BufFrames.kr(buf);
-			var updateFreq = 60;
-			var sig;
-
-			var dur = ( (endPos - startPos) / BufSampleRate.kr(buf) ) * rate.reciprocal;
-			var duty = TDuty.ar(dur.abs, trig, 1);
-			var index = Stepper.ar(duty, 0, 0, 1 );
-			var phase = func.(dur, dur.reciprocal, duty, rate);
-			phase = phase.range(startPos, endPos);
-
-			/*
-			var phase = Phasor.ar(duty, myrate, startPos, endPos, startPos);
-			//var phase = LFSaw.ar(dur.reciprocal, 1).range(startPos, endPos);
-			//var phase = LFPar.ar(dur.reciprocal * [-1, 2]).range(startPos, endPos);
-			//var phase = Env([0, 0, 1], [0, dur], curve: 0).ar(gate:duty).linlin(0, 1, startPos, endPos);
-			*/
-
-			sig = BufRd.ar(1, buf, phase, 0);
-			// try to remove any clicks
-			//sig = SelectCF.ar(index, sig);
-
-			SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase % BufFrames.kr(buf)], replyid);
-			Splay.ar(sig, \spread.kr(1), center:\center.kr(0)) * \amp.kr(1);
+	*order {|pattern, duration|
+		var order = Order.new;
+		var time = 0;
+		var stream = pattern.asStream;
+		var evt = stream.next(Event.default);
+		while ( {evt.isNil.not and: (time < duration) }, {
+			var dur = evt[\dur];
+			if ((time + dur) > duration) {
+				dur = duration - time;
+				evt[\dur] = dur;
+			};
+			order.put(time, evt);
+			time = time + dur;
+			evt = stream.next(evt);
 		});
-
-		this.wakeUp;
+		^order;
 	}
 
-	ngui {
-		^U(\buf, this)
+	put {|time, event|
+		// need to handle adding to beginning and end of sequence
+		if (time > this.duration) {
+			"time is greater than duration".error;
+		} {
+			var nextIndex = this.events.nextSlotFor(time);
+			var prevIndex = nextIndex-1;
+			var prevTime = this.events.indices[prevIndex];
+			var prevEvent = this.events.array[prevIndex];
+			var nextTime = this.events.indices[nextIndex];
+			var dur = nextTime - time;
+			prevEvent[\dur] = time - prevTime;
+			event[\dur] = dur;
+			this.events.put(time, event);
+		}
+	}
+
+	remove {|time|
+		var nextIndex = events.nextSlotFor(time);
+		var prevIndex = nextIndex-2;
+		var prevTime = events.indices[prevIndex];
+		var prevEvent = events.array[prevIndex];
+		var nextTime = events.indices[nextIndex];
+		var dur = nextTime - prevTime;
+		prevEvent[\dur] = dur;
+		events.removeAt(time);
+	}
+
+	copy {
+		var eventsCopy = this.events.collect({|evt| evt.copy});
+		var seq = E();
+		seq.events = eventsCopy;
+		^seq;
+	}
+
+	perform {|selector ...args|
+		var pseq, order;
+		var array = this.events.array.perform(selector, *args);
+		pseq = Pseq(array, inf);
+		order = E.order(pseq, this.duration);
+		this.events = order;
+	}
+
+	set {|pattern, duration|
+		this.events = E.order(pattern, duration);
+		this.duration = duration;
+	}
+
+	asArray {
+		^events.array;
+	}
+
+	asStream {|repeats=inf|
+
+		^Prout({|inevent|
+			repeats.do({|i|
+				var evts = this.asArray.collect({|evt| evt.copy});
+				var seq = Pseq(evts, 1).asStream;
+				var next = seq.next(inevent);
+				while ({ next.isNil.not}, {
+					next.yield;
+					next = seq.next(inevent)
+				})
+			});
+		})
 	}
 }
 
-// eq
-Q : Ndef {
-
-	var <guikey;
-
-	*new {arg key;
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil) {
-			res = super.new(key).prQInit();
-		}
-		^res;
-	}
-
-	*doesNotUnderstand {|key|
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil){
-			"% does not exist".format(key).warn;
-		};
-		^res;
-	}
-
-	prQInit {
-
-		var fromControl;
-
-		fromControl = {arg controls;
-			controls.clump(3).collect({arg item;
-				[(item[0] + 1000.cpsmidi).midicps, item[1], 10**item[2]]
+F {
+	*morph {|node, from, to, numsteps=20, wait=0.1|
+		Routine({
+			var numsteps = 20;
+			var fromCopy = from.copy;
+			numsteps.do({|i|
+				var blend = 1 + i / numsteps;
+				fromCopy = fromCopy.blend(to, blend);
+				node.set(*fromCopy.getPairs);
+				wait.wait;
 			});
-		};
-
-		guikey = \eq;
-		this.wakeUp;
-		this.play;
-
-		this.put(100, \filter -> {arg in;
-
-			var frdb, input = in;
-			frdb = fromControl.(Control.names([\eq_controls]).kr(0!15));
-			input = BLowShelf.ar(input, *frdb[0][[0,2,1]].lag(0.1));
-			input = BPeakEQ.ar(input, *frdb[1][[0,2,1]].lag(0.1));
-			input = BPeakEQ.ar(input, *frdb[2][[0,2,1]].lag(0.1));
-			input = BPeakEQ.ar(input, *frdb[3][[0,2,1]].lag(0.1));
-			input = BHiShelf.ar(input, *frdb[4][[0,2,1]].lag(0.1));
-			input = RemoveBadValues.ar(input);
-			input;
-		});
+			\morphdone.debug(node.key);
+		}).play;
 	}
 }
 
@@ -743,6 +744,137 @@ N : Ndef {
 	}
 }
 
+O : Ndef {
+
+	var <phase;
+
+	*new {arg key;
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil) {
+			res = super.new(key).prOInit();
+		}
+		^res;
+	}
+
+	*doesNotUnderstand {|key|
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil){
+			res = O(key);
+		};
+		^res;
+	}
+
+	phase_ {|func|
+		phase = func;
+		this.prRebuild;
+	}
+
+	prOInit {
+		this.phase_({arg dur, freq, duty, rate;
+			LFSaw.ar(freq, 1);
+		});
+		^this;
+	}
+
+	prRebuild {
+
+		var func = this.phase;
+
+		this.put(0, {
+
+			var buf = \buf.kr(0);
+			var rate = \rate.kr(1);
+			var trig = \trig.tr(1);
+			var replyid = \bufposreplyid.kr(-1);
+			var startPos = \startPos.kr(0) * BufFrames.kr(buf);
+			var endPos = \endPos.kr(1) * BufFrames.kr(buf);
+			var updateFreq = 60;
+			var sig;
+
+			var dur = ( (endPos - startPos) / BufSampleRate.kr(buf) ) * rate.reciprocal;
+			var duty = TDuty.ar(dur.abs, trig, 1);
+			var index = Stepper.ar(duty, 0, 0, 1 );
+			var phase = func.(dur, dur.reciprocal, duty, rate);
+			phase = phase.range(startPos, endPos);
+
+			/*
+			var phase = Phasor.ar(duty, myrate, startPos, endPos, startPos);
+			//var phase = LFSaw.ar(dur.reciprocal, 1).range(startPos, endPos);
+			//var phase = LFPar.ar(dur.reciprocal * [-1, 2]).range(startPos, endPos);
+			//var phase = Env([0, 0, 1], [0, dur], curve: 0).ar(gate:duty).linlin(0, 1, startPos, endPos);
+			*/
+
+			sig = BufRd.ar(1, buf, phase, 0);
+			// try to remove any clicks
+			//sig = SelectCF.ar(index, sig);
+
+			SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase % BufFrames.kr(buf)], replyid);
+			Splay.ar(sig, \spread.kr(1), center:\center.kr(0)) * \amp.kr(1);
+		});
+
+		this.wakeUp;
+	}
+
+	ngui {
+		^U(\buf, this)
+	}
+}
+
+// eq
+Q : Ndef {
+
+	var <guikey;
+
+	*new {arg key;
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil) {
+			res = super.new(key).prQInit();
+		}
+		^res;
+	}
+
+	*doesNotUnderstand {|key|
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil){
+			"% does not exist".format(key).warn;
+		};
+		^res;
+	}
+
+	prQInit {
+
+		var fromControl;
+
+		fromControl = {arg controls;
+			controls.clump(3).collect({arg item;
+				[(item[0] + 1000.cpsmidi).midicps, item[1], 10**item[2]]
+			});
+		};
+
+		guikey = \eq;
+		this.wakeUp;
+		this.play;
+
+		this.put(100, \filter -> {arg in;
+
+			var frdb, input = in;
+			frdb = fromControl.(Control.names([\eq_controls]).kr(0!15));
+			input = BLowShelf.ar(input, *frdb[0][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[1][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[2][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[3][[0,2,1]].lag(0.1));
+			input = BHiShelf.ar(input, *frdb[4][[0,2,1]].lag(0.1));
+			input = RemoveBadValues.ar(input);
+			input;
+		});
+	}
+}
+
+
 U {
 	*new {arg key ...args;
 
@@ -766,125 +898,149 @@ U {
 	}
 }
 
-E {
-	var <>events, <>duration;
 
-	*new {
-		^super.new.init();
+V : Ndef {
+
+	var <fx, <pdata, <skipjack, <synth, <vst;
+
+	*new {arg key;
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil) {
+			res = super.new(key).prVstInit;
+		}
+		^res;
 	}
 
-	*fromPattern {|pattern, duration|
-		var seq = E();
-		seq.events = E.order(pattern, duration);
-		seq.duration = duration;
-		^seq;
+	*doesNotUnderstand {|key|
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil){
+			res = V(key);
+		};
+		^res;
 	}
 
-	init {
+	vst_ {|name|
+		vst = name;
+		this.prBuild;
+	}
+
+	prVstInit {
 		^this;
 	}
 
-	*order {|pattern, duration|
-		var order = Order.new;
-		var time = 0;
-		var stream = pattern.asStream;
-		var evt = stream.next(Event.default);
-		while ( {evt.isNil.not and: (time < duration) }, {
-			var dur = evt[\dur];
-			if ((time + dur) > duration) {
-				dur = duration - time;
-				evt[\dur] = dur;
-			};
-			order.put(time, evt);
-			time = time + dur;
-			evt = stream.next(evt);
-		});
-		^order;
-	}
+	prBuild {
 
-	put {|time, event|
-		// need to handle adding to beginning and end of sequence
-		if (time > this.duration) {
-			"time is greater than duration".error;
-		} {
-			var nextIndex = this.events.nextSlotFor(time);
-			var prevIndex = nextIndex-1;
-			var prevTime = this.events.indices[prevIndex];
-			var prevEvent = this.events.array[prevIndex];
-			var nextTime = this.events.indices[nextIndex];
-			var dur = nextTime - time;
-			prevEvent[\dur] = time - prevTime;
-			event[\dur] = dur;
-			this.events.put(time, event);
-		}
-	}
+		var func;
+		var store = {
+			if (fx.isNil.not) {
+				//\store.debug(name);
+				fx.getProgramData({ arg data; pdata = data;}, async:true);
+			}
+		};
 
-	remove {|time|
-		var nextIndex = events.nextSlotFor(time);
-		var prevIndex = nextIndex-2;
-		var prevTime = events.indices[prevIndex];
-		var prevEvent = events.array[prevIndex];
-		var nextTime = events.indices[nextIndex];
-		var dur = nextTime - prevTime;
-		prevEvent[\dur] = dur;
-		events.removeAt(time);
-	}
+		var index = 100;
+		var synthdef = (vst ++ '_' ++ UniqueID.next).asSymbol;
 
-	copy {
-		var eventsCopy = this.events.collect({|evt| evt.copy});
-		var seq = E();
-		seq.events = eventsCopy;
-		^seq;
-	}
+		SynthDef.new(synthdef, {arg in;
+			var sig = In.ar(in, 2);
+			var wet = ('wet' ++ index).asSymbol.kr(1);
+			XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
+		}).add;
 
-	perform {|selector ...args|
-		var pseq, order;
-		var array = this.events.array.perform(selector, *args);
-		pseq = Pseq(array, inf);
-		order = E.order(pseq, this.duration);
-		this.events = order;
-	}
-
-	set {|pattern, duration|
-		this.events = E.order(pattern, duration);
-		this.duration = duration;
-	}
-
-	asArray {
-		^events.array;
-	}
-
-	asStream {|repeats=inf|
-
-		^Prout({|inevent|
-			repeats.do({|i|
-				var evts = this.asArray.collect({|evt| evt.copy});
-				var seq = Pseq(evts, 1).asStream;
-				var next = seq.next(inevent);
-				while ({ next.isNil.not}, {
-					next.yield;
-					next = seq.next(inevent)
-				})
-			});
-		})
-	}
-}
-
-
-F {
-	*morph {|node, from, to, numsteps=20, wait=0.1|
 		Routine({
-			var numsteps = 20;
-			var fromCopy = from.copy;
-			numsteps.do({|i|
-				var blend = 1 + i / numsteps;
-				fromCopy = fromCopy.blend(to, blend);
-				node.set(*fromCopy.getPairs);
-				wait.wait;
-			});
-			\morphdone.debug(node.key);
+			1.wait;
+			this.put(index, synthdef.debug(\synthdef));
 		}).play;
+
+		func = {
+
+			Routine({
+
+				// this seems necessary, but not sure why
+				2.wait;
+
+				this.wakeUp;
+
+				1.wait;
+				synth = Synth.basicNew(synthdef, Server.default, this.objects[index].nodeID);
+				synth.set(\in, this.bus.index);
+				fx = VSTPluginController(synth);
+
+				1.wait;
+				// there can be a delay
+				fx.open(vst.asString, verbose:true, editor:true);
+				vst.debug(\loaded);
+
+				1.wait;
+				if (pdata.isNil.not) {
+					fx.setProgramData(pdata);
+				};
+
+				this.wakeUp;
+
+			}).play;
+		};
+
+		func.();
+		skipjack = SkipJack(store, 60, { fx == nil }, name: key);
+		CmdPeriod.add(func);
+		^this;
 	}
+
+	*directory {
+		var result = List.new;
+		VSTPlugin.search(verbose:false);
+		VSTPlugin.readPlugins.keysValuesDo({arg k, v; result.add(k)});
+		^result.asArray;
+	}
+
+	editor {
+		^fx.editor;
+	}
+
+	vgui {
+		^fx.gui;
+	}
+
+	browse {
+		fx.browse;
+	}
+
+	snapshot {
+		fx.getProgramData({ arg data; pdata = data;});
+	}
+
+	restore {
+		fx.setProgramData(pdata);
+	}
+
+	bypass {arg bypass=0;
+		synth.set(\bypass, bypass)
+	}
+
+	parameters {
+		^fx.info.printParameters
+		//^VSTPlugin.plugins[this.vst].printParameters;
+	}
+
+	clear {
+		skipjack.stop;
+		SkipJack.stop(key);
+		synth.free;
+		fx.close;
+		fx = nil;
+		super.clear;
+	}
+
+	//set {arg key, val;
+	//	fx.set(key, val)
+	//}
+
+	//map {arg key, val;
+	//	fx.map(key, val)
+	//}
 }
 
 
@@ -990,7 +1146,8 @@ W : Environment {
 
 		if (rec) {
 			var tempo = TempoClock.default.tempo;
-			Server.default.record(current_path ++ "/SC_" ++ Date.getDate.stamp ++ ".aiff");
+			var ext = Server.default.recHeaderFormat;
+			Server.default.record(current_path ++ "/SC_" ++ Date.getDate.stamp ++ "." ++ ext);
 		}
 	}
 

@@ -25,10 +25,8 @@ App {
 		^str
 	}
 
-	*recdir {arg dir;
-		var path = workspacedir ++ dir;
-		path.debug(\recordingsDir);
-		thisProcess.platform.recordingsDir_(path);
+	*recdir {
+		thisProcess.platform.recordingsDir_(Document.current.dir);
 	}
 
 	*rec {arg dir;

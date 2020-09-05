@@ -90,8 +90,8 @@ Fdef(\matrix, {arg matrix;
 				++ vsts.().collect({arg vst;
 					MenuAction(vst, {arg action;
 						var id = action.string;
-						var uniqe = (id ++ '_' ++ UniqueID.next).asSymbol;
-						var node = Vst(uniqe, id.asSymbol);
+						var unique = (id ++ '_' ++ UniqueID.next).asSymbol;
+						var node = Vst(unique).vst = id.asSymbol;
 						matrix.add(node.key);
 					})
 				})
@@ -151,16 +151,6 @@ Fdef(\matrix, {arg matrix;
 				.states_([ ["x", nil, colors[i]] ])
 				.fixedSize_(Size(15, 25))
 				.action_({|ctrl|
-
-					//var n = Ndef(src);
-					//data.do({|key|
-						//key.debug(\remove);
-					//	Ndef(key).removeAt(i);
-					//	Ndef(key).nodeMap.removeAt(src);
-					//});
-					//n.clear;
-					//data.removeAt(i);
-					//matrix.removeAt(i);
 					matrix.removeSrc(src);
 				})
 				.toolTip_("remove"),
