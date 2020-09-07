@@ -1,5 +1,5 @@
 (
-thisProcess.platform.recordingsDir_("/Users/david/projects/droptableuser/workspaces");
+thisProcess.platform.recordingsDir_("~/Documents/supercollider/workspaces".standardizePath);
 
 s.options.memSize_(2 ** 18);
 s.options.numAudioBusChannels = 1024 * 2;
@@ -13,43 +13,32 @@ s.options.numBuffers = 1024 * 16;
 
 Font.setDefault(Font("Courier New", 10));
 
-s.options.numOutputBusChannels = 2; // 24
+s.options.numOutputBusChannels = 24;
 s.options.inDevice_("supercollider-in");
 
 //s.options.outDevice = "JackRouter";
 s.options.outDevice_("supercollider-out");
+s.recHeaderFormat = "WAV";
 
 s.waitForBoot({
 
-	File.open("/Users/david/projects/scynapse/_main.scd", "r").readAllString.interpret;
 	MIDIClient.init;
 	MIDIClient.initialized.debug("midi initialized");
-	//MIDIIn.connectAll;
 	Pdef.defaultQuant_(1);
 
-	{
-		// load synthdefs
-		var pathname = PathName.new("/Users/david/projects/scynapse/_synthdefs/");
-		pathname.files.do({arg pn;
-			File.open(pn.fullPath, "r").readAllString.interpret;
-		});
-	}.();
-
-	// trigger bitwig record
-	//m = NetAddr("127.0.0.1", 8000); // loopback
-	//m.sendMsg("/record");
-
-	// mini preprocessor to generate id values
-	{
-		var func = {arg code;
-			if (code == "scid") {
-				var id = ("\\" ++ App.idgen).asSymbol;
-				code = code.replace("scid", id);
-				Document.current.selectedString_(id);
+	(
+		{
+			var func = {arg code;
+				if (code == "scid") {
+					//var id = ("\\" ++ App.idgen).asSymbol;
+					var id = (App.idgen).asSymbol;
+					code = code.replace("scid", id);
+					Document.current.selectedString_(id);
+				};
+				code;
 			};
-			code;
-		};
-		this.preProcessor = func;
-	}.();
+			this.preProcessor = func;
+		}.();
+	)
 })
 )
