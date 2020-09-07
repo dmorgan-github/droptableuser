@@ -38,7 +38,7 @@ Pswitch
 		};
 		^U(key, this);
 	}
-	mix {arg index=0, obj, stopmonitor=false;
+	mix {arg index=0, obj, stopmonitor=false, vol=1;
 
 		if (obj.isKindOf(Function)) {
 			this.put(index, \mix -> obj);
@@ -52,18 +52,20 @@ Pswitch
 				if (obj.class == S) {
 					//var l = (key ++ 'L').asSymbol;
 					//var r = (key ++ 'R').asSymbol;
-					this.put(index, { obj.node.ar * Control.names([key]).kr(1.0) });
+					this.put(index, { obj.node.ar * Control.names([key]).kr(vol) });
 					if (stopmonitor) {
 						obj.node.stop;
-					}
+					};
+
 				}{
 					//var l = (key ++ 'L').asSymbol;
 					//var r = (key ++ 'R').asSymbol;
-					this.put(index, {obj.ar * Control.names([key]).kr(1.0) });
+					this.put(index, {obj.ar * Control.names([key]).kr(vol) });
 					if (stopmonitor) {
 						obj.stop;
 					}
-				}
+				};
+				this.addSpec(key, [0, 1, \lin, 0, vol]);
 			}
 		};
 	}
@@ -76,6 +78,12 @@ Pswitch
 			\out, Pfunc({ this.bus.index }),
 			\group, Pfunc({this.group})
 		)
+	}
+
+	preset {
+		var key = this.key;
+		NdefPreset(key); // make a preset instance
+		ProxyPresetGui(NdefPreset(key)); // and it's GUI. stores preset as text file
 	}
 }
 

@@ -1,5 +1,5 @@
 (
-Require("~/projects/droptableuser/library/ui/common.scd");
+Require(App.librarydir ++ "ui/common.scd");
 Fdef(\kb, {arg synth;
 
 	var view = View();

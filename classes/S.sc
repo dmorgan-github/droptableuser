@@ -1,16 +1,6 @@
 /*
-thisProcess.platform.recordingsDir_(Document.current.dir);
-s.makeGui;
-a = NdefMixer(s);
-ProxyMeter.addMixer(a);
-NdefPreset(\benjolis); // make a preset instance
-ProxyPresetGui(NdefPreset(\benjolis)); // and it's GUI. stores preset as text file
-*/
-
-/*
 B = buffer
 E = event sequencer
-F = preset morph
 M = matrix
 N = node
 O = looper
@@ -186,55 +176,6 @@ S : EventPatternProxy {
 		if (func.isNil.not) {
 			func.value(this);
 		}
-	}
-
-	reset {
-		this.checkSpec
-		.keysValuesDo({|k, v|
-			var val = v.default;
-			this.set(k, val);
-		});
-	}
-
-	asPreset {
-		^this.envir.asDict.reject({|v, k| v.isNumber.not and: v.isArray.not })
-	}
-
-	fromPreset {|preset|
-		this.set(*preset.asPairs);
-	}
-
-	savePreset {|name|
-		var node = this;
-		var dir = App.librarydir ++ "synths/presets/";
-		var synthDef = node.instrument;
-		var path = dir ++ synthDef;
-		var preset = node.asPreset.asCompileString;
-		var file;
-		if (File.exists(path).not) {
-			File.mkdir(path);
-		};
-		path = path ++ "/" ++ name.asString ++ ".scd";
-		path.postln;
-		file = File(path, "w");
-		file.write(preset);
-		file.close;
-	}
-
-	loadPreset {|name|
-		var node = this;
-		var dir = App.librarydir ++ "/synths/presets/";
-		var synthDef = node.instrument;
-		var path = dir ++ synthDef ++ "/" ++ name.asString ++ ".scd";
-		var dict = thisProcess.interpreter.executeFile(path);
-		node.fromPreset(dict);
-	}
-
-	presetNames {
-		var dir = App.librarydir ++ "/synths/presets/";
-		var synthDef = node.instrument;
-		var path = dir ++ synthDef;
-		^PathName(path).entries.collect({|pn| pn.fileNameWithoutExtension})
 	}
 
 	// TODO: should clear and remove any lfo if being replaced
@@ -455,6 +396,12 @@ B {
 		});
 	}
 
+	*alloc {|key, numFrames, numChannels=1|
+		var buf = Buffer.alloc(Server.default, numFrames, numChannels);
+		all.put(key, buf);
+		"allocated buffer with key: %".format(key).inform;
+	}
+
 	*open {|channels=0|
 		var path = App.mediadir;
 		Dialog.openPanel({|path|
@@ -477,6 +424,7 @@ B {
 	}
 }
 
+// basically stolen and adapted from https://github.com/scztt/OSequence.quark
 E {
 	var <>events, <>duration;
 
@@ -545,6 +493,7 @@ E {
 		var eventsCopy = this.events.collect({|evt| evt.copy});
 		var seq = E();
 		seq.events = eventsCopy;
+		seq.duration = this.duration;
 		^seq;
 	}
 
@@ -578,22 +527,6 @@ E {
 				})
 			});
 		})
-	}
-}
-
-F {
-	*morph {|node, from, to, numsteps=20, wait=0.1|
-		Routine({
-			var numsteps = 20;
-			var fromCopy = from.copy;
-			numsteps.do({|i|
-				var blend = 1 + i / numsteps;
-				fromCopy = fromCopy.blend(to, blend);
-				node.set(*fromCopy.getPairs);
-				wait.wait;
-			});
-			\morphdone.debug(node.key);
-		}).play;
 	}
 }
 
@@ -689,6 +622,8 @@ M : Ndef {
 
 N : Ndef {
 
+	var <uifunc;
+
 	*new {arg key, fx;
 		var envir = this.dictFor(Server.default).envir;
 		var res = envir[key];
@@ -707,6 +642,14 @@ N : Ndef {
 		^res;
 	}
 
+	ui {
+		if (uifunc.isNil.not) {
+			^uifunc.(this);
+		} {
+			^U(\ngui, this);
+		}
+	}
+
 	prNInit {|argFx|
 
 		var path = App.librarydir ++ "fx/" ++ argFx.asString ++ ".scd";
@@ -719,8 +662,7 @@ N : Ndef {
 			var obj = File.open(fullpath, "r").readAllString.interpret;
 			var func = obj[\synth];
 			var specs = obj[\specs];
-			//this.numChannels = 2;
-			//this.rate = \audio;
+			uifunc = obj[\ui].debug(\ui);
 			this.ar(numChannels:2);
 			this.wakeUp;
 			this.filter(100, func);
@@ -730,16 +672,16 @@ N : Ndef {
 					Ndef(key).addSpec(assoc.key, assoc.value);
 				});
 			};
+
 		} {
 			Error("node not found").throw;
 		}
 		^this;
 	}
 
-	*ls {arg path;
-		// this could be nicer
-		var mypath = path ? App.librarydir ++ "fx/";
-		PathName.new(mypath)
+	*ls {arg dir;
+		var path = App.librarydir ++ dir;
+		PathName.new(path.asString)
 		.entries.do({arg e; e.fullPath.postln;});
 	}
 }
@@ -890,10 +832,9 @@ U {
 		};
 	}
 
-	*ls {arg path;
-		// this could be nicer
-		var mypath = path ? App.librarydir ++ "ui/";
-		PathName.new(mypath)
+	*ls {arg dir;
+		var path = App.librarydir ++ "ui/" ++ dir;
+		PathName.new(path)
 		.entries.do({arg e; e.fullPath.postln;});
 	}
 }
@@ -941,7 +882,7 @@ V : Ndef {
 		};
 
 		var index = 100;
-		var synthdef = (vst ++ '_' ++ UniqueID.next).asSymbol;
+		var synthdef = (vst ++ UniqueID.next).asSymbol;
 
 		SynthDef.new(synthdef, {arg in;
 			var sig = In.ar(in, 2);
@@ -1022,7 +963,18 @@ V : Ndef {
 
 	parameters {
 		^fx.info.printParameters
-		//^VSTPlugin.plugins[this.vst].printParameters;
+	}
+
+	settings {|cb|
+		var vals = ();
+		var parms = fx.info.parameters;
+		this.fx.getn(action: {arg v;
+			v.do({|val, i|
+				var name = parms[i][\name];
+				vals[name] = val;
+			});
+			cb.(vals);
+		});
 	}
 
 	clear {
@@ -1033,6 +985,33 @@ V : Ndef {
 		fx = nil;
 		super.clear;
 	}
+
+	/*
+	to get param values
+~vals = ();
+(
+r{
+	V.ane.fx.info.parameters.do({|p, i|
+		var name = p[\name].asSymbol;
+		V.ane.fx.get(name, {|f|
+			~vals[name] = f;
+			true.yield;
+		});
+	});
+}.play;
+)
+	)
+
+
+	(
+V.ane.fx.getn(action: {arg v;
+	v.do({|val, i|
+		~parms[i][\val] = val
+	})
+});
+)
+
+	*/
 
 	//set {arg key, val;
 	//	fx.set(key, val)
@@ -1065,6 +1044,18 @@ W : Environment {
 			res = W(key);
 		};
 		^res;
+	}
+
+	*recdir {
+		var path = Document.current.dir;
+		thisProcess.platform.recordingsDir_(path.debug(\recdir));
+	}
+
+	*mixer {
+		var m = NdefMixer(Server.default);
+		ProxyMeter.addMixer(m);
+		m.switchSize(0);
+		^m;
 	}
 
 	prWInit {|argKey|
@@ -1113,12 +1104,6 @@ W : Environment {
 		if (daw == \reaper) {
 			Reaper.time(val);
 		}
-	}
-
-	recdir {
-		var path = App.workspacedir ++ key;
-		path.debug(\recordingsDir);
-		thisProcess.platform.recordingsDir_(path);
 	}
 
 	save {|rec=true|
@@ -1183,3 +1168,70 @@ W : Environment {
 	}
 
 }
+
+/*
+
+F {
+	*morph {|node, from, to, numsteps=20, wait=0.1|
+		Routine({
+			var numsteps = 20;
+			var fromCopy = from.copy;
+			numsteps.do({|i|
+				var blend = 1 + i / numsteps;
+				fromCopy = fromCopy.blend(to, blend);
+				node.set(*fromCopy.getPairs);
+				wait.wait;
+			});
+			\morphdone.debug(node.key);
+		}).play;
+	}
+}
+reset {
+		this.checkSpec
+		.keysValuesDo({|k, v|
+			var val = v.default;
+			this.set(k, val);
+		});
+	}
+
+	asPreset {
+		^this.envir.asDict.reject({|v, k| v.isNumber.not and: v.isArray.not })
+	}
+
+	fromPreset {|preset|
+		this.set(*preset.asPairs);
+	}
+
+	savePreset {|name|
+		var node = this;
+		var dir = App.librarydir ++ "synths/presets/";
+		var synthDef = node.instrument;
+		var path = dir ++ synthDef;
+		var preset = node.asPreset.asCompileString;
+		var file;
+		if (File.exists(path).not) {
+			File.mkdir(path);
+		};
+		path = path ++ "/" ++ name.asString ++ ".scd";
+		path.postln;
+		file = File(path, "w");
+		file.write(preset);
+		file.close;
+	}
+
+	loadPreset {|name|
+		var node = this;
+		var dir = App.librarydir ++ "/synths/presets/";
+		var synthDef = node.instrument;
+		var path = dir ++ synthDef ++ "/" ++ name.asString ++ ".scd";
+		var dict = thisProcess.interpreter.executeFile(path);
+		node.fromPreset(dict);
+	}
+
+	presetNames {
+		var dir = App.librarydir ++ "/synths/presets/";
+		var synthDef = node.instrument;
+		var path = dir ++ synthDef;
+		^PathName(path).entries.collect({|pn| pn.fileNameWithoutExtension})
+	}
+*/
