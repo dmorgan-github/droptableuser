@@ -11,13 +11,98 @@ V = vst
 W = workspace
 */
 
+Device : Ndef {
+
+	*new {|key|
+		var obj = this.createNew(key).deviceInit();
+		^obj;
+	}
+
+	*createNew {|...args|
+		^super.new(*args);
+	}
+
+	*doesNotUnderstand {|selector|
+		^this.new(selector);
+	}
+
+	deviceInit {
+		// override to initialize
+	}
+
+	/*
+	NOTE: defined extension on NodeProxy for view
+	override on subclass
+	view {}
+	*/
+}
+
+O : Device {
+
+	var <phase;
+
+	phase_ {|func|
+		phase = func;
+		this.prRebuild;
+	}
+
+	deviceInit {
+		// this will call rebuild
+		this.phase_({arg dur, freq, duty, rate;
+			LFSaw.ar(freq, 1);
+		});
+	}
+
+	prRebuild {
+
+		var func = this.phase;
+		this.put(0, {
+
+			var buf = \buf.kr(0);
+			var rate = \rate.kr(1);
+			var trig = \trig.tr(1);
+			var replyid = \bufposreplyid.kr(-1);
+			var startPos = \startPos.kr(0) * BufFrames.kr(buf);
+			var endPos = \endPos.kr(1) * BufFrames.kr(buf);
+			var updateFreq = 60;
+			var sig;
+
+			var dur = ( (endPos - startPos) / BufSampleRate.kr(buf) ) * rate.reciprocal;
+			var duty = TDuty.ar(dur.abs, trig, 1);
+			var index = Stepper.ar(duty, 0, 0, 1 );
+			var phase = func.(dur, dur.reciprocal, duty, rate);
+			phase = phase.range(startPos, endPos);
+
+			/*
+			var phase = Phasor.ar(duty, myrate, startPos, endPos, startPos);
+			//var phase = LFSaw.ar(dur.reciprocal, 1).range(startPos, endPos);
+			//var phase = LFPar.ar(dur.reciprocal * [-1, 2]).range(startPos, endPos);
+			//var phase = Env([0, 0, 1], [0, dur], curve: 0).ar(gate:duty).linlin(0, 1, startPos, endPos);
+			*/
+
+			sig = BufRd.ar(1, buf, phase, 0);
+			// try to remove any clicks
+			//sig = SelectCF.ar(index, sig);
+
+			SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase % BufFrames.kr(buf)], replyid);
+			Splay.ar(sig, \spread.kr(1), center:\center.kr(0)) * \amp.kr(1);
+		});
+
+		this.wakeUp;
+	}
+
+	view {
+		^U(\buf, this)
+	}
+}
+
 S : EventPatternProxy {
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <>defaultQuant;
 
 	var <key, <instrument, <node, <synths;
 
-	var listenerfunc, cmdperiodfunc, <>debug;
+	var listenerfunc, cmdperiodfunc, <>debug, <out;
 
 	*new {arg key, synth;
 		var res;
@@ -43,6 +128,40 @@ S : EventPatternProxy {
 
 	synth_ {|synth|
 		this.prInitSynth(key, synth);
+	}
+
+	out_ {|bus=0|
+		out = bus;
+		this.node.monitor.out = out;
+	}
+
+	monitor {|fadeTime=0.02|
+		this.node.play(fadeTime:fadeTime);
+	}
+
+	mute {|fadeTime=0.02|
+		this.node.stop(fadeTime:fadeTime)
+	}
+
+	embedInStream {|inval, embed = true, default|
+
+		if (this.node.isMonitoring.not) {
+			this.node.play(fadeTime:fadeTime);
+		};
+		super.embedInStream(inval, embed, default);
+	}
+
+	play {|fadeTime=0.02, argClock, protoEvent, quant, doReset=false|
+
+		if (this.node.isMonitoring.not) {
+			this.node.play(fadeTime:fadeTime);
+		};
+		super.play(argClock, protoEvent, quant, doReset);
+	}
+
+	stop {|fadeTime=0.02|
+		this.node.stop(fadeTime:fadeTime);
+		super.stop;
 	}
 
 	prInit {arg inKey;
@@ -80,7 +199,7 @@ S : EventPatternProxy {
 		);
 
 		this.set(
-			\root, {defaultRoot},
+			\root, defaultRoot,
 			\scale, Scale.at(defaultScale).copy.tuning_(defaultTuning),
 		);
 		^this;
@@ -204,7 +323,7 @@ S : EventPatternProxy {
 
 		this.source = Pbind(*args)
 		<>
-		Pbind(\out, Pfunc({ node.bus.index }), \group, Pfunc({node.group}));
+		Pbind(\out, Pfunc({node.bus.index}), \group, Pfunc({node.group}));
 	}
 
 	fx {arg index, func ...args;
@@ -391,9 +510,12 @@ B {
 		};
 		Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
 			all.put(key, buf);
-			path.postln;
-			"added buffer with key: %".format(key).inform;
+			"added buffer with key: %; %".format(key, path).inform;
 		});
+	}
+
+	*mono {|key, path|
+		B.read(key, path, 0);
 	}
 
 	*alloc {|key, numFrames, numChannels=1|
@@ -405,7 +527,6 @@ B {
 	*open {|channels=0|
 		var path = App.mediadir;
 		Dialog.openPanel({|path|
-
 			var id = PathName(path)
 			.fileNameWithoutExtension
 			.replace("-", "")
@@ -686,6 +807,7 @@ N : Ndef {
 	}
 }
 
+/*
 O : Ndef {
 
 	var <phase;
@@ -763,6 +885,7 @@ O : Ndef {
 		^U(\buf, this)
 	}
 }
+*/
 
 // eq
 Q : Ndef {
@@ -842,7 +965,9 @@ U {
 
 V : Ndef {
 
-	var <fx, <pdata, <skipjack, <synth, <vst;
+	var <fx, <pdata, <synth, <vst;
+
+	var <skipjack;
 
 	*new {arg key;
 		var envir = this.dictFor(Server.default).envir;
@@ -925,7 +1050,7 @@ V : Ndef {
 		};
 
 		func.();
-		skipjack = SkipJack(store, 60, { fx == nil }, name: key);
+		//skipjack = SkipJack(store, 60, { fx == nil }, name: key);
 		CmdPeriod.add(func);
 		^this;
 	}
@@ -978,48 +1103,13 @@ V : Ndef {
 	}
 
 	clear {
-		skipjack.stop;
-		SkipJack.stop(key);
+		//skipjack.stop;
+		//SkipJack.stop(key);
 		synth.free;
 		fx.close;
 		fx = nil;
 		super.clear;
 	}
-
-	/*
-	to get param values
-~vals = ();
-(
-r{
-	V.ane.fx.info.parameters.do({|p, i|
-		var name = p[\name].asSymbol;
-		V.ane.fx.get(name, {|f|
-			~vals[name] = f;
-			true.yield;
-		});
-	});
-}.play;
-)
-	)
-
-
-	(
-V.ane.fx.getn(action: {arg v;
-	v.do({|val, i|
-		~parms[i][\val] = val
-	})
-});
-)
-
-	*/
-
-	//set {arg key, val;
-	//	fx.set(key, val)
-	//}
-
-	//map {arg key, val;
-	//	fx.map(key, val)
-	//}
 }
 
 

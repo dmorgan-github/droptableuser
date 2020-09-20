@@ -36,39 +36,16 @@ SynthDef(\plaits, {
 		);
 	};
 
-	var adsr = {
-		var atk = \atk.kr(0.01);
-		var dec = \dec.kr(0);
-		var sus = \suslevel.kr(1);
-		var rel = \rel.kr(1);
-		var curve = \curve.kr(-4);
-		Env.adsr(atk, dec, sus,  rel, curve:curve)
-		.ar(gate:gate, doneAction:Done.freeSelf);
-	};
-
+	var atk = \atk.kr(0.01);
+	var sus = \suslevel.kr(1);
+	var rel = \rel.kr(1);
+	var curve = \curve.kr(-4);
+	var aeg = Env.asr(atk, sus, rel, curve).ar(doneAction:Done.freeSelf, gate:gate);
 	var sig = osc.();
-	var aeg = adsr.();
-
-	var drive = \drive.kr(1).max(1);
-	sig = Select.ar( (drive > 1), [
-		sig,
-		LeakDC.ar((sig * drive).softclip) * drive.sqrt.reciprocal
-	]);
-
-	sig = BLowPass.ar(
-		BHiPass.ar(sig,
-			\hpf.kr(20).clip(20, 18000),
-			\hpfres.kr(0).linlin(0, 1, 1.4, 0.001)
-		),
-		\lpf.kr(20000).clip(20, 20000),
-		\lpfres.kr(0).linlin(0, 1, 1.4, 0.001)
-	);
 
 	//sig = sig.asArray.sum;
-	sig = sig * aeg * AmpCompA.kr(freq, 32) * \amp.kr(0.3) * \vel.kr(1);
-	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
-	//sig = Balance2.ar(sig[0], sig[1], 0);
-	sig;
+	sig = sig * aeg * AmpCompA.kr(freq) * \amp.kr(0.3) * \vel.kr(1);
+	sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
 	Out.ar(\out.kr(0), sig);
 
 }, metadata: (

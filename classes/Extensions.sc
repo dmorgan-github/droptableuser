@@ -28,16 +28,16 @@ Pswitch
 	latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
 	latch {arg func; ^Pclutch(this, Pfunc(func)) }
 	dd {arg repeats=inf; ^Dd(this, repeats)}
+	// don't advance pattern on rests
+	notrest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
 }
 
 + NodeProxy {
-	ngui {
-		var key = \ngui;
-		if (this.respondsTo(\guikey)) {
-			key = this.guikey;
-		};
-		^U(key, this);
+
+	view {
+		^U(\ngui, this);
 	}
+
 	mix {arg index=0, obj, stopmonitor=false, vol=1;
 
 		if (obj.isKindOf(Function)) {

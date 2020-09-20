@@ -34,10 +34,11 @@ SynthDef(\subtractr, {
 			\fsuslevel.kr(1),
 			\frel.kr(1),
 			\fcurve.kr(-4)
-		).ar(gate:gate).linexp(0, 1, cutoff, cutoff * fvel).clip(20, 10000);
+		).ar(gate:gate).linexp(0, 1, cutoff, cutoff * fvel).clip(20, 20000);
 		//var sig = MoogVCF.ar(in, feg, res) * 4;
 		//var sig = MoogFF.ar(in, feg, res.linlin(0, 1, 0, 4)) * 4;
 		var sig = DFM1.ar(in, feg, res);
+
 		//var sig = BLowPass4.ar(in, feg, res.linlin(0, 1, 1, 0.001));
 		//var sig = RLPF.ar(in, feg, res.linlin(0, 1, 1, 0.001));
 		sig;

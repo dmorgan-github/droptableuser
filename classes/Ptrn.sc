@@ -22,6 +22,70 @@ Pwnrand : ListPattern {
 	storeArgs { ^[ list, weights, repeats ] }
 }
 
+// Pdurval
+Pdv : Pbind {
+
+	*new {|list, repeats=inf, key=\degree|
+		^super.new(
+			[key, \dur], Prout({|inval|
+
+				var parse = {arg seq, div=1;
+					var myval = seq;
+					if (myval.class != Ref) {
+						// if the value is a ref don't unpack it here
+						myval = myval.value;
+					};
+
+					if (myval.isArray) {
+						var myseq = myval;
+						var mydiv = 1/myseq.size * div;
+						var stream = Pseq(myseq, 1).asStream;
+						var val = stream.next;
+						while ({val.isNil.not},
+							{
+								parse.(val, mydiv);
+								val = stream.next
+							}
+						);
+					} {
+						if (myval.isRest) {
+							myval = Rest();
+							div = Rest(div);
+						} {
+							if (myval.isKindOf(Ref)) {
+								// if the value is a Ref
+								// unpack it and use as-is
+								// this allows us to configure chords
+								// and multi-channel expansion
+								myval = myval.value;
+							} {
+								if (myval.isNil) {
+									div = nil;
+								}
+							}
+						};
+						inval = [myval, div].embedInStream(inval);
+					}
+				};
+
+				var pseq = if (list.isKindOf(Pattern)) {
+					list.asStream;
+				}{
+					Pseq(list, repeats).asStream;
+				};
+
+				var item;
+				var val = pseq.next;
+				while({val.isNil.not}, {
+					parse.(val);
+					val = pseq.next;
+				});
+				inval;
+			})
+		);
+	}
+}
+
 
 
 Dd : Pattern {
