@@ -1,3 +1,99 @@
+Twister {
+
+	classvar <server, num, page;
+
+	*new {|tabs|
+
+		var update = {|selected|
+			if (selected < tabs.size) {
+				num.do({|i|
+					Rotary(i);
+				});
+				tabs[selected].value.();
+			}
+		};
+
+		num.do({|i|
+			var index = i+1;
+			var path = "/%/nodes/%/1".format(page, index).asSymbol;
+			var func = {|val|
+				var selected = num-index;
+				val = val[0];
+				if (val.asInteger == 1) {
+					update.(selected)
+				}
+			};
+			OscCtrl.path(path, func)
+		});
+
+		tabs.do({|val, num|
+			var name = val.key;
+			var path = "/%/nodelabel%".format(page, num).asSymbol;
+			server.sendMsg(path, name);
+		});
+	}
+
+	*initClass {
+		page = 4;
+		num = 16;
+		StartUp.add({
+			server = NetAddr("10.0.1.81", 9000);
+		});
+	}
+}
+
+Rotary {
+
+	classvar <server;
+
+	*new {|num, label, setfunc, getfunc, spec|
+
+		var page = 4;
+		var valpath = "/%/val%".format(page, num).asSymbol;
+		var labelpath = "/%/label%".format(page, num).asSymbol;
+		var path = "/%/rotary%".format(page, num).asSymbol;
+
+		if (label.isNil) {
+			server.sendMsg(valpath, "");
+			server.sendMsg(labelpath, "");
+			server.sendMsg(path, 0);
+		}{
+			var val;
+			spec = if (spec.isNil) {
+				spec = ControlSpec.specs[label.asSymbol];
+				if (spec.isNil) {
+					spec = ControlSpec(0, 1, \lin, 0, 0);
+				};
+				spec;
+			};
+
+			OscCtrl.path(path, {arg msg;
+				var val = msg[0];
+				val = spec.map(val);
+				setfunc.(val);
+				val = val.trunc(0.001);
+				server.sendMsg(valpath, val);
+			});
+			server.sendMsg(labelpath, label);
+
+			val = getfunc.() ?? spec.default;
+			val = val.trunc(0.001);
+			server.sendMsg(valpath, val);
+
+			val = spec.unmap(val);
+			server.sendMsg(path, val);
+		}
+	}
+
+	*initClass {
+
+		StartUp.add({
+			server = NetAddr("10.0.1.81", 9000);
+		});
+	}
+}
+
+
 /*
 (
 OscCtrl.paths('/rotary8/r', (1..12), {arg val, num;
@@ -282,5 +378,106 @@ Roli : MidiCtrl {
 		id = ('roli_' ++ UniqueID.next).asSymbol;
 	}
 }
+
+/*
+/////////////////////////////////////////
+// name
+(
+
+var page = "4";
+
+~controller = ~controller ?? NetAddr("10.0.1.81", 9000);
+
+~displayname = {|num, name|
+	var path = "/%/nodelabel%".format(page, num).asSymbol;
+	~controller.sendMsg(path, name);
+};
+~setval = {|path, val|
+	~controller.sendMsg(path, val);
+};
+~displaylabel = {|num, label|
+	var path = "/%/label%".format(page, num).asSymbol;
+	~controller.sendMsg(path, label);
+};
+~displayval = {|num, val|
+	var path = "/%/val%".format(page, num).asSymbol;
+	var msg = val.trunc(0.001);
+	~controller.sendMsg(path, msg);
+};
+
+~touchosc_16r = {|nodes|
+
+	var update;
+	var num = 16;
+
+	num.do({|i|
+		var index = i+1;
+		var path = "/%/nodes/%/1".format(page, index).asSymbol;
+		var func = {|val|
+			var selected = num-index;
+			update.(selected);
+		};
+		OscCtrl.path(path, func)
+	});
+
+	nodes.do({|assoc, k|
+		var node = assoc.key;
+		~displayname.(k, node.key);
+	});
+
+	update = {|selected|
+
+		if (selected < nodes.size) {
+
+			var assoc = nodes[selected];
+			var node = assoc.key;
+			var props = assoc.value;
+
+			// clear
+			16.do({|i|
+				var path = "/%/rotary%".format(page, i).asSymbol;
+				var val = 0;
+				~setval.(path, val);
+				~displaylabel.(i, "");
+				~displayval.(i, "");
+				OscCtrl.path(path, nil);
+			});
+
+			props.do({|prop, i|
+
+				var func, val, myval;
+				var path = "/%/rotary%".format(page, i).asSymbol;
+				var spec = node.checkSpec[prop];
+				if (spec.isNil) {
+					spec = [0, 1, \lin, 0, 0].asSpec;
+				};
+
+				val = node.get(prop);
+				myval = spec.unmap(val);
+				~setval.(path, myval);
+				~displaylabel.(i, prop.postln);
+				~displayval.(i, val);
+
+				func = {|val|
+					var myval = val[0];
+					var msg;
+					myval = spec.map(myval);
+					node.set(prop, myval);
+					~displayval.(i, myval);
+				};
+				OscCtrl.path(path, func);
+			});
+		}
+	}
+};
+)
+
+(
+~touchosc_16r.([
+	Pdef(\t2_c) -> [\t2_cutoff, \t2_fvel, \t2_res, \t2_rel, \t2_pulse ],
+	Pdef(\t3_a) -> [\t3_velmin]
+]);
+)
+*/
 
 

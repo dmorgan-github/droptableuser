@@ -26,10 +26,12 @@ SynthDef(\modal, {
 
 	sig = sig * 10.dbamp;
 
-
 	sig = sig * aeg * \amp.kr(0.1) * AmpCompA.kr(freq) * vel;
 	Out.ar(\out.kr(0), sig);
 }, metadata: (
+	credit: "adapted from formulas by Nathan Ho",
+	type: \perc,
+	created: "09/27/2020",
 	specs: (
 		\harm: ControlSpec(-0.06, 2, \lin, 0, 0),
 		\bright: ControlSpec(0, 1, \exp, 0, 0.5)

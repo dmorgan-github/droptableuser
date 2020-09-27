@@ -1,5 +1,5 @@
 (
-SynthDef(\subtractr, {
+SynthDef(\subtractr2, {
 
 	// support mono or poly mode
 	var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
@@ -19,31 +19,27 @@ SynthDef(\subtractr, {
 		var atk = \atk.kr(0.01);
 		var dec = \dec.kr(0);
 		var sus = \suslevel.kr(1);
-		var rel = \rel.kr(1);
-		var curve = \curve.kr(-4);
+		var rel = \rel.kr(0.1).linlin(0, 1, 0, 10);
+		var curve = \curve.kr(0.35).linlin(0, 1, -14, 14);
 		Env.adsr(atk, dec, sus,  rel, curve: curve)
 		.ar(gate:gate, doneAction:Done.freeSelf);
 	};
 
 	var filter = {arg in;
 
-		var cutoff = \cutoff.kr(220);
-		var fvel = \fvel.kr(1);
-		var res = \res.kr(0.5);//.linlin(0, 1, 0, 4);
-
-		/*
+		var cutoff = \cf.kr(0);
+		var fvel = \fvel.kr(0.1).linlin(0, 1, 0, 10);
+		var res = \res.kr(0.5);
 		var feg = Env.asr(
 			\fatk.kr(0.01),
 			\fsuslevel.kr(1),
-			\frel.kr(1),
-			\fcurve.kr(-4)
-		).ar(gate:gate).linexp(0, 1, cutoff, cutoff * fvel).clip(20, 20000);
-		*/
+			\frel.kr(0.1).linlin(0, 1, 0, 10);
+			\fcurve.kr(0.35).linlin(0, 1, -14, 14)
+		).ar(gate:gate).linexp(0, 1, cutoff, cutoff * fvel).clip(0, 1);
 
-		var feg = adsr.().linlin(0, 1, cutoff, cutoff * fvel).clip(20, 20000);
 		//var sig = MoogVCF.ar(in, feg, res) * 4;
 		//var sig = MoogFF.ar(in, feg, res.linlin(0, 1, 0, 4)) * 4;
-		var sig = DFM1.ar(in, feg, res, \drive.kr(1));
+		var sig = DFM1.ar(in, feg.linlin(0, 1, 80, 18000), res, \drive.kr(1));
 
 		//var sig = BLowPass4.ar(in, feg, res.linlin(0, 1, 1, 0.001));
 		//var sig = RLPF.ar(in, feg, res.linlin(0, 1, 1, 0.001));
@@ -117,9 +113,10 @@ SynthDef(\subtractr, {
 		rel: [0.0, 8.0, \lin, 0, 0.29, "aeg"].asSpec,
 		suslevel: [0.0, 1.0, \lin, 0, 1, "aeg"].asSpec,
 		curve: [-8.0, 8.0, \lin, 0, -4, "aeg"].asSpec,
+		ts: [0.001, 100.0, \lin, 0, 1, "aeg"].asSpec,
 
 		cutoff: [20.0, 20000.0, \exp, 0, 100, "filter"].asSpec,
-		fvel: [0.001, 20.0, \lin, 0, 1, "filter"].asSpec,
+		fvel: [0.001, 20.0, \lin, 0, 10, "filter"].asSpec,
 		res: [0.0, 1.0, \lin, 0, 0.5, "filter"].asSpec,
 		fatk: [0.0, 1.0, \lin, 0, 0.01, "filter"].asSpec,
 		frel: [0.0, 8.0, \lin, 0, 0.29, "filter"].asSpec,

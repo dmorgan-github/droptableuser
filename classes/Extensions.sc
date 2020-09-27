@@ -91,7 +91,7 @@ Pswitch
 	kb {
 		^U(\kb, this);
 	}
-	sgui {
+	view {
 		^U(\sgui, this);
 	}
 	nscope {

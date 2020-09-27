@@ -10,12 +10,16 @@ U = ui
 V = vst
 W = workspace
 */
-
 Device : Ndef {
 
 	*new {|key|
-		var obj = this.createNew(key).deviceInit();
-		^obj;
+		var envir = this.dictFor(Server.default).envir;
+		var res = envir[key];
+		if (res.isNil) {
+			res = this.createNew(key).deviceInit();
+			res.vol = 1;
+		}
+		^res;
 	}
 
 	*createNew {|...args|
@@ -30,6 +34,14 @@ Device : Ndef {
 		// override to initialize
 	}
 
+	save {|path|
+
+	}
+
+	out_ {|bus=0|
+		this.monitor.out = bus;
+	}
+
 	/*
 	NOTE: defined extension on NodeProxy for view
 	override on subclass
@@ -37,13 +49,181 @@ Device : Ndef {
 	*/
 }
 
+// eq
+Q : Device {
+
+	var <guikey;
+
+	deviceInit {
+
+		var fromControl;
+		fromControl = {arg controls;
+			controls.clump(3).collect({arg item;
+				[(item[0] + 1000.cpsmidi).midicps, item[1], 10**item[2]]
+			});
+		};
+
+		this.wakeUp;
+		this.play;
+
+		this.put(100, \filter -> {arg in;
+
+			var frdb, input = in;
+			frdb = fromControl.(Control.names([\eq_controls]).kr(0!15));
+			input = BLowShelf.ar(input, *frdb[0][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[1][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[2][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[3][[0,2,1]].lag(0.1));
+			input = BHiShelf.ar(input, *frdb[4][[0,2,1]].lag(0.1));
+			input = RemoveBadValues.ar(input);
+			input;
+		});
+	}
+
+	view {
+		^U(\eq, this)
+	}
+}
+
+M : Device {
+
+	var <map;
+	var <slot;
+
+	deviceInit {
+		map = Order.new;
+		slot = 0;
+		this.wakeUp;
+	}
+
+	view {
+		^U(\matrix, this)
+	}
+
+	addSrc {arg src, stop=false;
+
+		var srcIndex = map.detectIndex({arg v; v == src});
+
+		if (srcIndex.isNil) {
+			srcIndex = slot;
+			map.put(srcIndex, src);
+			this.mix(srcIndex, Ndef(src));
+			if (stop) {
+				Ndef(src).stop;
+			};
+			slot = slot + 1;
+		}
+	}
+
+	removeSrc {|src, clear=true|
+
+		var ndef = Ndef(src);
+		var index = map.indexOf(src);
+		map.do({|key|
+			Ndef(key).removeAt(index);
+			Ndef(key).nodeMap.removeAt(src);
+		});
+		if (clear) {
+			ndef.clear;
+		};
+		map.removeAt(index);
+		this.removeAt(index);
+	}
+
+	save {
+		var settings = List.new;
+		var parent = PathName(thisProcess.nowExecutingPath).parentPath;
+		var ts = Date.getDate.asSortableString;
+		var path = parent ++ this.key.asString ++ "_" ++ ts ++ ".txt";
+		var file;
+
+		this.map.do({arg val;
+
+			//var node = Ndef(val.asSymbol);
+			//var path = "";
+			//node.save(path);
+
+			/*
+			var props = List.new;
+			if (node.isKindOf(V) ) {
+				props.add(\pdata -> node.pdata)
+			}{
+				node.controlNames.do({arg cn;
+					props.add(cn.name.asSymbol -> node.get(cn.name.asSymbol));
+				});
+			};
+			settings.add( val ->  props );
+			*/
+		});
+
+		/*
+		file = File(path, "w");
+		file.write(settings.asCompileString);
+		file.close;
+		path.debug(\saving);
+		*/
+	}
+}
+
+N : Device {
+
+	var <uifunc, fx;
+
+	fx_ {|name|
+		fx = name;
+		this.prBuild;
+	}
+
+	ui {
+		if (uifunc.isNil.not) {
+			^uifunc.(this);
+		} {
+			^U(\ngui, this);
+		}
+	}
+
+	prBuild {
+		var path = App.librarydir ++ "fx/" ++ fx.asString ++ ".scd";
+		var pathname = PathName(path.standardizePath);
+		var fullpath = pathname.fullPath;
+
+		if (File.exists(fullpath)) {
+
+			var name = pathname.fileNameWithoutExtension;
+			var obj = File.open(fullpath, "r").readAllString.interpret;
+			var func = obj[\synth];
+			var specs = obj[\specs];
+			uifunc = obj[\ui].debug(\ui);
+			this.ar(numChannels:2);
+			this.wakeUp;
+			this.filter(100, func);
+
+			if (specs.isNil.not) {
+				specs.do({arg assoc;
+					Ndef(key).addSpec(assoc.key, assoc.value);
+				});
+			};
+
+		} {
+			Error("node not found").throw;
+		}
+	}
+
+	*ls {arg dir;
+		var path = App.librarydir ++ dir;
+		PathName.new(path.asString)
+		.entries.do({arg e; e.fullPath.postln;});
+	}
+}
+
+
 O : Device {
 
 	var <phase;
 
 	phase_ {|func|
 		phase = func;
-		this.prRebuild;
+		this.prBuild;
 	}
 
 	deviceInit {
@@ -53,7 +233,7 @@ O : Device {
 		});
 	}
 
-	prRebuild {
+	prBuild {
 
 		var func = this.phase;
 		this.put(0, {
@@ -93,6 +273,134 @@ O : Device {
 
 	view {
 		^U(\buf, this)
+	}
+}
+
+V : Device {
+
+	var <fx, <pdata, <synth, <vst;
+
+	var <skipjack;
+
+	vst_ {|name|
+		vst = name;
+		this.prBuild;
+	}
+
+	prBuild {
+
+		var func;
+		var store = {
+			if (fx.isNil.not) {
+				//\store.debug(name);
+				fx.getProgramData({ arg data; pdata = data;}, async:true);
+			}
+		};
+
+		var index = 100;
+		var synthdef = (vst ++ UniqueID.next).asSymbol;
+
+		/*
+		Routine({
+			Server.default.sync;
+			this.put(index, synthdef.debug(\synthdef));
+		}).play;
+		*/
+
+		func = {
+
+			Routine({
+
+				SynthDef.new(synthdef, {arg in;
+					var sig = In.ar(in, 2);
+					var wet = ('wet' ++ index).asSymbol.kr(1);
+					XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
+				}).add;
+
+				Server.default.sync;
+				this.put(index, synthdef.debug(\synthdef));
+
+				// this seems necessary, but not sure why
+				//this.wakeUp;
+				synth = Synth.basicNew(synthdef, Server.default, this.objects[index].nodeID);
+				synth.set(\in, this.bus.index);
+				fx = VSTPluginController(synth);
+
+				1.wait;
+				// there can be a delay
+				fx.open(vst.asString, verbose:true, editor:true);
+				vst.debug(\loaded);
+
+				//1.wait;
+				//if (pdata.isNil.not) {
+				//	fx.setProgramData(pdata);
+				//};
+
+				this.wakeUp;
+
+			}).play;
+		};
+
+		func.();
+		//skipjack = SkipJack(store, 60, { fx == nil }, name: key);
+		CmdPeriod.add(func);
+		^this;
+	}
+
+	*directory {
+		var result = List.new;
+		VSTPlugin.search(verbose:false);
+		VSTPlugin.readPlugins.keysValuesDo({arg k, v; result.add(k)});
+		^result.asArray;
+	}
+
+	editor {
+		^fx.editor;
+	}
+
+	vgui {
+		^fx.gui;
+	}
+
+	browse {
+		fx.browse;
+	}
+
+	snapshot {
+		fx.getProgramData({ arg data; pdata = data;});
+	}
+
+	restore {
+		fx.setProgramData(pdata);
+	}
+
+	bypass {arg bypass=0;
+		synth.set(\bypass, bypass)
+	}
+
+	parameters {
+		^fx.info.printParameters
+	}
+
+	settings {|cb|
+		var vals = ();
+		var parms = fx.info.parameters;
+		this.fx.getn(action: {arg v;
+			v.do({|val, i|
+				var name = parms[i][\name];
+				vals[name] = val;
+			});
+			cb.(vals);
+		});
+	}
+
+	clear {
+		//skipjack.stop;
+		//SkipJack.stop(key);
+		synth.free;
+		fx.close;
+		fx = nil;
+		super.clear;
 	}
 }
 
@@ -201,6 +509,7 @@ S : EventPatternProxy {
 		this.set(
 			\root, defaultRoot,
 			\scale, Scale.at(defaultScale).copy.tuning_(defaultTuning),
+			\amp, 0.3
 		);
 		^this;
 	}
@@ -448,42 +757,6 @@ S : EventPatternProxy {
 		defaultRoot = 4;
 		defaultScale = \dorian;
 		defaultQuant = 1;
-
-		StartUp.add({
-			Spec.add(\cutoff, ControlSpec(20, 20000, 'exp', 0, 100, units:"filter"));
-			Spec.add(\hpf, ControlSpec(20, 20000, 'exp', 0, 20, units:"filter"));
-			Spec.add(\lpf, ControlSpec(20, 20000, 'exp', 0, 20000, units:"filter"));
-			Spec.add(\res, ControlSpec(0, 1.4, \lin, 0, 0.5, units:"filter"));
-			Spec.add(\fvel, ControlSpec(0.001, 20, \lin, 0, 10, units:"filter"));
-			Spec.add(\fatk, ControlSpec(0, 1, \lin, 0, 0.01, units:"filter"));
-			Spec.add(\frel, ControlSpec(0, 8, \lin, 0, 0.29, units:"filter"));
-			Spec.add(\fsuslevel, ControlSpec(0, 1, \lin, 0, 1, units:"filter"));
-			Spec.add(\fcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"filter"));
-
-			Spec.add(\start, ControlSpec(0, 1, \lin, 0, 0, units:"buf"));
-			Spec.add(\rate, ControlSpec(0.1, 4.0, \lin, 0, 1, units:"buf"));
-
-			Spec.add(\atk, ControlSpec(0, 1, \lin, 0, 0.01, units:"aeg"));
-			Spec.add(\dec, ControlSpec(0, 1, \lin, 0, 0.2, units:"aeg"));
-			Spec.add(\rel, ControlSpec(0, 8, \lin, 0, 0.29, units:"aeg"));
-			Spec.add(\suslevel, ControlSpec(0, 1, \lin, 0, 1, units:"aeg"));
-			Spec.add(\curve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
-			Spec.add(\atkcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
-			Spec.add(\deccurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
-			Spec.add(\relcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
-			Spec.add(\ts, ControlSpec(0.001, 100, \lin, 0, 1, units:"aeg"));
-
-			Spec.add(\detunehz, ControlSpec(0, 10, \lin, 0, 0, units:"freq"));
-			Spec.add(\bend, ControlSpec(-12, 12, \lin, 0, 0, units:"freq"));
-			Spec.add(\vrate, ControlSpec(0, 440, \lin, 0, 6, units:"freq"));
-			Spec.add(\vdepth, ControlSpec(0, 1, \lin, 0, 0, units:"freq"));
-			Spec.add(\spread, ControlSpec(0, 1, \lin, 0, 1, units:"stereo"));
-			Spec.add(\center, ControlSpec(-1, 1, \lin, 0, 0, units:"stereo"));
-			Spec.add(\pan, ControlSpec(-1, 1, \lin, 0, 0, units:"stereo"));
-			Spec.add(\vel, ControlSpec(0, 1, \lin, 0, 1, units:"vol"));
-			Spec.add(\drive, ControlSpec(1, 100, \lin, 0, 1, units:"vol"));
-			Spec.add(\amp, ControlSpec(0, 1, \lin, 0, -10.dbamp, units:"vol"));
-		});
 	}
 }
 
@@ -651,295 +924,6 @@ E {
 	}
 }
 
-M : Ndef {
-
-	var <map;
-	var <slot;
-
-	*new {arg key;
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil) {
-			res = super.new(key).prMInit();
-		}
-		^res;
-	}
-
-	*doesNotUnderstand {|key|
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil){
-			res = M(key);
-		};
-		^res;
-	}
-
-	prMInit {
-		map = Order.new;
-		slot = 0;
-		this.wakeUp;
-	}
-
-	add {arg src, stop=false;
-
-		var srcIndex = map.detectIndex({arg v; v == src});
-
-		if (srcIndex.isNil) {
-			srcIndex = slot;
-			map.put(srcIndex, src);
-			this.mix(srcIndex, Ndef(src));
-			if (stop) {
-				Ndef(src).stop;
-			};
-			slot = slot + 1;
-		}
-	}
-
-	removeSrc {|src, clear=true|
-
-		var ndef = Ndef(src);
-		var index = map.indexOf(src);
-		map.do({|key|
-			Ndef(key).removeAt(index);
-			Ndef(key).nodeMap.removeAt(src);
-		});
-		if (clear) {
-			ndef.clear;
-		};
-		map.removeAt(index);
-		this.removeAt(index);
-	}
-
-	mgui {
-		^U(\matrix, this)
-	}
-
-	save {
-		var settings = List.new;
-		var parent = PathName(thisProcess.nowExecutingPath).parentPath;
-		var ts = Date.getDate.asSortableString;
-		var path = parent ++ this.key.asString ++ "_" ++ ts ++ ".txt";
-		var file;
-
-		this.map.do({arg val;
-			var props = List.new;
-			var node = Ndef(val.asSymbol);
-			if (node.isKindOf(Vst) ) {
-				props.add(\pdata -> node.pdata)
-			}{
-				node.controlNames.do({arg cn;
-					props.add(cn.name.asSymbol -> node.get(cn.name.asSymbol));
-				});
-			};
-			settings.add( val ->  props );
-		});
-
-		file = File(path, "w");
-		file.write(settings.asCompileString);
-		file.close;
-		path.debug(\saving);
-	}
-}
-
-N : Ndef {
-
-	var <uifunc;
-
-	*new {arg key, fx;
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil) {
-			res = super.new(key).prNInit(fx);
-		}
-		^res;
-	}
-
-	*doesNotUnderstand {|key|
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil){
-			"% does not exist".format(key).warn;
-		};
-		^res;
-	}
-
-	ui {
-		if (uifunc.isNil.not) {
-			^uifunc.(this);
-		} {
-			^U(\ngui, this);
-		}
-	}
-
-	prNInit {|argFx|
-
-		var path = App.librarydir ++ "fx/" ++ argFx.asString ++ ".scd";
-		var pathname = PathName(path.standardizePath);
-		var fullpath = pathname.fullPath;
-
-		if (File.exists(fullpath)) {
-
-			var name = pathname.fileNameWithoutExtension;
-			var obj = File.open(fullpath, "r").readAllString.interpret;
-			var func = obj[\synth];
-			var specs = obj[\specs];
-			uifunc = obj[\ui].debug(\ui);
-			this.ar(numChannels:2);
-			this.wakeUp;
-			this.filter(100, func);
-
-			if (specs.isNil.not) {
-				specs.do({arg assoc;
-					Ndef(key).addSpec(assoc.key, assoc.value);
-				});
-			};
-
-		} {
-			Error("node not found").throw;
-		}
-		^this;
-	}
-
-	*ls {arg dir;
-		var path = App.librarydir ++ dir;
-		PathName.new(path.asString)
-		.entries.do({arg e; e.fullPath.postln;});
-	}
-}
-
-/*
-O : Ndef {
-
-	var <phase;
-
-	*new {arg key;
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil) {
-			res = super.new(key).prOInit();
-		}
-		^res;
-	}
-
-	*doesNotUnderstand {|key|
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil){
-			res = O(key);
-		};
-		^res;
-	}
-
-	phase_ {|func|
-		phase = func;
-		this.prRebuild;
-	}
-
-	prOInit {
-		this.phase_({arg dur, freq, duty, rate;
-			LFSaw.ar(freq, 1);
-		});
-		^this;
-	}
-
-	prRebuild {
-
-		var func = this.phase;
-
-		this.put(0, {
-
-			var buf = \buf.kr(0);
-			var rate = \rate.kr(1);
-			var trig = \trig.tr(1);
-			var replyid = \bufposreplyid.kr(-1);
-			var startPos = \startPos.kr(0) * BufFrames.kr(buf);
-			var endPos = \endPos.kr(1) * BufFrames.kr(buf);
-			var updateFreq = 60;
-			var sig;
-
-			var dur = ( (endPos - startPos) / BufSampleRate.kr(buf) ) * rate.reciprocal;
-			var duty = TDuty.ar(dur.abs, trig, 1);
-			var index = Stepper.ar(duty, 0, 0, 1 );
-			var phase = func.(dur, dur.reciprocal, duty, rate);
-			phase = phase.range(startPos, endPos);
-
-			/*
-			var phase = Phasor.ar(duty, myrate, startPos, endPos, startPos);
-			//var phase = LFSaw.ar(dur.reciprocal, 1).range(startPos, endPos);
-			//var phase = LFPar.ar(dur.reciprocal * [-1, 2]).range(startPos, endPos);
-			//var phase = Env([0, 0, 1], [0, dur], curve: 0).ar(gate:duty).linlin(0, 1, startPos, endPos);
-			*/
-
-			sig = BufRd.ar(1, buf, phase, 0);
-			// try to remove any clicks
-			//sig = SelectCF.ar(index, sig);
-
-			SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase % BufFrames.kr(buf)], replyid);
-			Splay.ar(sig, \spread.kr(1), center:\center.kr(0)) * \amp.kr(1);
-		});
-
-		this.wakeUp;
-	}
-
-	ngui {
-		^U(\buf, this)
-	}
-}
-*/
-
-// eq
-Q : Ndef {
-
-	var <guikey;
-
-	*new {arg key;
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil) {
-			res = super.new(key).prQInit();
-		}
-		^res;
-	}
-
-	*doesNotUnderstand {|key|
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil){
-			"% does not exist".format(key).warn;
-		};
-		^res;
-	}
-
-	prQInit {
-
-		var fromControl;
-
-		fromControl = {arg controls;
-			controls.clump(3).collect({arg item;
-				[(item[0] + 1000.cpsmidi).midicps, item[1], 10**item[2]]
-			});
-		};
-
-		guikey = \eq;
-		this.wakeUp;
-		this.play;
-
-		this.put(100, \filter -> {arg in;
-
-			var frdb, input = in;
-			frdb = fromControl.(Control.names([\eq_controls]).kr(0!15));
-			input = BLowShelf.ar(input, *frdb[0][[0,2,1]].lag(0.1));
-			input = BPeakEQ.ar(input, *frdb[1][[0,2,1]].lag(0.1));
-			input = BPeakEQ.ar(input, *frdb[2][[0,2,1]].lag(0.1));
-			input = BPeakEQ.ar(input, *frdb[3][[0,2,1]].lag(0.1));
-			input = BHiShelf.ar(input, *frdb[4][[0,2,1]].lag(0.1));
-			input = RemoveBadValues.ar(input);
-			input;
-		});
-	}
-}
-
-
 U {
 	*new {arg key ...args;
 
@@ -961,157 +945,6 @@ U {
 		.entries.do({arg e; e.fullPath.postln;});
 	}
 }
-
-
-V : Ndef {
-
-	var <fx, <pdata, <synth, <vst;
-
-	var <skipjack;
-
-	*new {arg key;
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil) {
-			res = super.new(key).prVstInit;
-		}
-		^res;
-	}
-
-	*doesNotUnderstand {|key|
-		var envir = this.dictFor(Server.default).envir;
-		var res = envir[key];
-		if (res.isNil){
-			res = V(key);
-		};
-		^res;
-	}
-
-	vst_ {|name|
-		vst = name;
-		this.prBuild;
-	}
-
-	prVstInit {
-		^this;
-	}
-
-	prBuild {
-
-		var func;
-		var store = {
-			if (fx.isNil.not) {
-				//\store.debug(name);
-				fx.getProgramData({ arg data; pdata = data;}, async:true);
-			}
-		};
-
-		var index = 100;
-		var synthdef = (vst ++ UniqueID.next).asSymbol;
-
-		SynthDef.new(synthdef, {arg in;
-			var sig = In.ar(in, 2);
-			var wet = ('wet' ++ index).asSymbol.kr(1);
-			XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
-		}).add;
-
-		Routine({
-			1.wait;
-			this.put(index, synthdef.debug(\synthdef));
-		}).play;
-
-		func = {
-
-			Routine({
-
-				// this seems necessary, but not sure why
-				2.wait;
-
-				this.wakeUp;
-
-				1.wait;
-				synth = Synth.basicNew(synthdef, Server.default, this.objects[index].nodeID);
-				synth.set(\in, this.bus.index);
-				fx = VSTPluginController(synth);
-
-				1.wait;
-				// there can be a delay
-				fx.open(vst.asString, verbose:true, editor:true);
-				vst.debug(\loaded);
-
-				1.wait;
-				if (pdata.isNil.not) {
-					fx.setProgramData(pdata);
-				};
-
-				this.wakeUp;
-
-			}).play;
-		};
-
-		func.();
-		//skipjack = SkipJack(store, 60, { fx == nil }, name: key);
-		CmdPeriod.add(func);
-		^this;
-	}
-
-	*directory {
-		var result = List.new;
-		VSTPlugin.search(verbose:false);
-		VSTPlugin.readPlugins.keysValuesDo({arg k, v; result.add(k)});
-		^result.asArray;
-	}
-
-	editor {
-		^fx.editor;
-	}
-
-	vgui {
-		^fx.gui;
-	}
-
-	browse {
-		fx.browse;
-	}
-
-	snapshot {
-		fx.getProgramData({ arg data; pdata = data;});
-	}
-
-	restore {
-		fx.setProgramData(pdata);
-	}
-
-	bypass {arg bypass=0;
-		synth.set(\bypass, bypass)
-	}
-
-	parameters {
-		^fx.info.printParameters
-	}
-
-	settings {|cb|
-		var vals = ();
-		var parms = fx.info.parameters;
-		this.fx.getn(action: {arg v;
-			v.do({|val, i|
-				var name = parms[i][\name];
-				vals[name] = val;
-			});
-			cb.(vals);
-		});
-	}
-
-	clear {
-		//skipjack.stop;
-		//SkipJack.stop(key);
-		synth.free;
-		fx.close;
-		fx = nil;
-		super.clear;
-	}
-}
-
 
 W : Environment {
 
