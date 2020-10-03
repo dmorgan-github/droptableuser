@@ -1,6 +1,6 @@
 Twister {
 
-	classvar <server, num, page;
+	classvar <server, num, <>page;
 
 	*new {|tabs|
 
@@ -34,7 +34,7 @@ Twister {
 	}
 
 	*initClass {
-		page = 4;
+		page = 'twister';
 		num = 16;
 		StartUp.add({
 			server = NetAddr("10.0.1.81", 9000);
@@ -48,7 +48,7 @@ Rotary {
 
 	*new {|num, label, setfunc, getfunc, spec|
 
-		var page = 4;
+		var page = 'twister';
 		var valpath = "/%/val%".format(page, num).asSymbol;
 		var labelpath = "/%/label%".format(page, num).asSymbol;
 		var path = "/%/rotary%".format(page, num).asSymbol;

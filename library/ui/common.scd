@@ -156,7 +156,14 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 
 Fdef(\playview, {arg node;
 
+	var levelkey;
 	var view;
+	var font = Font(size:8);
+	var slider = Slider();
+	var levelView, setAmps, skipjack;
+	var uv, preAmp = 0, postAmp = 0;
+	var height = 20;
+
 	view = View().layout_(
 		HLayout(
 			Button().states_([
@@ -170,40 +177,137 @@ Fdef(\playview, {arg node;
 				}
 			})
 			.value_(node.isMonitoring.asInteger)
-			.maxHeight_(18)
+			.maxHeight_(height)
 			.maxWidth_(25),
-			Slider()
+
+			slider
 			.orientation_(\horizontal)
 			.thumbSize_(7)
 			.action_({arg ctrl;
 				var msg;
-				node.vol = ctrl.value.linlin(0, 1, 0, 4);
+				node.vol = ctrl.value;
 				msg = "vol:" + node.vol.trunc(0.001);
 				view.changed(\prop, (key:\vol, val:msg));
 			})
-			.value_(node.vol.linlin(0, 4, 0, 1))
-			.minWidth_(50)
-			.maxWidth_(75)
+			.value_(node.vol)
+			.fixedSize_(Size(75, height))
+			//.minWidth_(50)
+			//.maxWidth_(75)
 			.toolTip_("vol"),
 
-			Slider()
-			.orientation_(\horizontal)
-			.thumbSize_(7)
-			.maxWidth_(20)
+			NumberBox()
 			.action_({arg ctrl;
 				var msg;
-				node.fadeTime = ctrl.value.linlin(0, 1, 0, 120);
+				node.fadeTime = ctrl.value;
 				msg = "fadetime:" + node.fadeTime.trunc(0.001);
 				view.changed(\prop, (key:\fadetime, val:msg));
 			})
+			.font_(font)
+			.normalColor_(Color.white)
+			.decimals_(2)
+			.maxWidth_(35)
+			.maxHeight_(height)
 			.value_(node.fadeTime.linlin(0, 120, 0, 1))
-			.minWidth_(50)
-			.maxWidth_(75)
 			.toolTip_("fade time"),
-			nil
+
+			NumberBox()
+			.action_({arg ctrl;
+				var msg;
+				msg = "channel:" + ctrl.value;
+				view.changed(\prop, (key:\channel, val:msg));
+			})
+			.font_(font)
+			.normalColor_(Color.white)
+			.decimals_(0)
+			.maxWidth_(25)
+			.maxHeight_(height)
+			.value_(0)
+			.toolTip_("channel"),
+
 		).spacing_(1).margins_(1)
 	);
 
-	view;
+	levelView = {|parent, bounds|
+
+		var preCol = Color.yellow(1.0, 0.4);
+		var postCol = Color.green(0.7, 0.4);
+		var preSatCol = Color.red(1, 0.4);
+		var satCol = Color.red(1, 0.6);
+
+		uv = UserView(parent, bounds.postln);
+		uv.background_(Color(1,1,1,0));
+		uv.acceptsMouse_(false);
+
+		// horizontal for now:
+		uv.drawFunc = { |uv|
+			var bounds = uv.bounds;
+			var maxwid = bounds.width - 4;
+			var height = bounds.height - 4;
+			var satPreLeft, satLeft;
+
+			if (preAmp > 0) {
+				Pen.color_(preCol);
+				Pen.addRect(Rect(2,2, preAmp * maxwid, height));
+				Pen.fill;
+				if (preAmp > 1.0) {
+					Pen.color_(preSatCol);
+					satPreLeft = (1 - (preAmp - 1).clip(0, 1)) * maxwid;
+					Pen.addRect(Rect( satPreLeft, 2, maxwid, height));
+					Pen.fill;
+				};
+			};
+
+			if (postAmp > 0) {
+				Pen.color_(postCol);
+				Pen.addRect(Rect(2,2, postAmp * maxwid, height));
+				Pen.fill;
+				if (postAmp > 1.0) {
+					Pen.color_(satCol);
+					satLeft = (1 - (postAmp - 1).clip(0, 1)) * maxwid;
+					Pen.addRect(Rect( satLeft, 2, maxwid, height));
+					Pen.fill;
+				};
+			};
+		};
+	};
+
+	setAmps = {|pre = 0, post = 0|
+		preAmp = pre.sqrt;
+		postAmp = post.sqrt;
+		uv.refresh;
+	};
+
+	levelView.(slider, slider.bounds.left_(0).top_(0).width_(75).height_(height));
+	levelkey = (node.key ++ 'amp').asSymbol;
+
+	Ndef(levelkey, {
+		var decay = 0.99994;
+		var inArray = InFeedback.ar(node.bus.index, node.bus.numChannels).asArray;
+		var amps = A2K.kr(PeakFollower.ar(inArray, decay: decay));
+		var max = 0;
+		amps.do {|amp| max = max(max, amp)	};
+		max;
+	});
+
+	OSCdef(node.key, {|msg|
+		var vols = msg.copyToEnd(3);
+		var preVol = vols[0];
+		var postVol = if (node.monitor.isPlaying, node.vol, 0) * preVol;
+		defer {
+			setAmps.(preVol, postVol);
+		};
+
+	}, '/c_setn', Ndef(levelkey).server.addr, nil, [Ndef(levelkey).bus.index]);
+
+	skipjack = SkipJack({
+		Ndef(levelkey).server.listSendMsg(Ndef(levelkey).bus.getnMsg(1));
+	}, 0.03, false, 'ProxyMeter');
+
+	view.onClose_({
+		\release.postln;
+		skipjack.stop;
+		OSCdef(node.key).free;
+		Ndef(levelkey).free;
+	})
 });
 )

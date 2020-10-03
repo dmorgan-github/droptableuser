@@ -45,7 +45,8 @@ SynthDef(\plaits, {
 
 	//sig = sig.asArray.sum;
 	sig = sig * aeg * AmpCompA.kr(freq) * \amp.kr(0.3) * \vel.kr(1);
-	sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
+	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
+	//Balance2.ar(sig[0], sig[1], \pan.kr(0));
 	Out.ar(\out.kr(0), sig);
 
 }, metadata: (
