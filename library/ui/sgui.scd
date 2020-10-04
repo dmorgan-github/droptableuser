@@ -71,6 +71,7 @@ Fdef(\sgui, {arg synth;
 		}
 	};
 	synth.addDependant(nodeListener);
+
 	win = View().layout_(VLayout(
 		presetsview,
 		playview
