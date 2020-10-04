@@ -66,16 +66,32 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 	.stringColor_(Color.white)
 	.toolTip_(label);
 
+	var li, st, nb;
+	var getValue = {}, setValue = {};
+
 	if (myval.isNumber) {
-		var li = LevelIndicator().value_(controlSpec.unmap(myval));
-		var st = StaticText().string_(myval.trunc(0.001)).font_(font).stringColor_(Color.white);
-		var nb = NumberBox()
+
+		li = LevelIndicator().value_(controlSpec.unmap(myval));
+		st = StaticText().string_(myval.trunc(0.001)).font_(font).stringColor_(Color.white);
+		nb = NumberBox()
 		.font_(font)
 		.value_(myval)
 		.background_(Color.white)
 		.minDecimals_(3)
 		.clipLo_(controlSpec.minval)
 		.clipHi_(controlSpec.maxval);
+
+		setValue = {|self, val|
+			var unmap = controlSpec.unmap(val);
+			li.value = unmap;
+			st.string_(val.trunc(0.001));
+			nb.value = val;
+			myval = val;
+		};
+
+		getValue = {|self|
+			myval;
+		};
 
 		stack = StackLayout(
 			View()
@@ -100,6 +116,7 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 					li.value = val;
 					st.string_(mappedVal.trunc(0.001));
 					nb.value = mappedVal;
+					myval = mappedVal;
 					cb.(key, mappedVal);
 				};
 				true;
@@ -110,6 +127,7 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 					li.value = controlSpec.unmap(val);
 					st.string_(val.trunc(0.001));
 					nb.value = val;
+					myval = val;
 					cb.(key, val);
 				} {
 					if (mod == 0) {
@@ -118,6 +136,7 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 						li.value = val;
 						st.string_(mappedVal.trunc(0.001));
 						nb.value = mappedVal;
+						myval = mappedVal;
 						cb.(key, mappedVal);
 						true;
 					};
@@ -128,6 +147,7 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 				var val = ctrl.value;
 				li.value = controlSpec.unmap(val);
 				st.string_(val);
+				myval = val;
 				cb.(key, val);
 				stack.index = 0;
 			}),
@@ -144,14 +164,20 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 				};
 				true;
 			}).fixedHeight_(25)
-		).margins_(0).spacing_(1));
+		).margins_(0).spacing_(1))
 	} {
 		var text = label + myval.asCompileString;
 		var st = StaticText().string_(text).font_(font).stringColor_(Color.white);
 		view = View().layout_(HLayout( st ).margins_(1).spacing_(1) ).fixedHeight_(25);
 	};
 
-	view;
+	(
+		getValue: getValue,
+		setValue: setValue,
+		asView: view
+	);
+
+	//view;
 });
 
 Fdef(\playview, {arg node;
@@ -207,7 +233,7 @@ Fdef(\playview, {arg node;
 			.decimals_(2)
 			.maxWidth_(35)
 			.maxHeight_(height)
-			.value_(node.fadeTime.linlin(0, 120, 0, 1))
+			.value_(node.fadeTime)
 			.toolTip_("fade time"),
 
 			NumberBox()
@@ -234,7 +260,7 @@ Fdef(\playview, {arg node;
 		var preSatCol = Color.red(1, 0.4);
 		var satCol = Color.red(1, 0.6);
 
-		uv = UserView(parent, bounds.postln);
+		uv = UserView(parent, bounds);
 		uv.background_(Color(1,1,1,0));
 		uv.acceptsMouse_(false);
 
@@ -310,4 +336,34 @@ Fdef(\playview, {arg node;
 		Ndef(levelkey).free;
 	})
 });
+
+Fdef(\presetsview, {|node|
+	var num = 10;
+	var size = 12;
+	var grid, view;
+	var buttons;
+	buttons = num.collect({|i|
+		Button()
+		.states_([ [nil, nil, Color.clear.alpha_(1.5) ], [nil, nil, Color.red ] ])
+		.action_({|ctrl|
+			buttons.do({|btn, j|
+				if (i != j) {
+					if (btn.value == 1) {
+						btn.states = [ [nil, nil, Color.green ], [nil, nil, Color.red ] ]
+					};
+					btn.value = 0;
+				}
+			});
+			if (ctrl.value == 1) {
+				//ctrl.states = [ [nil, nil, Color.green ], [nil, nil, Color.red ] ]
+			}
+		})
+	});
+	grid = GridLayout.rows(
+		buttons//[0..7],
+		//buttons[8..15]
+	).margins_(0).spacing_(0);
+	view = View().layout_(grid);
+	view;
+})
 )

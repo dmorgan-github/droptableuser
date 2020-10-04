@@ -4,12 +4,55 @@ E = event sequencer
 M = matrix
 N = node
 O = looper
+P = presets
 Q = eq
 S = synth
 U = ui
 V = vst
 W = workspace
 */
+
+P {
+	*addPreset {|node, num, preset|
+		var key = node.key;
+		var presets = Halo.at(key);
+		if (presets.isNil) {
+			presets = Order.new;
+			Halo.put(key, presets);
+		};
+		presets.put(num, preset);
+	}
+
+	*getPresets {|node|
+		var key = node.key;
+		var presets = Halo.at(key);
+		^presets
+	}
+
+	*getPreset {|node, num|
+		var key = node.key;
+		var presets = this.getPresets(key);
+		^presets[num];
+	}
+
+	morph {|node, from, to, numsteps=20, wait=0.1|
+		var key = node.key;
+		Routine({
+			var presets = this.getPresets(key);
+			var numsteps = 20;
+			var fromCopy = presets[from].copy;
+			var toPreset = presets[to];
+			numsteps.do({|i|
+				var blend = 1 + i / numsteps;
+				fromCopy = fromCopy.blend(toPreset, blend);
+				node.set(*fromCopy.getPairs);
+				wait.wait;
+			});
+			\morph_done.debug(key);
+		}).play;
+	}
+}
+
 Device : Ndef {
 
 	*new {|key|
@@ -40,6 +83,23 @@ Device : Ndef {
 
 	out_ {|bus=0|
 		this.monitor.out = bus;
+	}
+
+	getSettings {
+		^this.getKeysValues.flatten.asDict;
+	}
+
+	addPreset {|num|
+		P.addPreset(this, num, this.getSettings);
+	}
+
+	loadPreset {|num|
+		var preset = P.getPreset(this, num);
+		this.set(*preset.getPairs);
+	}
+
+	morph {|from, to, numsteps=20, wait=0.1|
+		P.morph(this, from, to, numsteps, wait);
 	}
 
 	/*

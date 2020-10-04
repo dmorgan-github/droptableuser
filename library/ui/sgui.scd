@@ -1,12 +1,8 @@
 (
-
-/*
-SendPeakRMS
-*/
-
 Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\sgui, {arg synth;
 
+	var win, nodeListener;
 	var view = View()
 	.layout_(VLayout().margins_(0.5).spacing_(0.5));
 
@@ -14,6 +10,7 @@ Fdef(\sgui, {arg synth;
 	var ctrlView = Fdef(\ctrlview);
 	var baseViewFunc = Fdef(\baseview);
 	var playview = Fdef(\playview);
+	var presetsview = Fdef(\presetsview);
 	var specs = Halo.at(synth, \spec);
 
 	var scrollView = ScrollView();
@@ -21,14 +18,12 @@ Fdef(\sgui, {arg synth;
 		synth.set(key, val)
 	};
 
+	var ctrlViews = ();
+
 	playview = playview.(synth.node);//.addDependant(viewListener);
-	view.layout.add(playview);
+	presetsview = presetsview.(synth);
 
 	{
-		// bit of a hack since the specs are configured
-		// in a dictionary which doesn't retain order
-		// so, we can overload the units prop of a controlspec
-		// as a way to gruop related controls together
 		var groups = ();
 		var specgroups;
 		specs.do({arg val; groups[val.asSpec.units.asSymbol] = 1});
@@ -46,23 +41,47 @@ Fdef(\sgui, {arg synth;
 			val.do({arg assoc;
 				var k = assoc.key;
 				var v = assoc.value;
-				var ctrl = ctrlView.(k, v.asSpec, Color.rand, synth.get(k), cb);
-				view.layout.add(ctrl);
+				var ctrl = ctrlView.(k, v.asSpec, Color.rand, synth.get(k), cb, synth);
+				ctrlViews[k] = ctrl;
+				view.layout.add(ctrl.asView);
 			});
 		});
 
 	}.();
 
 	view.layout.add(nil);
-	view.onClose_({
-		//watcher.debug(\free);
-		//watcher.free;
-	});
 	scrollView.canvas = view.background_(Color.clear);
-	scrollView.fixedSize = Size(150, 175);
+	presetsview = presetsview.();
+	playview = playview.(synth.node);//.addDependant(viewListener);
 
-	baseview = baseViewFunc.(scrollView, synth.key, 150, 175);
+	nodeListener = {|obj, op, pairs|
+		if (op == \set) {
+			var vals = pairs.flatten;
+			vals.doAdjacentPairs({|key, val|
+				if (val.isNumber) {
+					var v = ctrlViews[key];
+					if (v.isNil.not) {
+						var current = v.getValue();
+						if (current != val) {
+							v.setValue(val);
+						}
+					}
+				}
+			});
+		}
+	};
+	synth.addDependant(nodeListener);
+	win = View().layout_(VLayout(
+		presetsview,
+		playview
+	).margins_(2).spacing_(2));
+
+	win.layout.add(scrollView);
+	win = win.fixedSize_(Size(150, 170)).onClose_({
+		synth.removeDependant(nodeListener);
+	});
+
+	baseview = baseViewFunc.(win, synth.key, 150, 170);
 	baseview.front;
 });
-//Fdef(\sgui).(~etf);
 )
