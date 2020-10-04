@@ -176,8 +176,6 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 		setValue: setValue,
 		asView: view
 	);
-
-	//view;
 });
 
 Fdef(\playview, {arg node;
@@ -330,32 +328,32 @@ Fdef(\playview, {arg node;
 	}, 0.03, false, 'ProxyMeter');
 
 	view.onClose_({
-		\release.postln;
+		[node.key, \playview, \release].postln;
 		skipjack.stop;
 		OSCdef(node.key).free;
 		Ndef(levelkey).free;
 	})
 });
 
-Fdef(\presetsview, {|node|
+Fdef(\presetsview, {|node, cb|
 	var num = 10;
 	var size = 12;
 	var grid, view;
 	var buttons;
 	buttons = num.collect({|i|
 		Button()
-		.states_([ [nil, nil, Color.clear.alpha_(1.5) ], [nil, nil, Color.red ] ])
+		.states_([ [nil, nil, Color.clear.alpha_(1.5) ], [nil, nil, Color.red.alpha_(0.5) ] ])
 		.action_({|ctrl|
 			buttons.do({|btn, j|
 				if (i != j) {
 					if (btn.value == 1) {
-						btn.states = [ [nil, nil, Color.green ], [nil, nil, Color.red ] ]
+						btn.states = [ [nil, nil, Color.green.alpha_(0.5) ], [nil, nil, Color.red.alpha_(0.5) ] ]
 					};
 					btn.value = 0;
 				}
 			});
 			if (ctrl.value == 1) {
-				//ctrl.states = [ [nil, nil, Color.green ], [nil, nil, Color.red ] ]
+				cb.(i);
 			}
 		})
 	});

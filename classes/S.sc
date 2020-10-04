@@ -1,6 +1,7 @@
 /*
 B = buffer
 E = event sequencer
+L = launcher
 M = matrix
 N = node
 O = looper
@@ -11,47 +12,6 @@ U = ui
 V = vst
 W = workspace
 */
-
-P {
-	*addPreset {|node, num, preset|
-		var key = node.key;
-		var presets = Halo.at(key);
-		if (presets.isNil) {
-			presets = Order.new;
-			Halo.put(key, presets);
-		};
-		presets.put(num, preset);
-	}
-
-	*getPresets {|node|
-		var key = node.key;
-		var presets = Halo.at(key);
-		^presets
-	}
-
-	*getPreset {|node, num|
-		var key = node.key;
-		var presets = this.getPresets(key);
-		^presets[num];
-	}
-
-	morph {|node, from, to, numsteps=20, wait=0.1|
-		var key = node.key;
-		Routine({
-			var presets = this.getPresets(key);
-			var numsteps = 20;
-			var fromCopy = presets[from].copy;
-			var toPreset = presets[to];
-			numsteps.do({|i|
-				var blend = 1 + i / numsteps;
-				fromCopy = fromCopy.blend(toPreset, blend);
-				node.set(*fromCopy.getPairs);
-				wait.wait;
-			});
-			\morph_done.debug(key);
-		}).play;
-	}
-}
 
 Device : Ndef {
 
@@ -98,6 +58,10 @@ Device : Ndef {
 		this.set(*preset.getPairs);
 	}
 
+	getPresets {
+		^P.getPresets(this);
+	}
+
 	morph {|from, to, numsteps=20, wait=0.1|
 		P.morph(this, from, to, numsteps, wait);
 	}
@@ -109,42 +73,187 @@ Device : Ndef {
 	*/
 }
 
-// eq
-Q : Device {
+/*
+Buffer
+*/
+B {
+	classvar <all;
 
-	var <guikey;
+	*new {arg key;
+		^all[key]
+	}
 
-	deviceInit {
-
-		var fromControl;
-		fromControl = {arg controls;
-			controls.clump(3).collect({arg item;
-				[(item[0] + 1000.cpsmidi).midicps, item[1], 10**item[2]]
-			});
+	*doesNotUnderstand {|key|
+		var res = all[key];
+		if (res.isNil){
+			"% does not exist".format(key).warn;
 		};
+		^res;
+	}
 
-		this.wakeUp;
-		this.play;
-
-		this.put(100, \filter -> {arg in;
-
-			var frdb, input = in;
-			frdb = fromControl.(Control.names([\eq_controls]).kr(0!15));
-			input = BLowShelf.ar(input, *frdb[0][[0,2,1]].lag(0.1));
-			input = BPeakEQ.ar(input, *frdb[1][[0,2,1]].lag(0.1));
-			input = BPeakEQ.ar(input, *frdb[2][[0,2,1]].lag(0.1));
-			input = BPeakEQ.ar(input, *frdb[3][[0,2,1]].lag(0.1));
-			input = BHiShelf.ar(input, *frdb[4][[0,2,1]].lag(0.1));
-			input = RemoveBadValues.ar(input);
-			input;
+	*read {arg key, path, channels=nil;
+		if (channels.isNil) {
+			channels = [0,1];
+		}{
+			channels = channels.asArray;
+		};
+		Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
+			all.put(key, buf);
+			"added buffer with key: %; %".format(key, path).inform;
 		});
 	}
 
-	view {
-		^U(\eq, this)
+	*mono {|key, path|
+		B.read(key, path, 0);
+	}
+
+	*alloc {|key, numFrames, numChannels=1|
+		var buf = Buffer.alloc(Server.default, numFrames, numChannels);
+		all.put(key, buf);
+		"allocated buffer with key: %".format(key).inform;
+	}
+
+	*open {|channels=0|
+		var path = App.mediadir;
+		Dialog.openPanel({|path|
+			var id = PathName(path)
+			.fileNameWithoutExtension
+			.replace("-", "")
+			.replace(" ", "")
+			.replace("_", "")
+			.toLower;
+
+			B.read(id, path, channels);
+		},{
+			"cancelled".postln;
+		}, path:path);
+	}
+
+	*initClass {
+		all = IdentityDictionary();
 	}
 }
 
+/*
+basically stolen and adapted from https://github.com/scztt/OSequence.quark
+*/
+E {
+	var <>events, <>duration;
+
+	*new {
+		^super.new.init();
+	}
+
+	*fromPattern {|pattern, duration|
+		var seq = E();
+		seq.events = E.order(pattern, duration);
+		seq.duration = duration;
+		^seq;
+	}
+
+	init {
+		^this;
+	}
+
+	*order {|pattern, duration|
+		var order = Order.new;
+		var time = 0;
+		var stream = pattern.asStream;
+		var evt = stream.next(Event.default);
+		while ( {evt.isNil.not and: (time < duration) }, {
+			var dur = evt[\dur];
+			if ((time + dur) > duration) {
+				dur = duration - time;
+				evt[\dur] = dur;
+			};
+			order.put(time, evt);
+			time = time + dur;
+			evt = stream.next(evt);
+		});
+		^order;
+	}
+
+	put {|time, event|
+		// need to handle adding to beginning and end of sequence
+		if (time > this.duration) {
+			"time is greater than duration".error;
+		} {
+			var nextIndex = this.events.nextSlotFor(time);
+			var prevIndex = nextIndex-1;
+			var prevTime = this.events.indices[prevIndex];
+			var prevEvent = this.events.array[prevIndex];
+			var nextTime = this.events.indices[nextIndex];
+			var dur = nextTime - time;
+			prevEvent[\dur] = time - prevTime;
+			event[\dur] = dur;
+			this.events.put(time, event);
+		}
+	}
+
+	remove {|time|
+		var nextIndex = events.nextSlotFor(time);
+		var prevIndex = nextIndex-2;
+		var prevTime = events.indices[prevIndex];
+		var prevEvent = events.array[prevIndex];
+		var nextTime = events.indices[nextIndex];
+		var dur = nextTime - prevTime;
+		prevEvent[\dur] = dur;
+		events.removeAt(time);
+	}
+
+	copy {
+		var eventsCopy = this.events.collect({|evt| evt.copy});
+		var seq = E();
+		seq.events = eventsCopy;
+		seq.duration = this.duration;
+		^seq;
+	}
+
+	perform {|selector ...args|
+		var pseq, order;
+		var array = this.events.array.perform(selector, *args);
+		pseq = Pseq(array, inf);
+		order = E.order(pseq, this.duration);
+		this.events = order;
+	}
+
+	set {|pattern, duration|
+		this.events = E.order(pattern, duration);
+		this.duration = duration;
+	}
+
+	asArray {
+		^events.array;
+	}
+
+	asStream {|repeats=inf|
+
+		^Prout({|inevent|
+			repeats.do({|i|
+				var evts = this.asArray.collect({|evt| evt.copy});
+				var seq = Pseq(evts, 1).asStream;
+				var next = seq.next(inevent);
+				while ({ next.isNil.not}, {
+					next.yield;
+					next = seq.next(inevent)
+				})
+			});
+		})
+	}
+}
+
+/*
+Launcher
+*/
+L {
+	*new {|...args|
+		^U(\launch, args);
+	}
+}
+
+/*
+Matrix
+*/
 M : Device {
 
 	var <map;
@@ -225,6 +334,9 @@ M : Device {
 	}
 }
 
+/*
+Node
+*/
 N : Device {
 
 	var <uifunc, fx;
@@ -276,7 +388,9 @@ N : Device {
 	}
 }
 
-
+/*
+Looper
+*/
 O : Device {
 
 	var <phase;
@@ -336,134 +450,95 @@ O : Device {
 	}
 }
 
-V : Device {
-
-	var <fx, <pdata, <synth, <vst;
-
-	var <skipjack;
-
-	vst_ {|name|
-		vst = name;
-		this.prBuild;
+/*
+Presets
+*/
+P {
+	*addPreset {|node, num, preset|
+		var key = node.key;
+		var presets = Halo.at(key);
+		if (presets.isNil) {
+			presets = Order.new;
+			Halo.put(key, presets);
+		};
+		presets.put(num, preset);
 	}
 
-	prBuild {
+	*getPresets {|node|
+		var key = node.key;
+		var presets = Halo.at(key);
+		if (presets.isNil) {
+			presets = Order.new;
+			Halo.put(key, presets);
+		}
+		^presets
+	}
 
-		var func;
-		var store = {
-			if (fx.isNil.not) {
-				//\store.debug(name);
-				fx.getProgramData({ arg data; pdata = data;}, async:true);
-			}
-		};
+	*getPreset {|node, num|
+		var key = node.key;
+		var presets = P.getPresets(node);
+		^presets[num];
+	}
 
-		var index = 100;
-		var synthdef = (vst ++ UniqueID.next).asSymbol;
-
-		/*
+	*morph {|node, from, to, numsteps=20, wait=0.1|
+		var key = node.key;
 		Routine({
-			Server.default.sync;
-			this.put(index, synthdef.debug(\synthdef));
-		}).play;
-		*/
-
-		func = {
-
-			Routine({
-
-				SynthDef.new(synthdef, {arg in;
-					var sig = In.ar(in, 2);
-					var wet = ('wet' ++ index).asSymbol.kr(1);
-					XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
-				}).add;
-
-				Server.default.sync;
-				this.put(index, synthdef.debug(\synthdef));
-
-				// this seems necessary, but not sure why
-				//this.wakeUp;
-				synth = Synth.basicNew(synthdef, Server.default, this.objects[index].nodeID);
-				synth.set(\in, this.bus.index);
-				fx = VSTPluginController(synth);
-
-				1.wait;
-				// there can be a delay
-				fx.open(vst.asString, verbose:true, editor:true);
-				vst.debug(\loaded);
-
-				//1.wait;
-				//if (pdata.isNil.not) {
-				//	fx.setProgramData(pdata);
-				//};
-
-				this.wakeUp;
-
-			}).play;
-		};
-
-		func.();
-		//skipjack = SkipJack(store, 60, { fx == nil }, name: key);
-		CmdPeriod.add(func);
-		^this;
-	}
-
-	*directory {
-		var result = List.new;
-		VSTPlugin.search(verbose:false);
-		VSTPlugin.readPlugins.keysValuesDo({arg k, v; result.add(k)});
-		^result.asArray;
-	}
-
-	editor {
-		^fx.editor;
-	}
-
-	vgui {
-		^fx.gui;
-	}
-
-	browse {
-		fx.browse;
-	}
-
-	snapshot {
-		fx.getProgramData({ arg data; pdata = data;});
-	}
-
-	restore {
-		fx.setProgramData(pdata);
-	}
-
-	bypass {arg bypass=0;
-		synth.set(\bypass, bypass)
-	}
-
-	parameters {
-		^fx.info.printParameters
-	}
-
-	settings {|cb|
-		var vals = ();
-		var parms = fx.info.parameters;
-		this.fx.getn(action: {arg v;
-			v.do({|val, i|
-				var name = parms[i][\name];
-				vals[name] = val;
+			var presets = P.getPresets(node);
+			var numsteps = 20;
+			var fromCopy = presets[from].copy;
+			var toPreset = presets[to];
+			numsteps.do({|i|
+				var blend = 1 + i / numsteps;
+				fromCopy = fromCopy.blend(toPreset, blend);
+				node.set(*fromCopy.getPairs);
+				wait.wait;
 			});
-			cb.(vals);
-		});
-	}
-
-	clear {
-		//skipjack.stop;
-		//SkipJack.stop(key);
-		synth.free;
-		fx.close;
-		fx = nil;
-		super.clear;
+			\morph_done.debug(key);
+		}).play;
 	}
 }
 
+/*
+EQ
+*/
+Q : Device {
+
+	var <guikey;
+
+	deviceInit {
+
+		var fromControl;
+		fromControl = {arg controls;
+			controls.clump(3).collect({arg item;
+				[(item[0] + 1000.cpsmidi).midicps, item[1], 10**item[2]]
+			});
+		};
+
+		this.wakeUp;
+		this.play;
+
+		this.put(100, \filter -> {arg in;
+
+			var frdb, input = in;
+			frdb = fromControl.(Control.names([\eq_controls]).kr(0!15));
+			input = BLowShelf.ar(input, *frdb[0][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[1][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[2][[0,2,1]].lag(0.1));
+			input = BPeakEQ.ar(input, *frdb[3][[0,2,1]].lag(0.1));
+			input = BHiShelf.ar(input, *frdb[4][[0,2,1]].lag(0.1));
+			input = RemoveBadValues.ar(input);
+			input;
+		});
+	}
+
+	view {
+		^U(\eq, this)
+	}
+}
+
+/*
+Synth
+*/
 S : EventPatternProxy {
 
 	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <>defaultQuant;
@@ -532,6 +607,27 @@ S : EventPatternProxy {
 		super.stop;
 	}
 
+	getSettings {
+		^this.envir.asDict;
+	}
+
+	addPreset {|num|
+		P.addPreset(this, num, this.getSettings);
+	}
+
+	loadPreset {|num|
+		var preset = P.getPreset(this, num);
+		this.set(*preset.getPairs);
+	}
+
+	getPresets {
+		^P.getPresets(this);
+	}
+
+	getPreset {|num|
+		^P.getPreset(this, num);
+	}
+
 	prInit {arg inKey;
 
 		if (inKey.isNil) {
@@ -543,14 +639,14 @@ S : EventPatternProxy {
 		synths = Array.fill(127, {List.new});
 
 		// this isn't doing anything
-		listenerfunc = {arg obj, prop, params; [prop, params.asCompileString];};
+		//listenerfunc = {arg obj, prop, params; [prop, params.asCompileString];};
 		node = Ndef(key);
 		node.mold(2, \audio);
 		node.play;
 
-		if (this.dependants.size == 0) {
-			this.addDependant(listenerfunc);
-		};
+		//if (this.dependants.size == 0) {
+		//	this.addDependant(listenerfunc);
+		//};
 
 		cmdperiodfunc = {
 			{
@@ -636,6 +732,7 @@ S : EventPatternProxy {
 
 		myspecs.keysValuesDo({arg k, v;
 			this.addSpec(k, v);
+			this.set(k, v.default)
 		});
 
 		this.set(\instrument, instrument);
@@ -820,170 +917,9 @@ S : EventPatternProxy {
 	}
 }
 
-B {
-	classvar <all;
-
-	*new {arg key;
-		^all[key]
-	}
-
-	*doesNotUnderstand {|key|
-		var res = all[key];
-		if (res.isNil){
-			"% does not exist".format(key).warn;
-		};
-		^res;
-	}
-
-	*read {arg key, path, channels=nil;
-		if (channels.isNil) {
-			channels = [0,1];
-		}{
-			channels = channels.asArray;
-		};
-		Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
-			all.put(key, buf);
-			"added buffer with key: %; %".format(key, path).inform;
-		});
-	}
-
-	*mono {|key, path|
-		B.read(key, path, 0);
-	}
-
-	*alloc {|key, numFrames, numChannels=1|
-		var buf = Buffer.alloc(Server.default, numFrames, numChannels);
-		all.put(key, buf);
-		"allocated buffer with key: %".format(key).inform;
-	}
-
-	*open {|channels=0|
-		var path = App.mediadir;
-		Dialog.openPanel({|path|
-			var id = PathName(path)
-			.fileNameWithoutExtension
-			.replace("-", "")
-			.replace(" ", "")
-			.replace("_", "")
-			.toLower;
-
-			B.read(id, path, channels);
-		},{
-			"cancelled".postln;
-		}, path:path);
-	}
-
-	*initClass {
-		all = IdentityDictionary();
-	}
-}
-
-// basically stolen and adapted from https://github.com/scztt/OSequence.quark
-E {
-	var <>events, <>duration;
-
-	*new {
-		^super.new.init();
-	}
-
-	*fromPattern {|pattern, duration|
-		var seq = E();
-		seq.events = E.order(pattern, duration);
-		seq.duration = duration;
-		^seq;
-	}
-
-	init {
-		^this;
-	}
-
-	*order {|pattern, duration|
-		var order = Order.new;
-		var time = 0;
-		var stream = pattern.asStream;
-		var evt = stream.next(Event.default);
-		while ( {evt.isNil.not and: (time < duration) }, {
-			var dur = evt[\dur];
-			if ((time + dur) > duration) {
-				dur = duration - time;
-				evt[\dur] = dur;
-			};
-			order.put(time, evt);
-			time = time + dur;
-			evt = stream.next(evt);
-		});
-		^order;
-	}
-
-	put {|time, event|
-		// need to handle adding to beginning and end of sequence
-		if (time > this.duration) {
-			"time is greater than duration".error;
-		} {
-			var nextIndex = this.events.nextSlotFor(time);
-			var prevIndex = nextIndex-1;
-			var prevTime = this.events.indices[prevIndex];
-			var prevEvent = this.events.array[prevIndex];
-			var nextTime = this.events.indices[nextIndex];
-			var dur = nextTime - time;
-			prevEvent[\dur] = time - prevTime;
-			event[\dur] = dur;
-			this.events.put(time, event);
-		}
-	}
-
-	remove {|time|
-		var nextIndex = events.nextSlotFor(time);
-		var prevIndex = nextIndex-2;
-		var prevTime = events.indices[prevIndex];
-		var prevEvent = events.array[prevIndex];
-		var nextTime = events.indices[nextIndex];
-		var dur = nextTime - prevTime;
-		prevEvent[\dur] = dur;
-		events.removeAt(time);
-	}
-
-	copy {
-		var eventsCopy = this.events.collect({|evt| evt.copy});
-		var seq = E();
-		seq.events = eventsCopy;
-		seq.duration = this.duration;
-		^seq;
-	}
-
-	perform {|selector ...args|
-		var pseq, order;
-		var array = this.events.array.perform(selector, *args);
-		pseq = Pseq(array, inf);
-		order = E.order(pseq, this.duration);
-		this.events = order;
-	}
-
-	set {|pattern, duration|
-		this.events = E.order(pattern, duration);
-		this.duration = duration;
-	}
-
-	asArray {
-		^events.array;
-	}
-
-	asStream {|repeats=inf|
-
-		^Prout({|inevent|
-			repeats.do({|i|
-				var evts = this.asArray.collect({|evt| evt.copy});
-				var seq = Pseq(evts, 1).asStream;
-				var next = seq.next(inevent);
-				while ({ next.isNil.not}, {
-					next.yield;
-					next = seq.next(inevent)
-				})
-			});
-		})
-	}
-}
-
+/*
+UI
+*/
 U {
 	*new {arg key ...args;
 
@@ -1006,6 +942,140 @@ U {
 	}
 }
 
+/*
+Vst
+*/
+V : Device {
+
+	var <fx, <pdata, <synth, <vst;
+
+	var <skipjack;
+
+	vst_ {|name|
+		vst = name;
+		this.prBuild;
+	}
+
+	prBuild {
+
+		var func;
+		var store = {
+			if (fx.isNil.not) {
+				//\store.debug(name);
+				fx.getProgramData({ arg data; pdata = data;}, async:true);
+			}
+		};
+
+		var index = 100;
+		var synthdef = (vst ++ UniqueID.next).asSymbol;
+
+		/*
+		Routine({
+			Server.default.sync;
+			this.put(index, synthdef.debug(\synthdef));
+		}).play;
+		*/
+
+		func = {
+
+			Routine({
+
+				SynthDef.new(synthdef, {arg in;
+					var sig = In.ar(in, 2);
+					var wet = ('wet' ++ index).asSymbol.kr(1);
+					XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
+				}).add;
+
+				Server.default.sync;
+				this.put(index, synthdef.debug(\synthdef));
+
+				// this seems necessary, but not sure why
+				//this.wakeUp;
+				synth = Synth.basicNew(synthdef, Server.default, this.objects[index].nodeID);
+				synth.set(\in, this.bus.index);
+				fx = VSTPluginController(synth);
+
+				1.wait;
+				// there can be a delay
+				fx.open(vst.asString, verbose:true, editor:true);
+				vst.debug(\loaded);
+
+				//1.wait;
+				//if (pdata.isNil.not) {
+				//	fx.setProgramData(pdata);
+				//};
+
+				this.wakeUp;
+
+			}).play;
+		};
+
+		func.();
+		//skipjack = SkipJack(store, 60, { fx == nil }, name: key);
+		CmdPeriod.add(func);
+		^this;
+	}
+
+	*directory {
+		var result = List.new;
+		VSTPlugin.search(verbose:false);
+		VSTPlugin.readPlugins.keysValuesDo({arg k, v; result.add(k)});
+		^result.asArray;
+	}
+
+	editor {
+		^fx.editor;
+	}
+
+	vgui {
+		^fx.gui;
+	}
+
+	browse {
+		fx.browse;
+	}
+
+	snapshot {
+		fx.getProgramData({ arg data; pdata = data;});
+	}
+
+	restore {
+		fx.setProgramData(pdata);
+	}
+
+	bypass {arg bypass=0;
+		synth.set(\bypass, bypass)
+	}
+
+	parameters {
+		^fx.info.printParameters
+	}
+
+	settings {|cb|
+		var vals = ();
+		var parms = fx.info.parameters;
+		this.fx.getn(action: {arg v;
+			v.do({|val, i|
+				var name = parms[i][\name];
+				vals[name] = val;
+			});
+			cb.(vals);
+		});
+	}
+
+	clear {
+		//skipjack.stop;
+		//SkipJack.stop(key);
+		synth.free;
+		fx.close;
+		fx = nil;
+		super.clear;
+	}
+}
+
+/*
+Workspace
+*/
 W : Environment {
 
 	classvar <all;

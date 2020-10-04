@@ -1,6 +1,6 @@
 (
 Require(App.librarydir ++ "ui/common.scd");
-Fdef(\launch, {|...args|
+Fdef(\launcher, {|...args|
 
 	var rows, grid;
 	var active = ~active ? ();
@@ -10,8 +10,7 @@ Fdef(\launch, {|...args|
 			btn.valueAction = 0;
 		});
 	};
-
-	rows = args.flatten.collect({|assoc|
+	rows = args.collect({|assoc|
 		var buttons;
 		buttons = assoc.value.collect({|func, i|
 
@@ -52,27 +51,22 @@ Fdef(\launch, {|...args|
 	});
 
 	grid = View().layout_(GridLayout.rows(*rows).margins_(0).spacing_(0));
-	if (~view.isNil) {
+	if (~view.isNil or: ~view.isClosed) {
 
 		var baseViewFunc = Fdef(\baseview);
 		var baseview;
-
-		~view = View().layout_(VLayout().margins_(3).spacing_(3));//.background_(Color.);
+		~view = View().layout_(VLayout().margins_(3).spacing_(3));
 		~view.layout.add(grid);
 		CmdPeriod.add(reset);
-		~view.onClose = {
-			\close.debug(\launcher);
-			~view = nil;
-			CmdPeriod.remove(reset);
-		};
+		~view.onClose = { \close.debug(\launcher); CmdPeriod.remove(reset) };
 		//~view.front;
-		baseview = baseViewFunc.(~view, 'launcher');
+		baseview = baseViewFunc.(~view, 'launcher', 150, 170);
 		baseview.front;
+
 	} {
 		~view.children.do({|child| child.remove});
 		~view.layout.add(grid);
 	};
 })
 )
-
 

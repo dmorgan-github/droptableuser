@@ -1,5 +1,5 @@
 (
-Require("~/projects/droptableuser/library/ui/common.scd");
+Require(App.librarydir ++ "ui/common.scd");
 Fdef(\sgui, {arg synth;
 
 	var win, nodeListener;
@@ -21,7 +21,14 @@ Fdef(\sgui, {arg synth;
 	var ctrlViews = ();
 
 	playview = playview.(synth.node);//.addDependant(viewListener);
-	presetsview = presetsview.(synth);
+	presetsview = presetsview.(synth, {|num|
+		var preset = synth.getPreset(num);
+		if (preset.isNil) {
+			synth.addPreset(num);
+		} {
+			synth.loadPreset(num);
+		}
+	});
 
 	{
 		var groups = ();

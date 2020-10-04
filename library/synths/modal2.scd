@@ -50,7 +50,7 @@ SynthDef(\modal2, {
 	created: "09/27/2020",
 	specs: (
 		\harm: ControlSpec(-0.06, 2, \lin, 0, 0),
-		\bright: ControlSpec(0, 1, \exp, 0, 0.5)
+		\bright: ControlSpec(0, 1, \lin, 0, 0.5)
 	)
 )).add
 )
