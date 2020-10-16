@@ -12,7 +12,7 @@ synth: {arg in_sig;
 	phase = phase - [20000, 44100 * 1, 44100 * 2];
 	dur = LFNoise1.kr(1/3).range(0.05, 1);
 	rate = TChoose.kr(Dust.kr(1), [
-		-7.midiratio, 7.midiratio, 0.midiratio, 5.midiratio, -5.midiratio]) * TChoose.kr(Dust.kr(0.5), [-1, 1]);
+		-7.midiratio, 7.midiratio, 0.midiratio, 12.midiratio, -12.midiratio]) * TChoose.kr(Dust.kr(0.5), [-1, 1]);
 	sig = GrainBuf.ar(1,
 		Dust.ar(LFNoise1.kr([1/13, 1/21, 1/3]).range(5, 12)),
 		dur,

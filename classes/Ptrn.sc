@@ -1,3 +1,73 @@
+
+// Only pull a value once per clock time - else, return the previous value
+// https://gist.github.com/scztt/e53046e866e75e48bff1b62311da96eb
+PtimeClutch : FilterPattern {
+	var <>delta;
+
+	*new {
+		|pattern, delta=0.0|
+		^super.new(pattern).delta_(delta);
+	}
+
+	embedInStream {
+		|input|
+		var lastTime, lastVal;
+		var stream = pattern.asStream;
+
+		loop {
+			var thisTime = thisThread.beats;
+
+			if (lastTime.isNil or: { (thisTime - lastTime) > delta }) {
+				lastVal = stream.next(input);
+				lastTime = thisTime;
+			};
+
+			input = lastVal.copy.yield;
+		}
+	}
+}
+
+/*
++Pattern {
+	timeClutch {
+		|delta=0.0|
+		^PtimeClutch(this, delta)
+	}
+}
+*/
+
+//https://gist.github.com/eleses/8704f7abaea8d42c22b5eca527db5f48
+PfsetC : FuncFilterPattern {
+	//making cleanupFunc a member var would be a mistake; stream resets would overwrite it before it calling it!
+	*new { |func, pattern|
+		^super.new(func, pattern)
+	}
+	embedInStream { arg inevent;
+		var event, cleanup = EventStreamCleanup.new;
+		var cleanupFunc, envir = Event.make({ cleanupFunc = func.value() });
+		var stream = pattern.asStream;
+		var once = true;
+
+		loop {
+			inevent.putAll(envir);
+			event = stream.next(inevent);
+			if(once) {
+				cleanup.addFunction(event, { |flag|
+					envir.use({ cleanupFunc.value(flag) });
+				});
+				once = false;
+			};
+			if (event.isNil) {
+				^cleanup.exit(inevent)
+			} {
+				cleanup.update(event);
+			};
+			inevent = yield(event);
+			if(inevent.isNil) { ^cleanup.exit(event) }
+		};
+	}
+}
+
 Pwnrand : ListPattern {
 	var <>weights;
 
@@ -85,7 +155,6 @@ Pdv : Pbind {
 		);
 	}
 }
-
 
 
 Dd : Pattern {

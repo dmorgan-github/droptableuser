@@ -1,9 +1,9 @@
 (
 Require(App.librarydir ++ "ui/common.scd");
-Fdef(\launch, {|...args|
+Fdef(\launch, {|patterns, clock=(TempoClock.default)|
 
 	var rows, grid;
-	var active = ~active ? ();
+	var active = if (~launch_active.isNil) { ~launch_active = (); ~launch_active } {~launch_active};
 	var allButtons = List.new;
 	var reset = {
 		allButtons.do({|btn|
@@ -11,7 +11,7 @@ Fdef(\launch, {|...args|
 		});
 	};
 
-	rows = args.flatten.collect({|assoc|
+	rows = patterns.flatten.collect({|assoc|
 		var buttons;
 		buttons = assoc.value.collect({|func, i|
 
@@ -24,7 +24,7 @@ Fdef(\launch, {|...args|
 			};
 
 			Button()
-			.states_([ [nil, nil, Color.clear.alpha_(1.5) ], [nil, nil, Color.red.alpha_(0.5) ] ])
+			.states_([ [nil, nil, Color.clear.alpha_(1.5) ], [nil, nil, Color.white.alpha_(0.8) ] ])
 			.action_({|ctrl|
 
 				if (ctrl.value == 1) {
@@ -36,17 +36,33 @@ Fdef(\launch, {|...args|
 
 					Pdef(key, func.());
 					active[key] = i;
-					pdef.play;
+					pdef.play(argClock:clock)
 				} {
 					pdef.stop;
 					active[key] = nil;
 				}
 			})
-			.value_(isactive)
+			.value_(if (isactive) {1}{0})
 		});
 
 		allButtons.addAll(buttons);
-		[StaticText().string_(assoc.key).minWidth_(50)]
+		[StaticText()
+			.string_(assoc.key)
+			.minWidth_(50)
+			.mouseUpAction_({|ctrl, x, y, mod, num, click|
+				if (Pdef.all[assoc.key].isKindOf(S)) {
+					S(assoc.key).view;
+				}
+			})
+			.mouseOverAction_({|ctrl|
+				if (Pdef.all[assoc.key].isKindOf(S)) {
+					ctrl.stringColor = Color.blue;
+				}
+			})
+			.mouseLeaveAction_({|ctrl|
+				ctrl.stringColor = Color.white;
+			})
+		]
 		++
 		buttons
 	});
@@ -57,7 +73,7 @@ Fdef(\launch, {|...args|
 		var baseViewFunc = Fdef(\baseview);
 		var baseview;
 
-		~view = View().layout_(VLayout().margins_(3).spacing_(3));//.background_(Color.);
+		~view = View().layout_(VLayout().margins_(3).spacing_(3));
 		~view.layout.add(grid);
 		CmdPeriod.add(reset);
 		~view.onClose = {
@@ -67,6 +83,7 @@ Fdef(\launch, {|...args|
 		};
 		//~view.front;
 		baseview = baseViewFunc.(~view, 'launcher');
+		baseview.acceptsMouseOver = true;
 		baseview.front;
 	} {
 		~view.children.do({|child| child.remove});

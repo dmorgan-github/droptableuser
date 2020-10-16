@@ -21,12 +21,16 @@ Fdef(\sgui, {arg synth;
 	var ctrlViews = ();
 
 	playview = playview.(synth.node);//.addDependant(viewListener);
-	presetsview = presetsview.(synth, {|num|
+	presetsview = presetsview.(synth, {|num, remove=false|
 		var preset = synth.getPreset(num);
 		if (preset.isNil) {
 			synth.addPreset(num);
 		} {
-			synth.loadPreset(num);
+			if (remove){
+				synth.removePreset(num);
+			}{
+				synth.loadPreset(num);
+			}
 		}
 	});
 

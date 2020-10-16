@@ -49,6 +49,10 @@ SynthDef(\pluck, {
 
 	sig = LeakDC.ar(sig);
 	sig = Splay.ar(sig, \spread.kr(0), center:\center.kr(0));
+	//sig = LPF.ar(sig, \lpf.kr(20000));
+	//sig = RLPF.ar(LeakDC.ar((sig * 20).tanh), Env.perc(0.01, 0.1).ar().range(240, 650), 0.8);
+	//sig = sig * 0.8;
+
 	sig = Balance2.ar(sig[0], sig[1], \pan.kr(0));
 	sig = sig * aeg * \vel.kr(1);
 	sig = sig * \amp.kr(-3.dbamp);

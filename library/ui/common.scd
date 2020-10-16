@@ -340,9 +340,20 @@ Fdef(\presetsview, {|node, cb|
 	var size = 12;
 	var grid, view;
 	var buttons;
+	var presets = node.getPresets;
+	var active = if (~preset_active.isNil) { ~preset_active = (); ~preset_active } {~preset_active};
+
 	buttons = num.collect({|i|
+
+		var color = if (presets[i].isNil.not) {
+			Color.green.alpha_(0.5)
+		}{
+			Color.clear.alpha_(1.5)
+		};
+		var isactive = (active[node.key] == i);
+
 		Button()
-		.states_([ [nil, nil, Color.clear.alpha_(1.5) ], [nil, nil, Color.red.alpha_(0.5) ] ])
+		.states_([ [nil, nil, color], [nil, nil, Color.red.alpha_(0.5) ] ])
 		.action_({|ctrl|
 			buttons.do({|btn, j|
 				if (i != j) {
@@ -353,13 +364,26 @@ Fdef(\presetsview, {|node, cb|
 				}
 			});
 			if (ctrl.value == 1) {
+				~preset_active[node.key] = i;
 				cb.(i);
+			} {
+				~preset_active[node.key] = nil;
 			}
 		})
+		.mouseDownAction_({|ctrl, x, y, mod, num, count|
+			if (mod == 262144) {
+				ctrl.states = [ [nil, nil, Color.clear.alpha_(1.5) ], [nil, nil, Color.red.alpha_(0.5) ] ];
+				if (~preset_active[node.key] == i) {
+					~preset_active[node.key] = nil
+				};
+				cb.(i, true);
+			}
+		})
+		.value_(if(isactive){1}{0})
 	});
+
 	grid = GridLayout.rows(
-		buttons//[0..7],
-		//buttons[8..15]
+		buttons
 	).margins_(0).spacing_(0);
 	view = View().layout_(grid);
 	view;

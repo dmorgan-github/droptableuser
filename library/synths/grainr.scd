@@ -8,12 +8,10 @@ SynthDef(\grainr, {
 	var grainenv = \grainenv.kr(-1);
 	var pitch = \pitch.kr(1);
 	var replyid = \bufposreplyid.kr(-1);
-
-	// TODO: allow randomization of graindur
 	var graindur = \graindur.kr(0.1);
 
 	var aeg = {
-		var atk = \atk.kr(0.01);
+		var atk = \atk.kr(0.001);
 		var suslevel = \suslevel.kr(1);
 		var rel = \rel.kr(1);
 		var curve = \curve.kr(-4);
@@ -72,7 +70,7 @@ SynthDef(\grainr, {
 		pb: ControlSpec(-4.0, 4, \lin, 0, 1, "playback"),
 		posrand: ControlSpec(0, 1, \lin, 0, 0, "playback"),
 		startPos: ControlSpec(0, 1, \lin, 0, 0, "playback"),
-		endPos: ControlSpec(0, 1, \lin, 0, 0, "playback"),
+		endPos: ControlSpec(0, 1, \lin, 0, 1, "playback"),
 
 		\pan: ControlSpec(0, 1, \lin, 0, 0, "pan"),
 		\panHz: ControlSpec(0, 1, \lin, 0, 0.1, "pan"),

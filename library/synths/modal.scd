@@ -19,10 +19,17 @@ SynthDef(\modal, {
 		ratio.squared.reciprocal * 5
 	], exciter, freq);
 
+	/*
 	var aeg = Env.asr(
 		\atk.kr(0),
 		\suslevel.kr(1),
 		\rel.kr(1),
+		curve:\curve.kr(-4)
+	).ar(doneAction:Done.freeSelf, gate:\gate.kr(1));
+	*/
+	var aeg = Env.perc(
+		attackTime:0.01,
+		releaseTime:\rel.kr(1),
 		curve:\curve.kr(-4)
 	).ar(doneAction:Done.freeSelf, gate:\gate.kr(1));
 
@@ -37,7 +44,7 @@ SynthDef(\modal, {
 	created: "09/27/2020",
 	specs: (
 		\harm: ControlSpec(-0.06, 2, \lin, 0, 0),
-		\bright: ControlSpec(0, 1, \exp, 0, 0.5)
+		\bright: ControlSpec(0.0, 1.0, \lin, 0, 0.5)
 	)
 )).add;
 )

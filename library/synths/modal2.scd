@@ -42,7 +42,7 @@ SynthDef(\modal2, {
 
 	DetectSilence.ar(in: sig, doneAction: Done.freeSelf);
 
-	Out.ar(\out.kr(0), Pan2.ar(sig, pan)); d
+	Out.ar(\out.kr(0), Pan2.ar(sig, pan));
 
 }, metadata: (
 	credit: "adapted from synth by Josh Mitchell",
@@ -50,7 +50,7 @@ SynthDef(\modal2, {
 	created: "09/27/2020",
 	specs: (
 		\harm: ControlSpec(-0.06, 2, \lin, 0, 0),
-		\bright: ControlSpec(0, 1, \lin, 0, 0.5)
+		\bright: ControlSpec(0.0, 1.0, \lin, 0, 0.5)
 	)
 )).add
 )

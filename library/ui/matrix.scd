@@ -83,16 +83,17 @@ Fdef(\matrix, {arg matrix;
 						//[action.string, what, value].postln;
 						var id = action.string;
 						var nodeid = path.fileNameWithoutExtension;
-						var node = N((nodeid ++ '_' ++ UniqueID.next).asSymbol,  id.asSymbol);
-						matrix.add(node.key);
+						var node = N((nodeid ++ '_' ++ UniqueID.next).asSymbol, id.asSymbol);
+						node.postln;
+						matrix.addSrc(node.key);
 					});
 				})
 				++ vsts.().collect({arg vst;
 					MenuAction(vst, {arg action;
 						var id = action.string;
 						var unique = (id ++ '_' ++ UniqueID.next).asSymbol;
-						var node = Vst(unique).vst = id.asSymbol;
-						matrix.add(node.key);
+						var node = V(unique).vst = id.asSymbol;
+						matrix.addSrc(node.key);
 					})
 				})
 			)
@@ -165,12 +166,12 @@ Fdef(\matrix, {arg matrix;
 				Button()
 				.action_({
 					if (Pdef.all[src].isKindOf(S)) {
-						Pdef.all[src].sgui;
+						Pdef.all[src].view;
 					}{
-						if (Ndef(src).isKindOf(Vst)) {
+						if (Ndef(src).isKindOf(V)) {
 							Ndef(src).editor;
 						}{
-							Ndef(src).ngui;
+							Ndef(src).view;
 						}
 					}
 				})
@@ -221,5 +222,3 @@ Fdef(\matrix, {arg matrix;
 	baseview.front;
 });
 )
-
-//~rlio.mgui;

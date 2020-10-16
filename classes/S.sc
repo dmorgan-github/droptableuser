@@ -246,8 +246,8 @@ E {
 Launcher
 */
 L {
-	*new {|...args|
-		^U(\launch, args);
+	*new {|patterns, clock|
+		^U(\launch, patterns, clock);
 	}
 }
 
@@ -588,16 +588,26 @@ S : EventPatternProxy {
 
 	embedInStream {|inval, embed = true, default|
 
-		if (this.node.isMonitoring.not) {
-			this.node.play(fadeTime:fadeTime);
+		var monitor = this.envir[\monitor];
+		if (monitor.isNil.not and: {monitor.not}) {
+			this.node.stop;
+		}{
+			if (this.node.isMonitoring.not) {
+				this.node.play(fadeTime:fadeTime);
+			};
 		};
 		super.embedInStream(inval, embed, default);
 	}
 
 	play {|fadeTime=0.02, argClock, protoEvent, quant, doReset=false|
 
-		if (this.node.isMonitoring.not) {
-			this.node.play(fadeTime:fadeTime);
+		var monitor = this.envir[\monitor];
+		if (monitor.isNil.not and: {monitor.not}) {
+			this.node.stop;
+		}{
+			if (this.node.isMonitoring.not) {
+				this.node.play(fadeTime:fadeTime);
+			};
 		};
 		super.play(argClock, protoEvent, quant, doReset);
 	}
@@ -611,6 +621,11 @@ S : EventPatternProxy {
 		^this.envir.asDict;
 	}
 
+	postSettingsString {
+		var str = "(\nvar settings = " ++ this.getSettings.asCompileString ++ ";\nS.%.set(*settings.getPairs);\n)".format(this.key);
+		str.postln;
+	}
+
 	addPreset {|num|
 		P.addPreset(this, num, this.getSettings);
 	}
@@ -618,6 +633,13 @@ S : EventPatternProxy {
 	loadPreset {|num|
 		var preset = P.getPreset(this, num);
 		this.set(*preset.getPairs);
+	}
+
+	removePreset {|num|
+		var presets = P.getPresets(this);
+		if (presets.isNil.not) {
+			presets.removeAt(num)
+		};
 	}
 
 	getPresets {
@@ -986,11 +1008,12 @@ V : Device {
 					XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
 				}).add;
 
-				Server.default.sync;
+				1.wait;
 				this.put(index, synthdef.debug(\synthdef));
 
 				// this seems necessary, but not sure why
-				//this.wakeUp;
+				1.wait;
+				this.wakeUp;
 				synth = Synth.basicNew(synthdef, Server.default, this.objects[index].nodeID);
 				synth.set(\in, this.bus.index);
 				fx = VSTPluginController(synth);
@@ -1078,7 +1101,7 @@ Workspace
 */
 W : Environment {
 
-	classvar <all;
+	classvar <all, <>clock;
 
 	var <key, <>daw;
 
@@ -1218,73 +1241,6 @@ W : Environment {
 
 	*initClass {
 		all = IdentityDictionary();
-	}
-
-}
-
-/*
-
-F {
-	*morph {|node, from, to, numsteps=20, wait=0.1|
-		Routine({
-			var numsteps = 20;
-			var fromCopy = from.copy;
-			numsteps.do({|i|
-				var blend = 1 + i / numsteps;
-				fromCopy = fromCopy.blend(to, blend);
-				node.set(*fromCopy.getPairs);
-				wait.wait;
-			});
-			\morphdone.debug(node.key);
-		}).play;
+		clock = LinkClock.new.latency_(Server.default.latency).permanent_(true);
 	}
 }
-reset {
-		this.checkSpec
-		.keysValuesDo({|k, v|
-			var val = v.default;
-			this.set(k, val);
-		});
-	}
-
-	asPreset {
-		^this.envir.asDict.reject({|v, k| v.isNumber.not and: v.isArray.not })
-	}
-
-	fromPreset {|preset|
-		this.set(*preset.asPairs);
-	}
-
-	savePreset {|name|
-		var node = this;
-		var dir = App.librarydir ++ "synths/presets/";
-		var synthDef = node.instrument;
-		var path = dir ++ synthDef;
-		var preset = node.asPreset.asCompileString;
-		var file;
-		if (File.exists(path).not) {
-			File.mkdir(path);
-		};
-		path = path ++ "/" ++ name.asString ++ ".scd";
-		path.postln;
-		file = File(path, "w");
-		file.write(preset);
-		file.close;
-	}
-
-	loadPreset {|name|
-		var node = this;
-		var dir = App.librarydir ++ "/synths/presets/";
-		var synthDef = node.instrument;
-		var path = dir ++ synthDef ++ "/" ++ name.asString ++ ".scd";
-		var dict = thisProcess.interpreter.executeFile(path);
-		node.fromPreset(dict);
-	}
-
-	presetNames {
-		var dir = App.librarydir ++ "/synths/presets/";
-		var synthDef = node.instrument;
-		var path = dir ++ synthDef;
-		^PathName(path).entries.collect({|pn| pn.fileNameWithoutExtension})
-	}
-*/

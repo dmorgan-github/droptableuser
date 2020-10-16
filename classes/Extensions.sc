@@ -20,6 +20,7 @@ Pswitch
 	pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
 	dd {arg repeats=inf; ^Dd(this, repeats)}
 	pshuf {arg num=1, repeats=inf; ^Pn(Pshuf(this, num), repeats) }
+	step {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
 }
 
 + Pattern {
