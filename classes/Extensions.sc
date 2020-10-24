@@ -18,7 +18,7 @@ Pswitch
 	pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
 	prand {arg repeats=inf; ^Prand(this, repeats) }
 	pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
-	dd {arg repeats=inf; ^Dd(this, repeats)}
+	//dd {arg repeats=inf; ^Dd(this, repeats)}
 	pshuf {arg num=1, repeats=inf; ^Pn(Pshuf(this, num), repeats) }
 	step {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
 }
@@ -28,9 +28,13 @@ Pswitch
 	step {arg dur, repeats=inf; ^Pstep(this, dur, repeats)}
 	latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
 	latch {arg func; ^Pclutch(this, Pfunc(func)) }
-	dd {arg repeats=inf; ^Dd(this, repeats)}
+	//dd {arg repeats=inf; ^Dd(this, repeats)}
 	// don't advance pattern on rests
-	notrest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
+	norest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
+}
+
++ Array {
+	nums { ^this.asInteger.join("").collectAs({|chr| chr.asString.asInteger }, Array) }
 }
 
 + NodeProxy {

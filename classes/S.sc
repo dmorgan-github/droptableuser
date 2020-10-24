@@ -964,41 +964,44 @@ U {
 	}
 }
 
-/*
-Vst
-*/
 V : Device {
 
-	var <fx, <pdata, <synth, <vst;
+	var <>fx, <pdata, <>synth, <vst;
+
+	var <onload;
 
 	var <skipjack;
 
-	vst_ {|name|
+	/*
+	Sets a plug-in on an existing node at specified index
+	and returns the VSTPluginController wrapped in a function
+	for lazy evaluation
+	*/
+	*addAt {|index, node, vst|
+		var mySynth, myFx;
+		var synthdef = (vst ++ UniqueID.next).asSymbol;
+		V.prFunc(index, node, vst, {|fx, synth| myFx = fx; mySynth = synth;});
+		^{myFx};
+	}
+
+	load {|name, func|
 		vst = name;
+		onload = func;
 		this.prBuild;
 	}
 
 	prBuild {
-
-		var func;
-		var store = {
-			if (fx.isNil.not) {
-				//\store.debug(name);
-				fx.getProgramData({ arg data; pdata = data;}, async:true);
-			}
-		};
-
 		var index = 100;
+		V.prFunc(index, this, vst, {|fx, synth| this.fx = fx; this.synth = synth;}, onload);
+		^this;
+	}
+
+	*prFunc {|index, node, vst, cb, onload|
+
+		var fx, synth;
 		var synthdef = (vst ++ UniqueID.next).asSymbol;
 
-		/*
-		Routine({
-			Server.default.sync;
-			this.put(index, synthdef.debug(\synthdef));
-		}).play;
-		*/
-
-		func = {
+		var func = {
 
 			Routine({
 
@@ -1009,41 +1012,39 @@ V : Device {
 				}).add;
 
 				1.wait;
-				this.put(index, synthdef.debug(\synthdef));
+				node.put(index, synthdef.debug(\synthdef));
 
 				// this seems necessary, but not sure why
 				1.wait;
-				this.wakeUp;
-				synth = Synth.basicNew(synthdef, Server.default, this.objects[index].nodeID);
-				synth.set(\in, this.bus.index);
+				node.wakeUp;
+				synth = Synth.basicNew(synthdef, Server.default, node.objects[index].nodeID);
+				synth.set(\in, node.bus.index);
 				fx = VSTPluginController(synth);
 
 				1.wait;
 				// there can be a delay
 				fx.open(vst.asString, verbose:true, editor:true);
 				vst.debug(\loaded);
+				node.wakeUp;
 
-				//1.wait;
-				//if (pdata.isNil.not) {
-				//	fx.setProgramData(pdata);
-				//};
+				cb.(fx, synth);
 
-				this.wakeUp;
+				if (onload.isNil.not) {
+					{ onload.(fx) }.defer(2);
+				};
 
 			}).play;
 		};
 
 		func.();
-		//skipjack = SkipJack(store, 60, { fx == nil }, name: key);
 		CmdPeriod.add(func);
-		^this;
 	}
 
-	*directory {
+	*ls {
 		var result = List.new;
 		VSTPlugin.search(verbose:false);
-		VSTPlugin.readPlugins.keysValuesDo({arg k, v; result.add(k)});
-		^result.asArray;
+		VSTPlugin.readPlugins.keysValuesDo({arg k, v; result.add(k) });
+		result.sort.do({|val| val.postln;});
 	}
 
 	editor {
@@ -1077,7 +1078,7 @@ V : Device {
 	settings {|cb|
 		var vals = ();
 		var parms = fx.info.parameters;
-		this.fx.getn(action: {arg v;
+		fx.getn(action: {arg v;
 			v.do({|val, i|
 				var name = parms[i][\name];
 				vals[name] = val;
@@ -1090,6 +1091,7 @@ V : Device {
 		//skipjack.stop;
 		//SkipJack.stop(key);
 		synth.free;
+		synth.release;
 		fx.close;
 		fx = nil;
 		super.clear;
@@ -1129,6 +1131,24 @@ W : Environment {
 
 	*mixer {
 		var m = NdefMixer(Server.default);
+		ProxyMeter.addMixer(m);
+		m.switchSize(0);
+		^m;
+	}
+
+	init {|cb|
+		var me = this;
+		Routine({
+			me.use(cb);
+		}).play;
+	}
+
+	view {
+		^U(\workspace, this);
+	}
+
+	mixer {
+		var m = ProxyMixer(this.as(ProxySpace));
 		ProxyMeter.addMixer(m);
 		m.switchSize(0);
 		^m;

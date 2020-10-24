@@ -92,10 +92,44 @@ Pwnrand : ListPattern {
 	storeArgs { ^[ list, weights, repeats ] }
 }
 
+Pparse : Pfunc {
+	*new {|key|
+		^super.newCopyArgs({|evt|
+
+			var parse = {|val|
+				var vals = val.asString.collectAs({|chr| chr.digit/35 }, Array);
+				var prob = 1;
+				var index = vals[0] * 35;
+				if (vals.size > 1) {
+					prob = vals[1];
+				};
+				if (prob.coin.not) {
+					Rest(1)
+				} {
+					index.asInteger;
+				}
+			};
+
+			var val = evt[key];
+			if (val.isRest or: val.isNumber) {
+				val
+			}{
+				if (val.isString) {
+					parse.(val);
+				} {
+					if (val.isArray) {
+						val.collect({|v| parse.(v) });
+					}
+				}
+			}
+		})
+	}
+}
+
 // Pdurval
 Pdv : Pbind {
 
-	*new {|list, repeats=inf, key=\degree|
+	*new {|list, key=\degree|
 		^super.new(
 			[key, \dur], Prout({|inval|
 
@@ -103,13 +137,16 @@ Pdv : Pbind {
 					var myval = seq;
 					if (myval.class != Ref) {
 						// if the value is a ref don't unpack it here
+						if (myval.class == Association) {
+							div = div * myval.key.asFloat;
+						};
 						myval = myval.value;
 					};
 
-					if (myval.isArray) {
+					if (myval.isString.not and: myval.isArray) {
 						var myseq = myval;
 						var mydiv = 1/myseq.size * div;
-						var stream = Pseq(myseq, 1).asStream;
+						var stream = CollStream(myseq);
 						var val = stream.next;
 						while ({val.isNil.not},
 							{
@@ -138,12 +175,7 @@ Pdv : Pbind {
 					}
 				};
 
-				var pseq = if (list.isKindOf(Pattern)) {
-					list.asStream;
-				}{
-					Pseq(list, repeats).asStream;
-				};
-
+				var pseq = CollStream(list);
 				var item;
 				var val = pseq.next;
 				while({val.isNil.not}, {
@@ -157,6 +189,7 @@ Pdv : Pbind {
 }
 
 
+/*
 Dd : Pattern {
 
 	var list, repeats;
@@ -224,7 +257,9 @@ Dd : Pattern {
 		^inval;
 	}
 }
+*/
 
+/*
 // degree, dur
 Dd2 {
 	*new{arg list, repeats=inf;
@@ -284,6 +319,7 @@ Dd2 {
 		})
 	}
 }
+*/
 
 
 /*

@@ -13,7 +13,7 @@ Fdef(\launch, {|patterns, clock=(TempoClock.default)|
 
 	rows = patterns.flatten.collect({|assoc|
 		var buttons;
-		buttons = assoc.value.collect({|func, i|
+		buttons = assoc.value.value.collect({|func, i|
 
 			var key = (assoc.key ++ '_ptrn_launch').asSymbol;
 			var pdef = Pdef(key);

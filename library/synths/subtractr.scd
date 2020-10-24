@@ -104,6 +104,8 @@ SynthDef(\subtractr, {
 
 	sig = filter.(sig); // filter before aeg
 
+	//sig = Balance.ar(sig, SinOsc.ar * 0.dbamp);
+
 	sig = sig * aeg * \amp.kr(0.3) * \vel.kr(1);
 
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));

@@ -3,6 +3,20 @@ synth: {arg sig_in;
 
 	var in = sig_in * \input.ar(1);
 	var sig = JPverb.ar(in,
+		t60:t60.kr(1).lag(0.1),
+		damp:damp.kr(0),
+		size:size.kr(1).lag(0.1),
+		earlyDiff:earlyDiff.kr(0.707),
+		modDepth:modDepth.kr,
+		modFreq:modFreq.kr(2),
+		low:low.kr(1),
+		mid:mid.kr(1),
+		high:high.kr(1),
+		lowcut:lowcut.kr(500),
+		highcut:highcut.kr(2000)
+	);
+
+	/*
 		t60: \t60.ar(1).lag(0.1),
 		damp: \damp.ar(0),
 		size: \size.ar(1).lag(0.1),
@@ -14,8 +28,7 @@ synth: {arg sig_in;
 		high: \high.ar(1),
 		lowcut: \lowcut.ar(500),
 		highcut: \highcut.ar(2000)
-	);
-
+	*/
 	Splay.ar(sig, spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
 },
 specs: [
