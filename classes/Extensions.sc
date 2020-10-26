@@ -43,7 +43,7 @@ Pswitch
 		^U(\ngui, this);
 	}
 
-	mix {arg index=0, obj, stopmonitor=false, vol=1;
+	mix {arg index=0, obj, vol=1;
 
 		if (obj.isKindOf(Function)) {
 			this.put(index, \mix -> obj);
@@ -58,17 +58,10 @@ Pswitch
 					//var l = (key ++ 'L').asSymbol;
 					//var r = (key ++ 'R').asSymbol;
 					this.put(index, { obj.node.ar * Control.names([key]).kr(vol) });
-					if (stopmonitor) {
-						obj.node.stop;
-					};
-
 				}{
 					//var l = (key ++ 'L').asSymbol;
 					//var r = (key ++ 'R').asSymbol;
 					this.put(index, {obj.ar * Control.names([key]).kr(vol) });
-					if (stopmonitor) {
-						obj.stop;
-					}
 				};
 				this.addSpec(key, [0, 1, \lin, 0, vol]);
 			}
@@ -83,6 +76,10 @@ Pswitch
 			\out, Pfunc({ this.bus.index }),
 			\group, Pfunc({this.group})
 		)
+	}
+
+	getSettings {
+		^this.getKeysValues.flatten.asDict;
 	}
 
 	preset {

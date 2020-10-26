@@ -18,6 +18,10 @@ Fdef(\ngui, {arg node;
 	};
 	var ctrlViews = ();
 
+	if (node.respondsTo(\editor)) {
+		view.layout.add(Button().states_([ ["vst"] ]).action_({ node.editor }) );
+	};
+
 	node.controlNames.do({arg cn;
 		var k = cn.name;
 		var v = node.getSpec(k) ? [0, 1, \lin, 0, 1];
@@ -57,13 +61,15 @@ Fdef(\ngui, {arg node;
 	).margins_(2).spacing_(2));
 
 	win.layout.add(scrollView);
-	win = win.fixedSize_(Size(150, 170)).onClose_({
+	win.layout.add(nil);
+	win = win
+	.fixedSize_(Size(150, 170))
+	.onClose_({
 		playview.removeDependant(viewListener);
 		node.removeDependant(nodeListener);
 	});
 	baseview = baseViewFunc.(win, node.key, 150, 170);
 	baseview.front;
 });
-//Fdef(\ngui).(~nij);
 )
 

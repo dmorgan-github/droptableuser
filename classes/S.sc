@@ -45,9 +45,12 @@ Device : Ndef {
 		this.monitor.out = bus;
 	}
 
+	/*
+	should come from NodeProxy extension
 	getSettings {
 		^this.getKeysValues.flatten.asDict;
 	}
+	*/
 
 	addPreset {|num|
 		P.addPreset(this, num, this.getSettings);

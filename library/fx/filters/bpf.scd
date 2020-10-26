@@ -2,7 +2,6 @@
 synth: {arg sig_in;
 
 	var in = sig_in * \input.ar(1);
-	var res = \res.kr(0).linlin(0, 1, 1.4, 0.0001);
 	var sig = BPF.ar(in,
 		freq:\freq.ar(1200).clip(20, 20000),
 		rq:\res.kr(0).linlin(0, 1, 1.4, 0.0001),

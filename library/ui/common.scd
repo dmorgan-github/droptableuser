@@ -190,6 +190,7 @@ Fdef(\playview, {arg node;
 
 	view = View().layout_(
 		HLayout(
+
 			Button().states_([
 				[">"],
 				["[]"]
@@ -215,8 +216,6 @@ Fdef(\playview, {arg node;
 			})
 			.value_(node.vol)
 			.fixedSize_(Size(75, height))
-			//.minWidth_(50)
-			//.maxWidth_(75)
 			.toolTip_("vol"),
 
 			NumberBox()
@@ -246,7 +245,7 @@ Fdef(\playview, {arg node;
 			.maxWidth_(25)
 			.maxHeight_(height)
 			.value_(0)
-			.toolTip_("channel"),
+			.toolTip_("channel")
 
 		).spacing_(1).margins_(1)
 	);
@@ -302,7 +301,7 @@ Fdef(\playview, {arg node;
 	};
 
 	levelView.(slider, slider.bounds.left_(0).top_(0).width_(75).height_(height));
-	levelkey = (node.key ++ 'amp').asSymbol;
+	levelkey = (node.key ++ 'amp' ++ UniqueID.next).asSymbol;
 
 	Ndef(levelkey, {
 		var decay = 0.99994;
@@ -313,7 +312,7 @@ Fdef(\playview, {arg node;
 		max;
 	});
 
-	OSCdef(node.key, {|msg|
+	OSCdef(levelkey, {|msg|
 		var vols = msg.copyToEnd(3);
 		var preVol = vols[0];
 		var postVol = if (node.monitor.isPlaying, node.vol, 0) * preVol;
@@ -330,9 +329,10 @@ Fdef(\playview, {arg node;
 	view.onClose_({
 		[node.key, \playview, \release].postln;
 		skipjack.stop;
-		OSCdef(node.key).free;
+		OSCdef(levelkey).free;
 		Ndef(levelkey).free;
-	})
+	});
+
 });
 
 Fdef(\presetsview, {|node, cb|

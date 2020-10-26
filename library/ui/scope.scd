@@ -34,7 +34,7 @@ Fdef(\scope, {arg node;
 	4.do({
 		view.children[0].children[0].remove
 	});
-	view.children[0].children[0].waveColors_([Color.rand.debug(\scope), Color.rand.debug(scope)]);
+	view.children[0].children[0].waveColors_([Color.rand, Color.rand]);
 
 	win = win.asView.fixedSize_(Size(200,200));
 
