@@ -257,51 +257,68 @@ L {
 /*
 Matrix
 */
-M : Device {
+M {
+
+	classvar <all;
+
+	var <key;
 
 	var <map;
 	var <slot;
 
-	deviceInit {
+	*new {|key|
+		var res = all[key];
+		if (res.isNil) {
+			res = super.new.prInit(key);
+			all[key] = res;
+		};
+		^res;
+	}
+
+	*doesNotUnderstand {|key|
+		var res = all[key];
+		if (res.isNil){
+			res = M(key);
+		};
+		^res;
+	}
+
+	prInit {|argKey|
+		key = argKey;
 		map = Order.new;
 		slot = 0;
-		this.wakeUp;
 	}
 
 	view {
 		^U(\matrix, this)
 	}
 
-	addSrc {arg src, stop=false;
+	addSrc {|srcNode|
 
-		var srcIndex = map.detectIndex({arg v; v == src});
-
+		var srcIndex = map.detectIndex({|v| v.key == srcNode.key});
 		if (srcIndex.isNil) {
 			srcIndex = slot;
-			map.put(srcIndex, src);
-			this.mix(srcIndex, Ndef(src));
-			if (stop) {
-				Ndef(src).stop;
-			};
+			map.put(srcIndex, srcNode);
 			slot = slot + 1;
-		}
+		};
+		this.changed(\add, srcNode);
 	}
 
-	removeSrc {|src, clear=true|
-
-		var ndef = Ndef(src);
-		var index = map.indexOf(src);
+	removeSrc {|srcNode|
+		var index = map.indexOf(srcNode.key);
 		map.do({|key|
 			Ndef(key).removeAt(index);
-			Ndef(key).nodeMap.removeAt(src);
+			Ndef(key).nodeMap.removeAt(srcNode.key);
 		});
-		if (clear) {
-			ndef.clear;
-		};
 		map.removeAt(index);
-		this.removeAt(index);
+		this.changed(\remove, srcNode);
 	}
 
+	*initClass {
+		all = IdentityDictionary();
+	}
+
+	/*
 	save {
 		var settings = List.new;
 		var parent = PathName(thisProcess.nowExecutingPath).parentPath;
@@ -335,6 +352,7 @@ M : Device {
 		path.debug(\saving);
 		*/
 	}
+	*/
 }
 
 /*
@@ -1048,6 +1066,7 @@ V : Device {
 		VSTPlugin.search(verbose:false);
 		VSTPlugin.readPlugins.keysValuesDo({arg k, v; result.add(k) });
 		result.sort.do({|val| val.postln;});
+		^result;
 	}
 
 	editor {
@@ -1110,6 +1129,8 @@ W : Environment {
 
 	var <key, <>daw;
 
+	var <matrix;
+
 	*new {|key|
 		var res = all[key];
 		if (res.isNil) {
@@ -1139,15 +1160,38 @@ W : Environment {
 		^m;
 	}
 
+	put {|key, value|
+		super.put(key, value);
+		this.changed(\add, key -> value);
+	}
+
+	removeAt {|key|
+		super.removeAt(key);
+		this.changed(\remove, key);
+	}
+
 	init {|cb|
 		var me = this;
 		Routine({
 			me.use(cb);
+			me.changed(\init);
 		}).play;
 	}
 
 	view {
 		^U(\workspace, this);
+	}
+
+	sends {
+
+		W.ipo.keys.do({|k|
+			var obj = this[k];
+			if (obj.key.isNil.not) {
+				matrix.addSrc(obj);
+			}
+		});
+
+		^U(\matrix, matrix);
 	}
 
 	mixer {
@@ -1165,6 +1209,7 @@ W : Environment {
 		};
 		key = argKey;
 		daw = \bitwig;
+		matrix = M(argKey);
 		this.recdir;
 		^this;
 	}
