@@ -1163,6 +1163,7 @@ W : Environment {
 	put {|key, value|
 		super.put(key, value);
 		this.changed(\add, key -> value);
+		this.matrix.addSrc(value);
 	}
 
 	removeAt {|key|
@@ -1174,7 +1175,10 @@ W : Environment {
 		var me = this;
 		Routine({
 			me.use(cb);
-			me.changed(\init);
+			me.keysValuesDo({|k, v|
+				me.changed(\add, k -> v);
+				me.matrix.addSrc(v);
+			})
 		}).play;
 	}
 
@@ -1184,13 +1188,13 @@ W : Environment {
 
 	sends {
 
-		W.ipo.keys.do({|k|
+		/*W.ipo.keys.do({|k|
 			var obj = this[k];
 			if (obj.key.isNil.not) {
 				matrix.addSrc(obj);
 			}
 		});
-
+		*/
 		^U(\matrix, matrix);
 	}
 

@@ -75,7 +75,7 @@ Fdef(\matrix, {arg matrix;
 
 		var data = matrix.map;
 
-		var header = /*[st.()] ++*/ data.indices
+		var header = [nil] ++ data.indices
 		.reject({|j|
 			data[j].isKindOf(NodeProxy).not
 		})
