@@ -304,14 +304,17 @@ M {
 		this.changed(\add, srcNode);
 	}
 
-	removeSrc {|srcNode|
-		var index = map.indexOf(srcNode.key);
-		map.do({|key|
-			Ndef(key).removeAt(index);
-			Ndef(key).nodeMap.removeAt(srcNode.key);
+	removeSrc {|key|
+		map.keysValuesDo({|k, v|
+			if (v.key == key) {
+				map.do({|obj|
+					obj.removeAt(k);
+					obj.nodeMap.removeAt(key);
+				});
+				map.removeAt(k);
+				this.changed(\remove, key);
+			}
 		});
-		map.removeAt(index);
-		this.changed(\remove, srcNode);
 	}
 
 	*initClass {
@@ -390,12 +393,17 @@ N : Device {
 			this.ar(numChannels:2);
 			this.wakeUp;
 			this.filter(100, func);
+			this.filter(200, {|in| Limiter.ar(in, \limit.kr(1) )});
+			this.filter(300, {|in| LPF.ar(in, \lpf.kr(20000) )});
+			this.filter(400, {|in| HPF.ar(in, \hpf.kr(20) )});
 
 			if (specs.isNil.not) {
 				specs.do({arg assoc;
 					Ndef(key).addSpec(assoc.key, assoc.value);
 				});
 			};
+			this.addSpec(\lpf, [20, 20000, \lin, 0, 20000]);
+			this.addSpec(\hpf, [20, 10000, \lin, 0, 20]);
 
 		} {
 			Error("node not found").throw;
@@ -985,71 +993,59 @@ U {
 	}
 }
 
+/*
+TODO: figure out how to get parameters and values
+W.ixubd['Raum_1017'].fx.info.parameters
+VSTPlugin.plugins['Raum'].parameters
+W.ixubd['Raum_1017'].fx.paramCache;
+VSTPluginGui.new.gui.model_(W.ixubd['Raum_1017'].fx);
+W.ixubd['Raum_1017'].fx.open("Raum", verbose:true, editor:true);
+~a = VSTPluginGui.prMakePluginBrowser(W.ixubd['Raum_1017'].fx);
+*/
 V : Device {
 
-	var <>fx, <pdata, <>synth, <vst;
+	var <>fx, <>synth, <vst;
 
 	var <onload;
 
-	var <skipjack;
-
-	/*
-	Sets a plug-in on an existing node at specified index
-	and returns the VSTPluginController wrapped in a function
-	for lazy evaluation
-	*/
-	*addAt {|index, node, vst|
-		var mySynth, myFx;
-		var synthdef = (vst ++ UniqueID.next).asSymbol;
-		V.prFunc(index, node, vst, {|fx, synth| myFx = fx; mySynth = synth;});
-		^{myFx};
-	}
+	//var <pdata;
+	//var <skipjack;
 
 	load {|name, func|
+		var index = 100;
 		vst = name;
 		onload = func;
-		this.prBuild;
-	}
-
-	prBuild {
-		var index = 100;
+		this.wakeUp;
+		this.ar(numChannels:2);
 		V.prFunc(index, this, vst, {|fx, synth| this.fx = fx; this.synth = synth;}, onload);
-		^this;
 	}
 
 	*prFunc {|index, node, vst, cb, onload|
 
 		var fx, synth;
-		var synthdef = (vst ++ UniqueID.next).asSymbol;
 
 		var func = {
 
 			Routine({
 
-				SynthDef.new(synthdef, {arg in;
-					var sig = In.ar(in, 2);
-					var wet = ('wet' ++ index).asSymbol.kr(1);
-					XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
-				}).add;
-
-				1.wait;
-				node.put(index, synthdef.debug(\synthdef));
-
-				// this seems necessary, but not sure why
-				1.wait;
 				node.wakeUp;
-				synth = Synth.basicNew(synthdef, Server.default, node.objects[index].nodeID);
+				node.send;
+				node[index] = \vst.debug(\synthdef);
+
+				// TODO: wouldlike to consolidate for all ndefs
+				node.filter(200, {|in| Limiter.ar(in, NamedControl.kr(\limit, 1) )});
+				node.filter(300, {|in| LPF.ar(in, \lpf.kr(20000) )});
+				node.filter(400, {|in| HPF.ar(in, \hpf.kr(20) )});
+				node.addSpec(\lpf, [20, 20000, \lin, 0, 20000]);
+				node.addSpec(\hpf, [20, 10000, \lin, 0, 20]);
+
+				synth = Synth.basicNew(\vst, Server.default, node.objects[index].nodeID);
+				Server.default.latency.wait;
 				synth.set(\in, node.bus.index);
 				fx = VSTPluginController(synth);
-
-				1.wait;
-				// there can be a delay
+				Server.default.latency.wait;
 				fx.open(vst.asString, verbose:true, editor:true);
-				vst.debug(\loaded);
-				node.wakeUp;
-
 				cb.(fx, synth);
-
 				if (onload.isNil.not) {
 					{ onload.(fx) }.defer(2);
 				};
@@ -1081,13 +1077,17 @@ V : Device {
 		fx.browse;
 	}
 
+	/*
 	snapshot {
 		fx.getProgramData({ arg data; pdata = data;});
 	}
+	*/
 
+	/*
 	restore {
 		fx.setProgramData(pdata);
 	}
+	*/
 
 	bypass {arg bypass=0;
 		synth.set(\bypass, bypass)
@@ -1117,6 +1117,17 @@ V : Device {
 		fx.close;
 		fx = nil;
 		super.clear;
+	}
+
+	*initClass {
+		StartUp.add({
+			SynthDef.new(\vst, {arg in;
+				var sig = In.ar(in, 2);
+				var wet = ('wet100').asSymbol.kr(1);
+				//XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
+				ReplaceOut.ar(in, VSTPlugin.ar(sig, 2));
+			}).add;
+		});
 	}
 }
 
@@ -1169,17 +1180,18 @@ W : Environment {
 	removeAt {|key|
 		super.removeAt(key);
 		this.changed(\remove, key);
+		this.matrix.removeSrc(key);
 	}
 
 	init {|cb|
 		var me = this;
-		Routine({
+		//Routine({
 			me.use(cb);
 			me.keysValuesDo({|k, v|
-				me.changed(\add, k -> v);
+				//me.changed(\add, k -> v);
 				me.matrix.addSrc(v);
 			})
-		}).play;
+		//}).play;
 	}
 
 	view {

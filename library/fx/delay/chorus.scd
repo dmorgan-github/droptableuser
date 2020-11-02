@@ -4,9 +4,9 @@ synth: {|in|
 
 	var numchans = 2;
 	var chpredelay = \chpredelay.kr(0.08);
-	var chrate = \chrate.kr(0.05);
-	var chdepth = \chdepth.kr(0.1);
-	var chphasediff = \chphasediff.kr(0.5);
+	var chrate = \chrate.kr(0.05).lag(0.001);
+	var chdepth = \chdepth.kr(0.1).lag(0.001);
+	var chphasediff = \chphasediff.kr(0.5).lag(0.001);
 
 	var sig, numDelays = 4;
 
