@@ -1045,6 +1045,10 @@ V : Device {
 				fx = VSTPluginController(synth);
 				Server.default.latency.wait;
 				fx.open(vst.asString, verbose:true, editor:true);
+
+				// don't understand this but it is necessary
+				// to get the paramcache populated
+				fx.addDependant(node);
 				cb.(fx, synth);
 				if (onload.isNil.not) {
 					{ onload.(fx) }.defer(2);
@@ -1063,6 +1067,17 @@ V : Device {
 		VSTPlugin.readPlugins.keysValuesDo({arg k, v; result.add(k) });
 		result.sort.do({|val| val.postln;});
 		^result;
+	}
+
+	set {|key, val|
+		if (fx.info.parameters
+			.collect({|dict| dict['name'].asSymbol })
+			.includes(key)
+		) {
+			fx.set(key, val);
+		}{
+			super.set(key, val);
+		}
 	}
 
 	editor {
@@ -1109,6 +1124,16 @@ V : Device {
 		});
 	}
 
+	getSettings {
+		var params = fx.info.parameters;
+		var cache = fx.paramCache;
+		var vals = ();
+		params.do({|p, i|
+			vals[p['name'].asSymbol] = cache[i][0];
+		});
+		^vals;
+	}
+
 	clear {
 		//skipjack.stop;
 		//SkipJack.stop(key);
@@ -1116,6 +1141,7 @@ V : Device {
 		synth.release;
 		fx.close;
 		fx = nil;
+		fx.removeDependant(this);
 		super.clear;
 	}
 
@@ -1123,7 +1149,7 @@ V : Device {
 		StartUp.add({
 			SynthDef.new(\vst, {arg in;
 				var sig = In.ar(in, 2);
-				var wet = ('wet100').asSymbol.kr(1);
+				//var wet = ('wet100').asSymbol.kr(1);
 				//XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
 				ReplaceOut.ar(in, VSTPlugin.ar(sig, 2));
 			}).add;

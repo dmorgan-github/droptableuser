@@ -22,14 +22,24 @@ Fdef(\ngui, {arg node;
 		view.layout.add(Button().states_([ ["vst"] ]).action_({ node.editor }) );
 	};
 
+	/*
 	node.controlNames.do({arg cn;
 		var k = cn.name;
-		var v = node.getSpec(k) ? [0, 1, \lin, 0, 1];
+		var v = node.getSpec(k) ?? { [0, 1, \lin, 0, 1] };
 		var val = node.get(k);
 		var ctrl = ctrlView.(k, v.asSpec, Color.rand, val, cb);
 		ctrlViews[k] = ctrl;
 		view.layout.add(ctrl.asView);
 		//view.layout.add(ctrl);
+	});
+	*/
+
+	node.getSettings.keysValuesDo({arg k, v;
+		var spec = node.getSpec(k.asSymbol) ?? { [0, 1, \lin, 0, 1] };
+		var val = v;//node.get(k);
+		var ctrl = ctrlView.(k, spec.asSpec, Color.rand, val, cb);
+		ctrlViews[k] = ctrl;
+		view.layout.add(ctrl.asView);
 	});
 
 	view.layout.add(nil);
