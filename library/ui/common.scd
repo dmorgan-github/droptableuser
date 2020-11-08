@@ -6,7 +6,7 @@ Fdef(\baseview, {arg view, title, w, h;
 	var height = h ? view.sizeHint.height;
 	var top = Window.screenBounds.height * 0.5;
 	var left = Window.screenBounds.width * 0.3;
-	var win = Window.new(title, bounds:Rect(left, top, width, height), border:false);
+	var win = Window.new(title, bounds:Rect(left, top, width, height), border:true);
 	var status = StaticText().string_("").background_(Color.black.alpha_(0.1));
 
 	var viewListener = {arg view, key, value;
@@ -18,6 +18,7 @@ Fdef(\baseview, {arg view, title, w, h;
 
 	var outerview = View().layout_(
 		VLayout(
+			/*
 			View().layout_(
 				HLayout(
 					StaticText().string_(title),
@@ -28,10 +29,12 @@ Fdef(\baseview, {arg view, title, w, h;
 					.maxHeight_(15)
 				).margins_(1).spacing_(0)
 			).background_(Color.black.alpha_(0.1)),
+			*/
 			view,
 			status;
 		).margins_(1).spacing_(1)
 	)
+	/*
 	.mouseDownAction_({arg ctrl, x, y;
 		mousey = ctrl.sizeHint.height - y;
 		mousex = x;
@@ -44,7 +47,9 @@ Fdef(\baseview, {arg view, title, w, h;
 		top = win.bounds.top + (top - mousey);
 		win.bounds = Rect(left, top, width, height);
 		true;
-	});
+	})
+	*/
+	;
 
 	view.addDependant(viewListener);
 	win.layout = VLayout(outerview).margins_(0).spacing_(0);
@@ -331,6 +336,7 @@ Fdef(\playview, {arg node;
 		skipjack.stop;
 		OSCdef(levelkey).free;
 		Ndef(levelkey).free;
+		Ndef(levelkey).clear;
 	});
 
 });

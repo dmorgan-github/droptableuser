@@ -132,6 +132,14 @@ Fdef(\workspace, {|ws|
 		})
 		.states_([ ["rec", Color.red], ["stop", Color.red] ])
 	));
+	view.layout.add(
+		playview.(ws.node)
+	);
+	/*
+	view.layout.add(HLayout(
+		Button(), Button(), Button()
+	));
+	*/
 
 	/*
 	matrixlistener = {|src, what, val|

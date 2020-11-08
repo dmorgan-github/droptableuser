@@ -20,7 +20,47 @@ Device : Ndef {
 		var res = envir[key];
 		if (res.isNil) {
 			res = this.createNew(key).deviceInit();
+
+			res.wakeUp;
+			res.ar(numChannels:2);
+			res.play;
+			res.filter(200, {|in| LPF.ar(in, \lpf.kr(20000) )});
+			res.filter(300, {|in| HPF.ar(in, \hpf.kr(20) )});
+			res.filter(400, {|in|
+				CompanderD.ar(in,
+					\thresh.kr(0.5),
+					\slopeBelow.kr(1),
+					\slopeAbove.kr(1),
+					\clampTime.kr(0.01),
+					\relaxTime.kr(1.0)
+				)
+			});
+			res.filter(500, {|in| Limiter.ar(in, \limit.kr(1) )});
+
+			// use units to try to keep things together and provide sort hints
+			res.addSpec(\lpf, ControlSpec(20, 20000, \lin, 0, 20000, "xxfilter"));
+			res.addSpec(\wet200, ControlSpec(0, 1, \lin, 0, 1, "xxfilter"));
+
+			res.addSpec(\hpf, ControlSpec(20, 10000, \lin, 0, 20, "xxfilter"));
+			res.addSpec(\wet300, ControlSpec(0, 1, \lin, 0, 1, "xxfilter"));
+
+			res.addSpec(\thresh, ControlSpec(0, 1, \lin, 0, 0.5, "yycompress"));
+			res.addSpec(\slopeBelow, ControlSpec(0, 1, \lin, 0, 1, "yycompress"));
+			res.addSpec(\slopeAbove, ControlSpec(0, 2, \lin, 0, 1, "yycompress"));
+			res.addSpec(\clampTime, ControlSpec(0, 1, \lin, 0, 0.01, "yycompress"));
+			res.addSpec(\relaxTime, ControlSpec(0, 1, \lin, 0, 1.0, "yycompress"));
+			res.addSpec(\wet400, ControlSpec(0, 1, \lin, 0, 0, "yycompress"));
+
+			res.addSpec(\limit, ControlSpec(0, 1, \lin, 0, 1.0, "zzlimiter"));
+			res.addSpec(\wet500, ControlSpec(0, 1, \lin, 0, 1, "zzlimiter"));
+
+			res.set(\wet400, 0);
 			res.vol = 1;
+
+			ServerTree.add({
+				\cmdperiod.debug(key);
+				res.send;
+			});
 		}
 		^res;
 	}
@@ -295,7 +335,10 @@ M {
 
 	addSrc {|srcNode|
 
-		var srcIndex = map.detectIndex({|v| v.key == srcNode.key});
+		var srcIndex = map.detectIndex({|v|
+			[\v, v, \srcNode, srcNode].debug(\m_addsrc);
+			v.key == srcNode.key
+		});
 		if (srcIndex.isNil) {
 			srcIndex = slot;
 			map.put(srcIndex, srcNode);
@@ -390,21 +433,12 @@ N : Device {
 			var func = obj[\synth];
 			var specs = obj[\specs];
 			uifunc = obj[\ui].debug(\ui);
-			this.ar(numChannels:2);
-			this.wakeUp;
 			this.filter(100, func);
-			this.filter(200, {|in| Limiter.ar(in, \limit.kr(1) )});
-			this.filter(300, {|in| LPF.ar(in, \lpf.kr(20000) )});
-			this.filter(400, {|in| HPF.ar(in, \hpf.kr(20) )});
-
 			if (specs.isNil.not) {
 				specs.do({arg assoc;
 					Ndef(key).addSpec(assoc.key, assoc.value);
 				});
 			};
-			this.addSpec(\lpf, [20, 20000, \lin, 0, 20000]);
-			this.addSpec(\hpf, [20, 10000, \lin, 0, 20]);
-
 		} {
 			Error("node not found").throw;
 		}
@@ -701,11 +735,11 @@ S : EventPatternProxy {
 
 		cmdperiodfunc = {
 			{
-				\wakeup.debug(key);
+				\cmdperiod.debug(key);
 				Ndef(key).wakeUp
 			}.defer(0.5)
 		};
-		CmdPeriod.add(cmdperiodfunc);
+		ServerTree.add(cmdperiodfunc);
 
 		// adding to envir just doesn't seem to work
 		this.source = Pbind(
@@ -993,30 +1027,17 @@ U {
 	}
 }
 
-/*
-TODO: figure out how to get parameters and values
-W.ixubd['Raum_1017'].fx.info.parameters
-VSTPlugin.plugins['Raum'].parameters
-W.ixubd['Raum_1017'].fx.paramCache;
-VSTPluginGui.new.gui.model_(W.ixubd['Raum_1017'].fx);
-W.ixubd['Raum_1017'].fx.open("Raum", verbose:true, editor:true);
-~a = VSTPluginGui.prMakePluginBrowser(W.ixubd['Raum_1017'].fx);
-*/
+
 V : Device {
 
 	var <>fx, <>synth, <vst;
 
 	var <onload;
 
-	//var <pdata;
-	//var <skipjack;
-
 	load {|name, func|
 		var index = 100;
 		vst = name;
 		onload = func;
-		this.wakeUp;
-		this.ar(numChannels:2);
 		V.prFunc(index, this, vst, {|fx, synth| this.fx = fx; this.synth = synth;}, onload);
 	}
 
@@ -1027,25 +1048,16 @@ V : Device {
 		var func = {
 
 			Routine({
-
 				node.wakeUp;
 				node.send;
 				node[index] = \vst.debug(\synthdef);
-
-				// TODO: wouldlike to consolidate for all ndefs
-				node.filter(200, {|in| Limiter.ar(in, NamedControl.kr(\limit, 1) )});
-				node.filter(300, {|in| LPF.ar(in, \lpf.kr(20000) )});
-				node.filter(400, {|in| HPF.ar(in, \hpf.kr(20) )});
-				node.addSpec(\lpf, [20, 20000, \lin, 0, 20000]);
-				node.addSpec(\hpf, [20, 10000, \lin, 0, 20]);
-
 				synth = Synth.basicNew(\vst, Server.default, node.objects[index].nodeID);
 				Server.default.latency.wait;
 				synth.set(\in, node.bus.index);
 				fx = VSTPluginController(synth);
 				Server.default.latency.wait;
 				fx.open(vst.asString, verbose:true, editor:true);
-
+				//Server.default.latency.wait;
 				// don't understand this but it is necessary
 				// to get the paramcache populated
 				fx.addDependant(node);
@@ -1058,7 +1070,7 @@ V : Device {
 		};
 
 		func.();
-		CmdPeriod.add(func);
+		ServerTree.add(func);
 	}
 
 	*ls {
@@ -1070,9 +1082,10 @@ V : Device {
 	}
 
 	set {|key, val|
-		if (fx.info.parameters
+
+		if ( fx.isNil.not and: { fx.info.parameters
 			.collect({|dict| dict['name'].asSymbol })
-			.includes(key)
+			.includes(key) }
 		) {
 			fx.set(key, val);
 		}{
@@ -1131,6 +1144,7 @@ V : Device {
 		params.do({|p, i|
 			vals[p['name'].asSymbol] = cache[i][0];
 		});
+		vals = vals ++ this.getKeysValues.flatten.asDict;
 		^vals;
 	}
 
@@ -1168,6 +1182,12 @@ W : Environment {
 
 	var <matrix;
 
+	var <node;
+
+	var <group, <bus;
+
+	var cmdperiod;
+
 	*new {|key|
 		var res = all[key];
 		if (res.isNil) {
@@ -1197,8 +1217,25 @@ W : Environment {
 		^m;
 	}
 
+	prSetTree {
+		var me = this;
+		{
+			\prSetTree.debug(me.key);
+			me.keysValuesDo({|k, v|
+				v.parentGroup = me.node.group;
+				v.monitor.out = me.node.bus.index;
+			})
+		}.defer(2);
+		//TODO: Trying to gracefully handle a cmdperiod
+		// two seconds is a long time to wait but need to provide
+		// time for VSTs to be reloaded before setting
+		// their tree structure. I'm not sure what events
+		// to wait for to make this a bit more robust
+	}
+
 	put {|key, value|
 		super.put(key, value);
+		this.prSetTree;
 		this.changed(\add, key -> value);
 		this.matrix.addSrc(value);
 	}
@@ -1211,13 +1248,11 @@ W : Environment {
 
 	init {|cb|
 		var me = this;
-		//Routine({
-			me.use(cb);
-			me.keysValuesDo({|k, v|
-				//me.changed(\add, k -> v);
-				me.matrix.addSrc(v);
-			})
-		//}).play;
+		this.use(cb);
+		this.prSetTree;
+		this.keysValuesDo({|k, v|
+			me.matrix.addSrc(v);
+		})
 	}
 
 	view {
@@ -1225,14 +1260,6 @@ W : Environment {
 	}
 
 	sends {
-
-		/*W.ipo.keys.do({|k|
-			var obj = this[k];
-			if (obj.key.isNil.not) {
-				matrix.addSrc(obj);
-			}
-		});
-		*/
 		^U(\matrix, matrix);
 	}
 
@@ -1244,6 +1271,7 @@ W : Environment {
 	}
 
 	prWInit {|argKey|
+
 		var path = "%%/".format(App.workspacedir, key);
 		if (File.exists(path).not) {
 			"init workspace %".format(path).inform;
@@ -1251,7 +1279,21 @@ W : Environment {
 		};
 		key = argKey;
 		daw = \bitwig;
-		matrix = M(argKey);
+		matrix = M((argKey ++ '_matrix').asSymbol);
+		node = Ndef((argKey ++ '_group').asSymbol);
+		node.play;
+		//group = Group.new;
+		//group.isPlaying = true;
+		//bus = Bus.audio(Server.default, 2);
+
+		//TODO: need to handle clear and clean up
+		cmdperiod = {
+			\cmdperiod.debug(argKey);
+			node.play;
+			this.prSetTree;
+		};
+		ServerTree.add(cmdperiod);
+
 		this.recdir;
 		^this;
 	}

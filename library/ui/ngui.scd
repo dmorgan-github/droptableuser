@@ -18,6 +18,38 @@ Fdef(\ngui, {arg node;
 	};
 	var ctrlViews = ();
 
+	var getSpecs = {
+		var specs = ();
+		node.getSettings.keysValuesDo({|k, v|
+			specs[k.asSymbol] = node.getSpec(k.asSymbol) ?? { ControlSpec(0, 1, \lin, 0, 0) };
+		});
+		specs;
+	};
+
+	var getSpecGroups = {
+
+		var specs = getSpecs.();
+		var groups = ();
+		var specgroups;
+
+		specs.do({arg val;
+			var key = val.asSpec.units ?? {""};
+			groups[key] = 1
+		});
+
+		specgroups = groups.keys.asSortedList.collect({arg group;
+
+			var returnval = List.new;
+			specs.keysValuesDo({arg k, v;
+				if (v.units.asString == group.asString) {
+					returnval.add(k -> v);
+				}
+			});
+			returnval.quickSort({arg a, b; a.key < b.key});
+		});
+		specgroups.flatten;
+	};
+
 	if (node.respondsTo(\editor)) {
 		view.layout.add(Button().states_([ ["vst"] ]).action_({ node.editor }) );
 	};
@@ -34,13 +66,32 @@ Fdef(\ngui, {arg node;
 	});
 	*/
 
+	/*
+	node.getSettings.keysValuesDo({|k, v|
+		var obj = ();
+		obj[k.asSymbol] = node.getSpec(k.asSymbol) ?? { [0, 1, \lin, 0, 0] };
+		specs.add(obj);
+	});
+	*/
+
+	getSpecGroups.().do({arg assoc;
+		var k = assoc.key;
+		var v = assoc.value;
+		var val = node.getSettings[k.asSymbol];
+		var ctrl = ctrlView.(k, v.asSpec, Color.rand, val, cb);
+		ctrlViews[k] = ctrl;
+		view.layout.add(ctrl.asView);
+	});
+
+	/*
 	node.getSettings.keysValuesDo({arg k, v;
-		var spec = node.getSpec(k.asSymbol) ?? { [0, 1, \lin, 0, 1] };
+		var spec = node.getSpec(k.asSymbol) ?? { [0, 1, \lin, 0, 0] };
 		var val = v;//node.get(k);
 		var ctrl = ctrlView.(k, spec.asSpec, Color.rand, val, cb);
 		ctrlViews[k] = ctrl;
 		view.layout.add(ctrl.asView);
 	});
+	*/
 
 	view.layout.add(nil);
 	scrollView.canvas = view.background_(Color.clear);
