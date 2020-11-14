@@ -19,7 +19,7 @@ SynthDef(\kick, {
 
 	sig = LeakDC.ar(sig);
 
-	sig = CompanderD.ar(sig, 0.1, 1.0, 1.3, 0.001);
+	sig = CompanderD.ar(sig, 0.1, 0.5, 1.3, 0.001);
 
 	sig = sig * aeg * \amp.kr(-3.dbamp) * \vel.kr(1);
 	Out.ar(\out.kr(0), sig!2);

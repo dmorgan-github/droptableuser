@@ -1,3 +1,27 @@
+Pndxr {
+
+	*new {|loops, ndxr|
+
+		var streams = loops.collect({|loop|
+			loop.asStream;
+		});
+
+		^Pindex(
+			streams.collect({|stream, i|
+				Plazy({|evt|
+					if (evt[\index].isRest) {
+						()
+					}{
+						stream.next(Event.default);
+					}
+				})
+			}),
+			Pkey(\index).norest,
+			inf
+		) <> ndxr
+	}
+}
+
 
 // Only pull a value once per clock time - else, return the previous value
 // https://gist.github.com/scztt/e53046e866e75e48bff1b62311da96eb

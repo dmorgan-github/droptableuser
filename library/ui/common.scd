@@ -74,6 +74,8 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 	var li, st, nb;
 	var getValue = {}, setValue = {};
 
+	color = Color.white.alpha_( rrand(0.0, 1.0) );
+
 	if (myval.isNumber) {
 
 		li = LevelIndicator().value_(controlSpec.unmap(myval));
@@ -111,8 +113,8 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 					.background_(color.alpha_(0.2))
 				)
 				.mode_(\stackAll)
-				.margins_(0)
-				.spacing_(0)
+				//.margins_(2)
+				//.spacing_(2)
 			)
 			.mouseMoveAction_({arg ctrl, x, y, mod;
 				var val = x.linlin(0, ctrl.bounds.width, 0, 1);
@@ -169,7 +171,7 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 				};
 				true;
 			}).fixedHeight_(25)
-		).margins_(0).spacing_(1))
+		).margins_(0.5).spacing_(1))
 	} {
 		var text = label + myval.asCompileString;
 		var st = StaticText().string_(text).font_(font).stringColor_(Color.white);
@@ -258,7 +260,7 @@ Fdef(\playview, {arg node;
 	levelView = {|parent, bounds|
 
 		var preCol = Color.yellow(1.0, 0.4);
-		var postCol = Color.green(0.7, 0.4);
+		var postCol = Color.white(0.7, 0.4);
 		var preSatCol = Color.red(1, 0.4);
 		var satCol = Color.red(1, 0.6);
 

@@ -610,7 +610,7 @@ S : EventPatternProxy {
 
 	var listenerfunc, cmdperiodfunc, <>debug, <out;
 
-	*new {arg key, synth;
+	*new {arg key, synth, template=\adsr;
 		var res;
 		res = Pdef.all[key];
 		if (res.isNil) {
@@ -618,7 +618,7 @@ S : EventPatternProxy {
 			Pdef.all.put(key, res);
 		};
 		if (synth.isNil.not) {
-			res.prInitSynth(key, synth);
+			res.prInitSynth(key, synth, template);
 			"S with key % initialied".format(key).inform;
 		};
 		^res;
@@ -632,8 +632,8 @@ S : EventPatternProxy {
 		^res;
 	}
 
-	synth_ {|synth|
-		this.prInitSynth(key, synth);
+	synth_ {|synth, template=\adsr|
+		this.prInitSynth(key, synth, template);
 	}
 
 	out_ {|bus=0|
@@ -711,116 +711,6 @@ S : EventPatternProxy {
 
 	getPreset {|num|
 		^P.getPreset(this, num);
-	}
-
-	prInit {arg inKey;
-
-		if (inKey.isNil) {
-			Error("key not specified");
-		};
-
-		debug = false;
-		key = inKey;
-		synths = Array.fill(127, {List.new});
-
-		// this isn't doing anything
-		//listenerfunc = {arg obj, prop, params; [prop, params.asCompileString];};
-		node = Ndef(key);
-		node.mold(2, \audio);
-		node.play;
-
-		//if (this.dependants.size == 0) {
-		//	this.addDependant(listenerfunc);
-		//};
-
-		cmdperiodfunc = {
-			{
-				\cmdperiod.debug(key);
-				Ndef(key).wakeUp
-			}.defer(0.5)
-		};
-		ServerTree.add(cmdperiodfunc);
-
-		// adding to envir just doesn't seem to work
-		this.source = Pbind(
-			\out, Pfunc({ node.bus.index }),
-			\group, Pfunc({node.group})
-		);
-
-		this.set(
-			\root, defaultRoot,
-			\scale, Scale.at(defaultScale).copy.tuning_(defaultTuning),
-			\amp, 0.3
-		);
-		^this;
-	}
-
-	prInitSynth {arg inKey, inSynth;
-
-		var synthdef;
-		var myspecs = ();
-		var ignore = [\out, \freq, \gate, \trig, \retrig, \sustain, \bend];
-
-		instrument = inSynth;
-
-		if (inSynth.isKindOf(Function)) {
-			instrument = inKey;
-			this.prBuildSynth(instrument, inSynth);
-		};
-
-		synthdef = SynthDescLib.global.at(instrument);
-
-		if (synthdef.isNil) {
-			var path = "~/projects/droptableuser/library/synths/" ++ instrument.asString ++ ".scd";
-			var pathname = PathName(path.standardizePath);
-			var name = pathname.fileNameWithoutExtension;
-			var fullpath = pathname.fullPath;
-			if (File.exists(fullpath)) {
-				File.open(fullpath, "r").readAllString.interpret;
-				synthdef = SynthDescLib.global.at(instrument);
-			} {
-				Error("synthdef not found").throw;
-			}
-		};
-
-		// check the synthdef
-		if (synthdef.metadata.isNil.not) {
-			if (synthdef.metadata[\specs].isNil.not) {
-				myspecs = synthdef.metadata[\specs]
-			}
-		};
-
-		// add specs from the synth controls
-		synthdef.controls
-		.reject({arg ctrl;
-			myspecs[ctrl.name.asSymbol].isNil.not;
-		})
-		.do({arg ctrl;
-			// check for a matching default spec
-			var key = ctrl.name.asSymbol;
-			var spec = Spec.specs[key];
-			if (spec.isNil) {
-				var max = if (ctrl.defaultValue < 1) {1} { min(20000, ctrl.defaultValue * 2) };
-				spec = [0, max, \lin, 0, ctrl.defaultValue].asSpec;
-			};
-			myspecs[key] = spec.default_(ctrl.defaultValue);
-		});
-
-		myspecs.keys.do({arg k;
-			if (ignore.includes(k)) {
-				myspecs.removeAt(k);
-			};
-			if (k.asString.endsWith("lfo")) {
-				myspecs.removeAt(k);
-			};
-		});
-
-		myspecs.keysValuesDo({arg k, v;
-			this.addSpec(k, v);
-			this.set(k, v.default)
-		});
-
-		this.set(\instrument, instrument);
 	}
 
 	randomize {|ignore, seed=nil, func|
@@ -909,6 +799,115 @@ S : EventPatternProxy {
 		}
 	}
 
+	prInit {arg inKey;
+
+		if (inKey.isNil) {
+			Error("key not specified");
+		};
+
+		debug = false;
+		key = inKey;
+		synths = Array.fill(127, {List.new});
+
+		// this isn't doing anything
+		//listenerfunc = {arg obj, prop, params; [prop, params.asCompileString];};
+		node = Ndef(key);
+		node.mold(2, \audio);
+		node.play;
+
+		//if (this.dependants.size == 0) {
+		//	this.addDependant(listenerfunc);
+		//};
+		cmdperiodfunc = {
+			{
+				\cmdperiod.debug(key);
+				Ndef(key).wakeUp
+			}.defer(0.5)
+		};
+		ServerTree.add(cmdperiodfunc);
+
+		// adding to envir just doesn't seem to work
+		this.source = Pbind(
+			\out, Pfunc({ node.bus.index }),
+			\group, Pfunc({node.group})
+		);
+
+		this.set(
+			\root, defaultRoot,
+			\scale, Scale.at(defaultScale).copy.tuning_(defaultTuning),
+			\amp, 0.3
+		);
+		^this;
+	}
+
+	prInitSynth {arg inKey, inSynth, inTemplate=\adsr;
+
+		var synthdef;
+		var myspecs = ();
+		var ignore = [\out, \freq, \gate, \trig, \retrig, \sustain, \bend];
+
+		instrument = inSynth;
+
+		if (inSynth.isKindOf(Function)) {
+			instrument = inKey;
+			this.prBuildSynth(instrument, inSynth, inTemplate);
+		};
+
+		synthdef = SynthDescLib.global.at(instrument);
+
+		if (synthdef.isNil) {
+			var path = App.librarydir ++  "synths/" ++ instrument.asString ++ ".scd";
+			var pathname = PathName(path.standardizePath);
+			var name = pathname.fileNameWithoutExtension;
+			var fullpath = pathname.fullPath;
+			if (File.exists(fullpath)) {
+				File.open(fullpath, "r").readAllString.interpret;
+				synthdef = SynthDescLib.global.at(instrument);
+			} {
+				Error("synthdef not found").throw;
+			}
+		};
+
+		// check the synthdef
+		if (synthdef.metadata.isNil.not) {
+			if (synthdef.metadata[\specs].isNil.not) {
+				myspecs = synthdef.metadata[\specs]
+			}
+		};
+
+		// add specs from the synth controls
+		synthdef.controls
+		.reject({arg ctrl;
+			myspecs[ctrl.name.asSymbol].isNil.not;
+		})
+		.do({arg ctrl;
+			// check for a matching default spec
+			var key = ctrl.name.asSymbol;
+			var spec = Spec.specs[key];
+			if (spec.isNil) {
+				var max = if (ctrl.defaultValue < 1) {1} { min(20000, ctrl.defaultValue * 2) };
+				spec = [0, max, \lin, 0, ctrl.defaultValue].asSpec;
+			};
+			myspecs[key] = spec.default_(ctrl.defaultValue);
+		});
+
+		myspecs.keys.do({arg k;
+			if (ignore.includes(k)) {
+				myspecs.removeAt(k);
+			};
+			if (k.asString.endsWith("lfo")) {
+				myspecs.removeAt(k);
+			};
+		});
+
+		myspecs.keysValuesDo({arg k, v;
+			this.addSpec(k, v);
+			this.set(k, v.default)
+		});
+
+		this.set(\instrument, instrument);
+	}
+
 	prNoteOn {arg midinote, vel=1;
 
 		var ignore = [\instrument,
@@ -948,50 +947,16 @@ S : EventPatternProxy {
 		});
 	}
 
-	prBuildSynth {arg inKey, inFunc;
-
-		SynthDef(inKey, {
-
-			var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
-			var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
-			var in_freq = \freq.ar(261).lag(\glis.kr(0));
-			var detune = \detunehz.kr(0.6) * PinkNoise.ar(0.007).range(0.9, 1.1);
-
-			// bend by semitones...
-			var bend = \bend.ar(0).midiratio;
-			var freqbend = in_freq * bend;
-			var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune], \vrate.ar(6), \vdepth.ar(0.0));
-
-			var adsr = {
-				var atk = \atk.kr(0.01);
-				var dec = \dec.kr(0.1);
-				var rel = \rel.kr(0.1);
-				var suslevel = \suslevel.kr(1);
-				var ts = \ts.kr(1);
-				var curve = \curve.kr(-4);
-				var env = Env.adsr(
-					attackTime:atk,
-					decayTime:dec,
-					sustainLevel:suslevel,
-					releaseTime:rel,
-					curve:curve
-				);
-				var aeg = env.ar(doneAction:Done.none, gate:gate, timeScale:ts);
-				// control life cycle of synth - this will work with both poly and mono synths
-				env.ar(doneAction:Done.freeSelf, gate:\gate.kr, timeScale:ts);
-				aeg;
-			};
-
-			var aeg = adsr.();
-			var sig = inFunc.(freq, gate, aeg);
-
-			sig = LeakDC.ar(sig);
-			sig = sig * aeg * AmpCompA.ar(freq, 32) * \vel.kr(1);
-			sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
-			sig = sig * \amp.kr(-6.dbamp);
-			Out.ar(\out.kr(0), sig);
-
-		}).add;
+	prBuildSynth {arg inKey, inFunc, inTemplate=\adsr;
+		var path = App.librarydir ++  "templates/" ++ inTemplate.asString ++ ".scd";
+		var pathname = PathName(path.standardizePath);
+		var fullpath = pathname.fullPath;
+		if (File.exists(fullpath)) {
+			var template = File.open(fullpath, "r").readAllString.interpret;
+			template.(inKey, inFunc);
+		} {
+			Error("synth template not found").throw;
+		}
 	}
 
 	*initClass {
@@ -1222,8 +1187,13 @@ W : Environment {
 		{
 			\prSetTree.debug(me.key);
 			me.keysValuesDo({|k, v|
-				v.parentGroup = me.node.group;
-				v.monitor.out = me.node.bus.index;
+				if (v.respondsTo(\parentGroup)) {
+					v.parentGroup = me.node.group;
+					v.monitor.out = me.node.bus.index;
+				}{
+					v.node.parentGroup = me.node.group;
+					v.node.monitor.out = me.node.bus.index;
+				}
 			})
 		}.defer(2);
 		//TODO: Trying to gracefully handle a cmdperiod
