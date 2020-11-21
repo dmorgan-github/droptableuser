@@ -413,12 +413,8 @@ N : Device {
 		this.prBuild;
 	}
 
-	ui {
-		if (uifunc.isNil.not) {
-			^uifunc.(this);
-		} {
-			^U(\ngui, this);
-		}
+	view {
+		^U(\ngui, this, uifunc.(this));
 	}
 
 	prBuild {
@@ -432,7 +428,7 @@ N : Device {
 			var obj = File.open(fullpath, "r").readAllString.interpret;
 			var func = obj[\synth];
 			var specs = obj[\specs];
-			uifunc = obj[\ui].debug(\ui);
+			uifunc = obj[\ui];
 			this.filter(100, func);
 			if (specs.isNil.not) {
 				specs.do({arg assoc;
@@ -604,7 +600,7 @@ Synth
 */
 S : EventPatternProxy {
 
-	classvar <>defaultRoot, <>defaultScale, <>defaultTuning, <>defaultQuant;
+	classvar <>defaultRoot, <>defaultScale, <>defaultTuning;
 
 	var <key, <instrument, <node, <synths;
 
@@ -632,8 +628,9 @@ S : EventPatternProxy {
 		^res;
 	}
 
-	synth_ {|synth, template=\adsr|
+	synth {|synth, template=\adsr|
 		this.prInitSynth(key, synth, template);
+		^this;
 	}
 
 	out_ {|bus=0|
@@ -684,7 +681,7 @@ S : EventPatternProxy {
 		^this.envir.asDict;
 	}
 
-	postSettingsString {
+	postSettings {
 		var str = "(\nvar settings = " ++ this.getSettings.asCompileString ++ ";\nS.%.set(*settings.getPairs);\n)".format(this.key);
 		str.postln;
 	}
@@ -713,6 +710,7 @@ S : EventPatternProxy {
 		^P.getPreset(this, num);
 	}
 
+	/*
 	randomize {|ignore, seed=nil, func|
 		ignore = (ignore ?? []) ++ [\amp, \vel, \center, \spread];
 		thisThread.randSeed = seed ?? 1000000000.rand.debug(\randseed);
@@ -737,6 +735,7 @@ S : EventPatternProxy {
 			func.value(this);
 		}
 	}
+	*/
 
 	// TODO: should clear and remove any lfo if being replaced
 	pset {arg ...args;
@@ -809,15 +808,10 @@ S : EventPatternProxy {
 		key = inKey;
 		synths = Array.fill(127, {List.new});
 
-		// this isn't doing anything
-		//listenerfunc = {arg obj, prop, params; [prop, params.asCompileString];};
 		node = Ndef(key);
 		node.mold(2, \audio);
 		node.play;
 
-		//if (this.dependants.size == 0) {
-		//	this.addDependant(listenerfunc);
-		//};
 		cmdperiodfunc = {
 			{
 				\cmdperiod.debug(key);
@@ -828,7 +822,7 @@ S : EventPatternProxy {
 
 		// adding to envir just doesn't seem to work
 		this.source = Pbind(
-			\out, Pfunc({ node.bus.index }),
+			\out, Pfunc({node.bus.index}),
 			\group, Pfunc({node.group})
 		);
 
@@ -837,6 +831,7 @@ S : EventPatternProxy {
 			\scale, Scale.at(defaultScale).copy.tuning_(defaultTuning),
 			\amp, 0.3
 		);
+
 		^this;
 	}
 
@@ -963,7 +958,6 @@ S : EventPatternProxy {
 		defaultTuning = \et12;
 		defaultRoot = 4;
 		defaultScale = \dorian;
-		defaultQuant = 1;
 	}
 }
 

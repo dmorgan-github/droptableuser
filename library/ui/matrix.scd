@@ -8,6 +8,7 @@ Fdef(\matrix, {arg matrix;
 	};
 	var baseViewFunc = Fdef(\baseview);
 	var ctrlView = Fdef(\ctrlview);
+	var playView = Fdef(\playview);
 
 	var baseview;
 	var outergrid = View().layout_(VLayout().margins_(0).spacing_(0));
@@ -15,7 +16,6 @@ Fdef(\matrix, {arg matrix;
 	var colors = 30.collect({ Color.rand });
 	var path = App.librarydir ++ "fx/";
 
-	/*
 	var vstlist;
 	var browse = {arg path, files=List.new;
 		var folder = PathName.new(path);
@@ -69,26 +69,39 @@ Fdef(\matrix, {arg matrix;
 			)
 		);
 	};
-	*/
 
 	var grid = {
 
 		var data = matrix.map;
 
-		var header = [nil] ++ data.indices
+		var header = [st.()] ++ data.indices
 		.reject({|j|
 			data[j].isKindOf(NodeProxy).not
 		})
 		.collect({arg i;
 			var name = data[i].key.asString;
 			var len = min(name.size, 5);
-			StaticText().string_(name[0..len]).toolTip_(name).minWidth_(50)
+			StaticText().string_(name[0..len]).toolTip_(name).minWidth_(50);
 		});
 
 		var rows = data.indices.collect({arg i;
 
 			var srcNode = data[i];
-			var srcName = StaticText().string_(srcNode.key).toolTip_(srcNode.key);
+			var srcName = VLayout(
+				StaticText().string_(srcNode.key).toolTip_(srcNode.key)
+				.mouseUpAction_({|ctrl, x, y, mod, num, click|
+					if (srcNode.respondsTo(\view)) {
+						srcNode.view;
+					}
+				}),
+				if (srcNode.isKindOf(NodeProxy)) {
+					playView.(srcNode)
+				} {
+					if (srcNode.respondsTo(\node)) {
+						playView.(srcNode.node)
+					}
+				}
+			);
 			var cols = [srcName] ++ data.indices
 			.reject({|j|
 				data[j].isKindOf(NodeProxy).not
@@ -109,11 +122,13 @@ Fdef(\matrix, {arg matrix;
 					destNode.set(srcNode.key, val);
 				});
 				ctrlview.minWidth_(width);
+				VLayout(nil, ctrlview)
 			});
 			cols;
 		});
 
 		var val = [header] ++ rows;
+
 		View().layout_(
 			GridLayout.rows(*val).margins_(1).spacing_(2)
 		);

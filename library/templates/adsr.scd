@@ -2,8 +2,7 @@
 
 	SynthDef(inKey, {
 
-		var trig = Trig1.kr(\trig.tr(1), \sustain.kr(1));
-		var gate = Select.kr(\retrig.kr(0), [\gate.kr(1), trig]);
+		var gate = \gate.kr(1);
 		var in_freq = \freq.ar(261).lag(\glis.kr(0));
 		var detune = \detunehz.kr(0.6) * PinkNoise.ar(0.007).range(0.9, 1.1);
 
@@ -26,9 +25,7 @@
 				releaseTime:rel,
 				curve:curve
 			);
-			var aeg = env.ar(doneAction:Done.none, gate:gate, timeScale:ts);
-			// control life cycle of synth - this will work with both poly and mono synths
-			env.ar(doneAction:Done.freeSelf, gate:\gate.kr, timeScale:ts);
+			var aeg = env.ar(doneAction:Done.freeSelf, gate:gate, timeScale:ts);
 			aeg;
 		};
 

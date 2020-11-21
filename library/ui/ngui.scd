@@ -1,6 +1,6 @@
 (
 Require("~/projects/droptableuser/library/ui/common.scd");
-Fdef(\ngui, {arg node;
+Fdef(\ngui, {arg node, customview;
 
 	var baseview, nodeListener;
 	var win;
@@ -54,26 +54,6 @@ Fdef(\ngui, {arg node;
 		view.layout.add(Button().states_([ ["vst"] ]).action_({ node.editor }) );
 	};
 
-	/*
-	node.controlNames.do({arg cn;
-		var k = cn.name;
-		var v = node.getSpec(k) ?? { [0, 1, \lin, 0, 1] };
-		var val = node.get(k);
-		var ctrl = ctrlView.(k, v.asSpec, Color.rand, val, cb);
-		ctrlViews[k] = ctrl;
-		view.layout.add(ctrl.asView);
-		//view.layout.add(ctrl);
-	});
-	*/
-
-	/*
-	node.getSettings.keysValuesDo({|k, v|
-		var obj = ();
-		obj[k.asSymbol] = node.getSpec(k.asSymbol) ?? { [0, 1, \lin, 0, 0] };
-		specs.add(obj);
-	});
-	*/
-
 	getSpecGroups.().do({arg assoc;
 		var k = assoc.key;
 		var v = assoc.value;
@@ -82,16 +62,6 @@ Fdef(\ngui, {arg node;
 		ctrlViews[k] = ctrl;
 		view.layout.add(ctrl.asView);
 	});
-
-	/*
-	node.getSettings.keysValuesDo({arg k, v;
-		var spec = node.getSpec(k.asSymbol) ?? { [0, 1, \lin, 0, 0] };
-		var val = v;//node.get(k);
-		var ctrl = ctrlView.(k, spec.asSpec, Color.rand, val, cb);
-		ctrlViews[k] = ctrl;
-		view.layout.add(ctrl.asView);
-	});
-	*/
 
 	view.layout.add(nil);
 	scrollView.canvas = view.background_(Color.clear);
@@ -121,10 +91,13 @@ Fdef(\ngui, {arg node;
 		playview
 	).margins_(2).spacing_(2));
 
+	if (customview.isNil.not) {
+		win.layout.add(customview)
+	};
 	win.layout.add(scrollView);
 	win.layout.add(nil);
 	win = win
-	.fixedSize_(Size(150, 170))
+	//.fixedSize_(Size(150, 170))
 	.onClose_({
 		playview.removeDependant(viewListener);
 		node.removeDependant(nodeListener);
