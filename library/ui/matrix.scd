@@ -154,8 +154,9 @@ Fdef(\matrix, {arg matrix;
 	};
 
 	matrix.addDependant(listener);
-	//playview = playview.(matrix).addDependant(viewListener);
-	//view.layout.add(playview);
+	//playView = playView.(matrix);//.addDependant(viewListener);
+
+	//view.layout.add(playView);
 	outergrid.layout.add(gridview);
 	view.layout.add(outergrid);
 

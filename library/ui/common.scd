@@ -113,8 +113,6 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 					.background_(color.alpha_(0.2))
 				)
 				.mode_(\stackAll)
-				//.margins_(2)
-				//.spacing_(2)
 			)
 			.mouseMoveAction_({arg ctrl, x, y, mod;
 				var val = x.linlin(0, ctrl.bounds.width, 0, 1);

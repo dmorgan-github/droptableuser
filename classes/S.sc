@@ -297,34 +297,13 @@ L {
 /*
 Matrix
 */
-M {
-
-	classvar <all;
-
-	var <key;
+M : Device {
 
 	var <map;
+
 	var <slot;
 
-	*new {|key|
-		var res = all[key];
-		if (res.isNil) {
-			res = super.new.prInit(key);
-			all[key] = res;
-		};
-		^res;
-	}
-
-	*doesNotUnderstand {|key|
-		var res = all[key];
-		if (res.isNil){
-			res = M(key);
-		};
-		^res;
-	}
-
-	prInit {|argKey|
-		key = argKey;
+	deviceInit {
 		map = Order.new;
 		slot = 0;
 	}
@@ -341,6 +320,8 @@ M {
 		});
 		if (srcIndex.isNil) {
 			srcIndex = slot;
+			//srcNode.parentGroup = this.group;
+			//srcNode.monitor.out = this.bus.index;
 			map.put(srcIndex, srcNode);
 			slot = slot + 1;
 		};
@@ -348,6 +329,8 @@ M {
 	}
 
 	removeSrc {|key|
+
+		// TODO: does this destroy the node?
 		map.keysValuesDo({|k, v|
 			if (v.key == key) {
 				map.do({|obj|
@@ -360,9 +343,11 @@ M {
 		});
 	}
 
+	/*
 	*initClass {
 		all = IdentityDictionary();
 	}
+	*/
 
 	/*
 	save {

@@ -77,7 +77,7 @@ Fdef(\ngui, {arg node, customview;
 					if (v.isNil.not) {
 						var current = v.getValue();
 						if (current != val) {
-							v.setValue(val);
+							{v.setValue(val)}.defer(0.001)
 						}
 					}
 				}
