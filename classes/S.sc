@@ -57,6 +57,8 @@ Device : Ndef {
 			res.set(\wet400, 0);
 			res.vol = 1;
 
+			res.postInit;
+
 			ServerTree.add({
 				\cmdperiod.debug(key);
 				res.send;
@@ -75,6 +77,10 @@ Device : Ndef {
 
 	deviceInit {
 		// override to initialize
+	}
+
+	postInit {
+		// override to initialize after int
 	}
 
 	save {|path|
@@ -303,9 +309,16 @@ M : Device {
 
 	var <slot;
 
+	var <outbus;
+
 	deviceInit {
 		map = Order.new;
 		slot = 0;
+		outbus = Bus.audio(Server.default, 2);
+	}
+
+	postInit {
+		this.put(0, { InFeedback.ar(outbus.index, 2) });
 	}
 
 	view {
@@ -315,13 +328,13 @@ M : Device {
 	addSrc {|srcNode|
 
 		var srcIndex = map.detectIndex({|v|
-			[\v, v, \srcNode, srcNode].debug(\m_addsrc);
+			//[\v, v, \srcNode, srcNode].debug(\m_addsrc);
 			v.key == srcNode.key
 		});
 		if (srcIndex.isNil) {
 			srcIndex = slot;
 			//srcNode.parentGroup = this.group;
-			//srcNode.monitor.out = this.bus.index;
+			srcNode.monitor.out = outbus.index;
 			map.put(srcIndex, srcNode);
 			slot = slot + 1;
 		};
@@ -338,6 +351,7 @@ M : Device {
 					obj.nodeMap.removeAt(key);
 				});
 				map.removeAt(k);
+				Ndef(key).clear;
 				this.changed(\remove, key);
 			}
 		});

@@ -9,6 +9,7 @@ Fdef(\matrix, {arg matrix;
 	var baseViewFunc = Fdef(\baseview);
 	var ctrlView = Fdef(\ctrlview);
 	var playView = Fdef(\playview);
+	var matrixPlayView;
 
 	var baseview;
 	var outergrid = View().layout_(VLayout().margins_(0).spacing_(0));
@@ -74,7 +75,7 @@ Fdef(\matrix, {arg matrix;
 
 		var data = matrix.map;
 
-		var header = [st.()] ++ data.indices
+		var header = [st.(), nil] ++ data.indices
 		.reject({|j|
 			data[j].isKindOf(NodeProxy).not
 		})
@@ -87,6 +88,15 @@ Fdef(\matrix, {arg matrix;
 		var rows = data.indices.collect({arg i;
 
 			var srcNode = data[i];
+			var del = VLayout(
+				nil,
+				Button()
+				.states_([["x"]])
+				.action_({|ctrl|
+					matrix.removeSrc(srcNode.key);
+				})
+				.maxWidth_(20)
+			);
 			var srcName = VLayout(
 				StaticText().string_(srcNode.key).toolTip_(srcNode.key)
 				.mouseUpAction_({|ctrl, x, y, mod, num, click|
@@ -102,7 +112,7 @@ Fdef(\matrix, {arg matrix;
 					}
 				}
 			);
-			var cols = [srcName] ++ data.indices
+			var cols = [del, srcName] ++ data.indices
 			.reject({|j|
 				data[j].isKindOf(NodeProxy).not
 			})
@@ -154,9 +164,9 @@ Fdef(\matrix, {arg matrix;
 	};
 
 	matrix.addDependant(listener);
-	//playView = playView.(matrix);//.addDependant(viewListener);
+	matrixPlayView = playView.(matrix);//.addDependant(viewListener);
 
-	//view.layout.add(playView);
+	view.layout.add(matrixPlayView);
 	outergrid.layout.add(gridview);
 	view.layout.add(outergrid);
 
