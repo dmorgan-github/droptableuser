@@ -54,7 +54,7 @@ Fdef(\sgui, {arg synth;
 				var v = assoc.value;
 				var ctrl = ctrlView.(k, v.asSpec, Color.rand, synth.get(k), cb, synth);
 				ctrlViews[k] = ctrl;
-				view.layout.add(ctrl.asView);
+				view.layout.add(ctrl.asView.maxHeight_(20));
 			});
 		});
 
@@ -84,12 +84,13 @@ Fdef(\sgui, {arg synth;
 	synth.addDependant(nodeListener);
 
 	win = View().layout_(VLayout(
-		presetsview,
-		playview
-	).margins_(2).spacing_(2));
-
-	win.layout.add(scrollView);
-	win = win.fixedSize_(Size(150, 170)).onClose_({
+		playview,
+		scrollView
+	)
+	.margins_(2)
+	.spacing_(2))
+	.onClose_({
+		\onclose.debug(synth.key);
 		synth.removeDependant(nodeListener);
 	});
 

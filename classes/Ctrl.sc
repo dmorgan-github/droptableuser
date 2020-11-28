@@ -1,4 +1,4 @@
-Twister {
+TwisterOsc {
 
 	classvar <server, num, <>page;
 
@@ -7,7 +7,7 @@ Twister {
 		var update = {|selected|
 			if (selected < tabs.size) {
 				num.do({|i|
-					Rotary(i);
+					RotaryOsc(i);
 				});
 				tabs[selected].value.();
 			}
@@ -42,7 +42,7 @@ Twister {
 	}
 }
 
-Rotary {
+RotaryOsc {
 
 	classvar <server;
 
@@ -190,40 +190,23 @@ MidiCtrl {
 	}
 
 	init {arg inKey, inSrcKey, inChan;
+
 		key = inKey;
 		chan = inChan;
 		enabled = true;
 		MIDIClient.init;
-		if (inSrcKey.isNil.not) {
-			src = switch(inSrcKey,
-				\roli_usb, {
-					MIDIClient.sources
-					.select({arg src; src.device.beginsWith("Lightpad BLOCK")})
-					.first
-				},
-				\roli_bt, {
-					MIDIClient.sources
-					.select({arg src; src.device.beginsWith("Lightpad Block 1UOC")})
-					.first
-				},
-				\iac, {
-					MIDIClient.sources
-					.select({arg src; src.device.beginsWith("IAC Driver")})
-					.first;
-				},
-				\trellis, {
-					MIDIClient.sources
-					.select({arg src; src.device.beginsWith("Adafruit Trellis M4")})
-					.first;
-				},
-				\microlab, {
-					MIDIClient.sources
-					.select({arg src; src.device.beginsWith("Arturia MicroLab")})
-					.first;
-				}
-			);
-			MIDIIn.connect(device:src);
+
+		if (inSrcKey.isNil) {
+			inSrcKey = "IAC Driver";
 		};
+
+		src = MIDIClient.sources
+		.select({arg src; src.device.beginsWith(inSrcKey)})
+		.first;
+
+		//MIDIIn.connect(device:src);
+		MIDIIn.connectAll;
+
 		^this;
 	}
 
@@ -235,8 +218,6 @@ MidiCtrl {
 	}
 
 	note {arg on, off;
-
-
 		var mychan = if (chan.isNil) {"all"}{chan};
 		var srcid = if (this.src.isNil.not){src.uid}{nil};
 		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
@@ -273,6 +254,7 @@ MidiCtrl {
 	}
 
 	cc {arg num, func;
+
 		var mychan = if (chan.isNil) {"all"}{chan};
 		var srcid = if (this.src.isNil.not){src.uid}{nil};
 		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
@@ -282,11 +264,11 @@ MidiCtrl {
 			MIDIdef(key).permanent_(false).free;
 		}{
 			"register %".format(key).debug(this.key);
-			MIDIdef.cc(key, {arg val, num, chan, src;
+			MIDIdef.cc(key, {arg val, ccNum, chan, src;
 				if (enabled) {
-					func.(val, num, chan);
+					func.(val, ccNum, chan);
 				}
-			}, chan:chan, srcID:srcid)
+			}, ccNum: num, chan:chan, srcID:srcid)
 			.permanent_(true);
 		}
 	}
@@ -353,12 +335,83 @@ MidiCtrl {
 	*initClass { all = () }
 }
 
+Twister : MidiCtrl {
+
+	classvar id;
+
+	classvar instance;
+
+	var <>midiout;
+
+	var <>midimap;
+
+	*new {|chan=0|
+		if (instance.isNil) {
+			instance = super.new(id, "twister", chan);
+		};
+		^instance;
+	}
+
+	*doesNotUnderstand {|selector ...args|
+		var res = this.new();
+		^res.perform(selector, *args);
+	}
+
+	init {|inKey, inSrcKey, inChan|
+		super.init(inKey, inSrcKey, inChan);
+		this.midiout = MIDIOut.newByName("twister", "USB MIDI Device");
+		this.midimap = Order.new;
+	}
+
+	ccMap {|ccNum, spec|
+		var nodeKey = "twister_%_%_cc%".format(this.key, this.chan, ccNum).asSymbol.debug(\ccmap);
+		var myspec = spec.asSpec;
+		var node = Ndef(nodeKey.asSymbol, { \val.kr(spec:myspec) });
+		var default = myspec.default.linlin(myspec.minval, myspec.maxval, 0, 127);
+		// initialize
+		midimap[ccNum] = (
+			num: ccNum,
+			spec:myspec,
+			node:node
+		);
+		midiout.control(this.chan, ccNum, default);
+		this.cc(ccNum, {|val|
+			node.set(\val, myspec.map(val/127));
+		});
+		^node;
+	}
+
+	ccFunc {|ccNum, func|
+		var nodeKey = "twister_%_%_cc%".format(this.key, this.chan, ccNum).asSymbol.debug(\ccfunc);
+		var default = 0;
+		// initialize
+		midiout.control(this.chan, ccNum, default);
+		this.cc(ccNum, func);
+	}
+
+	asMap {|ccNum|
+		var nodeKey = "twister_%_%_cc%".format(this.key, this.chan, ccNum).asSymbol.debug(\ccmap);
+		^Ndef(nodeKey.asSymbol);
+	}
+
+	clear {
+		midimap.do({|item|
+			item.clear;
+		});
+		super.clear();
+	}
+
+	*initClass {
+		id = ('twister_' ++ UniqueID.next).asSymbol;
+	}
+}
+
 Microlab : MidiCtrl {
 
 	classvar id;
 
 	*new {|chan=2|
-		^super.new(id, \microlab, chan);
+		^super.new(id, "Arturia MicroLab", chan);
 	}
 
 	*initClass {
@@ -370,114 +423,47 @@ Roli : MidiCtrl {
 
 	classvar id;
 
+	// bend semitones
+	classvar <>bendst;
+
+	var <bendMap;
+
+	classvar instance;
+
 	*new {|chan=1|
-		^super.new(id, \roli_usb, chan);
+		if (instance.isNil) {
+			instance = super.new(id, "Lightpad BLOCK", chan);
+		}
+		^instance;
 	}
+
+	*doesNotUnderstand {|selector ...args|
+		var res = this.new();
+		^res.perform(selector, *args);
+	}
+
+	init {|inKey, inSrcKey, inChan|
+		super.init(inKey, inSrcKey, inChan);
+		bendMap = Ndef((inKey ++ '_bend').asSymbol, {\val.kr(0).lag(0.5) });
+		this.bend({|val|
+			var bend = val.linlin(0, 16383, bendst.neg, bendst);
+			bendMap.set(\val, bend);
+		});
+	}
+
+	note {|on, off|
+		var bendoff = {|note, chan|
+			off.(note, chan);
+			bendMap.set(\val, 0);
+		};
+		super.note(on, bendoff);
+	}
+
 
 	*initClass {
 		id = ('roli_' ++ UniqueID.next).asSymbol;
+		bendst = 12;
 	}
 }
-
-/*
-/////////////////////////////////////////
-// name
-(
-
-var page = "4";
-
-~controller = ~controller ?? NetAddr("10.0.1.81", 9000);
-
-~displayname = {|num, name|
-	var path = "/%/nodelabel%".format(page, num).asSymbol;
-	~controller.sendMsg(path, name);
-};
-~setval = {|path, val|
-	~controller.sendMsg(path, val);
-};
-~displaylabel = {|num, label|
-	var path = "/%/label%".format(page, num).asSymbol;
-	~controller.sendMsg(path, label);
-};
-~displayval = {|num, val|
-	var path = "/%/val%".format(page, num).asSymbol;
-	var msg = val.trunc(0.001);
-	~controller.sendMsg(path, msg);
-};
-
-~touchosc_16r = {|nodes|
-
-	var update;
-	var num = 16;
-
-	num.do({|i|
-		var index = i+1;
-		var path = "/%/nodes/%/1".format(page, index).asSymbol;
-		var func = {|val|
-			var selected = num-index;
-			update.(selected);
-		};
-		OscCtrl.path(path, func)
-	});
-
-	nodes.do({|assoc, k|
-		var node = assoc.key;
-		~displayname.(k, node.key);
-	});
-
-	update = {|selected|
-
-		if (selected < nodes.size) {
-
-			var assoc = nodes[selected];
-			var node = assoc.key;
-			var props = assoc.value;
-
-			// clear
-			16.do({|i|
-				var path = "/%/rotary%".format(page, i).asSymbol;
-				var val = 0;
-				~setval.(path, val);
-				~displaylabel.(i, "");
-				~displayval.(i, "");
-				OscCtrl.path(path, nil);
-			});
-
-			props.do({|prop, i|
-
-				var func, val, myval;
-				var path = "/%/rotary%".format(page, i).asSymbol;
-				var spec = node.checkSpec[prop];
-				if (spec.isNil) {
-					spec = [0, 1, \lin, 0, 0].asSpec;
-				};
-
-				val = node.get(prop);
-				myval = spec.unmap(val);
-				~setval.(path, myval);
-				~displaylabel.(i, prop.postln);
-				~displayval.(i, val);
-
-				func = {|val|
-					var myval = val[0];
-					var msg;
-					myval = spec.map(myval);
-					node.set(prop, myval);
-					~displayval.(i, myval);
-				};
-				OscCtrl.path(path, func);
-			});
-		}
-	}
-};
-)
-
-(
-~touchosc_16r.([
-	Pdef(\t2_c) -> [\t2_cutoff, \t2_fvel, \t2_res, \t2_rel, \t2_pulse ],
-	Pdef(\t3_a) -> [\t3_velmin]
-]);
-)
-*/
 
 

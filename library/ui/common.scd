@@ -168,12 +168,13 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 					stack.index = 1;
 				};
 				true;
-			}).fixedHeight_(25)
+			})
+			//.fixedHeight_(25)
 		).margins_(0.5).spacing_(1))
 	} {
 		var text = label + myval.asCompileString;
 		var st = StaticText().string_(text).font_(font).stringColor_(Color.white);
-		view = View().layout_(HLayout( st ).margins_(1).spacing_(1) ).fixedHeight_(25);
+		view = View().layout_(HLayout( st ).margins_(1).spacing_(1) )//.fixedHeight_(25);
 	};
 
 	(
@@ -194,6 +195,7 @@ Fdef(\playview, {arg node;
 	var height = 20;
 
 	view = View().layout_(
+
 		HLayout(
 
 			Button().states_([
@@ -207,12 +209,11 @@ Fdef(\playview, {arg node;
 				}
 			})
 			.value_(node.isMonitoring.asInteger)
-			.maxHeight_(height)
-			.maxWidth_(25),
+			.fixedSize_(Size(height, height)),
 
 			slider
 			.orientation_(\horizontal)
-			.thumbSize_(7)
+			//.thumbSize_(7)
 			.action_({arg ctrl;
 				var msg;
 				node.vol = ctrl.value;
@@ -220,7 +221,7 @@ Fdef(\playview, {arg node;
 				view.changed(\prop, (key:\vol, val:msg));
 			})
 			.value_(node.vol)
-			.fixedSize_(Size(75, height))
+			.fixedHeight_(height)
 			.toolTip_("vol"),
 
 			NumberBox()
@@ -233,8 +234,8 @@ Fdef(\playview, {arg node;
 			.font_(font)
 			.normalColor_(Color.white)
 			.decimals_(2)
-			.maxWidth_(35)
-			.maxHeight_(height)
+			.fixedWidth_(35)
+			.fixedHeight_(height-2)
 			.value_(node.fadeTime)
 			.toolTip_("fade time"),
 
@@ -247,12 +248,13 @@ Fdef(\playview, {arg node;
 			.font_(font)
 			.normalColor_(Color.white)
 			.decimals_(0)
-			.maxWidth_(25)
-			.maxHeight_(height)
+			.fixedWidth_(25)
+			.fixedHeight_(height-2)
 			.value_(0)
 			.toolTip_("channel")
-
-		).spacing_(1).margins_(1)
+		)
+		.spacing_(1)
+		.margins_(0)
 	);
 
 	levelView = {|parent, bounds|
@@ -305,7 +307,7 @@ Fdef(\playview, {arg node;
 		uv.refresh;
 	};
 
-	levelView.(slider, slider.bounds.left_(0).top_(0).width_(75).height_(height));
+	levelView.(slider, slider.bounds.left_(0).top_(0));
 	levelkey = (node.key ++ 'amp' ++ UniqueID.next).asSymbol;
 
 	Ndef(levelkey, {

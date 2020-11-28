@@ -14,6 +14,7 @@ Fdef(\matrix, {arg matrix;
 	var baseview;
 	var outergrid = View().layout_(VLayout().margins_(0).spacing_(0));
 	var width = 50;
+	var height = 20;
 	var colors = 30.collect({ Color.rand });
 	var path = App.librarydir ++ "fx/";
 
@@ -31,16 +32,15 @@ Fdef(\matrix, {arg matrix;
 	};
 
 	var vsts = {
-
-		if (vstlist.isNil) {
-			vstlist = V
+		if (~vstlist.isNil) {
+			~vstlist = V
 			.ls
 			.reject({arg val;
 				val.asString.endsWith(".vst3") or: val.asString.contains("/");
 			});
-			vstlist = vstlist.sort;
+			~vstlist = ~vstlist.sort;
 		};
-		vstlist
+		~vstlist
 	};
 
 	var paths = browse.(path);
@@ -88,30 +88,41 @@ Fdef(\matrix, {arg matrix;
 		var rows = data.indices.collect({arg i;
 
 			var srcNode = data[i];
+
 			var del = VLayout(
-				nil,
-				Button()
-				.states_([["x"]])
-				.action_({|ctrl|
-					matrix.removeSrc(srcNode.key);
-				})
-				.maxWidth_(20)
-			);
-			var srcName = VLayout(
 				StaticText().string_(srcNode.key).toolTip_(srcNode.key)
 				.mouseUpAction_({|ctrl, x, y, mod, num, click|
 					if (srcNode.respondsTo(\view)) {
 						srcNode.view;
 					}
 				}),
+				HLayout(
+					Button()
+					.states_([["x"]])
+					.action_({|ctrl|
+						matrix.removeSrc(srcNode.key);
+					})
+					.maxWidth_(height+2),
+					Button()
+					.states_([["sc"]])
+					.action_({
+						srcNode.nscope
+					})
+					.maxWidth_(height+2)
+				)
+			);
+
+			var srcName = VLayout(
+				nil,
 				if (srcNode.isKindOf(NodeProxy)) {
 					playView.(srcNode)
 				} {
 					if (srcNode.respondsTo(\node)) {
-						playView.(srcNode.node)
+						playView.(srcNode.node);//.background_(Color.red)
 					}
 				}
 			);
+
 			var cols = [del, srcName] ++ data.indices
 			.reject({|j|
 				data[j].isKindOf(NodeProxy).not
@@ -131,9 +142,10 @@ Fdef(\matrix, {arg matrix;
 					};
 					destNode.set(srcNode.key, val);
 				});
-				ctrlview.minWidth_(width);
-				VLayout(nil, ctrlview)
+
+				VLayout(nil, ctrlview.asView.maxHeight_(20))
 			});
+
 			cols;
 		});
 

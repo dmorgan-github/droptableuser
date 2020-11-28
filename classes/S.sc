@@ -24,8 +24,8 @@ Device : Ndef {
 			res.wakeUp;
 			res.ar(numChannels:2);
 			res.play;
-			res.filter(200, {|in| LPF.ar(in, \lpf.kr(20000) )});
-			res.filter(300, {|in| HPF.ar(in, \hpf.kr(20) )});
+			res.filter(200, {|in| LPF.ar(in, \lpf.kr(20000).lag(0.01) )});
+			res.filter(300, {|in| HPF.ar(in, \hpf.kr(20).lag(0.01) )});
 			res.filter(400, {|in|
 				CompanderD.ar(in,
 					\thresh.kr(0.5),
@@ -474,8 +474,8 @@ O : Device {
 			var rate = \rate.kr(1);
 			var trig = \trig.tr(1);
 			var replyid = \bufposreplyid.kr(-1);
-			var startPos = \startPos.kr(0) * BufFrames.kr(buf);
-			var endPos = \endPos.kr(1) * BufFrames.kr(buf);
+			var startPos = \startPos.kr(0).lag(0.1) * BufFrames.kr(buf);
+			var endPos = \endPos.kr(1).lag(0.1) * BufFrames.kr(buf);
 			var updateFreq = 60;
 			var sig;
 

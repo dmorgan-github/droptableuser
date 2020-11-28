@@ -1,5 +1,5 @@
 (
-Require("~/projects/droptableuser/library/ui/common.scd");
+Require(App.librarydir ++ "ui/common.scd");
 Fdef(\ngui, {arg node, customview;
 
 	var baseview, nodeListener;
@@ -9,7 +9,7 @@ Fdef(\ngui, {arg node, customview;
 	var playview = Fdef(\playview);
 	var presetsview = Fdef(\presetsview);
 	var baseViewFunc = Fdef(\baseview);
-	var scrollView = ScrollView(bounds:Rect(0,0,160,300));
+	var scrollView = ScrollView();
 	var cb = {arg key, val;
 		node.set(key, val)
 	};
@@ -60,7 +60,7 @@ Fdef(\ngui, {arg node, customview;
 		var val = node.getSettings[k.asSymbol];
 		var ctrl = ctrlView.(k, v.asSpec, Color.rand, val, cb);
 		ctrlViews[k] = ctrl;
-		view.layout.add(ctrl.asView);
+		view.layout.add(ctrl.asView.minHeight_(20));
 	});
 
 	view.layout.add(nil);
@@ -87,21 +87,19 @@ Fdef(\ngui, {arg node, customview;
 	node.addDependant(nodeListener);
 
 	win = View().layout_(VLayout(
-		presetsview,
-		playview
-	).margins_(2).spacing_(2));
-
-	if (customview.isNil.not) {
-		win.layout.add(customview)
-	};
-	win.layout.add(scrollView);
-	win.layout.add(nil);
-	win = win
-	//.fixedSize_(Size(150, 170))
+		playview,
+		customview, // this can be nil
+		scrollView,
+		nil
+	)
+	.margins_(2)
+	.spacing_(2))
 	.onClose_({
+		\onclose.debug(node.key);
 		playview.removeDependant(viewListener);
 		node.removeDependant(nodeListener);
 	});
+
 	baseview = baseViewFunc.(win, node.key, 150, 170);
 	baseview.front;
 });
