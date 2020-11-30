@@ -60,11 +60,11 @@ SynthDef(\grainr, {
 }, metadata: (
 	specs: (
 
-		\pitch: ControlSpec(-48.midicps, 24.midicps, \lin, 0, 1, "pitch"),
-		\freq: ControlSpec(0.0, 20000, \lin, 0, 20, "overlap"),
-		\sync: ControlSpec(0, 1, \lin, 1, 1, "overlap"),
+		pitch: ControlSpec(-48.midicps, 24.midicps, \lin, 0, 1, "pitch"),
+		freq: ControlSpec(0.0, 20000, \lin, 0, 20, "overlap"),
+		sync: ControlSpec(0, 1, \lin, 1, 1, "overlap"),
 
-		\graindur: ControlSpec(0, 1, \lin, 0, 0.1, "dur"),
+		graindur: ControlSpec(0, 1, \lin, 0, 0.1, "dur"),
 
 		pos: ControlSpec(0, 1, \lin, 0, 0, "playback"),
 		pb: ControlSpec(-4.0, 4, \lin, 0, 1, "playback"),

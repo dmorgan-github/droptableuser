@@ -474,8 +474,8 @@ O : Device {
 			var rate = \rate.kr(1);
 			var trig = \trig.tr(1);
 			var replyid = \bufposreplyid.kr(-1);
-			var startPos = \startPos.kr(0).lag(0.1) * BufFrames.kr(buf);
-			var endPos = \endPos.kr(1).lag(0.1) * BufFrames.kr(buf);
+			var startPos = \startPos.kr(0) * BufFrames.kr(buf);
+			var endPos = \endPos.kr(1) * BufFrames.kr(buf);
 			var updateFreq = 60;
 			var sig;
 

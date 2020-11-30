@@ -53,7 +53,9 @@ Fdef(\baseview, {arg view, title, w, h;
 
 	view.addDependant(viewListener);
 	win.layout = VLayout(outerview).margins_(0).spacing_(0);
-	win.asView.palette_(QPalette.dark).onClose_({
+	win.asView
+	.palette_(QPalette.auto(Color.rand.alpha_(0.5).debug(\buttonColor), Color.rand.debug(\windowColor)))
+	.onClose_({
 		view.removeDependant(viewListener);
 	});
 });
@@ -213,7 +215,7 @@ Fdef(\playview, {arg node;
 
 			slider
 			.orientation_(\horizontal)
-			//.thumbSize_(7)
+			.thumbSize_(7)
 			.action_({arg ctrl;
 				var msg;
 				node.vol = ctrl.value;
@@ -232,7 +234,7 @@ Fdef(\playview, {arg node;
 				view.changed(\prop, (key:\fadetime, val:msg));
 			})
 			.font_(font)
-			.normalColor_(Color.white)
+			//.normalColor_(Color.white)
 			.decimals_(2)
 			.fixedWidth_(35)
 			.fixedHeight_(height-2)
@@ -246,7 +248,7 @@ Fdef(\playview, {arg node;
 				view.changed(\prop, (key:\channel, val:msg));
 			})
 			.font_(font)
-			.normalColor_(Color.white)
+			//.normalColor_(Color.white)
 			.decimals_(0)
 			.fixedWidth_(25)
 			.fixedHeight_(height-2)
