@@ -27,16 +27,31 @@ Device : Ndef {
 			res.filter(200, {|in| LPF.ar(in, \lpf.kr(20000).lag(0.01) )});
 			res.filter(300, {|in| HPF.ar(in, \hpf.kr(20).lag(0.01) )});
 			res.filter(400, {|in|
-				CompanderD.ar(in,
-					\thresh.kr(0.5),
-					\slopeBelow.kr(1),
-					\slopeAbove.kr(1),
-					\clampTime.kr(0.01),
-					\relaxTime.kr(1.0)
-				)
-			});
-			res.filter(500, {|in| Limiter.ar(in, \limit.kr(1) )});
 
+				// adapted from https://github.com/21echoes/pedalboard/blob/master/lib/fx/Compressor.sc
+				var sig = HPF.ar(in, 25);
+				var drive = \compress.kr(0.5);
+				var ratio = LinExp.kr(drive, 0, 1, 0.25, 0.05);
+				var threshold = LinLin.kr(drive, 0, 1, 0.9, 0.5);
+				var gain = 1/(((1.0-threshold) * ratio) + threshold);
+				gain = Select.kr(drive > 0.9, [
+					gain,
+					gain * LinExp.kr(drive, 0.9, 1, 1, 1.2);
+				]);
+
+				sig = Compander.ar(
+					sig, sig,
+					threshold,
+					1.0,
+					ratio,
+					\clamp.kr(0.005),
+					\relax.kr(0.1),
+					gain
+				);
+				sig;
+			});
+
+			res.filter(500, {|in| SoftClipAmp8.ar(in, \limit.kr(1) )});
 			// use units to try to keep things together and provide sort hints
 			res.addSpec(\lpf, ControlSpec(20, 20000, \lin, 0, 20000, "xxfilter"));
 			res.addSpec(\wet200, ControlSpec(0, 1, \lin, 0, 1, "xxfilter"));
@@ -44,17 +59,16 @@ Device : Ndef {
 			res.addSpec(\hpf, ControlSpec(20, 10000, \lin, 0, 20, "xxfilter"));
 			res.addSpec(\wet300, ControlSpec(0, 1, \lin, 0, 1, "xxfilter"));
 
-			res.addSpec(\thresh, ControlSpec(0, 1, \lin, 0, 0.5, "yycompress"));
-			res.addSpec(\slopeBelow, ControlSpec(0, 1, \lin, 0, 1, "yycompress"));
-			res.addSpec(\slopeAbove, ControlSpec(0, 2, \lin, 0, 1, "yycompress"));
-			res.addSpec(\clampTime, ControlSpec(0, 1, \lin, 0, 0.01, "yycompress"));
-			res.addSpec(\relaxTime, ControlSpec(0, 1, \lin, 0, 1.0, "yycompress"));
+			res.addSpec(\compress, ControlSpec(0, 1, \lin, 0, 0.5, "yycompress"));
+			res.addSpec(\clamp, ControlSpec(0, 1, \lin, 0, 0.005, "yycompress"));
+			res.addSpec(\relax, ControlSpec(0, 1, \lin, 0, 0.1, "yycompress"));
 			res.addSpec(\wet400, ControlSpec(0, 1, \lin, 0, 0, "yycompress"));
 
-			res.addSpec(\limit, ControlSpec(0, 1, \lin, 0, 1.0, "zzlimiter"));
-			res.addSpec(\wet500, ControlSpec(0, 1, \lin, 0, 1, "zzlimiter"));
+			res.addSpec(\limit, ControlSpec(0, 1, \lin, 0, 1.0, "zzsoftclip"));
+			res.addSpec(\wet500, ControlSpec(0, 1, \lin, 0, 1, "zzsoftclip"));
 
 			res.set(\wet400, 0);
+			res.set(\wet500, 1);
 			res.vol = 1;
 
 			res.postInit;
@@ -176,6 +190,96 @@ B {
 		},{
 			"cancelled".postln;
 		}, path:path);
+	}
+
+	*free {
+		all.keys.do({|k|
+			all[k].free;
+			all.removeAt(k);
+		});
+	}
+
+	*dirMono {|path|
+		var paths = "%/*.wav".format(path).pathMatch ++ "%/*.aif".format(path).pathMatch;
+		var obj = ();
+		paths.do({|path|
+			var pn = PathName(path);
+			var key = pn.fileNameWithoutExtension.replace(" ", "").toLower().asSymbol;
+			Buffer.readChannel(Server.default, path, channels:[0], action:{arg buf;
+				obj[key] = buf;
+			});
+		});
+		^obj
+	}
+
+	dirWt {|path|
+		var obj = (
+			bufs: (),
+			nums: List[]
+		);
+		var wtsize = 4096;
+		var wtpaths = "%/**.wtable".format(path).pathMatch;
+		var wtbuffers = Buffer.allocConsecutive(wtpaths.size, Server.default, wtsize * 2, 1);
+		wtpaths.do {|it i|
+			wtbuffers[i].read(wtpaths[i])
+		};
+		wtpaths.do {|it i|
+			var name = wtbuffers[i].path.basename.findRegexp(".*\.wav")[0][1].splitext[0];
+			var buffer = wtbuffers[i].bufnum;
+			obj[\bufs][name.asSymbol] = buffer;
+			obj[\nums].add(buffer);
+		};
+		obj
+	}
+
+	// adapted from here:
+	//https://github.com/alikthename/Musical-Design-in-Supercollider/blob/master/5_wavetables.sc
+	// run once to convert and resample wavetable files
+	convertWt {|path|
+		var paths, file, data, n, newData, outFile;
+		paths = "%/*.wav".format(path).pathMatch;
+
+		Routine({
+			paths.do { |it i|
+				// 'protect' guarantees the file objects will be closed in case of error
+				protect {
+
+					var path;
+					// Read original size of data
+					file = SoundFile.openRead(paths[i]);
+					data = Signal.newClear(file.numFrames);
+					file.readData(data);
+					0.1.wait;
+					// Convert to n = some power of 2 samples.
+					// n = data.size.nextPowerOfTwo;
+					n = 4096;
+					newData = data.resamp1(n);
+					0.1.wait;
+					// Convert the resampled signal into a Wavetable.
+					// resamp1 outputs an Array, so we have to reconvert to Signal
+					newData = newData.as(Signal).asWavetable;
+					0.1.wait;
+
+					// save to disk.
+					path = paths[i].replace("media/AKWF", "media/AKWF-converted");
+					path.postln;
+					outFile = SoundFile(path ++ "_4096.wtable")
+					.headerFormat_("WAV")
+					.sampleFormat_("float")
+					.numChannels_(1)
+					.sampleRate_(44100);
+					if(outFile.openWrite.notNil) {
+						outFile.writeData(newData);
+						0.1.wait;
+					} {
+						"Couldn't write output file".warn;
+					};
+				} {
+					file.close;
+					if(outFile.notNil) { outFile.close };
+				};
+			}
+		}).play
 	}
 
 	*initClass {
@@ -347,11 +451,14 @@ M : Device {
 		map.keysValuesDo({|k, v|
 			if (v.key == key) {
 				map.do({|obj|
-					obj.removeAt(k);
-					obj.nodeMap.removeAt(key);
+					if (obj.respondsTo(\removeAt)){
+						obj.removeAt(k);
+					};
+					if (obj.respondsTo(\nodeMap)) {
+						obj.nodeMap.removeAt(key);
+					}
 				});
 				map.removeAt(k);
-				Ndef(key).clear;
 				this.changed(\remove, key);
 			}
 		});
@@ -416,27 +523,31 @@ N : Device {
 		^U(\ngui, this, uifunc.(this));
 	}
 
-	prBuild {
+	*loadFx {|fx|
 		var path = App.librarydir ++ "fx/" ++ fx.asString ++ ".scd";
 		var pathname = PathName(path.standardizePath);
 		var fullpath = pathname.fullPath;
 
 		if (File.exists(fullpath)) {
-
 			var name = pathname.fileNameWithoutExtension;
 			var obj = File.open(fullpath, "r").readAllString.interpret;
-			var func = obj[\synth];
-			var specs = obj[\specs];
-			uifunc = obj[\ui];
-			this.filter(100, func);
-			if (specs.isNil.not) {
-				specs.do({arg assoc;
-					Ndef(key).addSpec(assoc.key, assoc.value);
-				});
-			};
+			^obj
 		} {
 			Error("node not found").throw;
 		}
+	}
+
+	prBuild {
+		var obj = N.loadFx(fx);
+		var func = obj[\synth];
+		var specs = obj[\specs];
+		uifunc = obj[\ui];
+		this.filter(100, func);
+		if (specs.isNil.not) {
+			specs.do({arg assoc;
+				this.addSpec(assoc.key, assoc.value);
+			});
+		};
 	}
 
 	*ls {arg dir;
@@ -451,6 +562,7 @@ Looper
 */
 O : Device {
 
+	/*
 	var <phase;
 
 	phase_ {|func|
@@ -464,40 +576,35 @@ O : Device {
 			LFSaw.ar(freq, 1);
 		});
 	}
+	*/
 
-	prBuild {
+	deviceInit {
 
-		var func = this.phase;
 		this.put(0, {
 
-			var buf = \buf.kr(0);
-			var rate = \rate.kr(1);
-			var trig = \trig.tr(1);
+			var updateFreq = 10;
 			var replyid = \bufposreplyid.kr(-1);
-			var startPos = \startPos.kr(0) * BufFrames.kr(buf);
-			var endPos = \endPos.kr(1) * BufFrames.kr(buf);
-			var updateFreq = 60;
-			var sig;
+			var buf = \buf.kr(0);
+			var lag = \lag.kr(1);
+			var rate = \rate.kr(1).lag(lag);
+			var startPos = \startPos.kr(0).lag(0.01);
+			var endPos = \endPos.kr(1).lag(0.01);
 
-			var dur = ( (endPos - startPos) / BufSampleRate.kr(buf) ) * rate.reciprocal;
-			var duty = TDuty.ar(dur.abs, trig, 1);
-			var index = Stepper.ar(duty, 0, 0, 1 );
-			var phase = func.(dur, dur.reciprocal, duty, rate);
-			phase = phase.range(startPos, endPos);
+			var cuePos = \cuePos.kr(0);
+			var trig = \trig.tr(0);
 
-			/*
-			var phase = Phasor.ar(duty, myrate, startPos, endPos, startPos);
-			//var phase = LFSaw.ar(dur.reciprocal, 1).range(startPos, endPos);
-			//var phase = LFPar.ar(dur.reciprocal * [-1, 2]).range(startPos, endPos);
-			//var phase = Env([0, 0, 1], [0, dur], curve: 0).ar(gate:duty).linlin(0, 1, startPos, endPos);
-			*/
-
-			sig = BufRd.ar(1, buf, phase, 0);
-			// try to remove any clicks
-			//sig = SelectCF.ar(index, sig);
+			var phase, sig;
+			#sig, phase = LoopBufCF.ar(numChannels:1,
+				bufnum:buf,
+				rate:rate,
+				trigger:trig,
+				startPos:startPos,
+				endPos:endPos,
+				resetPos:cuePos,
+				ft:\ft.kr(0.05));
 
 			SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase % BufFrames.kr(buf)], replyid);
-			Splay.ar(sig, \spread.kr(1), center:\center.kr(0)) * \amp.kr(1);
+			Splay.ar(sig, \spread.kr(1), center:\pan.kr(0)) * \amp.kr(1);
 		});
 
 		this.wakeUp;
@@ -603,6 +710,8 @@ S : EventPatternProxy {
 
 	var <key, <instrument, <node, <synths;
 
+	var <>hasGate, <synthdef;
+
 	var listenerfunc, cmdperiodfunc, <>debug, <out;
 
 	*new {arg key, synth, template=\adsr;
@@ -625,6 +734,24 @@ S : EventPatternProxy {
 			res = S(key);
 		};
 		^res;
+	}
+
+	*def {|inKey, inFunc, inTemplate=\adsr|
+		var path = App.librarydir ++  "templates/" ++ inTemplate.asString ++ ".scd";
+		var pathname = PathName(path.standardizePath);
+		var fullpath = pathname.fullPath;
+		if (File.exists(fullpath)) {
+			var template = File.open(fullpath, "r").readAllString.interpret;
+			template.(inKey, inFunc);
+		} {
+			Error("synth template not found").throw;
+		}
+	}
+
+	*loadSynths {
+		var path = App.librarydir.standardizePath ++ "synths/*.scd";
+		"loading synths: %".format(path).debug;
+		path.loadPaths;
 	}
 
 	synth {|synth, template=\adsr|
@@ -671,10 +798,12 @@ S : EventPatternProxy {
 		super.play(argClock, protoEvent, quant, doReset);
 	}
 
+	/*
 	stop {|fadeTime=0.02|
 		this.node.stop(fadeTime:fadeTime);
 		super.stop;
 	}
+	*/
 
 	getSettings {
 		^this.envir.asDict;
@@ -685,6 +814,7 @@ S : EventPatternProxy {
 		str.postln;
 	}
 
+	/*
 	addPreset {|num|
 		P.addPreset(this, num, this.getSettings);
 	}
@@ -707,32 +837,6 @@ S : EventPatternProxy {
 
 	getPreset {|num|
 		^P.getPreset(this, num);
-	}
-
-	/*
-	randomize {|ignore, seed=nil, func|
-		ignore = (ignore ?? []) ++ [\amp, \vel, \center, \spread];
-		thisThread.randSeed = seed ?? 1000000000.rand.debug(\randseed);
-		this.checkSpec
-		.reject({|v,k| ignore.includes(k) })
-		.keysValuesDo({|k, v|
-			var val;
-			if (v.warp.isKindOf(ExponentialWarp)) {
-				if (v.minval > 0) {
-					val = exprand(v.minval, v.maxval);
-				} {
-					val = rrand(v.minval, v.maxval);
-				}
-			}{
-				val = rrand(v.minval, v.maxval);
-			};
-
-			this.set(k, val);
-		});
-
-		if (func.isNil.not) {
-			func.value(this);
-		}
 	}
 	*/
 
@@ -760,20 +864,9 @@ S : EventPatternProxy {
 			}
 		});
 
-		this.source = Pbind(*args)
+		this.source = Pbind(*pairs)
 		<>
 		Pbind(\out, Pfunc({node.bus.index}), \group, Pfunc({node.group}));
-	}
-
-	fx {arg index, func ...args;
-		if (func.isNil) {
-			node.put(index, func);
-		}{
-			if (func.isSymbol) {
-				func = Library.at(\fx, func).performKeyValuePairs(\value, args);
-			};
-			node.put(index, \filter -> func);
-		}
 	}
 
 	on {arg midinote, vel=1;
@@ -792,9 +885,9 @@ S : EventPatternProxy {
 				synth = list.pop;
 			});
 		});
-		if (node.group.isNil.not) {
-			node.group.free;
-		}
+		//if (node.group.isNil.not) {
+		//	node.group.free;
+		//}
 	}
 
 	prInit {arg inKey;
@@ -807,7 +900,7 @@ S : EventPatternProxy {
 		key = inKey;
 		synths = Array.fill(127, {List.new});
 
-		node = Ndef(key);
+		node = Device(key);
 		node.mold(2, \audio);
 		node.play;
 
@@ -828,7 +921,7 @@ S : EventPatternProxy {
 		this.set(
 			\root, defaultRoot,
 			\scale, Scale.at(defaultScale).copy.tuning_(defaultTuning),
-			\amp, 0.3
+			\amp, -10.dbamp
 		);
 
 		^this;
@@ -836,7 +929,7 @@ S : EventPatternProxy {
 
 	prInitSynth {arg inKey, inSynth, inTemplate=\adsr;
 
-		var synthdef;
+		//var synthdef;
 		var myspecs = ();
 		var ignore = [\out, \freq, \gate, \trig, \retrig, \sustain, \bend];
 
@@ -844,7 +937,7 @@ S : EventPatternProxy {
 
 		if (inSynth.isKindOf(Function)) {
 			instrument = inKey;
-			this.prBuildSynth(instrument, inSynth, inTemplate);
+			S.def(instrument, inSynth, inTemplate);
 		};
 
 		synthdef = SynthDescLib.global.at(instrument);
@@ -862,6 +955,7 @@ S : EventPatternProxy {
 			}
 		};
 
+		hasGate = synthdef.hasGate;
 		// check the synthdef
 		if (synthdef.metadata.isNil.not) {
 			if (synthdef.metadata[\specs].isNil.not) {
@@ -896,6 +990,8 @@ S : EventPatternProxy {
 
 		myspecs.keysValuesDo({arg k, v;
 			this.addSpec(k, v);
+			// this sets all the properties in the environment
+			// so they can be read from the ui
 			this.set(k, v.default)
 		});
 
@@ -903,6 +999,20 @@ S : EventPatternProxy {
 	}
 
 	prNoteOn {arg midinote, vel=1;
+
+
+		/*
+1. "I want instantaneous, zero-latency transitions: when I hit the button on my controller, I want my playing event to immediately end and the next one to start. I don’t care about note durs / deltas at all."
+
+This case is addressed in the linked question, and some other places. If you want full manual control simply pull notes from your event stream and play them yourself:
+
+~stream = Pdef(\notes).asStream;
+
+~stream.next(()).play; // next event
+~stream.next(()).play; // next event
+~stream.next(()).play; // next event
+One gotcha: you must have (\sendGate, false) in your event, else Event:play will automatically end the Event after \dur beats.
+		*/
 
 		var ignore = [\instrument,
 			\root, \scale, \out, \group, \key, \dur, \legato,
@@ -921,8 +1031,12 @@ S : EventPatternProxy {
 				args.postln;
 			};
 
-			if (synths[midinote].last.isNil) {
-				synths[midinote].add( Synth(instrument, args, target:node.nodeID) );
+			if (hasGate) {
+				if (synths[midinote].last.isNil) {
+					synths[midinote].add( Synth(instrument, args, target:node.nodeID) );
+				}
+			} {
+				Synth(instrument, args, target:node.nodeID)
 			}
 		}
 	}
@@ -941,6 +1055,7 @@ S : EventPatternProxy {
 		});
 	}
 
+	/*
 	prBuildSynth {arg inKey, inFunc, inTemplate=\adsr;
 		var path = App.librarydir ++  "templates/" ++ inTemplate.asString ++ ".scd";
 		var pathname = PathName(path.standardizePath);
@@ -952,6 +1067,7 @@ S : EventPatternProxy {
 			Error("synth template not found").throw;
 		}
 	}
+	*/
 
 	*initClass {
 		defaultTuning = \et12;

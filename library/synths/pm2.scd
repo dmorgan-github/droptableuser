@@ -53,7 +53,7 @@ SynthDef(\pm2, {
 	var timbres = numops.collect({|i|
 		var timbre = \timbre.kr.dup(numops);
 		timbre[i] = morph;
-		timbre;// * pi;
+		timbre * pi;
 	})
 	* Select.kr(algo, algos).clump(numops);
 
@@ -98,7 +98,7 @@ SynthDef(\pm2, {
 	LocalOut.ar(sig);
 
 	sig = Select.ar( \fdrive.kr(1) > 1, [ sig, LeakDC.ar(tanh(sig * \fdrive.kr(1))) ]);
-	sig = BLowPass4.ar(sig, feg.linexp(0.1, 1, 20, 20000), res.linlin(0, 1, 1, 0.0001));
+	//sig = BLowPass4.ar(sig, feg.linexp(0.1, 1, 20, 20000), res.linlin(0, 1, 1, 0.0001));
 
 	sig = sig * amps.normalizeSum.max(0) * AmpCompA.kr(freqs);
 	sig = (sig.sum + SinOsc.ar(freq * 0.5)) * aeg;

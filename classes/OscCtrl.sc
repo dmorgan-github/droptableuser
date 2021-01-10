@@ -1,47 +1,53 @@
-/*
-(
-var page = 'mixer';
-var server = NetAddr(App.touchoscserver, App.touchoscport);
+Mixer {
 
-var channel = {|index, node|
+	classvar <server, <page, <num;
 
-	var key = node.key;
-	var faderPath = "/%/fader%".format(page, index).asSymbol;
-	var faderFunc = {|val|
-		var vol = val[0];
-		node.vol = vol;
-	};
-	var faderVal = node.vol;
-	var isMute = node.isMonitoring.not.asInteger;
+	*initClass {
+		page = 'mixer';
+		num = 16;
+		StartUp.add({
+			server = NetAddr(App.touchoscserver, App.touchoscport);
+		});
+	}
 
-	var mutePath = "/%/mute%".format(page, index).asSymbol;
-	var muteFunc = {|val|
-		var monitor = val[0];
-		monitor = monitor.asBoolean.not;
-		if (monitor) {
-			node.play;
-		} {
-			node.stop;
-		}
-	};
+	*channel {|index, node|
 
-	var labelPath = "/%/label%".format(page, index).asSymbol;
+		var warn = {
+			if (index < 1) {
+				"channels start from 1".warn
+			}
+		}.();
 
-	server.sendMsg(faderPath, faderVal);
-	server.sendMsg(mutePath, isMute);
-	server.sendMsg(labelPath, key);
+		var key = node.key;
+		var faderPath = "/%/fader%".format(page, index).asSymbol;
+		var faderFunc = {|val|
+			var vol = val[0];
+			node.vol = vol;
+		};
+		var faderVal = node.vol;
+		var isMute = node.isMonitoring.not.asInteger;
 
-	OscCtrl.path(faderPath, faderFunc);
-	OscCtrl.path(mutePath, muteFunc);
-};
+		var mutePath = "/%/mute%".format(page, index).asSymbol;
+		var muteFunc = {|val|
+			var monitor = val[0];
+			monitor = monitor.asBoolean.not;
+			if (monitor) {
+				node.play;
+			} {
+				node.stop;
+			}
+		};
 
-~mixer = {|nodes|
-	channel.(1, M.nmok);
-	channel.(2, O.azu);
+		var labelPath = "/%/label%".format(page, index).asSymbol;
+
+		server.sendMsg(faderPath, faderVal);
+		server.sendMsg(mutePath, isMute);
+		server.sendMsg(labelPath, key);
+
+		OscCtrl.path(faderPath, faderFunc);
+		OscCtrl.path(mutePath, muteFunc);
+	}
 }
-)
-~mixer.();
-*/
 
 
 TwisterOsc {
@@ -83,7 +89,7 @@ TwisterOsc {
 		page = 'twister';
 		num = 16;
 		StartUp.add({
-			server = NetAddr("10.0.1.81", 9000);
+			server = NetAddr(App.touchoscserver, App.touchoscport);
 		});
 	}
 }
@@ -134,7 +140,7 @@ RotaryOsc {
 	*initClass {
 
 		StartUp.add({
-			server = NetAddr("10.0.1.81", 9000);
+			server = NetAddr(App.touchoscserver, App.touchoscport);
 		});
 	}
 }

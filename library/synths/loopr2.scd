@@ -1,6 +1,8 @@
 (
-SynthDef(\loopr, {
+// bi directional looper
+SynthDef(\loopr2, {
 
+	var numChannels = 1;
 	var updateFreq = 15;
 	var replyid = \bufposreplyid.kr(-1);
 	var buf = \buf.kr(0);
@@ -8,19 +10,13 @@ SynthDef(\loopr, {
 	var rate = \rate.kr(1).lag(lag);
 	var startPos = \startPos.kr(0).lag(0.01);///.poll(label:\startPos);
 	var endPos = \endPos.kr(1).lag(0.01);
+	var aeg;
 
-	var cuePos = \cuePos.kr(0);
-	var trig = \trig.tr(0);
-	var phase, sig, aeg;
-
-	#sig, phase = LoopBufCF.ar(numChannels:1,
-		bufnum:buf,
-		rate:rate,
-		trigger:trig,
-		startPos:startPos,
-		endPos:endPos,
-		resetPos:cuePos,
-		ft:\ft.kr(0.05));
+	var start = startPos * BufFrames.kr(buf);
+	var end = endPos * BufFrames.kr(buf);
+	var dur = ((end - start) / BufSampleRate.kr(buf)) * rate.abs.reciprocal;
+	var phase = LFTri.ar(dur.reciprocal * 0.5, -1).range(start, end);
+	var sig = BufRd.ar(numChannels, buf, phase, loop:0);
 
 	aeg = Env.asr(
 		\atk.kr(0.01),

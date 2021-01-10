@@ -60,7 +60,7 @@ Fdef(\ngui, {arg node, customview;
 		var val = node.getSettings[k.asSymbol];
 		var ctrl = ctrlView.(k, v.asSpec, Color.rand, val, cb);
 		ctrlViews[k] = ctrl;
-		view.layout.add(ctrl.asView.minHeight_(20));
+		view.layout.add(ctrl.asView.minHeight_(20).maxHeight_(20));
 	});
 
 	view.layout.add(nil);

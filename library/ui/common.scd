@@ -54,7 +54,7 @@ Fdef(\baseview, {arg view, title, w, h;
 	view.addDependant(viewListener);
 	win.layout = VLayout(outerview).margins_(0).spacing_(0);
 	win.asView
-	.palette_(QPalette.auto(Color.rand.alpha_(0.5).debug(\buttonColor), Color.rand.debug(\windowColor)))
+	.palette_(QPalette.dark)
 	.onClose_({
 		view.removeDependant(viewListener);
 	});
@@ -224,6 +224,7 @@ Fdef(\playview, {arg node;
 			})
 			.value_(node.vol)
 			.fixedHeight_(height)
+			.fixedWidth_(75)
 			.toolTip_("vol"),
 
 			NumberBox()
@@ -253,7 +254,8 @@ Fdef(\playview, {arg node;
 			.fixedWidth_(25)
 			.fixedHeight_(height-2)
 			.value_(0)
-			.toolTip_("channel")
+			.toolTip_("channel"),
+			nil
 		)
 		.spacing_(1)
 		.margins_(0)

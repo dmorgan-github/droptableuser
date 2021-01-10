@@ -2,7 +2,6 @@
 Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\buf, {arg node;
 
-
 	var width = 200 * 1.5;
 	var height = 100 * 1.5;
 	var id = UniqueID.next;
@@ -18,11 +17,11 @@ Fdef(\buf, {arg node;
 	//var cursorcolor = Color.rand.debug(\cursorcolor);
 	//var selectioncolor = Color.rand.alpha_(0.3).debug(\selectioncolor);
 
-
 	var wavecolors = [
 		Color(0.78598186969757, 0.75455839633942, 0.59287083148956),
 		Color(0.34656608104706, 0.33435337543488, 0.45881831645966)
 	];
+
 	var cursorcolor = Color(0.48647997379303, 0.57335543632507, 0.37658343315125);
 	var selectioncolor = Color(0.78476850986481, 0.36488585472107, 0.75622744560242, 0.3);
 	var gridcolor = Color.rand;

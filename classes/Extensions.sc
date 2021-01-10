@@ -18,9 +18,9 @@ Pswitch
 	pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
 	prand {arg repeats=inf; ^Prand(this, repeats) }
 	pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
-	//dd {arg repeats=inf; ^Dd(this, repeats)}
 	pshuf {arg num=1, repeats=inf; ^Pn(Pshuf(this, num), repeats) }
 	step {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
+	pdv {|repeats=inf, key='degree'| ^Pdv(this, key).repeat(repeats) }
 }
 
 + Pattern {
@@ -42,6 +42,22 @@ Pswitch
 	view {
 		^U(\ngui, this);
 	}
+
+	addFx {|fx, wet=1, index|
+		var idx = if (index.isNil) { (this.objects.indices.last ?? 0) + 10}{index};
+		var obj = N.loadFx(fx);
+		var func = obj[\synth];
+		var specs = obj[\specs];
+		this.filter(idx, func).set("wet%".format(idx).asSymbol, wet);
+		if (specs.isNil.not) {
+			specs.do({|assoc|
+				this.addSpec(assoc.key, assoc.value);
+			})
+		};
+		this.addSpec("wet%".format(idx).asSymbol, [0, 1, \lin, 0, 1].asSpec);
+		"added % at index %".format(fx, idx).debug(this.key);
+	}
+
 
 	mix {arg index=0, obj, vol=1;
 
@@ -73,7 +89,7 @@ Pswitch
 
 	forPattern {
 		^Pbind(
-			\out, Pfunc({ this.bus.index }),
+			\out, Pfunc({this.bus.index}),
 			\group, Pfunc({this.group})
 		)
 	}

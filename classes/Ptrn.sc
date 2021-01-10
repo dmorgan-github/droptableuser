@@ -1,3 +1,9 @@
+Pmap {
+	*new{|k, n, lo, hi, offset=0, repeats=inf|
+		^Pbjorklund(k, n, repeats, offset).linlin(0, 1, lo, hi)
+	}
+}
+
 Pndxr {
 
 	*new {|loops, ndxr|

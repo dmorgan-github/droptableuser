@@ -5,7 +5,7 @@ synth: {arg sig_in;
 	var fblevel = [\fbL.ar(0.3), \fbR.kr(0.5)];
 	var delL = \delL.ar(3).lag(0.1) * 4.reciprocal;
 	var delR = \delR.ar(4).lag(0.1) * 4.reciprocal;
-	var tempo = \tempo.ar(1).lag(0.1);
+	var tempo = \tiempo.ar(1).lag(0.1);
 	var offsetL = \offsetL.ar(0).lag(0.1);
 	var offsetR = \offsetR.ar(0).lag(0.1);
 
@@ -23,7 +23,7 @@ specs: [
 	\delL -> ControlSpec(1, 16, \lin, 0.125, 3, "delay"),
 	\delR -> ControlSpec(1, 16, \lin, 0.125, 4, "delay"),
 	\inhpf -> ControlSpec(20, 10000, \lin, 0, 20, "filter"),
-	\tempo -> ControlSpec(0.001, 4, \lin, 0.0, 1, "delay"),
+	\tiempo -> ControlSpec(0.001, 4, \lin, 0.0, 1, "delay"),
 	\offsetL -> ControlSpec(0.0, 4, \lin, 0.0, 0, "delay"),
 	\offsetR -> ControlSpec(0.0, 4, \lin, 0.0, 0, "delay"),
 	\center -> ControlSpec(-1, 1, \lin, 0, 0, "stereo"),

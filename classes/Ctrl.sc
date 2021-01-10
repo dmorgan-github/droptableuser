@@ -21,21 +21,21 @@ MidiCtrl {
 
 	classvar <all;
 
-	var <key, <src, <chan, <>enabled;
+	var <key, <src, <>enabled;
 
-	*new {arg key, src=\iac, chan;
+	*new {arg key, src=\iac;
 		var res = all[key];
 		if (res.isNil) {
-			res = super.new.init(key, src, chan);
+			res = super.new.init(key, src);
 			all.put(key, res);
 		};
 		^res;
 	}
 
-	init {arg inKey, inSrcKey, inChan;
+	init {arg inKey, inSrcKey;
 
+		\superinit.postln;
 		key = inKey;
-		chan = inChan;
 		enabled = true;
 		MIDIClient.init;
 
@@ -49,8 +49,6 @@ MidiCtrl {
 
 		//MIDIIn.connect(device:src);
 		MIDIIn.connectAll;
-
-		^this;
 	}
 
 	*trace {arg enable=true;
@@ -60,7 +58,7 @@ MidiCtrl {
 		MIDIFunc.trace(enable);
 	}
 
-	note {arg on, off;
+	note {arg on, off, chan;
 		var mychan = if (chan.isNil) {"all"}{chan};
 		var srcid = if (this.src.isNil.not){src.uid}{nil};
 		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
@@ -96,7 +94,7 @@ MidiCtrl {
 		^this;
 	}
 
-	cc {arg num, func;
+	cc {arg num, func, chan;
 
 		var mychan = if (chan.isNil) {"all"}{chan};
 		var srcid = if (this.src.isNil.not){src.uid}{nil};
@@ -116,7 +114,7 @@ MidiCtrl {
 		}
 	}
 
-	bend {arg func;
+	bend {arg func, chan;
 		var mychan = if (chan.isNil) {"all"}{chan};
 		var srcid = if (this.src.isNil.not){src.uid}{nil};
 		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
@@ -137,7 +135,7 @@ MidiCtrl {
 	}
 
 	// pressure
-	touch {arg func;
+	touch {arg func, chan;
 		var mychan = if (chan.isNil) {"all"}{chan};
 		var srcid = if (this.src.isNil.not){src.uid}{nil};
 		var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
@@ -182,15 +180,17 @@ Twister : MidiCtrl {
 
 	classvar id;
 
-	classvar instance;
+	classvar <instance;
+
+	var <>ccChan, <>noteChan;
 
 	var <>midiout;
 
 	var <>midimap;
 
-	*new {|chan=0|
+	*new {
 		if (instance.isNil) {
-			instance = super.new(id, "twister", chan);
+			instance = super.new(id, "Midi Fighter Twister");
 		};
 		^instance;
 	}
@@ -200,14 +200,19 @@ Twister : MidiCtrl {
 		^res.perform(selector, *args);
 	}
 
-	init {|inKey, inSrcKey, inChan|
-		super.init(inKey, inSrcKey, inChan);
-		this.midiout = MIDIOut.newByName("twister", "USB MIDI Device");
+	init {|inKey, inSrcKey|
+		\hereinit.postln;
+		super.init(inKey, inSrcKey);
+		this.midiout = MIDIOut.newByName("Midi Fighter Twister", "Midi Fighter Twister");
 		this.midimap = Order.new;
+		this.ccChan = 0;
+		this.noteChan = 1;
+		^this;
 	}
 
 	ccMap {|ccNum, spec|
-		var nodeKey = "twister_%_%_cc%".format(this.key, this.chan, ccNum).asSymbol.debug(\ccmap);
+
+		var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccmap);
 		var myspec = spec.asSpec;
 		var node = Ndef(nodeKey.asSymbol, { \val.kr(spec:myspec) });
 		var default = myspec.default.linlin(myspec.minval, myspec.maxval, 0, 127);
@@ -217,23 +222,41 @@ Twister : MidiCtrl {
 			spec:myspec,
 			node:node
 		);
-		midiout.control(this.chan, ccNum, default);
-		this.cc(ccNum, {|val|
+		midiout.control(ccChan, ccNum, default);
+		super.cc(ccNum, {|val|
 			node.set(\val, myspec.map(val/127));
-		});
+		}, ccChan);
 		^node;
 	}
 
-	ccFunc {|ccNum, func|
-		var nodeKey = "twister_%_%_cc%".format(this.key, this.chan, ccNum).asSymbol.debug(\ccfunc);
-		var default = 0;
+	ccFunc {|ccNum, func, default=0|
+		var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccfunc);
 		// initialize
-		midiout.control(this.chan, ccNum, default);
-		this.cc(ccNum, func);
+		default = default.linlin(0, 1, 0, 127);
+		midiout.control(ccChan, ccNum, default);
+		super.cc(ccNum, func, ccChan);
+	}
+
+	note {|on, off|
+		super.note(on, off, noteChan);
+	}
+
+	noteFunc {|num, on, off|
+		var onfunc = {|note, vel|
+			if (note == num) {
+				on.(note, vel);
+			}
+		};
+		var offfunc = {|note|
+			if (note == num) {
+				off.(note);
+			}
+		};
+		super.note(onfunc, offfunc, noteChan);
 	}
 
 	asMap {|ccNum|
-		var nodeKey = "twister_%_%_cc%".format(this.key, this.chan, ccNum).asSymbol.debug(\ccmap);
+		var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccmap);
 		^Ndef(nodeKey.asSymbol);
 	}
 
@@ -253,8 +276,10 @@ Microlab : MidiCtrl {
 
 	classvar id;
 
+	var <>ccChan, <>noteChan;
+
 	*new {|chan=2|
-		^super.new(id, "Arturia MicroLab", chan);
+		^super.new(id, "Arturia MicroLab");
 	}
 
 	*initClass {
@@ -269,13 +294,16 @@ Roli : MidiCtrl {
 	// bend semitones
 	classvar <>bendst;
 
-	var <bendMap;
-
 	classvar instance;
 
-	*new {|chan=1|
+	var <>ccChan, <>noteChan;
+
+	var <bendMap;
+
+
+	*new {
 		if (instance.isNil) {
-			instance = super.new(id, "Lightpad BLOCK", chan);
+			instance = super.new(id, "Lightpad BLOCK");
 		}
 		^instance;
 	}
@@ -285,13 +313,15 @@ Roli : MidiCtrl {
 		^res.perform(selector, *args);
 	}
 
-	init {|inKey, inSrcKey, inChan|
-		super.init(inKey, inSrcKey, inChan);
+	init {|inKey, inSrcKey|
+		super.init(inKey, inSrcKey);
 		bendMap = Ndef((inKey ++ '_bend').asSymbol, {\val.kr(0).lag(0.5) });
+		this.ccChan = 2;
+		this.noteChan = 2;
 		this.bend({|val|
 			var bend = val.linlin(0, 16383, bendst.neg, bendst);
 			bendMap.set(\val, bend);
-		});
+		}, this.ccChan);
 	}
 
 	note {|on, off|
@@ -299,7 +329,7 @@ Roli : MidiCtrl {
 			off.(note, chan);
 			bendMap.set(\val, 0);
 		};
-		super.note(on, bendoff);
+		super.note(on, bendoff, noteChan);
 	}
 
 
