@@ -44,7 +44,7 @@ Pdef('hh_1', Pmono(\hh_mono,
 // buffer slicer
 /////////////////////////////////////////////////////////////////////
 (
-~buf = ~yeah;
+~buf = ~buf ?? Buffer.read(s, Platform.resourceDir +/+ "sounds/a11wlk01.wav");
 ~beats = nil;
 ~numslices = 8;
 Pdef(\slicer,
@@ -82,3 +82,8 @@ Pdef(\slicer,
 )
 )
 
+
+/////////////////////////////////////////////////////////////////////
+// sines
+/////////////////////////////////////////////////////////////////////
+Pdef(\sine_mono, Pmono(\sine_mono, \trig, 1));
