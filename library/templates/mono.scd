@@ -16,19 +16,16 @@
 			var dec = \dec.kr(0.1);
 			var rel = \rel.kr(1);
 			var suslevel = \suslevel.kr(1);
+			var sus = \sustain.kr(1);
 			var curve = \curve.kr(-4);
-			var env = Env.adsr(
-				attackTime:atk,
-				decayTime:dec,
-				sustainLevel:suslevel,
-				releaseTime:rel,
+			var aeg = Env(
+				[0, 1, suslevel, suslevel, 0],
+				[atk, dec, sus, rel],
 				curve:curve
-			);
+			).ar(doneAction:Done.none, gate:trig);
 
-			// env to retrigger while gate is open
-			var aeg = env.ar(doneAction:Done.none, gate:trig);
-			// env to free synth
-			env.kr(doneAction:Done.freeSelf, gate:\gate.kr(1));
+			// control synth lifecycle
+			Env.asr(atk, 1, rel, curve).kr(doneAction:Done.freeSelf, gate:\gate.kr(1));
 
 			aeg;
 		};
@@ -36,7 +33,7 @@
 		var aeg = adsr.();
 		var sig = SynthDef.wrap(inFunc, prependArgs:[freq, trig, aeg]);//inFunc.(freq, trig, aeg);
 		sig = LeakDC.ar(sig);
-		sig = sig * aeg * AmpCompA.ar(freq, 32) * \vel.kr(1);
+		sig = sig * aeg * AmpCompA.ar(freq, 0) * \vel.kr(1);
 		sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 		sig = sig * \amp.kr(-6.dbamp);
 		Out.ar(\out.kr(0), sig);

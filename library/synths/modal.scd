@@ -19,14 +19,6 @@ SynthDef(\modal, {
 		ratio.squared.reciprocal * 5
 	], exciter, freq);
 
-	/*
-	var aeg = Env.asr(
-		\atk.kr(0),
-		\suslevel.kr(1),
-		\rel.kr(1),
-		curve:\curve.kr(-4)
-	).ar(doneAction:Done.freeSelf, gate:\gate.kr(1));
-	*/
 	var aeg = Env.perc(
 		attackTime:0.01,
 		releaseTime:\rel.kr(1),

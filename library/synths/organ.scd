@@ -52,9 +52,12 @@ SynthDef(\organ, {
 	};
 
 	var filter = {arg in;
+
 		var cutoff = \cutoff.kr(220);
-		var fvel = \fvel.kr(10);
 		var res = \res.kr(0.1);
+
+		/*
+		var fvel = \fvel.kr(10);
 		var feg = Env.adsr(
 			\fatk.kr(0.01),
 			\fdec.kr(0.3),
@@ -62,22 +65,22 @@ SynthDef(\organ, {
 			\frel.kr(1),
 			curve:\fcurve.kr(-4)
 		).ar(gate:gate).linexp(0, 1, cutoff, cutoff * fvel).clip(20, 20000);
-		var sig = MoogVCF.ar(in, feg, res);
+		*/
+		//var sig = MoogVCF.ar(in, feg, res);
+		var sig = BLowPass.ar(in, cutoff, res.linlin(0, 1, 1, 0.001));
+		//var sig = DFM1.ar(in, cutoff, res, inputgain:\drive.kr(1));
 		sig;
 	};
 
 	var aeg = adsr.();
-
-	var filtsig;
-
 	var drive = \drive.kr(1).max(1);
 	sig = Select.ar( (drive > 1), [
 		sig,
-		LeakDC.ar((sig * drive).softclip) * drive.sqrt.reciprocal
+		LeakDC.ar((sig * drive).tanh) * drive.sqrt.reciprocal
 	]);
+
 	sig = filter.(sig);
 	sig = sig * aeg * AmpCompA.kr(freq, 20) * \amp.kr(0.3) * \vel.kr(1);
-	//sig = sig.blend(filtsig, \famt.kr(0));
 	sig = Splay.ar(sig, \spread.kr(1), center:\center.kr(0));
 	Out.ar(\out.kr(0), sig);
 

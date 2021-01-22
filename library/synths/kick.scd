@@ -29,5 +29,6 @@ SynthDef(\kick, {
 		freqmul: ControlSpec(1, 4, \lin, 0, 3.99),
 		drive: ControlSpec(1, 4, \lin, 0, 1.02),
 	)
-)).add
+)).add;
+
 )

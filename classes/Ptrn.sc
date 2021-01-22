@@ -4,30 +4,6 @@ Pmap {
 	}
 }
 
-Pndxr {
-
-	*new {|loops, ndxr|
-
-		var streams = loops.collect({|loop|
-			loop.asStream;
-		});
-
-		^Pindex(
-			streams.collect({|stream, i|
-				Plazy({|evt|
-					if (evt[\index].isRest) {
-						()
-					}{
-						stream.next(Event.default);
-					}
-				})
-			}),
-			Pkey(\index).norest,
-			inf
-		) <> ndxr
-	}
-}
-
 
 // Only pull a value once per clock time - else, return the previous value
 // https://gist.github.com/scztt/e53046e866e75e48bff1b62311da96eb
@@ -122,58 +98,23 @@ Pwnrand : ListPattern {
 	storeArgs { ^[ list, weights, repeats ] }
 }
 
-Pparse : Pfunc {
-	*new {|key|
-		^super.newCopyArgs({|evt|
-
-			var parse = {|val|
-				var vals = val.asString.collectAs({|chr| chr.digit/35 }, Array);
-				var prob = 1;
-				var index = vals[0] * 35;
-				if (vals.size > 1) {
-					prob = vals[1];
-				};
-				if (prob.coin.not) {
-					Rest(1)
-				} {
-					index.asInteger;
-				}
-			};
-
-			var val = evt[key];
-			if (val.isRest or: val.isNumber) {
-				val
-			}{
-				if (val.isString) {
-					parse.(val);
-				} {
-					if (val.isArray) {
-						val.collect({|v| parse.(v) });
-					}
-				}
-			}
-		})
-	}
-}
-
 // Pdurval
 Pdv : Pbind {
 
-	*new {|list, key=\degree|
+	*new {|list, key=\val|
 		^super.new(
 			[key, \dur], Prout({|inval|
-
 				var parse = {arg seq, div=1;
 					var myval = seq;
-					if (myval.class != Ref) {
-						// if the value is a ref don't unpack it here
-						if (myval.class == Association) {
+					// if the value is a function don't unpack it here
+					if (myval.isKindOf(Function).not) {
+						if (myval.isKindOf(Association)) {
 							div = div * myval.key.asFloat;
 						};
 						myval = myval.value;
 					};
 
-					if (myval.isString.not and: myval.isArray) {
+					if (myval.isArray) {
 						var myseq = myval;
 						var mydiv = 1/myseq.size * div;
 						var stream = CollStream(myseq);
@@ -189,8 +130,8 @@ Pdv : Pbind {
 							myval = Rest();
 							div = Rest(div);
 						} {
-							if (myval.isKindOf(Ref)) {
-								// if the value is a Ref
+							if (myval.isKindOf(Function)) {
+								// if the value is a Function
 								// unpack it and use as-is
 								// this allows us to configure chords
 								// and multi-channel expansion
@@ -205,7 +146,7 @@ Pdv : Pbind {
 					}
 				};
 
-				var pseq = CollStream(list);
+				var pseq = CollStream(list.asArray);
 				var item;
 				var val = pseq.next;
 				while({val.isNil.not}, {
@@ -217,139 +158,6 @@ Pdv : Pbind {
 		);
 	}
 }
-
-
-/*
-Dd : Pattern {
-
-	var list, repeats;
-
-	*new { arg list, repeats=inf;
-		^super.newCopyArgs(list, repeats)
-	}
-
-	storeArgs { ^[list, repeats] }
-
-	embedInStream {arg inval;
-
-		var parse = {arg seq, div=1;
-
-			var myval = seq;
-			if (myval.class != Ref) {
-				// if the value is a ref don't unpack it here
-				myval = myval.value;
-			};
-
-			if (myval.isArray) {
-				var myseq = myval;
-				var mydiv = 1/myseq.size * div;
-				var stream = Pseq(myseq, 1).asStream;
-				var val = stream.next;
-				while ({val.isNil.not},
-					{
-						parse.(val, mydiv);
-						val = stream.next
-					}
-				);
-			} {
-				if (myval.isRest) {
-					myval = Rest();
-					div = Rest(div);
-				} {
-					if (myval.isKindOf(Ref)) {
-						// if the value is a Ref
-						// unpack it and use as-is
-						// this allows us to configure chords
-						// and multi-channel expansion
-						myval = myval.value;
-					} {
-						if (myval.isNil) {
-							div = nil;
-						}
-					}
-				};
-				inval = [myval, div].embedInStream(inval);
-			}
-		};
-
-		var pseq = if (list.isKindOf(Pattern)) {
-			list.asStream;
-		}{
-			Pseq(list, repeats).asStream;
-		};
-
-		var item;
-		var val = pseq.next;
-		while({val.isNil.not}, {
-			parse.(val);
-			val = pseq.next;
-		});
-		^inval;
-	}
-}
-*/
-
-/*
-// degree, dur
-Dd2 {
-	*new{arg list, repeats=inf;
-
-		^Routine({
-			var parse = {arg seq, div=1;
-
-				var myval = seq;
-				if (myval.class != Ref) {
-					// if the value is a ref don't unpack it here
-					myval = myval.value;
-				};
-
-				if (myval.isArray) {
-					var myseq = myval;
-					var mydiv = 1/myseq.size * div;
-					var stream = Pseq(myseq, 1).asStream;
-					var val = stream.next;
-					while ({val.isNil.not},
-						{
-							parse.(val, mydiv);
-							val = stream.next
-						}
-					);
-				} {
-					if (myval.isRest) {
-						myval = Rest();
-						div = Rest(div);
-					} {
-						if (myval.isKindOf(Ref)) {
-							// if the value is a Ref
-							// unpack it and use as-is
-							// this allows us to configure chords
-							// and multi-channel expansion
-							myval = myval.value;
-						} {
-							if (myval.isNil) {
-								div = nil;
-							}
-						}
-					};
-					[myval, div].yield;
-				}
-			};
-
-			var pseq = if (list.isKindOf(Pattern)) {
-				list.asStream;
-			}{
-				Pseq(list, repeats).asStream;
-			};
-
-			var val = pseq.next;
-			while({val.isNil.not}, {
-				parse.(val);
-				val = pseq.next;
-			});
-		})
-	}
-}
-*/
 
 
 /*
