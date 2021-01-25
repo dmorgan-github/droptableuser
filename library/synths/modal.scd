@@ -26,10 +26,16 @@ SynthDef(\modal, {
 	).ar(doneAction:Done.freeSelf, gate:\gate.kr(1));
 
 	sig = sig * 10.dbamp;
-	sig = Limiter.ar(sig);
+
+	// sub
+	sig = sig + (SinOsc.ar(freq * \sinratio.kr(0.5)) * \sine.kr(0.5));
 
 	sig = sig * aeg * \amp.kr(0.1) * AmpCompA.kr(freq) * vel;
+
+	sig = Limiter.ar(sig);
+
 	Out.ar(\out.kr(0), sig);
+
 }, metadata: (
 	credit: "adapted from formulas by Nathan Ho",
 	type: \perc,

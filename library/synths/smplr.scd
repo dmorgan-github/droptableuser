@@ -22,7 +22,6 @@ var func = {arg numchannels = 2;
 
 var specs = (
 	start: ControlSpec(0, 1, \lin, 0, 0),
-	rate: ControlSpec(0.1, 4.0, \lin, 0, 1)
 );
 
 SynthDef(\smplr_2chan, {

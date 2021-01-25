@@ -19,7 +19,7 @@ SynthDef(\pm4, {
 		var ratio = ('op' ++ num ++ 'ratio').asSymbol;
 		var curve = ('op' ++ num ++ 'curve').asSymbol.kr(0);
 		var atk = ('op' ++ num ++ 'atk').asSymbol.kr(0.01);
-		var dec = ('op' ++ num ++ 'dec').asSymbol.kr(0.01);
+		var dec = ('op' ++ num ++ 'dec').asSymbol.kr(0.1);
 		var suslevel = ('op' ++ num ++ 'suslevel').asSymbol.kr(1);
 		var rel = ('op' ++ num ++ 'rel').asSymbol.kr(1);
 		var env = Env.adsr(
