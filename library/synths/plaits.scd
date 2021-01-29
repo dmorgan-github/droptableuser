@@ -17,7 +17,7 @@ trigger: ControlSpec(0, 1, \lin, 1, 0)
 SynthDef(\plaits, {
 
 	var gate = \gate.kr(1);
-	var freq = \freq.kr(261);
+	var freq = \freq.kr(261).lag(\glis.kr(0));
 	var harm = \harm.kr(0.5);
 	var timbre = \timbre.kr(0.5);
 	var morph = \morph.kr(0.5);
