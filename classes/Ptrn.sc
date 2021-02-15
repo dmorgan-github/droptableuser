@@ -1,3 +1,33 @@
+Pphrase {
+	*new {|key, outer, inner|
+		var instrument = (key ++ '_inner').asSymbol;
+		var func = if (inner.isKindOf(Function)) { inner }{ {inner} };
+		Pdef(instrument, func);
+		^Pdef(key.asSymbol, Pbind(\type, \phrase, \instrument, instrument) <> outer);
+	}
+}
+
+
+Pdur{
+	*new {|k=1, n=1, div=\beat, offset=0, repeats=inf|
+
+		switch (div,
+			\euclid, {
+				k = if (k.isKindOf(Array)) {k.pseq}{k};
+				n = if (n.isKindOf(Array)) {n.pseq}{n};
+				^Pbjorklund2(k, n, repeats, offset)
+			},
+			\beat, {
+				^Pn(k/n, repeats)
+			},
+			\bar, {
+				^Pn(n/k, repeats)
+			}
+		)
+	}
+}
+
+
 Pmap {
 	*new{|k, n, lo, hi, offset=0, repeats=inf|
 		^Pbjorklund(k, n, repeats, offset).linlin(0, 1, lo, hi)

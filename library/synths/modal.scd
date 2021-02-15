@@ -12,12 +12,13 @@ SynthDef(\modal, {
 
 	var bright = \bright.kr(0.5).linlin(0, 1, 80, 8000);
 	var exciter = LPF.ar(Impulse.ar(0), bright);
+	var morph = \morph.kr(0.0).linlin(0, 1, 1, 100);
 
 	var sig = DynKlank.ar(`[
 		ratio,
 		(k * -3).dbamp,
-		ratio.squared.reciprocal * 5
-	], exciter, freq);
+		ratio.squared.reciprocal * 5;
+	], exciter, freq, decayscale: morph);
 
 	var aeg = Env.perc(
 		attackTime:0.01,
@@ -31,6 +32,8 @@ SynthDef(\modal, {
 	sig = sig + (SinOsc.ar(freq * \sinratio.kr(0.5)) * \sine.kr(0.5));
 
 	sig = sig * aeg * \amp.kr(0.1) * AmpCompA.kr(freq) * vel;
+
+	sig = Splay.ar(sig, \spread.kr(1), center:\pan.kr(0));
 
 	sig = Limiter.ar(sig);
 

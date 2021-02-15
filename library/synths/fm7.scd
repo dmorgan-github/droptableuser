@@ -8,8 +8,9 @@ var func = {|freq, gate, aeg|
 		var dec = ('op' ++ num ++ 'dec').asSymbol.kr(1) * \dec.kr;
 		var rel = ('op' ++ num ++ 'rel').asSymbol.kr(1) * \rel.kr;
 		var suslevel = ('op' ++ num ++ 'suslevel').asSymbol.kr(1) * \suslevel.kr;
+		var peak = ('op' ++ num ++ 'peak').asSymbol.kr(1);
 		var curve = ('op' ++ num ++ 'curve').asSymbol.kr(-4);
-		var env = Env.adsr(atk, dec, suslevel, rel, curve:curve).ar(gate:gate);
+		var env = Env.adsr(atk, dec, suslevel, rel, peakLevel:peak, curve:curve).ar(gate:gate);
 		[freq[0] * ratio, 0, env];
 	});
 
@@ -50,8 +51,9 @@ S.def(\fm7_mono, func, \mono);
 			var dec = ('op' ++ num ++ 'dec').asSymbol.kr(1) * \dec.kr;
 			var rel = ('op' ++ num ++ 'rel').asSymbol.kr(1) * \rel.kr;
 			var suslevel = ('op' ++ num ++ 'suslevel').asSymbol.kr(1) * \suslevel.kr;
+			var peak = ('op' ++ num ++ 'peak').asSymbol.kr(1);
 			var curve = ('op' ++ num ++ 'curve').asSymbol.kr(-4);
-			var env = Env.adsr(atk, dec, suslevel, rel, curve:curve).ar(gate:gate);
+			var env = Env.adsr(atk, dec, suslevel, rel, peak, curve:curve).ar(gate:gate);
 			[freq[0] * ratio, 0, env];
 		});
 
@@ -75,9 +77,10 @@ S.def(\fm7_mono, func, \mono);
 			var rel = ('op' ++ num ++ 'rel').asSymbol.kr(1) * \rel.kr;
 			var suslevel = ('op' ++ num ++ 'suslevel').asSymbol.kr(1) * \suslevel.kr;
 			var sus = ('op' ++ num ++ 'sus').asSymbol.kr(1) * \sustain.kr;
+			var peak = ('op' ++ num ++ 'peak').asSymbol.kr(1);
 			var curve = ('op' ++ num ++ 'curve').asSymbol.kr(-4);
 			var env = Env(
-				[0, 1, suslevel, suslevel, 0],
+				[0, peak, suslevel, suslevel, 0],
 				[atk, dec, sus, rel],
 				curve:curve
 			).ar(doneAction:Done.none, gate:gate);

@@ -29,7 +29,7 @@
 		sig = sig * aeg * AmpCompA.ar(freq, 32) * \vel.kr(1);
 		sig = Splay.ar(sig, \spread.kr(1), center:\pan.kr(0));
 		sig = sig * \amp.kr(-6.dbamp);
-		Out.ar(\out.kr(0), sig);
+		OffsetOut.ar(\out.kr(0), sig);
 
 	}).add;
 }

@@ -748,11 +748,26 @@ S : EventPatternProxy {
 		}
 	}
 
+	*printSynths {
+		SynthDescLib.all[\global].synthDescs
+		.keys
+		.reject({|key| key.asString.beginsWith("system") or: key.asString.beginsWith("pbindFx_") })
+		.asArray
+		.sort
+		.do({|val| val.postln})
+	}
+
 	*loadSynths {
 		var path = App.librarydir.standardizePath ++ "synths/*.scd";
 		"loading synths: %".format(path).debug;
 		path.loadPaths;
 	}
+
+	//*loadPresets {
+	//	var path = App.librarydir.standardizePath ++ "presets/*.scd";
+	//	"loading presets: %".format(path).debug;
+	//	path.loadPaths;
+	//}
 
 	synth {|synth, template=\adsr|
 		this.prInitSynth(key, synth, template);
@@ -1472,6 +1487,6 @@ W : Environment {
 
 	*initClass {
 		all = IdentityDictionary();
-		clock = LinkClock.new.latency_(Server.default.latency).permanent_(true);
+		//clock = LinkClock.new.latency_(Server.default.latency).permanent_(true);
 	}
 }

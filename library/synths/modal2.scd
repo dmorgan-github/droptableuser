@@ -39,8 +39,9 @@ SynthDef(\modal2, {
 
 	sig = Limiter.ar(sig);
 	sig = sig * AmpCompA.kr(freq) * \amp.kr(-6.dbamp) * \vel.kr(1);
+	sig = sig * Env.adsr.ar(doneAction:Done.freeSelf, gate:\gate.kr(1));
 
-	DetectSilence.ar(in: sig, doneAction: Done.freeSelf);
+	//DetectSilence.ar(in: sig, doneAction: Done.freeSelf);
 
 	Out.ar(\out.kr(0), Pan2.ar(sig, pan));
 

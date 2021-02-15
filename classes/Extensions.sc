@@ -107,13 +107,6 @@
 	}
 }
 
-/*
-TODO:
-Pslide
-Pindex
-Pswitch
-*/
-
 + Integer {
 	peuclid {arg beats, offset=0, repeats=inf; ^Pbjorklund(this, beats, repeats, offset)}
 	peuclid2 {arg beats, offset=0, repeats=inf; ^Pbjorklund2(this, beats, repeats, offset)}
@@ -126,10 +119,34 @@ Pswitch
 + SequenceableCollection {
 	pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
 	prand {arg repeats=inf; ^Prand(this, repeats) }
+	pxrand {arg repeats=inf; ^Pxrand(this, repeats) }
 	pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
 	pshuf {arg num=1, repeats=inf; ^Pn(Pshuf(this, num), repeats) }
 	step {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
 	pdv {|repeats=inf, key='val'| ^Pdv(this, key).repeat(repeats) }
+
+	pa {
+		var a;
+        this.pairsDo { |k,v|
+			a = a.add(k);
+			a = a.add(v.isKindOf(Function).if { Pfunc { |e| e.use { v.() } } }{ v });
+		};
+		^a
+	}
+
+	p { ^Pbind(*this.pa)}
+	pm { |sym| ^Pmono(sym, *this.pa)}
+	pma { |sym| ^PmonoArtic(sym, *this.pa)}
+	pbf { |sym| ^Pbindef(sym, *this.pa)}
+	pdef {|key| ^Pdef(key, *this.p)}
+
+	playTimeline {|clock|
+		this.collect({|assoc|
+			var beat = assoc.key;
+			var func = assoc.value;
+			clock.sched(beat, { beat.debug(\beat); func.value; nil } );
+		});
+	}
 }
 
 + Pattern {
@@ -143,74 +160,116 @@ Pswitch
 	c {|...args| ^Pchain(this, *args) }
 }
 
++ String {
+
+	/*
+	(
+Pdef(\kit, "
+9.9.....9....9..
+..9..99.1273365.
+....7.4.....9..3
+.......4
+".hits(
+		[instrument: \smplr_1chan, buf: B.bd, dur: 1, stretch: 0.125, amp: 1].p,
+		[instrument: \smplr_1chan, buf: B.ch, dur: 1, stretch: 0.125, vel: 0.6].p,
+		[instrument: \smplr_1chan, buf: B.sd, dur: 1, stretch: 0.125].p,
+		[instrument: \smplr_1chan, buf: B.oh, dur: 1, stretch: 0.125].p
+))
+)
+	*/
+	hits {|...args|
+
+		var pattern = this.stripWhiteSpace.split(Char.nl);
+		var seq = pattern.collect({|val, i|
+			Pbind(\hit, Prout({
+				inf.do({
+					var stream = CollStream(val);
+					var next = stream.next;
+					while({next.isNil.not}, {
+						if (next == $.){
+							Rest(1).yield;
+						}{
+							var prob = next.digit/9;
+							if (prob.coin) { 1.yield }{ Rest(1).yield; };
+						};
+						next = stream.next;
+					});
+				});
+			})
+			)
+		});
+
+		args = args.flatten;
+		^Ppar(
+			seq.collect({|seq, i|
+				args.wrapAt(i) <> seq
+			});
+		)
+	}
+}
+
 + Array {
 	nums { ^this.asInteger.join("").collectAs({|chr| chr.asString.asInteger }, Array) }
 }
 
 + Symbol {
-	/*
-	p {|pattern|
-		var vals = this.asString.split($/);
-		if (pattern.isNil) {
-			^Pdef(this)
-		}{
-			if (pattern.isKindOf(Array)) {
-				pattern = pattern.p
-			};
-			^Pdef(this, pattern <> Pbind(\instrument, vals[0].asSymbol))
+
+	def {
+		var synthdef = SynthDescLib.global.at(this);
+		if (synthdef.isNil.not) {
+			^synthdef.controlDict;
 		}
 	}
-	*/
+
 	p {|...args|
 
-		var base, ptrn, envir;
+		/*
+		p(\foo, 1, \bar, 2) will be converted to Pbind(\foo, 1, \bar, 2)
+		p([foo: 1, bar:2]) will be converted to Pbind(\foo, 1, \bar, 2)
+		p(Pbind(\foo, 1, \bar, 2)) will remain as is
+		*/
+
+		var base, ptrn;//, envir;
 		var vals = this.asString.split($/);
-		if (vals.size < 2) {
-			Error("non-unique key").throw;
-		};
 
 		base = {
 			var instr = vals[0].asSymbol;
-			if (Pdef.all[instr].isNil) {
-				Pbind(\instrument, instr);
-			}{
-				Pdef(instr);
-			};
+			Pbind(\instrument, instr);
 		};
 
 		ptrn = {
 			var pattern = args[0];
-			if (pattern.isKindOf(Array)) {
-				pattern.p
-			} {
-				if (pattern.isKindOf(Pattern)) {
-					pattern;
-				} {
-					Pbind()
-				}
-			}
+			pattern = case
+			{pattern.isKindOf(Array)} { pattern.p; }
+			{pattern.isKindOf(Symbol)} { args.p; }
+			{pattern.isKindOf(Pattern)} { pattern;}
+			{pattern.isNil} {Pbind()}
+			{ Error("invalid argument").throw };
+
+			pattern;
 		};
 
+		/*
 		envir = {
 			if (args[0].isKindOf(Symbol)) {
-				args.asEvent;
+				() // not sure
 			} {
 				args[1..].asEvent
 			}
 		};
+		*/
 
 		if (args.isEmpty) {
 			if (Pdef(this).source.isNil) {
-				^Pdef(this, Penvir(envir.(), base.()))
+				^Pdef(this, base.())
 			}{
 				^Pdef(this)
 			}
 		}{
-			^Pdef(this, Penvir(envir.(), ptrn.() <> base.()))
+			^Pdef(this, ptrn.() <> base.())
 		}
 	}
-	n { ^Ndef(this) }
-	pbind {^Pbind(\instrument, this)}
+
 	out {
 		var node = Ndef(this);
 		if (node.monitor.isNil) {node.play};
@@ -318,32 +377,3 @@ Pswitch
 		^U(\sgui, this);
 	}
 }
-/*
-+ NodeProxy {
-
-	put { | index, obj, channelOffset = 0, extraArgs, now = true |
-		var container, bundle, oldBus = bus;
-
-		if(obj.isNil) { this.removeAt(index); ^this };
-		if(index.isSequenceableCollection) {
-			^this.putAll(obj.asArray, index, channelOffset)
-		};
-
-		bundle = MixedBundle.new;
-		container = obj.makeProxyControl(channelOffset, this);
-		container.build(this, index ? 0); // bus allocation happens here
-
-		if(this.shouldAddObject(container, index)) {
-			// server sync happens here if necessary
-			if(server.serverRunning) { container.loadToBundle(bundle, server) } { loaded = false; };
-			this.prepareOtherObjects(bundle, index, oldBus.notNil and: { oldBus !== bus });
-		} {
-			format("failed to add % to node proxy: %", obj, this).postln;
-			^this
-		};
-
-		this.putNewObject(bundle, index, container, extraArgs, now);
-		this.changed(\source, [obj, index, channelOffset, extraArgs, now, container]);
-	}
-}
-*/

@@ -1,20 +1,6 @@
-/*
-specs: (
-engine: ControlSpec(0, 15, \lin, 1, 0),
-harm: ControlSpec(0, 1, \lin, 0, 0.1),
-timbre: ControlSpec(0, 1, \lin, 0, 0.5),
-morph: ControlSpec(0, 1, \lin, 0, 0.5),
-fmmod: ControlSpec(0, 1, \lin, 0, 0),
-timbremod: ControlSpec(0, 1, \lin, 0, 0),
-morphmod: ControlSpec(0, 1, \lin, 0, 0),
-decay: ControlSpec(0, 1, \lin, 0, 0.5),
-lpg: ControlSpec(0, 1, \lin, 0, 0.5),
-trigger: ControlSpec(0, 1, \lin, 1, 0)
-)
-*/
 (
 // plaits mono synth
-SynthDef(\plaits, {
+SynthDef(\plaits_mono, {
 
 	var gate = \gate.kr(1);
 	var freq = \freq.kr(261).lag(\glis.kr(0));
