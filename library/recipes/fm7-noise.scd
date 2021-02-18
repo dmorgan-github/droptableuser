@@ -27,7 +27,7 @@ SynthDef(\fm7noise, {
 
 	sig = FM7.ar(ctrls, mods).slice(chans) * \amp.kr(0.1);
 	sig = sig * Env.asr.ar(doneAction:Done.freeSelf, gate:\gate.kr(1));
-	sig = Splay.ar(sig);
+	sig = Splay.ar(sig, 0);
 	Out.ar(\out.kr(0), sig);
 
 }).add;
@@ -59,8 +59,8 @@ var func = {|seed=1000000|
 
 Pdef(\fm7noise, {
 
-	var seed = 187437;//nil;//67193;//843353; //83506
-	var dur = 8;
+	var seed = 723528;//nil;//187437;//nil;//67193;//843353; //83506
+	var dur = 16;
 
 	Pspawner({|sp|
 		inf.do({
@@ -81,7 +81,7 @@ Pdef(\fm7noise, {
 918344
 113701
 951385
-Pdef(\fm7noise).play;
+Pdef(\fm7noise).play(argClock:t, quant:[3.0]);
 Pdef(\fm7noise).stop;
 
 
