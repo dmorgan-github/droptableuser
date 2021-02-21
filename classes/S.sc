@@ -763,11 +763,15 @@ S : EventPatternProxy {
 		path.loadPaths;
 	}
 
-	//*loadPresets {
-	//	var path = App.librarydir.standardizePath ++ "presets/*.scd";
-	//	"loading presets: %".format(path).debug;
-	//	path.loadPaths;
-	//}
+	*loadMixins {
+		var path = App.librarydir.standardizePath ++ "mixins/*.scd";
+		"loading mixins: %".format(path).debug;
+		path.loadPaths;
+	}
+
+	*transport {|clock|
+		U(\transport, clock);
+	}
 
 	synth {|synth, template=\adsr|
 		this.prInitSynth(key, synth, template);

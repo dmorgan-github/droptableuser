@@ -18,12 +18,13 @@ Fdef(\launch, {|patterns, clock=(TempoClock.default)|
 			var key = (assoc.key ++ '_ptrn_launch').asSymbol;
 			var pdef = Pdef(key);
 			var isactive = (active[key] == i);//if (pdef.isPlaying) {1} {0};
+			var button = Button();
 
 			if (isactive) {
-				Pdef(key, func.());
+				Pdef(key, PfsetC({ { { button.value = 0}.defer } }, func.()) ).quant_(clock.beatsPerBar);
 			};
 
-			Button()
+			button
 			.states_([ [nil, nil, Color.clear.alpha_(1.5) ], [nil, nil, Color.white.alpha_(0.8) ] ])
 			.action_({|ctrl|
 
@@ -34,9 +35,9 @@ Fdef(\launch, {|patterns, clock=(TempoClock.default)|
 						}
 					});
 
-					Pdef(key, func.());
+					Pdef(key, PfsetC({ { { button.value = 0}.defer } }, func.()) );
 					active[key] = i;
-					pdef.play(argClock:clock)
+					pdef.play(argClock:clock, quant:clock.beatsPerBar)
 				} {
 					pdef.stop;
 					active[key] = nil;

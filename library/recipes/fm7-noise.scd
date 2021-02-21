@@ -81,7 +81,7 @@ Pdef(\fm7noise, {
 918344
 113701
 951385
-Pdef(\fm7noise).play(argClock:t, quant:[3.0]);
+Pdef(\fm7noise).play(argClock:t, quant:[3.0, 0.5]);
 Pdef(\fm7noise).stop;
 
 
