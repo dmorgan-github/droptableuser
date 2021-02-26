@@ -1,3 +1,85 @@
+// Ppub : EventPatternProxy {}
+Ppub : EventPatternProxy {
+
+	// TODO: refactor as a proper pattern class
+	var <spawner;
+
+	*new {|topic, pattern|
+		var res;
+		res = Pdef.all[topic];
+		if (res.isNil) {
+			res = super.new(nil);
+			Pdef.all.put(topic, res);
+		};
+		if (pattern.isNil.not) {
+			res.prInit(topic, pattern)
+		};
+		^res;
+	}
+
+	prInit {|argTopic, argPattern|
+
+		this.source = Pspawner({|sp|
+			var stream = argPattern.postln.asStream;
+			spawner = sp;
+			inf.do({|i|
+				var ptrn = stream.next(Event.default);
+				var dur = ptrn[\dur] ?? 1;
+				Evt.trigger(argTopic, (sp:sp, evt:ptrn, dur:dur, count:i));
+				sp.wait(dur);
+			});
+		});
+
+		^this;
+	}
+
+	/*
+	*new {|topic, pattern|
+		^Pdef(topic, Pspawner({|sp|
+			var stream = pattern.asStream;
+			inf.do({|i|
+				var ptrn = stream.next(Event.default);
+				var dur = ptrn[\dur] ?? 1;
+				Evt.trigger(topic, (sp:sp, evt:ptrn, dur:dur, count:i));
+				sp.wait(dur);
+			});
+		}))
+	}
+	*/
+}
+
+Psub {
+
+	*new {|key, topic, pattern, condition|
+
+		if (condition.isKindOf(Pattern)) {
+			condition = condition.asStream;
+		};
+
+		if (pattern.isNil) {
+			Evt.off(topic, key);
+		}{
+			Evt.on(topic, key, {|dict|
+				var evt = dict[\evt];
+				var count = dict[\count];
+				var dur = dict[\dur];
+				evt[\count_] = count;
+				evt[\dur] = dur;
+
+				if (condition.isNil) {
+					var sp = dict[\sp];
+					sp.par(pattern.value <> evt);
+				}{
+					if (evt.use(condition.next)) {
+						var sp = dict[\sp];
+						sp.par(pattern.value <> evt);
+					}
+				}
+			});
+		}
+	}
+}
+
 Pphrase {
 	*new {|key, outer, inner|
 		var instrument = (key ++ '_inner').asSymbol;
