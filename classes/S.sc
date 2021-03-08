@@ -757,6 +757,10 @@ S : EventPatternProxy {
 		.do({|val| val.postln})
 	}
 
+	*printSynthControls {|synth|
+		SynthDescLib.all[\global].synthDescs[synth].controls.do({|cn| [cn.name, cn.defaultValue].postln});
+	}
+
 	*loadSynths {
 		var path = App.librarydir.standardizePath ++ "synths/*.scd";
 		"loading synths: %".format(path).debug;

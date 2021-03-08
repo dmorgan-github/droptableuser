@@ -1,8 +1,3 @@
-
-
-
-
-
 (
 Require(App.librarydir ++ "ui/common.scd");
 Fdef(\transport, {|clock=(TempoClock.default)|
@@ -19,6 +14,19 @@ Fdef(\transport, {|clock=(TempoClock.default)|
 	});
 
 	var view = View().layout_(HLayout(
+		Button().states_([["P"]])
+		.action_({|ctrl|
+			Server.default.plotTree
+		})
+		.maxWidth_(35),
+		Button().states_([["F"]])
+		.action_({|ctrl|
+			Server.default.freqscope;
+		})
+		.maxWidth_(35),
+		Button().states_([ ["L"] ])
+		.action_({|ctrl| Server.default.meter(2, 2) })
+		.maxWidth_(35),
 		Knob().mode_(\vert).action_({|ctrl|
 			var val = ctrl.value.ampdb;
 			Server.default.volume.volume = val;

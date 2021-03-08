@@ -1,7 +1,5 @@
-// Ppub : EventPatternProxy {}
 Ppub : EventPatternProxy {
 
-	// TODO: refactor as a proper pattern class
 	var <spawner;
 
 	*new {|topic, pattern|
@@ -20,37 +18,46 @@ Ppub : EventPatternProxy {
 	prInit {|argTopic, argPattern|
 
 		this.source = Pspawner({|sp|
-			var stream = argPattern.postln.asStream;
+			var stream = argPattern.asStream;
+			var ptrn = stream.next(Event.default);
+			var count = 0;
 			spawner = sp;
-			inf.do({|i|
-				var ptrn = stream.next(Event.default);
+			while ({ptrn.isNil.not},{
 				var dur = ptrn[\dur] ?? 1;
-				Evt.trigger(argTopic, (sp:sp, evt:ptrn, dur:dur, count:i));
+				var topics = (ptrn[\topic] ?? \a).asArray;
+				topics.do({|topic|
+					Evt.trigger(topic, (sp:sp, evt:ptrn, dur:dur, count:count));
+				});
+				//Evt.trigger(argTopic, (sp:sp, evt:ptrn, dur:dur, count:count));
 				sp.wait(dur);
+				count = count + 1;
+				ptrn = stream.next(Event.default);
 			});
 		});
-
 		^this;
 	}
-
-	/*
-	*new {|topic, pattern|
-		^Pdef(topic, Pspawner({|sp|
-			var stream = pattern.asStream;
-			inf.do({|i|
-				var ptrn = stream.next(Event.default);
-				var dur = ptrn[\dur] ?? 1;
-				Evt.trigger(topic, (sp:sp, evt:ptrn, dur:dur, count:i));
-				sp.wait(dur);
-			});
-		}))
-	}
-	*/
 }
 
-Psub {
+Psub : EventPatternProxy {
+
+	var <isPlaying=false;
 
 	*new {|key, topic, pattern, condition|
+		var res;
+		res = Pdef.all[key];
+		if (res.isNil) {
+			res = super.new(nil);
+			Pdef.all.put(key, res);
+		};
+		if (pattern.isNil.not) {
+			res.prInit(key, topic, pattern, condition)
+		};
+		^res;
+	}
+
+	prInit {|key, topic, pattern, condition|
+
+		this.source = Event.silent;
 
 		if (condition.isKindOf(Pattern)) {
 			condition = condition.asStream;
@@ -66,17 +73,31 @@ Psub {
 				evt[\count_] = count;
 				evt[\dur] = dur;
 
-				if (condition.isNil) {
-					var sp = dict[\sp];
-					sp.par(pattern.value <> evt);
-				}{
-					if (evt.use(condition.next)) {
+				if (this.isPlaying) {
+					if (condition.isNil) {
 						var sp = dict[\sp];
 						sp.par(pattern.value <> evt);
+					}{
+						if (evt.use(condition.next)) {
+							var sp = dict[\sp];
+							sp.par(pattern.value <> evt);
+						}
 					}
 				}
 			});
 		}
+	}
+
+	play {
+		isPlaying = true;
+	}
+
+	stop {
+		isPlaying = false;
+	}
+
+	*initClass {
+		//isPlaying = false;
 	}
 }
 

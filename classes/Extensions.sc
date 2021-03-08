@@ -158,6 +158,11 @@
 	norest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
 	f {|...args| ^Pbindf(this, *args)}
 	c {|...args| ^Pchain(this, *args) }
+	every {|beats, maxdur, lag=0, repeats=inf|
+		^Pseq([
+			Psync(Plag(lag, this.finDur(maxdur)), beats)
+		], repeats)
+	}
 }
 
 + String {
