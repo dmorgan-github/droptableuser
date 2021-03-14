@@ -18,38 +18,10 @@ Fdef(\baseview, {arg view, title, w, h;
 
 	var outerview = View().layout_(
 		VLayout(
-			/*
-			View().layout_(
-				HLayout(
-					StaticText().string_(title),
-					nil,
-					Button().states_([ ["x", Color.white, nil] ])
-					.action_({ win.close })
-					.maxWidth_(15)
-					.maxHeight_(15)
-				).margins_(1).spacing_(0)
-			).background_(Color.black.alpha_(0.1)),
-			*/
 			view,
 			status;
 		).margins_(1).spacing_(1)
-	)
-	/*
-	.mouseDownAction_({arg ctrl, x, y;
-		mousey = ctrl.sizeHint.height - y;
-		mousex = x;
-	})
-	.mouseMoveAction_({arg ctrl, x, y;
-		var height = ctrl.sizeHint.height;
-		var top = ctrl.sizeHint.height - y;
-		var left = win.bounds.left + x - mousex;
-		var width = ctrl.sizeHint.width;
-		top = win.bounds.top + (top - mousey);
-		win.bounds = Rect(left, top, width, height);
-		true;
-	})
-	*/
-	;
+	);
 
 	view.addDependant(viewListener);
 	win.layout = VLayout(outerview).margins_(0).spacing_(0);
@@ -76,7 +48,7 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
 	var li, st, nb;
 	var getValue = {}, setValue = {};
 
-	color = Color.white.alpha_( rrand(0.0, 1.0) );
+	//color = Color.white.alpha_( rrand(0.0, 1.0) );
 
 	if (myval.isNumber) {
 

@@ -7,14 +7,17 @@ synth: {arg sig_in;
 	var fleft = freq - (freq * depth);
 	var fright = freq + (freq * depth);
 	var sig = FreqShift.ar(in, [fleft,fright]);
-	Splay.ar(sig, spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
+	Splay.ar(sig,
+        spread:\spread.ar(1),
+        center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\freq -> [0.0, 800, \lin, 0.0, 3],
-	\depth -> [0, 1, \lin, 0, 0],
-	\spread -> [0,1,\lin,0, 1],
-	\center -> [-1,1,\lin,0,0],
-	\amp -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1]
+    \freq -> ControlSpec(0.0, 800, \lin, 0.0, 3, units:"fx"),
+	\depth -> ControlSpec(0, 1, \lin, 0, 0, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+	\input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

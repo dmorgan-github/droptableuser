@@ -7,15 +7,18 @@ synth: {arg sig_in;
 		\outof.ar(40),
 		\mode.ar(1),
 	);
-	Splay.ar(LeakDC.ar(sig), spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
+	Splay.ar(LeakDC.ar(sig),
+        spread:\spread.ar(1),
+        center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\drop -> [1,50,\lin,1,20],
-	\outof -> [1,100,\lin,1,40],
-	\mode -> [1,2,\lin,1,1],
-	\amp -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1],
-	\spread -> [0,1,\lin,0, 1],
-	\center -> [-1,1,\lin,0,0]
+    \drop -> ControlSpec(1,50,\lin,1,20, units:"fx"),
+	\outof -> ControlSpec(1,100,\lin,1,40, units:"fx"),
+	\mode -> ControlSpec(1,2,\lin,1,1, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    \input -> ControlSpec(0, 10, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

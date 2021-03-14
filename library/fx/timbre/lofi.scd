@@ -46,12 +46,13 @@ synth: {|in|
     wet = HPF.ar(wet, LinExp.kr(tone, 0, 1, 40, 1690));
     wet = MoogFF.ar(wet, LinExp.kr(tone, 0, 1, 1000, 10000), 0);
     wet = wet * LinLin.kr(drive, 0, 1, 1, 0.66);
-	wet;
+    wet * \output.ar(1);
 },
 specs: [
-	\drive -> [0, 1, \lin, 0, 0.5],
-	\wow -> [0, 1, \lin, 0, 0.5],
-	\noise -> [0, 1, \lin, 0, 0.5],
-	\tone -> [0, 1, \lin, 0, 0.5]
+    \drive -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+    \wow -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+    \noise -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+    \tone -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

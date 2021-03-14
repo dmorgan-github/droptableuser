@@ -8,14 +8,15 @@ synth: {arg sig_in;
 	}, 16, del);
 	Splay.ar(sig,
 		spread:\spread.ar(1),
-		center:\center.ar(0)
-	)
+		center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\fb -> [0.0, 1, \lin, 0.0, 0.7],
-	\del -> [1, 16, \lin, 1, 6],
-	\spread -> [0,1,\lin,0, 1],
-	\center -> [-1,1,\lin,0,0],
-	\input -> [0, 10, \lin, 0, 1]
+    \fb -> ControlSpec(0.0, 1, \lin, 0.0, 0.7, units:"fx"),
+	\del -> ControlSpec(1, 16, \lin, 1, 6, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+	\input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

@@ -15,18 +15,21 @@ synth: {arg sig_in;
 		apScale:\apScale.ar(3).lag(0.1)
 	);
 
-	Splay.ar(sig, spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
+	Splay.ar(sig,
+        spread:\spread.ar(1),
+        center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\revTime -> [0.1, 60, \lin, 0.0, 3],
-	\hfDamping -> [0, 1, \lin, 0.0, 0.1],
-	\predelay -> [0, 30, \lin, 0, 0.02],
-	\inFilter -> [0, 1, \lin, 0, 0.6],
-	\combScale -> [0.1, 10, \lin, 0, 3],
-	\apScale -> [0.1, 10, \lin, 0, 3],
-	\spread -> [0, 1, \lin, 0, 1],
-	\center -> [-1, 1, \lin, 0, 0],
-	\amp -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1]
+    \revTime -> ControlSpec(0.1, 60, \lin, 0.0, 3, units:"fx"),
+	\hfDamping -> ControlSpec(0, 1, \lin, 0.0, 0.1, units:"fx"),
+	\predelay -> ControlSpec(0, 30, \lin, 0, 0.02, units:"fx"),
+	\inFilter -> ControlSpec(0, 1, \lin, 0, 0.6, units:"fx"),
+	\combScale -> ControlSpec(0.1, 10, \lin, 0, 3, units:"fx"),
+	\apScale -> ControlSpec(0.1, 10, \lin, 0, 3, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+	\input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

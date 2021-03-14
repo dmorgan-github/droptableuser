@@ -25,23 +25,24 @@ synth: {arg sig_in;
 
 	Splay.ar(sig,
 		spread:\spread.ar(1),
-		center:\center.ar(0)
-	) * [\ampL.ar(0.dbamp), \ampR.ar(0.dbamp)];
+		center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\tape_speed -> [0,10,\lin,0,1],
-	\tap1_distance -> [0,4,\lin,0,1],
-	\tap1_level -> [0,1,\lin,0,0],
-	\tap2_distance -> [0,4,\lin,0,2],
-	\tap2_level -> [0,1,\lin,0,0],
-	\tap3_distance -> [0,4,\lin,0,3],
-	\tap3_level -> [0,1,\lin,0,0],
-	\tap4_distance -> [0,4,\lin,0,4],
-	\tap4_level -> [0,1,\lin,0,0],
-	\ampL -> [0,4,\lin,0,1],
-	\ampR -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1],
-	\spread -> [0,1,\lin,0, 1],
-	\center -> [-1,1,\lin,0,0],
+    \tape_speed -> ControlSpec(0,10,\lin,0,1, units:"fx"),
+	\tap1_distance -> ControlSpec(0,4,\lin,0,1, units:"fx"),
+	\tap1_level -> ControlSpec(0,1,\lin,0,0, units:"fx"),
+	\tap2_distance -> ControlSpec(0,4,\lin,0,2, units:"fx"),
+	\tap2_level -> ControlSpec(0,1,\lin,0,0, units:"fx"),
+	\tap3_distance -> ControlSpec(0,4,\lin,0,3, units:"fx"),
+	\tap3_level -> ControlSpec(0,1,\lin,0,0, units:"fx"),
+	\tap4_distance -> ControlSpec(0,4,\lin,0,4, units:"fx"),
+	\tap4_level -> ControlSpec(0,1,\lin,0,0, units:"fx"),
+	\ampL -> ControlSpec(0,4,\lin,0,1, units:"fx"),
+	\ampR -> ControlSpec(0,4,\lin,0,1, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vp;"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

@@ -6,14 +6,17 @@ synth: {arg sig_in;
 		pitchratio: \pitchratio.ar(12).midiratio,
 		zcperchunk: \zcperchunk.ar(1)
 	);
-	Splay.ar(LeakDC.ar(sig), spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
+	Splay.ar(LeakDC.ar(sig),
+        spread:\spread.ar(1),
+        center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\pitchratio -> [1, 24, \lin, 1, 12],
-	\zcperchunk -> [1, 100, \lin, 0, 1],
-	\amp -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1],
-	\spread -> [0,1,\lin,0, 1],
-	\center -> [-1,1,\lin,0,0]
+    \pitchratio -> ControlSpec(1, 24, \lin, 1, 12, "fx"),
+    \zcperchunk -> ControlSpec(1, 100, \lin, 0, 1, "fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+	\input -> ControlSpec(0, 2, \lin, 0, 1, "vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

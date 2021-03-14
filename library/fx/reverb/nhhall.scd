@@ -16,22 +16,25 @@ synth: {arg sig_in;
 		\modDepth.ar(0.3)
 	);
 
-	Splay.ar(sig, spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
+	Splay.ar(sig,
+        spread:\spread.ar(1),
+        center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\rt60 -> [0.1, 60, \lin, 0.0, 1],
-	\stereo -> [0, 1, \lin, 0, 0.5],
-	\lowFreq -> [20, 20000, \exp, 0, 200],
-	\lowRatio -> [0, 1, \lin, 0, 0.5],
-	\hiFreq -> [20, 20000, \exp, 0, 40000],
-	\hiRatio -> [0, 1, \lin, 0, 0.5],
-	\earlyDiffusion -> [0, 1, \lin, 0, 0.5],
-	\lateDiffusion -> [0, 1, \lin, 0, 0.5],
-	\modRate -> [0, 1, \lin, 0, 0.2],
-	\modDepth -> [0,1,\lin, 0, 0.3],
-	\spread -> [0, 1, \lin, 0, 1],
-	\center -> [-1, 1, \lin, 0, 0],
-	\amp -> [0,4,\lin, 0, 1],
-	\input -> [0, 10, \lin, 0, 1]
+	\rt60 -> ControlSpec(0.1, 60, \lin, 0.0, 1, units:"fx"),
+	\stereo -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+	\lowFreq -> ControlSpec(20, 20000, \exp, 0, 200, units:"fx"),
+	\lowRatio -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+	\hiFreq -> ControlSpec(20, 20000, \exp, 0, 40000, units:"fx"),
+	\hiRatio -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+	\earlyDiffusion -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+	\lateDiffusion -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+	\modRate -> ControlSpec(0, 1, \lin, 0, 0.2, units:"fx"),
+	\modDepth -> ControlSpec(0,1,\lin, 0, 0.3, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+	\input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

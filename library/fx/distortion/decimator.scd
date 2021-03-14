@@ -7,14 +7,17 @@ synth: {arg sig_in;
 		bits: \bits.ar(24)
 	);
 
-	Splay.ar(LeakDC.ar(sig), spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
+	Splay.ar(LeakDC.ar(sig),
+        spread:\spread.ar(1),
+        center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\rate -> [1, 10, \lin, 0, 1],
-	\bits -> [2, 24, \lin, 0, 24],
-	\amp -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1],
-	\spread -> [0,1,\lin,0, 1],
-	\center -> [-1,1,\lin,0,0],
+	\rate -> ControlSpec(1, 10, \lin, 0, 1, units:"fx"),
+	\bits -> ControlSpec(2, 24, \lin, 0, 24, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

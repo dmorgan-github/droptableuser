@@ -9,15 +9,18 @@ synth: {arg sig_in;
 		\timeDispersion.ar(0.01)
 	);
 
-	Splay.ar(sig, spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
+	Splay.ar(sig,
+        spread:\spread.ar(1),
+        center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\pitchRatio -> [-24, 24, \lin, 1, 12],
-	\pitchDispersion -> [0, 1, \lin, 0.0, 0.01],
-	\timeDispersion -> [0.0, 0.5, \lin, 0, 0.01],
-	\amp -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1],
-	\spread -> [0,1,\lin,0, 1],
-	\center -> [-1,1,\lin,0,0]
+	\pitchRatio -> ControlSpec(-24, 24, \lin, 1, 12, units:"fx"),
+	\pitchDispersion -> ControlSpec(0, 1, \lin, 0.0, 0.01, units:"fx"),
+	\timeDispersion -> ControlSpec(0.0, 0.5, \lin, 0, 0.01, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

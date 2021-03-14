@@ -16,23 +16,26 @@ synth: {arg sig_in;
 		highcut:\highcut.kr(2000)
 	);
 
-	Splay.ar(sig, spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
+	Splay.ar(sig,
+        spread:\spread.ar(1),
+        center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\t60 -> [0.1, 60, \lin, 0.0, 1],
-	\damp -> [0, 1, \lin, 0.0, 0],
-	\size -> [0.5, 5, \lin, 0, 1],
-	\earlyDiff -> [0, 1, \lin, 0, 0.707],
-	\modDepth -> [0, 1, \lin, 0, 0.1],
-	\modFreq -> [0, 10, \lin, 0, 2],
-	\low -> [0, 1, \lin, 0, 1],
-	\mid -> [0, 1, \lin, 0, 1],
-	\high -> [0, 1, \lin, 0, 1],
-	\lowcut -> [100, 6000, \exp, 1, 500],
-	\highcut -> [1000, 10000, \exp, 1, 2000],
-	\spread -> [0, 1, \lin, 0, 1],
-	\center -> [-1, 1, \lin, 0, 0],
-	\amp -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1]
+    \t60 -> ControlSpec(0.1, 60, \lin, 0.0, 1, units:"fx"),
+	\damp -> ControlSpec(0, 1, \lin, 0.0, 0, units:"fx"),
+	\size -> ControlSpec(0.5, 5, \lin, 0, 1, units:"fx"),
+	\earlyDiff -> ControlSpec(0, 1, \lin, 0, 0.707, units:"fx"),
+	\modDepth -> ControlSpec(0, 1, \lin, 0, 0.1, units:"fx"),
+	\modFreq -> ControlSpec(0, 10, \lin, 0, 2, units:"fx"),
+	\low -> ControlSpec(0, 1, \lin, 0, 1, units:"fx"),
+	\mid -> ControlSpec(0, 1, \lin, 0, 1, units:"fx"),
+	\high -> ControlSpec(0, 1, \lin, 0, 1, units:"fx"),
+	\lowcut -> ControlSpec(100, 6000, \exp, 1, 500, units:"fx"),
+	\highcut -> ControlSpec(1000, 10000, \exp, 1, 2000, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+	\input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

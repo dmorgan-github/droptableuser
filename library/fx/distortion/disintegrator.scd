@@ -6,14 +6,17 @@ synth: {arg sig_in;
 		probability:\prob.ar(0.5),
 		multiplier:\mult.ar(0)
 	);
-	Splay.ar(LeakDC.ar(sig), spread:\spread.ar(1), center:\center.ar(0)) * \amp.ar(0.dbamp) * \vol.ar(0.dbamp);
+	Splay.ar(LeakDC.ar(sig),
+        spread:\spread.ar(1),
+        center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\prob -> [0, 1, \lin, 0, 0.5],
-	\mult -> [-1, 1, \lin, 0, 0],
-	\amp -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1],
-	\spread -> [0,1,\lin,0, 1],
-	\center -> [-1,1,\lin,0,0]
+    \prob -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+	\mult -> ControlSpec(-1, 1, \lin, 0, 0, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

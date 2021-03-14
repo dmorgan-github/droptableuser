@@ -13,19 +13,18 @@ synth: {arg sig_in;
 
 	Splay.ar(sig,
 		spread:\spread.ar(0.5),
-		center:\center.ar(0)
-	) * [\ampL.ar(0.dbamp), \ampR.ar(0.dbamp)];
+		center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\delayL -> [0, 5, \lin, 0, 1],
-	\delayR -> [0, 5, \lin, 0, 1],
-	\feedbackL -> [0, 1, \lin, 0, 0.5],
-	\feedbackR -> [0, 1, \lin, 0, 0.5],
-	\crossfade -> [0, 100, \lin, 0, 20],
-	\ampL -> [0,4,\lin,0,1],
-	\ampR -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1],
-	\spread -> [0,1,\lin,0, 0.5],
-	\center -> [-1,1,\lin,0,0],
+	\delayL -> ControlSpec(0, 5, \lin, 0, 1, units:"fx"),
+	\delayR -> ControlSpec(0, 5, \lin, 0, 1, units:"fx"),
+	\feedbackL -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+	\feedbackR -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+	\crossfade -> ControlSpec(0, 100, \lin, 0, 20, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

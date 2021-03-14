@@ -29,30 +29,29 @@ synth: {arg sig_in;
 
 	Splay.ar([tap1 * tap1_mul, tap2 * tap2_mul, tap3 * tap3_mul, tap4 * tap4_mul],
 		\spread.ar(1),
-		center:\center.ar(0)
-	) * [\ampL.ar(0.dbamp), \ampR.ar(0.dbamp)];
+		center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
 
-	\tap1_delay -> [1, 32, \lin, 1, 2],
-	\tap2_delay -> [1, 32, \lin, 1, 6],
-	\tap3_delay -> [1, 32, \lin, 1, 10],
-	\tap4_delay -> [1, 32, \lin, 1, 16],
+	\tap1_delay -> ControlSpec(1, 32, \lin, 1, 2, units:"tap1"),
+	\tap2_delay -> ControlSpec(1, 32, \lin, 1, 6, units:"tap2"),
+	\tap3_delay -> ControlSpec(1, 32, \lin, 1, 10, units:"tap3"),
+	\tap4_delay -> ControlSpec(1, 32, \lin, 1, 16, units:"tap4"),
 
-	\tap1_mul -> [0, 1, \lin, 0, 1],
-	\tap2_mul -> [0, 1, \lin, 0, 0.7],
-	\tap3_mul -> [0, 1, \lin, 0, 0.5],
-	\tap4_mul -> [0, 1, \lin, 0, 0.2],
+	\tap1_mul -> ControlSpec(0, 1, \lin, 0, 1, units:"tap1"),
+	\tap2_mul -> ControlSpec(0, 1, \lin, 0, 0.7, units:"tap2"),
+	\tap3_mul -> ControlSpec(0, 1, \lin, 0, 0.5, units:"tap3"),
+	\tap4_mul -> ControlSpec(0, 1, \lin, 0, 0.2, units:"tap4"),
 
-	\tap1_fb -> [0, 1, \lin, 0, 0],
-	\tap2_fb -> [0, 1, \lin, 0, 0],
-	\tap3_fb -> [0, 1, \lin, 0, 0],
-	\tap4_fb -> [0, 1, \lin, 0, 0],
+	\tap1_fb -> ControlSpec(0, 1, \lin, 0, 0, units:"tap1"),
+	\tap2_fb -> ControlSpec(0, 1, \lin, 0, 0, units:"tap2"),
+	\tap3_fb -> ControlSpec(0, 1, \lin, 0, 0, units:"tap3"),
+	\tap4_fb -> ControlSpec(0, 1, \lin, 0, 0, units:"tap4"),
 
-	\spread -> [0, 1, \lin, 0, 1],
-	\center -> [-1, 1, \lin, 0, 0],
-	\ampL -> [0,4,\lin,0,1],
-	\ampR -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1]
+	\spread -> ControlSpec(0, 1, \lin, 0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1, 1, \lin, 0, 0, units:"stereo"),
+    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

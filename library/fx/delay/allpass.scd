@@ -8,18 +8,17 @@ synth: {arg sig_in;
 	var sig = AllpassC.ar(in, 4, delL * tempo + time, decay);
 	Splay.ar(sig,
 		spread:\spread.ar(1),
-		center:\center.ar(0)
-	) * [\ampL.ar(0.dbamp), \ampR.ar(0.dbamp)];
+		center:\pan.ar(0)
+    ) * \output.ar(1);
 },
 specs: [
-	\decay -> [1, 16, \lin, 0, 1],
-	\del -> [0.001, 1.0, \lin, 0, 0.2],
-	\tempo -> [0.001, 4, \lin, 0.0, 1],
-	\time -> [0.0, 4, \lin, 0.0, 0],
-	\spread -> [0,1,\lin,0, 1],
-	\center -> [-1,1,\lin,0,0],
-	\ampL -> [0,4,\lin,0,1],
-	\ampR -> [0,4,\lin,0,1],
-	\input -> [0, 10, \lin, 0, 1]
+    \decay -> ControlSpec(1, 16, \lin, 0, 1, units:"fx"),
+	\del -> ControlSpec(0.001, 1.0, \lin, 0, 0.2, units:"fx"),
+	\tempo -> ControlSpec(0.001, 4, \lin, 0.0, 1, units:"fx"),
+	\time -> ControlSpec(0.0, 4, \lin, 0.0, 0, units:"fx"),
+	\spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+	\pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+	\input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )
