@@ -1,4 +1,5 @@
 (
+
 synth: {arg sig_in;
 
     var in = sig_in * \input.ar(1);
