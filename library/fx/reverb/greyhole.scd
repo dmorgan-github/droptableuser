@@ -1,5 +1,4 @@
 (
-
 synth: {arg sig_in;
 
     var in = sig_in * \input.ar(1);
@@ -17,6 +16,7 @@ synth: {arg sig_in;
         spread:\spread.ar(1),
         center:\pan.ar(0)
     ) * \output.ar(1);
+
 },
 specs: [
     \delayTime -> ControlSpec(0.1, 60, \lin, 0, 2, units:"fx"),
@@ -32,4 +32,3 @@ specs: [
     \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )
-

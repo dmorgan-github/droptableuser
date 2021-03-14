@@ -5,8 +5,8 @@ Fdef(\transport, {|clock=(TempoClock.default)|
 	var baseViewFunc = Fdef(\baseview);
 	var baseview;
 	var ctrlTempo = StaticText().string_(t.tempo * 60),
-	ctrlBar = StaticText().string_(0),
-	ctrlBeat = StaticText().string_(0);
+    ctrlBar = StaticText().string_(0).minWidth_(25),
+    ctrlBeat = StaticText().string_(0).minWidth_(25);
 
 	var controller = SimpleController(clock)
 	.put(\tempo, {|obj, prop|
@@ -19,14 +19,17 @@ Fdef(\transport, {|clock=(TempoClock.default)|
 			Server.default.plotTree
 		})
 		.maxWidth_(35),
+
 		Button().states_([["F"]])
 		.action_({|ctrl|
 			Server.default.freqscope;
 		})
 		.maxWidth_(35),
+
 		Button().states_([ ["L"] ])
 		.action_({|ctrl| Server.default.meter(2, 2) })
 		.maxWidth_(35),
+
 		Knob().mode_(\vert).action_({|ctrl|
 			var val = ctrl.value.ampdb;
 			Server.default.volume.volume = val;
@@ -35,6 +38,7 @@ Fdef(\transport, {|clock=(TempoClock.default)|
 		.value_(Server.default.volume.volume.dbamp)
 		.toolTip_(Server.default.volume.volume.trunc(0.01))
 		.maxSize_(30),
+
 		Button().states_([ ["M", nil, Color.grey ], ["M", Color.black, Color(1, 0.67, 0) ] ]).action_({|ctrl|
 			if (ctrl.value == 1) {
 				Server.default.volume.mute;
@@ -43,6 +47,7 @@ Fdef(\transport, {|clock=(TempoClock.default)|
 			}
 		})
 		.maxWidth_(35),
+
 		Button().states_([ [ "O", nil, Color.grey ], ["[]", Color.black, Color.red] ])
 		.action_({|ctrl|
 			if (ctrl.value == 1) {
@@ -55,7 +60,8 @@ Fdef(\transport, {|clock=(TempoClock.default)|
 		ctrlTempo,
 		ctrlBar,
 		ctrlBeat
-	))
+    ).margins_(2).spacing_(5)
+    )
 	.minWidth_(250)
 	.onClose_({controller.remove});
 
@@ -77,7 +83,7 @@ Fdef(\transport, {|clock=(TempoClock.default)|
 	});
 
 	baseview = baseViewFunc.(view, 'transport');
-	baseview.alwaysOnTop = true;
+	//baseview.alwaysOnTop = true;
 	baseview.front;
 })
 )

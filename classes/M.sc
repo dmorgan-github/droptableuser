@@ -41,7 +41,6 @@ M : Device {
 
     removeSrc {|key|
 
-        // TODO: does this destroy the node?
         map.keysValuesDo({|k, v|
             if (v.key == key) {
                 map.do({|obj|
@@ -52,6 +51,7 @@ M : Device {
                         obj.nodeMap.removeAt(key);
                     }
                 });
+                v.clear;
                 map.removeAt(k);
                 this.changed(\remove, key);
             }

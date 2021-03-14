@@ -3,7 +3,7 @@ synth: {arg sig_in;
     var in = sig_in * \input.ar(1);
     var del = \del.ar(0.2).lag(0.1);
     var decay = \decay.ar(1).lag(0.1);
-    var sig = AllpassC.ar(in, 4, del, decay);
+    var sig = CombC.ar(in, 4, del, decay);
     sig = LeakDC.ar(sig);
     Splay.ar(sig,
         spread:\spread.ar(1),

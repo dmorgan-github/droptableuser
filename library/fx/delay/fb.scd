@@ -14,7 +14,7 @@ synth: {arg sig_in;
         fb.reverse * fblevel + sig
     }, 16, [delL, delR] * tempo + [offsetL, offsetR]);
 
-    sig = Splay.ar(sig, \spread.ar(0.5), 1, center:\pan.ar(0));
+    sig = Splay.ar(sig, \spread.ar(1), 1, center:\pan.ar(0));
     sig * \output.kr(1);
 },
 specs: [

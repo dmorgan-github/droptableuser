@@ -59,6 +59,7 @@ Fdef(\matrix, {arg matrix;
 						matrix.addSrc(node);
 					});
 				})
+                /*
 				++ vsts.().collect({arg vst;
 					MenuAction(vst, {arg action;
 						var id = action.string;
@@ -67,6 +68,7 @@ Fdef(\matrix, {arg matrix;
 						matrix.addSrc(node);
 					})
 				})
+                */
 			)
 		);
 	};
@@ -90,12 +92,14 @@ Fdef(\matrix, {arg matrix;
 			var srcNode = data[i];
 
 			var del = VLayout(
+
 				StaticText().string_(srcNode.key).toolTip_(srcNode.key)
 				.mouseUpAction_({|ctrl, x, y, mod, num, click|
 					if (srcNode.respondsTo(\view)) {
 						srcNode.view;
 					}
-				}),
+                }), //.maxWidth_(65),
+
 				HLayout(
 					Button()
 					.states_([["x"]])
@@ -152,7 +156,7 @@ Fdef(\matrix, {arg matrix;
 		var val = [header] ++ rows;
 
 		View().layout_(
-			GridLayout.rows(*val).margins_(1).spacing_(2)
+            GridLayout.rows(*val).margins_(1).spacing_(2)
 		);
 	};
 
@@ -182,6 +186,7 @@ Fdef(\matrix, {arg matrix;
 	outergrid.layout.add(gridview);
 	view.layout.add(outergrid);
 
+    view.setBackgroundImage(Image.new(SCDoc.helpSourceDir +/+ "images/Swamp.png"), 11, 0.3);
 	view.onClose_({
 		\onclose.debug(\matrix);
 		matrix.removeDependant(listener);

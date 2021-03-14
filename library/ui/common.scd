@@ -208,6 +208,7 @@ Fdef(\playview, {arg node;
             })
             .font_(font)
             //.normalColor_(Color.white)
+            .background_(Color.gray)
             .decimals_(2)
             .fixedWidth_(35)
             .fixedHeight_(height-2)
@@ -222,6 +223,7 @@ Fdef(\playview, {arg node;
             })
             .font_(font)
             //.normalColor_(Color.white)
+            .background_(Color.gray)
             .decimals_(0)
             .fixedWidth_(25)
             .fixedHeight_(height-2)
@@ -236,12 +238,12 @@ Fdef(\playview, {arg node;
     levelView = {|parent, bounds|
 
         var preCol = Color.yellow(1.0, 0.4);
-        var postCol = Color.white(0.7, 0.4);
+        var postCol = Color.green(0.7, 0.4);
         var preSatCol = Color.red(1, 0.4);
         var satCol = Color.red(1, 0.6);
 
         uv = UserView(parent, bounds);
-        uv.background_(Color(1,1,1,0));
+        //uv.background_(Color(1,1,1,0));
         uv.acceptsMouse_(false);
 
         // horizontal for now:
