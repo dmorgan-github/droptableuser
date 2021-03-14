@@ -2,17 +2,17 @@
 (
 MidiCtrl(\qaryrf)
 .note(
-    {arg note, vel;
-        var myvel = vel/127;
-        S(\usmo).on(note, myvel)
-    },
-    {arg note;
-        S(\usmo).off(note)
-    }
+{arg note, vel;
+var myvel = vel/127;
+S(\usmo).on(note, myvel)
+},
+{arg note;
+S(\usmo).off(note)
+}
 )
 .cc(0, {arg val, num, chan;
-    var myval = val/127;
-    S(\usmo).set(\start, myval);
+var myval = val/127;
+S(\usmo).set(\start, myval);
 });
 )
 MidiCtrl(\qaryrf).note(nil, nil).cc(0, nil);
@@ -425,97 +425,97 @@ Twister {
 /*
 Twister2 : MidiCtrl {
 
-    classvar id;
+classvar id;
 
-    classvar <instance;
+classvar <instance;
 
-    var <>ccChan, <>noteChan;
+var <>ccChan, <>noteChan;
 
-    var <>midiout;
+var <>midiout;
 
-    var <>midimap;
+var <>midimap;
 
-    *new {
-        if (instance.isNil) {
-            instance = super.new(id, "Midi Fighter Twister");
-        };
-        ^instance;
-    }
+*new {
+if (instance.isNil) {
+instance = super.new(id, "Midi Fighter Twister");
+};
+^instance;
+}
 
-    *doesNotUnderstand {|selector ...args|
-        var res = this.new();
-        ^res.perform(selector, *args);
-    }
+*doesNotUnderstand {|selector ...args|
+var res = this.new();
+^res.perform(selector, *args);
+}
 
-    init {|inKey, inSrcKey|
-        super.init(inKey, inSrcKey);
-        this.midiout = MIDIOut.newByName("Midi Fighter Twister", "Midi Fighter Twister");
-        this.midimap = Order.new;
-        this.ccChan = 0;
-        this.noteChan = 1;
-        ^this;
-    }
+init {|inKey, inSrcKey|
+super.init(inKey, inSrcKey);
+this.midiout = MIDIOut.newByName("Midi Fighter Twister", "Midi Fighter Twister");
+this.midimap = Order.new;
+this.ccChan = 0;
+this.noteChan = 1;
+^this;
+}
 
-    ccMap {|ccNum, spec|
+ccMap {|ccNum, spec|
 
-        var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccmap);
-        var myspec = spec.asSpec;
-        var node = Ndef(nodeKey.asSymbol, { \val.kr(spec:myspec) });
-        var default = myspec.default.linlin(myspec.minval, myspec.maxval, 0, 127);
-        // initialize
-        midimap[ccNum] = (
-            num: ccNum,
-            spec:myspec,
-            node:node
-        );
-        midiout.control(ccChan, ccNum, default);
-        super.cc(ccNum, {|val|
-            node.set(\val, myspec.map(val/127));
-        }, ccChan);
-        ^node;
-    }
+var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccmap);
+var myspec = spec.asSpec;
+var node = Ndef(nodeKey.asSymbol, { \val.kr(spec:myspec) });
+var default = myspec.default.linlin(myspec.minval, myspec.maxval, 0, 127);
+// initialize
+midimap[ccNum] = (
+num: ccNum,
+spec:myspec,
+node:node
+);
+midiout.control(ccChan, ccNum, default);
+super.cc(ccNum, {|val|
+node.set(\val, myspec.map(val/127));
+}, ccChan);
+^node;
+}
 
-    ccFunc {|ccNum, func, default=0|
-        var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccfunc);
-        // initialize
-        default = default.linlin(0, 1, 0, 127);
-        midiout.control(ccChan, ccNum, default);
-        super.cc(ccNum, func, ccChan);
-    }
+ccFunc {|ccNum, func, default=0|
+var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccfunc);
+// initialize
+default = default.linlin(0, 1, 0, 127);
+midiout.control(ccChan, ccNum, default);
+super.cc(ccNum, func, ccChan);
+}
 
-    note {|on, off|
-        super.note(on, off, noteChan);
-    }
+note {|on, off|
+super.note(on, off, noteChan);
+}
 
-    noteFunc {|num, on, off|
-        var onfunc = {|note, vel|
-            if (note == num) {
-                on.(note, vel);
-            }
-        };
-        var offfunc = {|note|
-            if (note == num) {
-                off.(note);
-            }
-        };
-        super.note(onfunc, offfunc, noteChan);
-    }
+noteFunc {|num, on, off|
+var onfunc = {|note, vel|
+if (note == num) {
+on.(note, vel);
+}
+};
+var offfunc = {|note|
+if (note == num) {
+off.(note);
+}
+};
+super.note(onfunc, offfunc, noteChan);
+}
 
-    asMap {|ccNum|
-        var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccmap);
-        ^Ndef(nodeKey.asSymbol);
-    }
+asMap {|ccNum|
+var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccmap);
+^Ndef(nodeKey.asSymbol);
+}
 
-    clear {
-        midimap.do({|item|
-            item.clear;
-        });
-        super.clear();
-    }
+clear {
+midimap.do({|item|
+item.clear;
+});
+super.clear();
+}
 
-    *initClass {
-        id = ('twister_' ++ UniqueID.next).asSymbol;
-    }
+*initClass {
+id = ('twister_' ++ UniqueID.next).asSymbol;
+}
 }
 */
 

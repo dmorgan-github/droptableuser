@@ -1,11 +1,11 @@
 (
 // adapted from here: https://github.com/21echoes/pedalboard/blob/master/lib/fx/LoFi.sc
 synth: {|in|
-	var drive, ratio, threshold, gain,
+    var drive, ratio, threshold, gain,
     wow, minWowRate, wowRate, maxDepth, maxLfoDepth, depth, depthLfoAmount, wowMul, maxDelay,
     tone, bitRate, noise, noiseSignal, wet;
 
-	wet = in;
+    wet = in;
     // First we feed into a HPF to filter out sub-20Hz
     wet = HPF.ar(wet, 25);
     drive = \drive.kr(0.5);

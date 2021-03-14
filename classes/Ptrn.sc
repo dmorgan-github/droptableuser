@@ -168,10 +168,10 @@ PtimeClutch : FilterPattern {
 
 /*
 +Pattern {
-    timeClutch {
-        |delta=0.0|
-        ^PtimeClutch(this, delta)
-    }
+timeClutch {
+|delta=0.0|
+^PtimeClutch(this, delta)
+}
 }
 */
 
