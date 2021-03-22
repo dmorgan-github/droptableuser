@@ -1,3 +1,106 @@
+
+Pmatrix : Pattern {
+
+    var <>key, <>src, <>matrix, <>fx, <>pattern;
+
+    *new {|key, src, matrix, fx, srcvol=1|
+
+        var ptrn;
+        var m = M(key);
+        var srcNode = Ndef(src);
+        if (srcNode.monitor.isNil) {
+            "playing node to init for audio".debug(\pmatrix);
+            srcNode.play(vol:srcvol);
+        };
+        srcNode.vol = srcvol;
+
+        m.addSrc(srcNode);
+        fx.do({|pfilter|
+            m.addSrc(Ndef(pfilter.key));
+        });
+
+        m.map.do({|src, row|
+            m.map.do({|dest, col|
+                if (matrix[row].isNil.not) {
+                    if (matrix[row].size > col) {
+                        var mix = matrix[row][col];
+                        if (mix > 0) {
+                            dest.mix(row, src, mix);
+                        } {
+                            dest.set(src.key, 0);
+                        }
+                    }
+                }
+            });
+        });
+
+        ptrn = Pbind(
+            \out, Pfunc({srcNode.bus.index}),
+            \group, Pfunc({srcNode.group})
+        ) <> Pchain(*fx);
+
+        ^super.new.key_(key).src_(src).matrix_(matrix).fx_(fx).pattern_(ptrn)
+    }
+
+    storeArgs { ^[ key, src, matrix, fx ] }
+
+    embedInStream {|inval|
+        ^this.pattern.embedInStream(inval);
+    }
+}
+
+Pfilter : Pattern {
+
+    var <>key, <>pattern, <>fx, <>vol;
+
+    *new {|key, fx, vol ...pairs|
+        var ptrn, node;
+        if (fx.isFunction) {
+            node = Ndef(key);
+            node.play(vol:vol);
+            node.filter(100, fx);
+        }{
+            node = N(key).fx_(fx);
+        };
+
+        node.vol = vol;
+        ptrn = Pchain(
+            Pbind(
+                "%_func".format(key).asSymbol, Pfunc({|evt|
+                    node.getKeysValues.do({|pair|
+                        var name = pair[0];
+                        if (evt[name].isNil.not) {
+                            //[name, evt[name]].postln;
+                            node.set(name, evt[name]);
+                        }
+                    });
+                    1
+                })
+            ),
+            Pbind(*pairs)
+        );
+        ^super.new.key_(key).pattern_(ptrn).fx_(fx).vol_(vol)
+    }
+
+    storeArgs { ^[ key, fx, vol ] }
+
+    embedInStream {|inval|
+        ^this.pattern.embedInStream(inval);
+    }
+}
+
+Pchannel {
+    *new {|key, vol=1|
+        var node = Ndef(key);
+        node.play(vol:vol);
+        ^Pbind(
+            \out, Pfunc({node.bus.index}),
+            \group, Pfunc({node.group}),
+            \ndef, key
+        )
+    }
+}
+
 Ppub : EventPatternProxy {
 
     var <spawner;

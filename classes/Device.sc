@@ -36,8 +36,11 @@ Device : Ndef {
 				);
 				sig;
 			});
+            */
 
-			res.filter(500, {|in| SoftClipAmp8.ar(in, \limit.kr(1) )});
+			res.filter(500, {|in| Limiter.ar(in, \limit.kr(1));});
+
+            /*
 			// use units to try to keep things together and provide sort hints
 			res.addSpec(\lpf, ControlSpec(20, 20000, \lin, 0, 20000, "xxfilter"));
 			res.addSpec(\wet200, ControlSpec(0, 1, \lin, 0, 1, "xxfilter"));
@@ -50,12 +53,15 @@ Device : Ndef {
 			res.addSpec(\relax, ControlSpec(0, 1, \lin, 0, 0.1, "yycompress"));
 			res.addSpec(\wet400, ControlSpec(0, 1, \lin, 0, 0, "yycompress"));
 
-			res.addSpec(\limit, ControlSpec(0, 1, \lin, 0, 1.0, "zzsoftclip"));
-			res.addSpec(\wet500, ControlSpec(0, 1, \lin, 0, 1, "zzsoftclip"));
-
-			res.set(\wet400, 0);
-			res.set(\wet500, 1);
             */
+
+			res.addSpec(\limit, ControlSpec(0, 1, \lin, 0, 1.0, ""));
+			res.addSpec(\wet500, ControlSpec(0, 1, \lin, 0, 1, ""));
+
+            /*
+			res.set(\wet400, 0);
+            */
+			res.set(\wet500, 1);
 
 			res.vol = 1;
 

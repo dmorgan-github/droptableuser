@@ -171,19 +171,21 @@ Fdef(\playview, {arg node;
     view = View().layout_(
 
         HLayout(
-
             Button().states_([
-                [">"],
-                ["[]"]
+                [],
+                []
             ]).action_({arg ctrl;
                 if (ctrl.value == 1) {
                     node.play(fadeTime:node.fadeTime);
+                    ctrl.icon = Image.new(App.librarydir ++ "images/noun_no sound_1940059.png");
                 } {
                     node.stop(fadeTime:node.fadeTime);
+                    ctrl.icon = Image.new(App.librarydir ++ "images/noun_Volume_1940053.png");
                 }
             })
             .value_(node.isMonitoring.asInteger)
-            .fixedSize_(Size(height, height)),
+            .fixedSize_(Size(height, height))
+            .icon_(Image.new(App.librarydir ++ "images/noun_no sound_1940059.png")),
 
             slider
             .orientation_(\horizontal)
@@ -197,7 +199,8 @@ Fdef(\playview, {arg node;
             .value_(node.vol)
             .fixedHeight_(height)
             .fixedWidth_(75)
-            .toolTip_("vol"),
+            .toolTip_("vol")
+            .background_(Color.new255(77, 77, 77)),
 
             NumberBox()
             .action_({arg ctrl;

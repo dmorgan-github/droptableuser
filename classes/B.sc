@@ -1,5 +1,6 @@
 /*
 Buffer
+NOTE: this could use a lot of refactoring
 */
 B {
     classvar <all;
@@ -14,6 +15,10 @@ B {
             "% does not exist".format(key).warn;
         };
         ^res;
+    }
+
+    *readMono {|path|
+        ^Buffer.readChannel(Server.default, path, channels:[0]);
     }
 
     *read {arg key, path, channels=nil;

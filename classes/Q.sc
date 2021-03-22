@@ -1,6 +1,37 @@
 /*
 EQ
 */
+
+Q {
+    classvar vst, synth, <ctrl, synthdef=\vsteq;
+
+    *start {|bus=0|
+        //VSTPlugin.search;
+        synth = Synth(synthdef, [\bus, bus], target: RootNode(Server.default), addAction:\addToTail);
+        ctrl = VSTPluginController(synth, \eq).open("MEqualizer", editor:true);
+    }
+
+    *view {
+        ctrl.editor;
+    }
+
+    *free {
+        ctrl.close;
+        synth.free;
+    }
+
+    *initClass {
+        StartUp.add({
+            SynthDef(synthdef, {
+                var bus = \bus.kr(0);
+                var sig = In.ar(bus, 2);
+                sig = VSTPlugin.ar(sig, 2, id: \eq);
+                ReplaceOut.ar(bus, sig);
+            }).add;
+        });
+    }
+}
+/*
 Q : Device {
 
     var <guikey;
@@ -35,3 +66,4 @@ Q : Device {
         ^U(\eq, this)
     }
 }
+*/

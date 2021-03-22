@@ -77,7 +77,7 @@ Fdef(\matrix, {arg matrix;
 
 		var data = matrix.map;
 
-		var header = [st.(), nil] ++ data.indices
+		var header = [st.()] ++ data.indices
 		.reject({|j|
 			data[j].isKindOf(NodeProxy).not
 		})
@@ -91,43 +91,66 @@ Fdef(\matrix, {arg matrix;
 
 			var srcNode = data[i];
 
-			var del = VLayout(
+			var del = HLayout(
 
-				StaticText().string_(srcNode.key).toolTip_(srcNode.key)
+                {
+                    var node = srcNode;
+                    var view = View().layout_(VLayout().margins_(0).spacing_(0))
+                    .palette_(QPalette.dark)
+                    .maxHeight_(10);
+                    var scope = Stethoscope.new(s, view:view).style_(1)
+                    .index_(node.bus.index)
+                    .numChannels_(2).yZoom_(2).xZoom_(2);
+                    //win.onClose = { scope.free;  };
+                    4.do({
+                        view.children[0].children[0].remove
+                    });
+                    view.children[0].children[0].waveColors_([Color.rand, Color.rand]);
+                    view.children[0].children[2].remove;
+                    view.children[0].children[1].remove;
+                    view.maxHeight = 20;
+                    view.children[0].children[0].background = Color.new255(77, 77, 77);
+                    view.maxWidth = 80;
+                    view.onClose = { \freescope.postln; scope.free };
+                    view;
+                }.(),
+
+                StaticText().string_(srcNode.key).toolTip_(srcNode.key)
 				.mouseUpAction_({|ctrl, x, y, mod, num, click|
 					if (srcNode.respondsTo(\view)) {
 						srcNode.view;
 					}
-                }), //.maxWidth_(65),
+                }),
 
-				HLayout(
-					Button()
-					.states_([["x"]])
-					.action_({|ctrl|
-						matrix.removeSrc(srcNode.key);
-					})
-					.maxWidth_(height+2),
-					Button()
-					.states_([["sc"]])
-					.action_({
-						srcNode.nscope
-					})
-					.maxWidth_(height+2)
-				)
+                nil
 			);
 
-			var srcName = VLayout(
-				nil,
+			var srcName = HLayout(
+
+                Button()
+                .action_({|ctrl|
+                    matrix.removeSrc(srcNode.key);
+                })
+                .fixedSize_(20)
+                .icon_(Image.new(App.librarydir ++ "images/noun_Delete_1982479.png")),
+
+                Button()
+                .action_({
+                    srcNode.nscope
+                })
+                .fixedSize_(20)
+                .icon_(Image.new(App.librarydir ++ "images/noun_pulse_1464765.png")),
+
 				if (srcNode.isKindOf(NodeProxy)) {
 					playView.(srcNode)
 				} {
 					if (srcNode.respondsTo(\node)) {
 						playView.(srcNode.node);//.background_(Color.red)
 					}
-				}
+				};
 			);
 
-			var cols = [del, srcName] ++ data.indices
+			var cols = [srcName] ++ data.indices
 			.reject({|j|
 				data[j].isKindOf(NodeProxy).not
 			})
@@ -142,7 +165,7 @@ Fdef(\matrix, {arg matrix;
 				};
 				ctrlview = ctrlView.("", [0, 1, \lin, 0, 0].asSpec, colors[j], val, {arg key, val;
 					if (hassrc.not)  {
-						destNode.mix(i, srcNode);
+						destNode.mix(i, srcNode, val);
 					};
 					destNode.set(srcNode.key, val);
 				});
@@ -150,10 +173,10 @@ Fdef(\matrix, {arg matrix;
 				VLayout(nil, ctrlview.asView.maxHeight_(20))
 			});
 
-			cols;
+            [[del, columns:2], cols];
 		});
 
-		var val = [header] ++ rows;
+        var val = [header] ++ rows.flatten;
 
 		View().layout_(
             GridLayout.rows(*val).margins_(1).spacing_(2)

@@ -326,8 +326,11 @@
                 }{
                     //var l = (key ++ 'L').asSymbol;
                     //var r = (key ++ 'R').asSymbol;
+                    //[this.key, key, vol].debug(\ext);
                     this.put(index, {obj.ar * Control.names([key]).kr(vol) });
                 };
+                //[\src, key, \dest, this.key, \vol, vol].debug(\ext);
+                this.set(key, vol);
                 this.addSpec(key, [0, 1, \lin, 0, vol]);
             }
         };

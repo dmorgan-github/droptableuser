@@ -6,8 +6,10 @@ N : Device {
     var <uifunc, fx;
 
     fx_ {|name|
-        fx = name;
-        this.prBuild;
+        if (name != fx) {
+            fx = name;
+            this.prBuild;
+        };
     }
 
     view {

@@ -3,7 +3,7 @@ synth: {arg sig_in;
 
     var in = sig_in * \input.ar(1);
     var sig = BLowPass.ar(in,
-        \freq.ar(1000).clip(20, 20000).lag(0.01),
+        \cutoff.ar(1000).clip(20, 20000).lag(0.01),
         rq:\res.ar(0).linlin(0, 1, 1.4, 0.0001)
     );
     Splay.ar(sig,
@@ -12,7 +12,7 @@ synth: {arg sig_in;
     ) * \output.ar(1);
 },
 specs: [
-    \freq -> ControlSpec(20, 20000, \lin, 0, 1000, units:"fx"),
+    \cutoff -> ControlSpec(20, 20000, \lin, 0, 1000, units:"fx"),
     \res -> ControlSpec(0, 1, \lin, 0, 0, units:"fx"),
     \spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
     \pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),

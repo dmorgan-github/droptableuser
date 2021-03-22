@@ -56,6 +56,7 @@ synth: {arg sig_in;
         in
     );
 
+    sig = LeakDC.ar(sig);
     Splay.ar(sig,
         spread:\spread.ar(1),
         center:\pan.ar(0)
