@@ -1,4 +1,3 @@
-
 Pmatrix : Pattern {
 
     var <>key, <>src, <>matrix, <>fx, <>pattern;
@@ -25,6 +24,7 @@ Pmatrix : Pattern {
                     if (matrix[row].size > col) {
                         var mix = matrix[row][col];
                         if (mix > 0) {
+                            [dest.key, src.key, mix].debug(\pmatrix);
                             dest.mix(row, src, mix);
                         } {
                             dest.set(src.key, 0);
