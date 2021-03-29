@@ -4,6 +4,7 @@
 //~buf = ~buf ?? Buffer.read(s, Platform.resourceDir +/+ "sounds/a11wlk01.wav");
 //~beats = nil;
 //~numslices = 8;
+(
 Pdef(\slicer,
 	Pbind(
 		\instrument, \smplr_1chan,
@@ -37,5 +38,6 @@ Pdef(\slicer,
 			Pseq(val, inf)
 		}),
 	)
+)
 )
 

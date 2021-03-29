@@ -49,6 +49,44 @@ Pmatrix : Pattern {
     }
 }
 
+Pnodeset : Pattern {
+
+    var <>key, <>pattern;
+
+    *new {|key ...pairs|
+        var ptrn, node;
+        node = Ndef(key);
+        ptrn = Pchain(
+            Pbind(
+                "%_func".format(key).asSymbol, Pfunc({|evt|
+                    var keys = pairs.select({|val, i| i.even}).flatten;
+                    var mypairs = List.new;
+
+                    keys.do({|k|
+                        if (evt[k].isNil.not) {
+                            mypairs.add(k);
+                            mypairs.add(evt[k]);
+                        };
+                    });
+                    //mypairs.asArray.postln;
+                    if (mypairs.size > 0) {
+                        node.set(*mypairs.asArray);
+                    };
+                    1
+                })
+            ),
+            Pbind(*pairs)
+        );
+        ^super.new.key_(key).pattern_(ptrn);
+    }
+
+    storeArgs { ^[ key ] }
+
+    embedInStream {|inval|
+        ^this.pattern.embedInStream(inval);
+    }
+}
+
 Pfilter : Pattern {
 
     var <>key, <>pattern, <>fx, <>vol;
@@ -93,11 +131,12 @@ Pchannel {
     *new {|key, vol=1|
         var node = Ndef(key);
         node.play(vol:vol);
-        ^Pbind(
-            \out, Pfunc({node.bus.index}),
-            \group, Pfunc({node.group}),
-            \ndef, key
-        )
+        ^Plazy({
+            Pbind(
+                \out, Pfunc({node.bus.index}),
+                \group, Pfunc({node.group})
+            )
+        });
     }
 }
 

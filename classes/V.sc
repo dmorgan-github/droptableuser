@@ -51,6 +51,42 @@ V : Device {
         ^result;
     }
 
+    *printSynthParams {|vst, ctrl|
+        var params = ctrl.info.parameters;
+        var cache = ctrl.paramCache;
+        var vals = List.new;
+        params.do({|p, i|
+            vals.add(p['name'].asSymbol -> cache[i][0]);
+        });
+
+        vals.sort({|a, b| a.key.asString < b.key.asString }).do({|assoc|
+            var k = assoc.key;
+            var v = assoc.value;
+            var vstkey = vst.asString.select({|val| val.isAlphaNum}).toLower;
+            var param = k.asString.select({|val| val.isAlphaNum}).toLower;
+            var named = "%_%".format(vstkey, param)[0..30];
+            ("'" ++ k ++ "'" ++ ", " ++ "'%".format(named) ++ "'.kr(%)".format(v) ++ ",").postln;
+        })
+    }
+
+    *printPatternParams {|vst, ctrl|
+        var params = ctrl.info.parameters;
+        var cache = ctrl.paramCache;
+        var vals = List.new;
+        params.do({|p, i|
+            vals.add(p['name'].asSymbol -> cache[i][0]);
+        });
+
+        vals.sort({|a, b| a.key.asString < b.key.asString }).do({|assoc|
+            var k = assoc.key;
+            var v = assoc.value;
+            var vstkey = vst.asString.select({|val| val.isAlphaNum}).toLower;
+            var param = k.asString.select({|val| val.isAlphaNum}).toLower;
+            var named = "%_%".format(vstkey, param)[0..30];
+            ("'" ++ named ++ "', %".format(v) ++ ",").postln;
+        })
+    }
+
     set {|key, val|
 
         if ( fx.isNil.not and: { fx.info.parameters
@@ -131,12 +167,14 @@ V : Device {
 
     *initClass {
         StartUp.add({
-            SynthDef.new(\vst, {arg in;
-                var sig = In.ar(in, 2);
+            SynthDef.new(\vst, {arg out;
+                var sig = In.ar(out, 2);
                 //var wet = ('wet100').asSymbol.kr(1);
                 //XOut.ar(in, wet, VSTPlugin.ar(sig, 2));
-                ReplaceOut.ar(in, VSTPlugin.ar(sig, 2));
+                ReplaceOut.ar(out, VSTPlugin.ar(sig, 2));
             }).add;
+
+            //VSTPlugin.search;
         });
     }
 }

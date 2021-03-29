@@ -3,53 +3,70 @@ Looper
 */
 O : Device {
 
-    /*
     var <phase;
 
     phase_ {|func|
-    phase = func;
-    this.prBuild;
+        phase = func;
+        this.prBuild;
     }
 
     deviceInit {
-    // this will call rebuild
-    this.phase_({arg dur, freq, duty, rate;
-    LFSaw.ar(freq, 1);
-    });
+        this.prBuild
     }
-    */
 
-    deviceInit {
+    prBuild {
 
-        this.put(0, {
+		var func = this.phase;
 
-            var updateFreq = 10;
+		this.put(0, {
+
+            var numChannels = 1;
+			var updateFreq = 15;
             var replyid = \bufposreplyid.kr(-1);
             var buf = \buf.kr(0);
             var lag = \lag.kr(1);
             var rate = \rate.kr(1).lag(lag);
-            var startPos = \startPos.kr(0).lag(0.01);
+            var startPos = \startPos.kr(0).lag(0.01);///.poll(label:\startPos);
             var endPos = \endPos.kr(1).lag(0.01);
 
             var cuePos = \cuePos.kr(0);
             var trig = \trig.tr(0);
+            var phase, sig, aeg;
 
-            var phase, sig;
-            #sig, phase = LoopBufCF.ar(numChannels:1,
-                bufnum:buf,
-                rate:rate,
-                trigger:trig,
-                startPos:startPos,
-                endPos:endPos,
-                resetPos:cuePos,
-                ft:\ft.kr(0.05));
+            if (func.isNil) {
+                #sig, phase = LoopBufCF.ar(numChannels:1,
+                    bufnum:buf,
+                    rate:rate,
+                    trigger:trig,
+                    startPos:startPos,
+                    endPos:endPos,
+                    resetPos:cuePos,
+                    ft:\ft.kr(0.05)
+                );
+            } {
+                var start = startPos * BufFrames.kr(buf);
+                var end = endPos * BufFrames.kr(buf);
+                var dur = ((end - start) / BufSampleRate.kr(buf)) * rate.abs.reciprocal;
+                phase = func.(dur, dur.reciprocal);
+                phase = phase.range(start, end);
+                //phase = LFTri.ar(dur.reciprocal * 0.5, -1).range(start, end);
+                sig = BufRd.ar(numChannels, buf, phase, loop:0);
+           };
 
             SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase % BufFrames.kr(buf)], replyid);
-            Splay.ar(sig, \spread.kr(1), center:\pan.kr(0)) * \amp.kr(1);
-        });
 
-        this.wakeUp;
-    }
+            sig = LeakDC.ar(sig);
+
+            sig = Splay.ar(sig, \spread.kr(1), center:\pan.kr(0));
+
+            sig = sig * \amp.kr(1);
+
+            sig;
+
+		});
+
+		this.wakeUp;
+	}
 
     view {
         ^U(\buf, this)

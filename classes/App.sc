@@ -11,11 +11,6 @@ App {
         touchoscport = 9000;
     }
 
-    *midiInit {
-        MIDIClient.init;
-        MIDIClient.initialized.debug("midi initialized");
-    }
-
     *scynapse {
         var envir = Ndef.dictFor(Server.default).envir;
         File.open("/Users/david/projects/scynapse/_main.scd", "r").readAllString.interpret;
@@ -26,15 +21,6 @@ App {
         var str = {"aaabcdeeefghiiijklmnooopqrstuuuvwxyz".choose}.dup(rrand(3,5)).join;
         "echo % | pbcopy".format(str).systemCmd;
         ^str
-    }
-
-    *recdir {
-        thisProcess.platform.recordingsDir_(Document.current.dir);
-    }
-
-    *rec {arg dir;
-        thisProcess.platform.recordingsDir_(workspacedir ++ dir);
-        Server.default.record;
     }
 
     *recAtCommit {arg dir="", commit="";

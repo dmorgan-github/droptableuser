@@ -1,7 +1,193 @@
 /*
 Synth
 */
+
 S : EventPatternProxy {
+
+    var <node, <cmdperiodfunc, <synthdef;
+
+    var <instrument, <ptrn, <out, <hasGate;
+
+    var <vstctrls, <key;
+
+    *new {|key|
+        ^super.new.prInit(key);
+    }
+
+    synth {|argSynth, argTemplate=\adsr|
+        this.prInitSynth(argSynth, argTemplate);
+    }
+
+    fx {|index, argFx, wet=1|
+
+        if (argFx.isFunction) {
+            node.filter(index, argFx);
+        }{
+            if (argFx.isNil) {
+                node[index] = nil;
+            }{
+                if (argFx.asString.beginsWith("vst/")) {
+                    var vst = argFx.asString.split($/)[1..].join("/").asSymbol;
+                    node.vst(index, vst, cb:{|ctrl|
+                        vstctrls.put(index, ctrl);
+                    });
+                }{
+                    node.fx(index, argFx);
+                };
+            }
+        };
+
+        node.set("wet%".format(index).asSymbol, wet);
+    }
+
+    // this will reset the pattern
+    seq {|...pairs|
+        ptrn.source = PbindProxy(*pairs);
+    }
+
+    pset {|...args|
+
+        var pairs;
+        if (args.size.even.not) {
+            Error("args must be even number").throw;
+        };
+
+        pairs = args.collect({arg v, i;
+            if (i.even) {
+                v;
+            }{
+                var k = args[i-1];
+                if (v.isFunction) {
+                    var lfo;
+                    var key = "lfo_%".format(this.key);
+                    var lfokey = (key ++ '_' ++ k).asSymbol;
+                    "creating lfo node %".format(lfokey).debug(this.key);
+                    Ndef(lfokey, v);
+                }{
+                    v
+                }
+            }
+        });
+
+        ptrn.source.set(*pairs);
+    }
+
+    out_ {|bus=0|
+        out = bus;
+        this.node.monitor.out = out;
+    }
+
+    *def {|inKey, inFunc, inTemplate=\adsr|
+        var path = App.librarydir ++  "templates/" ++ inTemplate.asString ++ ".scd";
+        var pathname = PathName(path.standardizePath);
+        var fullpath = pathname.fullPath;
+        if (File.exists(fullpath)) {
+            var template = File.open(fullpath, "r").readAllString.interpret;
+            template.(inKey, inFunc);
+        } {
+            Error("synth template not found").throw;
+        };
+
+        "built synth % with template %".format(inKey, inTemplate).postln;
+    }
+
+    *printSynths {
+        SynthDescLib.all[\global].synthDescs
+        .keys
+        .reject({|key|
+            key.asString.beginsWith("system") or: key.asString.beginsWith("pbindFx_")
+        })
+        .asArray
+        .sort
+        .do({|val| val.postln})
+    }
+
+    *printSynthControls {|synth|
+        SynthDescLib.all[\global]
+        .synthDescs[synth]
+        .controls.do({|cn|
+            [cn.name, cn.defaultValue].postln
+        });
+    }
+
+    *loadSynths {
+        var path = App.librarydir.standardizePath ++ "synths/*.scd";
+        "loading synths: %".format(path).debug;
+        path.loadPaths;
+    }
+
+    prInit {|argKey|
+
+        key = argKey ?? { "s_%".format(UniqueID.next).asSymbol };
+        vstctrls = Order.new;
+        instrument = \default;
+        node = NodeProxy.audio(Server.default, 2);
+        node.play;
+
+        ptrn = EventPatternProxy(PbindProxy());
+        cmdperiodfunc = {
+            {
+                node.wakeUp
+            }.defer(0.5)
+        };
+        ServerTree.add(cmdperiodfunc);
+
+        this.source = Pbind(
+            "nodeset_func".asSymbol, Pfunc({|evt|
+                var keys = node.controlKeys;
+                var mypairs = List.new;
+
+                keys.do({|k|
+                    if (evt[k].isNil.not) {
+                        mypairs.add(k);
+                        mypairs.add(evt[k]);
+                    };
+                });
+                //mypairs.asArray.postln;
+                if (mypairs.size > 0) {
+                    node.set(*mypairs.asArray);
+                };
+                1
+            })
+        )
+        <> ptrn
+        <> Pbind(
+            \out, Pfunc({node.bus.index}),
+            \group, Pfunc({node.group}),
+            \instrument, Pfunc({instrument}),
+            \amp, -10.dbamp
+        );
+    }
+
+    prInitSynth {|argSynth, argTemplate=\adsr|
+
+        instrument = argSynth;
+        if (argSynth.isFunction) {
+            instrument = "synth_%".format(this.key).asSymbol;
+            S.def(instrument, argSynth, argTemplate);
+        };
+
+        synthdef = SynthDescLib.global.at(instrument);
+
+        if (synthdef.isNil) {
+            var path = App.librarydir ++  "synths/" ++ instrument.asString ++ ".scd";
+            var pathname = PathName(path.standardizePath);
+            var name = pathname.fileNameWithoutExtension;
+            var fullpath = pathname.fullPath;
+            if (File.exists(fullpath)) {
+                File.open(fullpath, "r").readAllString.interpret;
+                synthdef = SynthDescLib.global.at(instrument);
+            } {
+                Error("synthdef not found").throw;
+            }
+        };
+
+        hasGate = synthdef.hasGate;
+    }
+}
+
+
+S2 : EventPatternProxy {
 
     classvar <>defaultRoot, <>defaultScale, <>defaultTuning;
 
@@ -68,10 +254,6 @@ S : EventPatternProxy {
         var path = App.librarydir.standardizePath ++ "mixins/*.scd";
         "loading mixins: %".format(path).debug;
         path.loadPaths;
-    }
-
-    *transport {|clock|
-        U(\transport, clock);
     }
 
     synth {|synth, template=\adsr|
