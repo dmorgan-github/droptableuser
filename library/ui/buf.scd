@@ -1,5 +1,5 @@
 (
-Require("~/projects/droptableuser/library/ui/common.scd");
+Require(App.librarydir ++ "ui/common.scd");
 Fdef(\buf, {arg node;
 
 	var width = 200 * 1.5;
@@ -10,7 +10,6 @@ Fdef(\buf, {arg node;
 	var key = node.key;
 	var buf = node.get(\buf).debug("buf for %".format(key));
 	var numframes = buf.numFrames;
-
 	var osckey = 'bufpos';
 	//(key ++ 'pos').asSymbol;
 	//var wavecolors = [Color.rand, Color.rand].debug(\wavecolors);

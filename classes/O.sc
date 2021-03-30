@@ -49,20 +49,14 @@ O : Device {
                 var dur = ((end - start) / BufSampleRate.kr(buf)) * rate.abs.reciprocal;
                 phase = func.(dur, dur.reciprocal);
                 phase = phase.range(start, end);
-                //phase = LFTri.ar(dur.reciprocal * 0.5, -1).range(start, end);
                 sig = BufRd.ar(numChannels, buf, phase, loop:0);
            };
 
             SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase % BufFrames.kr(buf)], replyid);
-
             sig = LeakDC.ar(sig);
-
             sig = Splay.ar(sig, \spread.kr(1), center:\pan.kr(0));
-
             sig = sig * \amp.kr(1);
-
             sig;
-
 		});
 
 		this.wakeUp;

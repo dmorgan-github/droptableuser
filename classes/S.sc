@@ -8,44 +8,53 @@ S : EventPatternProxy {
 
     var <instrument, <ptrn, <out, <hasGate;
 
-    var <vstctrls, <key;
+    var <vstctrls, <key, isMono=false;
 
-    *new {|key|
-        ^super.new.prInit(key);
+    *new {
+        ^super.new.prInit().synth(\default);
     }
 
-    synth {|argSynth, argTemplate=\adsr|
-        this.prInitSynth(argSynth, argTemplate);
+    synth {|synth, template=\adsr|
+        this.prInitSynth(synth, template);
     }
 
-    fx {|index, argFx, wet=1|
+    mono {|synth, template=\mono|
+        isMono = true;
+        this.prInitSynth(synth, template);
+    }
 
-        if (argFx.isFunction) {
-            node.filter(index, argFx);
+    fx {|index, fx, wet=1|
+
+        if (fx.isNil) {
+            node[index] = nil;
         }{
-            if (argFx.isNil) {
-                node[index] = nil;
+            if (fx.isFunction) {
+                node.filter(index, fx);
             }{
-                if (argFx.asString.beginsWith("vst/")) {
-                    var vst = argFx.asString.split($/)[1..].join("/").asSymbol;
+                if (fx.asString.beginsWith("vst/")) {
+                    var vst = fx.asString.split($/)[1..].join("/").asSymbol;
                     node.vst(index, vst, cb:{|ctrl|
                         vstctrls.put(index, ctrl);
                     });
                 }{
-                    node.fx(index, argFx);
+                    node.fx(index, fx);
                 };
-            }
+            };
+            node.set("wet%".format(index).asSymbol, wet);
         };
+    }
 
-        node.set("wet%".format(index).asSymbol, wet);
+    quant_ {|quant|
+        ptrn.source.quant = quant;
+        super.quant = quant;
     }
 
     // this will reset the pattern
-    seq {|...pairs|
-        ptrn.source = PbindProxy(*pairs);
+    pinit {|...pairs|
+        ptrn.source = PbindProxy(*pairs).quant_(this.quant);
     }
 
-    pset {|...args|
+    seq {|...args|
 
         var pairs;
         if (args.size.even.not) {
@@ -75,6 +84,10 @@ S : EventPatternProxy {
     out_ {|bus=0|
         out = bus;
         this.node.monitor.out = out;
+    }
+
+    printSynthControls {
+        S.printSynthControls(this.instrument);
     }
 
     *def {|inKey, inFunc, inTemplate=\adsr|
@@ -117,46 +130,18 @@ S : EventPatternProxy {
     }
 
     prInit {|argKey|
-
         key = argKey ?? { "s_%".format(UniqueID.next).asSymbol };
         vstctrls = Order.new;
         instrument = \default;
         node = NodeProxy.audio(Server.default, 2);
         node.play;
 
-        ptrn = EventPatternProxy(PbindProxy());
         cmdperiodfunc = {
             {
                 node.wakeUp
             }.defer(0.5)
         };
         ServerTree.add(cmdperiodfunc);
-
-        this.source = Pbind(
-            "nodeset_func".asSymbol, Pfunc({|evt|
-                var keys = node.controlKeys;
-                var mypairs = List.new;
-
-                keys.do({|k|
-                    if (evt[k].isNil.not) {
-                        mypairs.add(k);
-                        mypairs.add(evt[k]);
-                    };
-                });
-                //mypairs.asArray.postln;
-                if (mypairs.size > 0) {
-                    node.set(*mypairs.asArray);
-                };
-                1
-            })
-        )
-        <> ptrn
-        <> Pbind(
-            \out, Pfunc({node.bus.index}),
-            \group, Pfunc({node.group}),
-            \instrument, Pfunc({instrument}),
-            \amp, -10.dbamp
-        );
     }
 
     prInitSynth {|argSynth, argTemplate=\adsr|
@@ -183,6 +168,49 @@ S : EventPatternProxy {
         };
 
         hasGate = synthdef.hasGate;
+        this.prSetSource;
+    }
+
+    prSetSource {
+
+        var chain;
+
+        ptrn = EventPatternProxy(
+            PbindProxy().quant_(this.quant)
+        ).quant_(this.quant);
+
+        chain = Pbind(
+            "nodeset_func".asSymbol, Pfunc({|evt|
+                var keys = node.controlKeys;
+                var mypairs = List.new;
+
+                keys.do({|k|
+                    if (evt[k].isNil.not) {
+                        mypairs.add(k);
+                        mypairs.add(evt[k]);
+                    };
+                });
+                //mypairs.asArray.postln;
+                if (mypairs.size > 0) {
+                    node.set(*mypairs.asArray);
+                };
+                1
+            })
+        )
+        <> ptrn
+        <> Pbind(
+            \out, Pfunc({node.bus.index}),
+            \group, Pfunc({node.group}),
+            \instrument, Pfunc({instrument}),
+            \amp, -10.dbamp
+        );
+
+        if (isMono) {
+            this.source = Pmono(instrument, \trig, 1)
+            <> chain
+        }{
+            this.source = chain
+        }
     }
 }
 
