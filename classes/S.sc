@@ -1,7 +1,6 @@
 /*
 Synth
 */
-
 S : EventPatternProxy {
 
     var <node, <cmdperiodfunc, <synthdef;
@@ -15,6 +14,7 @@ S : EventPatternProxy {
     }
 
     synth {|synth, template=\adsr|
+        isMono = false;
         this.prInitSynth(synth, template);
     }
 
@@ -79,11 +79,6 @@ S : EventPatternProxy {
         });
 
         ptrn.source.set(*pairs);
-    }
-
-    out_ {|bus=0|
-        out = bus;
-        this.node.monitor.out = out;
     }
 
     printSynthControls {
@@ -201,7 +196,7 @@ S : EventPatternProxy {
         <> Pbind(
             \out, Pfunc({node.bus.index}),
             \group, Pfunc({node.group}),
-            \instrument, Pfunc({instrument}),
+            \instrument, Pfunc({instrument}), // i believe this is ignored for pmono
             \amp, -10.dbamp
         );
 
