@@ -7,10 +7,14 @@ S : EventPatternProxy {
 
     var <instrument, <ptrn, <out, <hasGate;
 
-    var <vstctrls, <key, isMono=false;
+    var <vstctrls, <key, isMono=false, <synths, <>debug=false;
 
     *new {
         ^super.new.prInit().synth(\default);
+    }
+
+    << {|pattern|
+        ptrn.source = pattern;
     }
 
     synth {|synth, template=\adsr|
@@ -45,44 +49,20 @@ S : EventPatternProxy {
     }
 
     quant_ {|quant|
-        ptrn.source.quant = quant;
+        ptrn.quant = quant;
         super.quant = quant;
-    }
-
-    // this will reset the pattern
-    pinit {|...pairs|
-        ptrn.source = PbindProxy(*pairs).quant_(this.quant);
-    }
-
-    seq {|...args|
-
-        var pairs;
-        if (args.size.even.not) {
-            Error("args must be even number").throw;
-        };
-
-        pairs = args.collect({arg v, i;
-            if (i.even) {
-                v;
-            }{
-                var k = args[i-1];
-                if (v.isFunction) {
-                    var lfo;
-                    var key = "lfo_%".format(this.key);
-                    var lfokey = (key ++ '_' ++ k).asSymbol;
-                    "creating lfo node %".format(lfokey).debug(this.key);
-                    Ndef(lfokey, v);
-                }{
-                    v
-                }
-            }
-        });
-
-        ptrn.source.set(*pairs);
     }
 
     printSynthControls {
         S.printSynthControls(this.instrument);
+    }
+
+    on {arg midinote, vel=1;
+        this.prNoteOn(midinote, vel);
+    }
+
+    off {arg midinote;
+        this.prNoteOff(midinote);
     }
 
     *def {|inKey, inFunc, inTemplate=\adsr|
@@ -125,11 +105,15 @@ S : EventPatternProxy {
     }
 
     prInit {|argKey|
+
+        debug = false;
         key = argKey ?? { "s_%".format(UniqueID.next).asSymbol };
         vstctrls = Order.new;
         instrument = \default;
         node = NodeProxy.audio(Server.default, 2);
         node.play;
+
+        synths = Array.fill(127, {List.new});
 
         cmdperiodfunc = {
             {
@@ -137,6 +121,7 @@ S : EventPatternProxy {
             }.defer(0.5)
         };
         ServerTree.add(cmdperiodfunc);
+        this.prSetSource;
     }
 
     prInitSynth {|argSynth, argTemplate=\adsr|
@@ -163,16 +148,13 @@ S : EventPatternProxy {
         };
 
         hasGate = synthdef.hasGate;
-        this.prSetSource;
     }
 
     prSetSource {
 
         var chain;
 
-        ptrn = EventPatternProxy(
-            PbindProxy().quant_(this.quant)
-        ).quant_(this.quant);
+        ptrn = EventPatternProxy(Pbind()).quant_(this.quant);
 
         chain = Pbind(
             "nodeset_func".asSymbol, Pfunc({|evt|
@@ -200,16 +182,61 @@ S : EventPatternProxy {
             \amp, -10.dbamp
         );
 
-        if (isMono) {
-            this.source = Pmono(instrument, \trig, 1)
-            <> chain
-        }{
-            this.source = chain
+        this.source = Plazy({
+            if (isMono) {
+                Pmono(instrument, \trig, 1) <> chain
+            }{
+                chain
+            }
+        })
+    }
+
+    prNoteOn {arg midinote, vel=1;
+
+        var ignore = [\instrument,
+            \root, \scale, \out, \group, \key, \dur, \legato,
+            \delta, \freq, \degree, \octave, \gate, \fx, \vel,
+            \harmonic, \strum];
+
+        if (node.isPlaying) {
+
+            var evt = (this.envir ?? {()} )
+            .reject({arg v, k;
+                ignore.includes(k) or: v.isKindOf(Function);
+            });
+
+            var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps, \vel, vel] ++ evt.asPairs();
+
+            if (debug) {
+                args.postln;
+            };
+
+            if (hasGate) {
+                if (synths[midinote].last.isNil) {
+                    synths[midinote].add( Synth(instrument, args, target:node.nodeID) );
+                }
+            } {
+                Synth(instrument, args, target:node.nodeID)
+            }
         }
+    }
+
+    prNoteOff {arg midinote;
+        // popping from a queue seems more atomic
+        // than dealing strictly with an array
+        // removeAt(0) changes the size of the array
+        // copying seems to produce better results
+        // but i'm not sure why
+        var mysynths = synths.copy;
+        var synth = mysynths[midinote].pop;
+        while({synth.isNil.not},{
+            synth.set(\gate, 0);
+            synth = mysynths[midinote].pop;
+        });
     }
 }
 
-
+/*
 S2 : EventPatternProxy {
 
     classvar <>defaultRoot, <>defaultScale, <>defaultTuning;
@@ -525,20 +552,6 @@ S2 : EventPatternProxy {
 
     prNoteOn {arg midinote, vel=1;
 
-
-        /*
-        1. "I want instantaneous, zero-latency transitions: when I hit the button on my controller, I want my playing event to immediately end and the next one to start. I don’t care about note durs / deltas at all."
-
-        This case is addressed in the linked question, and some other places. If you want full manual control simply pull notes from your event stream and play them yourself:
-
-        ~stream = Pdef(\notes).asStream;
-
-        ~stream.next(()).play; // next event
-        ~stream.next(()).play; // next event
-        ~stream.next(()).play; // next event
-        One gotcha: you must have (\sendGate, false) in your event, else Event:play will automatically end the Event after \dur beats.
-        */
-
         var ignore = [\instrument,
             \root, \scale, \out, \group, \key, \dur, \legato,
             \delta, \freq, \degree, \octave, \gate, \fx, \vel];
@@ -600,3 +613,4 @@ S2 : EventPatternProxy {
         defaultScale = \dorian;
     }
 }
+*/

@@ -11,7 +11,7 @@ synth: {arg sig_in;
             \f4.kr(493.88330125612),
             \f5.kr(659.25511382574),
             \f6.kr(1318.5102276515)
-        ] * \f.kr(1),
+        ] * \f.ar(1).lag(0.01),
 
         [
             \f1amp.kr(0.39),
@@ -20,7 +20,7 @@ synth: {arg sig_in;
             \f4amp.kr(0.25),
             \f5amp.kr(0.25),
             \f6amp.kr(0.78)
-        ] * \a.kr(0.1),
+        ] * \a.ar(0.1).lag(0.01),
 
         [
             \f1ring.kr(0.5),
@@ -29,10 +29,10 @@ synth: {arg sig_in;
             \f4ring.kr(0.51),
             \f5ring.kr(0.49),
             \f6ring.kr(0.53)
-        ] * \r.kr(0.5)
+        ] * \r.ar(0.5).lag(0.01)
     ], in);
 
-    sig
+    Limiter.ar(sig, 0.7);
 },
 specs: [
     \f1 -> ControlSpec(20, 16000, \lin, 0, 82.406889228217),

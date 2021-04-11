@@ -26,7 +26,7 @@ SynthDef(\modal, {
 		curve:\curve.kr(-4)
 	).ar(doneAction:Done.freeSelf, gate:\gate.kr(1));
 
-	sig = sig * 10.dbamp;
+	sig = sig * 0.dbamp;
 
 	// sub
 	sig = sig + (SinOsc.ar(freq * \sinratio.kr(0.5)) * \sine.kr(0.5));

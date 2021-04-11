@@ -1,3 +1,4 @@
+(
 SynthDef(\abstract_drum, {
 	arg
 	// Standard values
@@ -55,11 +56,11 @@ SynthDef(\abstract_drum, {
 
 	// Output Stuff
 	snd = Mix.ar(snd * amp * 2);
-	snd = Limiter.ar(snd);
+	snd = Limiter.ar(snd) * \vel.kr(1);
 
 	DetectSilence.ar(in: snd, doneAction: 2);
 
-	Out.ar(out, Pan2.ar(snd, pan));
+    Out.ar(out, Pan2.ar(snd, pan));
 },
 metadata: (
 	credit: "by Josh Mitchell",
@@ -68,4 +69,5 @@ metadata: (
 )
 ).add;
 
+)
 

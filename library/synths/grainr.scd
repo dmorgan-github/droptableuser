@@ -28,7 +28,7 @@ SynthDef(\grainr, {
 		var posrand = \posrand.kr(0);
 		var start = \startPos.kr(0) * BufFrames.kr(buf);
 		var end = \endPos.kr(1) * BufFrames.kr(buf);
-		var phase = Phasor.ar(0, speed * BufRateScale.ir(buf), start, end);
+		var phase = Phasor.ar(0, speed * BufRateScale.kr(buf), start, end);
 		phase = phase + LFNoise1.kr(100).bipolar(posrand * SampleRate.ir);
 		phase = phase/BufSamples.ir(buf);
 		phase
@@ -41,7 +41,14 @@ SynthDef(\grainr, {
 		pan + LFNoise1.kr(panHz).bipolar(panRand);
 	}.();
 
-	var sig = GrainBuf.ar(
+    var grainAmp = {
+		var amp = \grainamp.kr(1);
+		var ampHz = \ampHz.kr(0.1);
+		var ampRand = \ampRand.kr(0);
+		amp + LFNoise1.kr(ampHz).bipolar(ampRand);
+	}.();
+
+	var sig = GrainBufJ.ar(
 		numChannels:2,
 		trigger:density,
 		dur:graindur,
@@ -49,6 +56,7 @@ SynthDef(\grainr, {
 		rate:pitch,
 		pos:phase,
 		interp:2,
+        grainAmp: grainAmp,
 		pan:pan,
 		envbufnum:grainenv
 	);
@@ -72,9 +80,9 @@ SynthDef(\grainr, {
 		startPos: ControlSpec(0, 1, \lin, 0, 0, "playback"),
 		endPos: ControlSpec(0, 1, \lin, 0, 1, "playback"),
 
-		\pan: ControlSpec(0, 1, \lin, 0, 0, "pan"),
-		\panHz: ControlSpec(0, 1, \lin, 0, 0.1, "pan"),
-		\panRand: ControlSpec(0, 1, \lin, 0, 0, "pan"),
+		pan: ControlSpec(0, 1, \lin, 0, 0, "pan"),
+		panHz: ControlSpec(0, 1, \lin, 0, 0.1, "pan"),
+		panRand: ControlSpec(0, 1, \lin, 0, 0, "pan"),
 
 		atk: ControlSpec(0, 1, \lin, 0, 0.01, "aeg"),
 		rel: ControlSpec(0, 8, \lin, 0, 0.29, "aeg"),

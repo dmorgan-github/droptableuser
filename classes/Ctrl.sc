@@ -23,6 +23,7 @@ MidiCtrl {
 
     var <key, <src, <>enabled;
 
+
     *new {arg key, src=\iac;
         var res = all[key];
         if (res.isNil) {
@@ -183,7 +184,7 @@ TwisterKnob {
     classvar key = 'twisterknob';
 
     var <device, <midiout;
-    var <spec, <node, <ccNum, <ccFunc, <noteOnFunc, <noteOffFunc, <>label;
+    var <spec, <node, <ccNum, <ccMapFunc, <noteOnFunc, <noteOffFunc, <>label;
     var onkey, offkey, nodekey, cckey;
     var view, nb, knob;
 
@@ -198,15 +199,20 @@ TwisterKnob {
         label = "kn" ++ argNum;
         spec = [0, 1].asSpec;
         nodekey = "%_cc%".format(key, ccNum).asSymbol.debug(\ccmap);
-        node = Ndef(nodekey.asSymbol, { \val.kr(spec:spec) });
-        ccFunc = {|val|
-            node.set(\val, this.spec.map(val/127));
-        };
+    }
+
+    ccFunc {|func, argSpec, chan=0|
+        ccMapFunc = func;
+        if (argSpec.notNil) { spec = argSpec.asSpec};
+        this.prInitCC(ccNum, chan);
     }
 
     cc {|argSpec, chan=0|
         spec = argSpec.asSpec;
         node = Ndef(nodekey.asSymbol, { \val.kr(spec:spec) });
+        ccMapFunc = {|val|
+            node.set(\val, this.spec.map(val/127));
+        };
         this.prInitCC(ccNum, chan);
     }
 
@@ -289,7 +295,7 @@ TwisterKnob {
             cckey = "%_cc%".format(key, num).asSymbol;
             "register %".format(cckey).debug(key);
             MIDIdef.cc(cckey, {arg val, ccNum, chan, src;
-                ccFunc.(val, ccNum, chan);
+                ccMapFunc.(val, ccNum, chan);
                 {
                     if (view.isNil.not and: {view.isClosed.not}) {
                         knob.value_(val/127);
@@ -299,8 +305,8 @@ TwisterKnob {
             }, ccNum: num, chan:chan, srcID:srcid)
             .permanent_(true);
 
-            if (midiout.isNil.not) {
-                var val = node.get(\val);
+            if (midiout.notNil) {
+                var val = spec.default;
                 var default = val.linlin(spec.minval, spec.maxval, 0, 127);
                 midiout.control(chan, num, default);
             };
@@ -319,7 +325,7 @@ TwisterKnob {
         view = View().layout_(VLayout(
             StaticText().string_(label).align_(\center),
             knob.mode_(\vert).action_({|ctrl|
-                this.ccFunc.(ctrl.value.linlin(0, 1, 0, 127));
+                this.ccMapFunc.(ctrl.value.linlin(0, 1, 0, 127));
                 nb.value_(spec.map(ctrl.value));
             })
             .value_(spec.unmap(val)),
@@ -356,6 +362,7 @@ Twister {
     classvar <knobOrder, <device, <midiout;
     classvar <deviceName = "Midi Fighter Twister";
     classvar <devicePort = "Midi Fighter Twister";
+    classvar <isconnected=false;
 
     *connect {
         MIDIClient.init;
@@ -369,6 +376,7 @@ Twister {
         };
 
         MIDIIn.connectAll;
+        isconnected = true;
     }
 
     *knobs {|ccNum|
@@ -413,111 +421,13 @@ Twister {
         )
         .palette_(QPalette.dark);
 
-        ^view
+        ^view.front;
     }
 
     *initClass {
         knobOrder = Order.new;
     }
 }
-
-
-/*
-Twister2 : MidiCtrl {
-
-classvar id;
-
-classvar <instance;
-
-var <>ccChan, <>noteChan;
-
-var <>midiout;
-
-var <>midimap;
-
-*new {
-if (instance.isNil) {
-instance = super.new(id, "Midi Fighter Twister");
-};
-^instance;
-}
-
-*doesNotUnderstand {|selector ...args|
-var res = this.new();
-^res.perform(selector, *args);
-}
-
-init {|inKey, inSrcKey|
-super.init(inKey, inSrcKey);
-this.midiout = MIDIOut.newByName("Midi Fighter Twister", "Midi Fighter Twister");
-this.midimap = Order.new;
-this.ccChan = 0;
-this.noteChan = 1;
-^this;
-}
-
-ccMap {|ccNum, spec|
-
-var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccmap);
-var myspec = spec.asSpec;
-var node = Ndef(nodeKey.asSymbol, { \val.kr(spec:myspec) });
-var default = myspec.default.linlin(myspec.minval, myspec.maxval, 0, 127);
-// initialize
-midimap[ccNum] = (
-num: ccNum,
-spec:myspec,
-node:node
-);
-midiout.control(ccChan, ccNum, default);
-super.cc(ccNum, {|val|
-node.set(\val, myspec.map(val/127));
-}, ccChan);
-^node;
-}
-
-ccFunc {|ccNum, func, default=0|
-var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccfunc);
-// initialize
-default = default.linlin(0, 1, 0, 127);
-midiout.control(ccChan, ccNum, default);
-super.cc(ccNum, func, ccChan);
-}
-
-note {|on, off|
-super.note(on, off, noteChan);
-}
-
-noteFunc {|num, on, off|
-var onfunc = {|note, vel|
-if (note == num) {
-on.(note, vel);
-}
-};
-var offfunc = {|note|
-if (note == num) {
-off.(note);
-}
-};
-super.note(onfunc, offfunc, noteChan);
-}
-
-asMap {|ccNum|
-var nodeKey = "%_%_cc%".format(this.key, ccChan, ccNum).asSymbol.debug(\ccmap);
-^Ndef(nodeKey.asSymbol);
-}
-
-clear {
-midimap.do({|item|
-item.clear;
-});
-super.clear();
-}
-
-*initClass {
-id = ('twister_' ++ UniqueID.next).asSymbol;
-}
-}
-*/
 
 Microlab : MidiCtrl {
 
