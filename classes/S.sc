@@ -3,15 +3,34 @@ Synth
 */
 S : EventPatternProxy {
 
+    classvar all;
+
     var <node, <cmdperiodfunc, <synthdef;
 
     var <instrument, <ptrn, <out, <hasGate;
 
     var <vstctrls, <key, isMono=false, <synths, <>debug=false;
 
-    *new {
-        ^super.new.prInit().synth(\default);
+    *new {|key|
+
+        var res;
+
+        if (key.isNil) {
+            key = "s_%".format(UniqueID.next).asSymbol;
+            "using key %".debug("S");
+        };
+        res = all[key];
+        if (res.isNil) {
+            res = super.new.prInit(key).synth(\default);
+            all[key] = res;
+        };
+
+        ^res;
     }
+
+    *doesNotUnderstand {|selector|
+		^this.new(selector);
+	}
 
     << {|pattern|
         ptrn.source = pattern;
@@ -107,10 +126,10 @@ S : EventPatternProxy {
     prInit {|argKey|
 
         debug = false;
-        key = argKey ?? { "s_%".format(UniqueID.next).asSymbol };
+        key = argKey;
         vstctrls = Order.new;
         instrument = \default;
-        node = NodeProxy.audio(Server.default, 2);
+        node = D(key);
         node.play;
 
         synths = Array.fill(127, {List.new});
@@ -233,6 +252,10 @@ S : EventPatternProxy {
             synth.set(\gate, 0);
             synth = mysynths[midinote].pop;
         });
+    }
+
+    *initClass {
+        all = IdentityDictionary.new;
     }
 }
 

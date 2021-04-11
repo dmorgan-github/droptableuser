@@ -112,6 +112,9 @@ Fdef(\matrix, {arg matrix;
                     view.children[0].children[0].background = Color.new255(77, 77, 77);
                     view.maxWidth = 80;
                     view.onClose = { \freescope.postln; scope.free };
+                    view.mouseUpAction = {
+                        node.nscope
+                    };
                     view;
                 }.(),
 
@@ -134,12 +137,14 @@ Fdef(\matrix, {arg matrix;
                 .fixedSize_(20)
                 .icon_(Image.new(App.librarydir ++ "images/noun_Delete_1982479.png")),
 
+                /*
                 Button()
                 .action_({
                     srcNode.nscope
                 })
                 .fixedSize_(20)
                 .icon_(Image.new(App.librarydir ++ "images/noun_pulse_1464765.png")),
+                */
 
 				if (srcNode.isKindOf(NodeProxy)) {
 					playView.(srcNode)
@@ -165,6 +170,7 @@ Fdef(\matrix, {arg matrix;
 				};
 				ctrlview = ctrlView.("", [0, 1, \lin, 0, 0].asSpec, colors[j], val, {arg key, val;
 					if (hassrc.not)  {
+                        [\hassrc, hassrc].debug(\matrix);
 						destNode.mix(i, srcNode, val);
 					};
 					destNode.set(srcNode.key, val);

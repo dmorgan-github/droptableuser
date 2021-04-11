@@ -38,7 +38,7 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
     var myval = val ?? controlSpec.default;
 
     var stack, view;
-    var font = Font(size:8);
+    var font = Font(size:9);
     var label = if (key.asString.size > 0) {key ++ ": "}{""};
     var labelView = StaticText().string_(label)
     .font_(font)

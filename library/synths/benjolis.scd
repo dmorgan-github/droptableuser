@@ -69,7 +69,7 @@ SynthDef(\benjolis, {|freq1= 40, freq2=4, scale=1, rungler1=0.16, rungler2=0.0, 
 	]);
 
     output = LeakDC.ar(output);
-    output = Limiter.ar(output) * \amp.kr(-6.dbamp) * \vel.kr(1);
+    output = output * \amp.kr(-6.dbamp) * \vel.kr(1);
     output = Splay.ar(output, \spread.kr(1), center:\pan.kr(0));
 
     Out.ar(\out.kr(0), output);
