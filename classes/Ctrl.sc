@@ -418,8 +418,8 @@ Twister {
         var view = View()
         .layout_(
             GridLayout.rows(*cells).margins_(0).spacing_(0)
-        )
-        .palette_(QPalette.dark);
+        );
+        //.palette_(QPalette.dark);
 
         ^view.front;
     }

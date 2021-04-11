@@ -19,7 +19,7 @@ Fdef(\wave, {|buf|
     .gridColor_(gridcolor);
 
     var view = View().layout_(VLayout(sfv))
-    .palette_(QPalette.dark)
+    //.palette_(QPalette.dark)
     .minSize_(Size(200, 200));
 
     buf.loadToFloatArray(action:{|a|

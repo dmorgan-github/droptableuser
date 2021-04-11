@@ -12,7 +12,7 @@ synth: {arg sig_in;
     var sig = HPF.ar(in, \hpf.kr(20));
     sig = FbC({arg fb;
         fb.reverse * fblevel + sig
-    }, 4, [delL, delR] * tempo + [offsetL, offsetR]) * 2;
+    }, 4, [delL, delR] * tempo + [offsetL, offsetR]) * 1.5;
 
     //sig = Splay.ar(sig, \spread.ar(1), 1, center:\pan.ar(0));
     sig * \output.kr(1);

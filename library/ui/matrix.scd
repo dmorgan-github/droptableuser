@@ -96,7 +96,7 @@ Fdef(\matrix, {arg matrix;
                 {
                     var node = srcNode;
                     var view = View().layout_(VLayout().margins_(0).spacing_(0))
-                    .palette_(QPalette.dark)
+                    //.palette_(QPalette.dark)
                     .maxHeight_(10);
                     var scope = Stethoscope.new(s, view:view).style_(1)
                     .index_(node.bus.index)

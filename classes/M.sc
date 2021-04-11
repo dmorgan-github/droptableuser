@@ -1,7 +1,7 @@
 /*
 Matrix
 */
-M : Device {
+M : D {
 
     var <map;
 

@@ -22,7 +22,8 @@ Color(0.86381542682648, 0.81877591609955, 0.88744733333588)
 Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\scope, {arg node;
 
-	var view = View().layout_(VLayout().margins_(0).spacing_(0)).palette_(QPalette.dark);
+	var view = View().layout_(VLayout().margins_(0).spacing_(0));
+    //.palette_(QPalette.dark);
 	var baseViewFunc = Fdef(\baseview);
 	var baseview;
 	var key = node.key;

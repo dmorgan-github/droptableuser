@@ -1,4 +1,4 @@
-V : Device {
+V : D {
 
     var <>fx, <>synth, <vst;
 

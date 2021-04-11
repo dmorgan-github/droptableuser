@@ -1,10 +1,10 @@
-// TODO: inherit from NodeProxy instead of Ndef
+// Deprecated
 Device : Ndef {
 
 	*new {|key|
 
         var mykey = key ?? {"n_%".format(UniqueID.next).asSymbol};
-		var envir = this.dictFor(Server.default).envir.postln;
+		var envir = this.dictFor(Server.default).envir;
 		var res = envir[mykey];
 
 		if (res.isNil) {
@@ -28,9 +28,11 @@ Device : Ndef {
 		^super.new(*args);
 	}
 
+    /*
 	*doesNotUnderstand {|selector|
 		^this.new(selector);
 	}
+    */
 
 	deviceInit {
 		// override to initialize

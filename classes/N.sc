@@ -1,7 +1,7 @@
 /*
 Node
 */
-N : Device {
+N : D {
 
     var <uifunc, fx;
 

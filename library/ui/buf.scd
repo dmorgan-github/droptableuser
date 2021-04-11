@@ -45,8 +45,8 @@ Fdef(\buf, {arg node;
 	};
 
 	var view = View()
-	.layout_(VLayout().margins_(2).spacing_(2))
-	.palette_(QPalette.dark);
+	.layout_(VLayout().margins_(2).spacing_(2));
+	//.palette_(QPalette.dark);
 
 	sfv = SoundFileView()
 	.background_(Color.rand.alpha_(0.3))

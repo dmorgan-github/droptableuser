@@ -1,7 +1,7 @@
 /*
 Looper
 */
-O : Device {
+O : D {
 
     var <phase;
 

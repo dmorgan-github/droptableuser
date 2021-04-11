@@ -26,7 +26,7 @@ Fdef(\baseview, {arg view, title, w, h;
     view.addDependant(viewListener);
     win.layout = VLayout(outerview).margins_(0).spacing_(0);
     win.asView
-    .palette_(QPalette.dark)
+    //.palette_(QPalette.dark)
     .onClose_({
         view.removeDependant(viewListener);
     });

@@ -1,7 +1,7 @@
 R {
 
-    *rec {|src, buf|
-        var synth = Synth(\rec, [\buf, buf, \in, src, \preLevel, 0, \run, 1], addAction:\addToTail);
+    *rec {|bus, buf|
+        var synth = Synth(\rec, [\buf, buf, \in, bus, \preLevel, 0, \run, 1], addAction:\addToTail);
         synth.onFree({ {
             U(\wave, buf);
         }.defer });

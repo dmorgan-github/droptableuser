@@ -1,4 +1,4 @@
-G : Device {
+G : D {
 
     deviceInit {
         this.prBuild;
