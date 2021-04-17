@@ -1,112 +1,3 @@
-//from
-//https://gist.github.com/scztt/536ecc746d4afbfc4094d7e99f7e1c71
-+ Bus {
-    debugScope {
-        | title, names |
-        var w, ms, listArray, size=380, sliderLoc=0, routine, bus,
-        min=1000.0, max=(-1000.0), minBox, maxBox, val=0, valBox, synth, m, n, bottom,
-        playSynthFunction, cmdPeriodFunction;
-
-        cmdPeriodFunction = {};
-
-        title = title ? "bus %".format( index );
-
-        m = 0.0; n=0.0;
-        w = Window( title, Rect( 0, 0, 510, 510 ), scroll:true);
-        w.view.hasHorizontalScroller = false;
-
-        listArray = Array.fill(200,0.0) ! numChannels;
-
-        // playSynthFunction = {
-        // 	{ Out.kr( this.index, this.kr ) }.play(target: server.defaultGroup);
-        // };
-        // synth = playSynthFunction.();
-
-        ms = Array.newClear( numChannels );
-        maxBox = Array.newClear( numChannels );
-        minBox = Array.newClear( numChannels );
-        valBox = Array.newClear( numChannels );
-
-        min = 0 ! numChannels;
-        max = 0 ! numChannels;
-
-        numChannels.do({
-            | i |
-            var comp;
-            var margin = 5;
-            var y = (i*121);
-            comp = CompositeView( w, Rect( 0, y, 500, 120) )
-            .resize_(2)
-            .background_(Color.grey);
-            StaticText( comp, Rect( 20, 40, 350, 40 ))
-            .font_( Font("M+ 1c", 34) )
-            .stringColor_( Color.grey(0.8) )
-            .string_( names.notNil.if({ names[i] }, { i + index }) );
-            ms[i] = MultiSliderView( comp, Rect( 0, 0, 400, 120).insetBy(margin,margin) )
-            .value_(listArray[i])
-            .elasticMode_(true)
-            .editable_(false)
-            .background_(Color.clear)
-            .xOffset_(2)
-            .drawLines_(true)
-            .thumbSize_(1)
-            .drawRects_(false)
-            .resize_(2);
-            maxBox[i] = DragSink( comp, Rect(400, 0, 100, 24).insetBy(margin,margin))
-            .font_( Font("M+ 1c", 12) )
-            .mouseDownAction_({ |obj| max[i]=(-1000.0) })
-            .string_(" " + 0.asString)
-            .resize_(3);
-
-            minBox[i] = DragSink( comp, Rect(400, 120-24, 100, 24).insetBy(margin,margin))
-            .font_( Font("M+ 1c", 12) )
-            .mouseDownAction_({ |obj| min[i]=(1000.0) })
-            .string_(" " + 0.asString)
-            .resize_(3);
-
-            valBox[i] = DragSink( comp, Rect(400, 60-7, 100, 24).insetBy(margin,margin))
-            .font_( Font("M+ 1c", 12) )
-            .string_(" " + 0.asString)
-            .stringColor_(Color.green)
-            .resize_(3);
-
-            bottom = comp.bounds.top + comp.bounds.height;
-        });
-        w.bounds = w.bounds.height_( max( min( bottom+10, 510 ), 60 ) );
-
-        routine =  SkipJack({
-            var vals = this.getnSynchronous(this.numChannels).asArray;
-            vals.do({
-                | val, i |
-                var aMin, aMax;
-                if( val > max[i], {max[i] = val});
-                if( val < min[i], {min[i] = val});
-                minBox[i].string_( " " + min[i].asString[0..7] );
-                maxBox[i].string_( " " + max[i].asString[0..7] );
-                valBox[i].string_(" " + val.asString[0..7] );
-                listArray[i] = listArray[i].copyRange(1, 198) ++ [val];
-                ms[i].value_( (listArray[i]-min[i])/(max[i]-min[i]) );
-            })
-        },
-        dt: 0.1,
-        name: "debugScope",
-        clock: AppClock
-        );
-        routine.start;
-
-        CmdPeriod.add(cmdPeriodFunction);
-
-
-        w.onClose = {
-            routine.stop;
-            synth.free;
-            CmdPeriod.remove(cmdPeriodFunction);
-        };
-
-        w.front;
-    }
-}
-
 + AbstractFunction {
     pchoose {|iftrue, iffalse|
         ^Pif(Pfunc(this), iftrue, iffalse)
@@ -167,12 +58,17 @@
     s {|...args| ^Pbindf(this, *args)}
     c {|...args| ^Pchain(this, *args) }
     octave {|val| ^Pbindf(this, \octave, val)}
+    atk {|val| ^Pbindf(this, \atk, val)}
+    dec {|val| ^Pbindf(this, \dec, val)}
+    rel {|val| ^Pbindf(this, \rel, val)}
+    suslevel {|val| ^Pbindf(this, \suslevel, val)}
+    curve {|val| ^Pbindf(this, \curve, val)}
     harmonic {|val| ^Pbindf(this, \harmonic, val)}
     amp {|val| ^Pbindf(this, \amp, val)}
     vel {|val| ^Pbindf(this, \vel, val)}
     detunehz {|val| ^Pbindf(this, \detunehz, val)}
-    mtranspose {|val| ^Pbindf(this, \mtranspose, val)}
-    legato {|val| ^Pbindf(this, \legato, val)}
+    //mtranspose {|val| ^Pbindf(this, \mtranspose, val)}
+    //legato {|val| ^Pbindf(this, \legato, val)}
     degree {|val| ^Pbindf(this, \degree, val)}
     every {|beats, maxdur, lag=0, repeats=inf|
         ^Pseq([
@@ -375,11 +271,13 @@
         ^this.getKeysValues.flatten.asDict;
     }
 
+    /*
     preset {
         var key = this.key;
         NdefPreset(key); // make a preset instance
         ProxyPresetGui(NdefPreset(key)); // and it's GUI. stores preset as text file
     }
+    */
 
     fx {|index, fx|
 

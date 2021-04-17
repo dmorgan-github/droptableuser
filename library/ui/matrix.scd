@@ -137,15 +137,6 @@ Fdef(\matrix, {arg matrix;
                 .fixedSize_(20)
                 .icon_(Image.new(App.librarydir ++ "images/noun_Delete_1982479.png")),
 
-                /*
-                Button()
-                .action_({
-                    srcNode.nscope
-                })
-                .fixedSize_(20)
-                .icon_(Image.new(App.librarydir ++ "images/noun_pulse_1464765.png")),
-                */
-
 				if (srcNode.isKindOf(NodeProxy)) {
 					playView.(srcNode)
 				} {
@@ -164,12 +155,12 @@ Fdef(\matrix, {arg matrix;
 				var destNode = data[j];
 				var val = 0;
 				var hassrc = false;
-				if (destNode[i].isNil.not) {
+				if (destNode[i].notNil) {
 					hassrc = true;
 					val = destNode.get(srcNode.key);
 				};
 				ctrlview = ctrlView.("", [0, 1, \lin, 0, 0].asSpec, colors[j], val, {arg key, val;
-					if (hassrc.not)  {
+					if (destNode[i].isNil/*hassrc.not*/)  {
                         [\hassrc, hassrc].debug(\matrix);
 						destNode.mix(i, srcNode, val);
 					};
@@ -211,7 +202,12 @@ Fdef(\matrix, {arg matrix;
 	matrix.addDependant(listener);
 	matrixPlayView = playView.(matrix);//.addDependant(viewListener);
 
-	view.layout.add(matrixPlayView);
+    view.layout.add(
+        HLayout(
+            matrixPlayView,
+            Button().action_({ U(\matrixgraph, matrix) })
+        )
+    );
 	outergrid.layout.add(gridview);
 	view.layout.add(outergrid);
 

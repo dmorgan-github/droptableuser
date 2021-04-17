@@ -7,6 +7,7 @@ Fdef(\buf, {arg node;
 	var id = UniqueID.next;
 	var baseview;
 	var baseViewFunc = Fdef(\baseview);
+    var playview = Fdef(\playview);
 	var key = node.key;
 	var buf = node.get(\buf).debug("buf for %".format(key));
 	var numframes = buf.numFrames;
@@ -48,6 +49,10 @@ Fdef(\buf, {arg node;
 	.layout_(VLayout().margins_(2).spacing_(2));
 	//.palette_(QPalette.dark);
 
+    /*
+    To zoom in/out: Shift + right-click + mouse-up/down
+    To scroll: right-click + mouse-left/right
+    */
 	sfv = SoundFileView()
 	.background_(Color.rand.alpha_(0.3))
 	.timeCursorOn_(true)
@@ -85,6 +90,8 @@ Fdef(\buf, {arg node;
 		}.defer;
 	}, osckey);
 
+    playview = playview.(node);//.addDependant(viewListener);
+    view.layout.add(playview);
 	view.layout.add(
 		RangeSlider()
 		.orientation_(\horizontal)

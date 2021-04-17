@@ -41,6 +41,7 @@ B {
         var buf = Buffer.alloc(Server.default, numFrames, numChannels);
         all.put(key, buf);
         "allocated buffer with key: %".format(key).inform;
+        ^buf;
     }
 
     *open {|channels=0|

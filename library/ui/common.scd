@@ -167,6 +167,11 @@ Fdef(\playview, {arg node;
     var levelView, setAmps, skipjack;
     var uv, preAmp = 0, postAmp = 0;
     var height = 20;
+    var volspec = [0, 2, \lin, 0, 1].asSpec;
+
+    var onrec = {|buf|
+        O( (node.key ++ '_loopr').asSymbol ).set(\buf, buf).view;
+    };
 
     view = View().layout_(
 
@@ -192,11 +197,11 @@ Fdef(\playview, {arg node;
             .thumbSize_(7)
             .action_({arg ctrl;
                 var msg;
-                node.vol = ctrl.value;
+                node.vol = volspec.map(ctrl.value);
                 msg = "vol:" + node.vol.trunc(0.001);
                 view.changed(\prop, (key:\vol, val:msg));
             })
-            .value_(node.vol)
+            .value_(volspec.unmap(node.vol))
             .fixedHeight_(height)
             .fixedWidth_(75)
             .toolTip_("vol")
@@ -211,7 +216,7 @@ Fdef(\playview, {arg node;
             })
             .font_(font)
             //.normalColor_(Color.white)
-            .background_(Color.gray)
+            //.background_(Color.gray)
             .decimals_(2)
             .fixedWidth_(35)
             .fixedHeight_(height-2)
@@ -226,12 +231,57 @@ Fdef(\playview, {arg node;
             })
             .font_(font)
             //.normalColor_(Color.white)
-            .background_(Color.gray)
+            //.background_(Color.gray)
             .decimals_(0)
             .fixedWidth_(25)
             .fixedHeight_(height-2)
-            .value_(0)
+            .value_(node.monitor.out)
             .toolTip_("channel"),
+
+            Button()
+            .action_({
+                node.rec(cb:onrec)
+            })
+            .fixedSize_(Size(height, height))
+            .icon_(Image.new(App.librarydir ++ "images/noun_Record_1939983.png"))
+            .toolTip_("record")
+            .setContextMenuActions(
+                MenuAction("loopr", {|action|
+                    onrec = {|buf|
+                        O( (node.key ++ '_loopr').asSymbol ).set(\buf, buf).view;
+                    };
+                }),
+                MenuAction("grainr", {|action|
+                    onrec = {|buf|
+                        G( (node.key ++ '_grainr').asSymbol ).set(\buf, buf).view;
+                    };
+                })
+            ),
+
+            NumberBox()
+            .minWidth_(20)
+            .decimals_(0)
+            .fixedWidth_(25)
+            .fixedHeight_(height-2)
+            .value_(4)
+            .toolTip_("seconds"),
+
+            Button()
+            .states_([ ["M"] ])
+            .action_({
+                var key = (node.key ++ '_matrix').asSymbol;
+                M(key).addSrc(node);
+                M(key).view;
+            })
+            .toolTip_("matrix"),
+
+            Button()
+            .states_([ ["C"] ])
+            .action_({
+                "echo % | pbcopy".format(node.key).systemCmd;
+            })
+            .toolTip_("copy key to clipboard"),
+
             nil
         )
         .spacing_(1)
