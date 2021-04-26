@@ -2,6 +2,7 @@
     pchoose {|iftrue, iffalse|
         ^Pif(Pfunc(this), iftrue, iffalse)
     }
+    pfunc { ^Pfunc(this) }
 }
 
 + Integer {
@@ -67,9 +68,10 @@
     amp {|val| ^Pbindf(this, \amp, val)}
     vel {|val| ^Pbindf(this, \vel, val)}
     detunehz {|val| ^Pbindf(this, \detunehz, val)}
-    //mtranspose {|val| ^Pbindf(this, \mtranspose, val)}
-    //legato {|val| ^Pbindf(this, \legato, val)}
+    mtranspose {|val| ^Pbindf(this, \mtranspose, val)}
+    legato {|val| ^Pbindf(this, \legato, val)}
     degree {|val| ^Pbindf(this, \degree, val)}
+    strum {|val| ^Pbindf(this, \strum, val)}
     every {|beats, maxdur, lag=0, repeats=inf|
         ^Pseq([
             Psync(Plag(lag, this.finDur(maxdur)), beats, beats)
@@ -371,9 +373,6 @@
 + S {
     kb {
         ^U(\kb, this);
-    }
-    view {
-        ^U(\sgui, this);
     }
     nscope {
         ^U(\scope, this.node);

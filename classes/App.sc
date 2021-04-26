@@ -24,14 +24,9 @@ App {
     }
 
     *recAtCommit {arg dir="", commit="";
-
-        var filepath = "%/%/".format(Platform.recordingsDir, dir);
-        if (File.exists(filepath).not) {
-            File.mkdir(filepath);
-        };
-
-        filepath = filepath ++ "%_%.aiff".format(commit, Date.getDate.asSortableString);
-        Server.default.record(filepath);
+        var filepath = Platform.recordingsDir;
+        filepath = filepath ++ "%.wav".format(commit);
+        Server.default.record(filepath, bus:D.defaultout, numChannels:2 );
     }
 
     *saveWorkspace {arg name = "", folder = "~/Documents/supercollider/workspaces".standardizePath, rec = true, envir;

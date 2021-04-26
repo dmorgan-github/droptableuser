@@ -320,7 +320,7 @@ TwisterKnob {
         val = if (val.isNumber) {val} {0.0};
         val.postln;
 
-        nb = NumberBox();
+        nb = NumberBox().normalColor_(Color.black);
         knob = Knob();
         view = View().layout_(VLayout(
             StaticText().string_(label).align_(\center),

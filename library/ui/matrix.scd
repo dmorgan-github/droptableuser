@@ -59,7 +59,6 @@ Fdef(\matrix, {arg matrix;
 						matrix.addSrc(node);
 					});
 				})
-                /*
 				++ vsts.().collect({arg vst;
 					MenuAction(vst, {arg action;
 						var id = action.string;
@@ -68,7 +67,6 @@ Fdef(\matrix, {arg matrix;
 						matrix.addSrc(node);
 					})
 				})
-                */
 			)
 		);
 	};
@@ -120,9 +118,13 @@ Fdef(\matrix, {arg matrix;
 
                 StaticText().string_(srcNode.key).toolTip_(srcNode.key)
 				.mouseUpAction_({|ctrl, x, y, mod, num, click|
-					if (srcNode.respondsTo(\view)) {
-						srcNode.view;
-					}
+                    if (srcNode.respondsTo(\editor)) {
+                        srcNode.editor;
+                    } {
+                        if (srcNode.respondsTo(\view)) {
+                            srcNode.view;
+                        }
+                    }
                 }),
 
                 nil
@@ -205,7 +207,7 @@ Fdef(\matrix, {arg matrix;
     view.layout.add(
         HLayout(
             matrixPlayView,
-            Button().action_({ U(\matrixgraph, matrix) })
+            //Button().action_({ U(\matrixgraph, matrix) })
         )
     );
 	outergrid.layout.add(gridview);

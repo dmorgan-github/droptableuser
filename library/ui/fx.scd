@@ -2,7 +2,7 @@
 Require(App.librarydir ++ "ui/common.scd");
 Fdef(\fx, {|node, nodeviewfunc|
 
-	var view;
+	var view, playview;
 	var key = node.key;
 	var nodeview = nodeviewfunc.(node);
 

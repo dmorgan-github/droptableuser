@@ -68,7 +68,8 @@ O : D {
 		this.wakeUp;
 	}
 
-    view {
-        ^U(\buf, this)
+    view {|index|
+       //super.view(index);
+       U(\buf, this)
     }
 }

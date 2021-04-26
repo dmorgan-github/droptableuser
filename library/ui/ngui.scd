@@ -1,6 +1,6 @@
 (
 Require(App.librarydir ++ "ui/common.scd");
-Fdef(\ngui, {arg node, customview;
+Fdef(\ngui, {arg node, customview, specs;
 
     var baseview, nodeListener;
     var win;
@@ -19,13 +19,16 @@ Fdef(\ngui, {arg node, customview;
     var ctrlViews = ();
 
     var getSpecs = {
-        var specs = ();
-        node.getSettings.keysValuesDo({|k, v|
-            specs[k.asSymbol] = node.getSpec(k.asSymbol) ?? { ControlSpec(0, 1, \lin, 0, 0) };
-            if (specs[k.asSymbol].units == "") {
-                specs[k.asSymbol].units = "z"
-            }
-        });
+        if (specs.isNil) {
+            specs = ();
+            node.getSettings.keysValuesDo({|k, v|
+                specs[k.asSymbol] = node.getSpec(k.asSymbol) ?? { ControlSpec(0, 1, \lin, 0, 0) };
+                if (specs[k.asSymbol].units == "") {
+                    specs[k.asSymbol].units = "z"
+                }
+            });
+        };
+
         specs;
     };
 

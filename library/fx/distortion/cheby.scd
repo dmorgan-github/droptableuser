@@ -22,6 +22,7 @@ specs: [
 ],
 ui: {|node|
 
+    var foo = {\here.postln;}.();
     var key = node.key;
     var harms = [1, 0, 0, 0, 0, 0, 0];
     var buf = {
@@ -36,6 +37,7 @@ ui: {|node|
         buf;
     }.();
 
+    var foo2 = {\here2.postln;}.();
     var view;
     var fxview;
     var knob = {|num|
@@ -62,7 +64,11 @@ ui: {|node|
         view;
     };
 
+    var foo3 = {\here3.postln;}.();
+
     node.set(\buf, buf);
+
+    {\here4.postln;}.();
 
     view = View().layout_(HLayout(
         *[1, 2, 3, 4, 5, 7].collect({|i|
@@ -70,9 +76,16 @@ ui: {|node|
         })
     ));
 
+    {\here5.postln;}.();
+
     view.layout.add(Button().string_("plot").action_({ buf.plot }));
 
+    {\here6.postln;}.();
+
     Require(App.librarydir ++ "ui/fx.scd");
+
+    {\here7.postln;}.();
+
     fxview = Fdef(\fx).(node, view);
     fxview.front;
 };

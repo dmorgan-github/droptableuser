@@ -65,7 +65,7 @@ synth: {arg sig_in;
 specs: [
     \inputgain -> ControlSpec(-96, 24, \lin, 0, 0, units:"fx"),
     \feedback -> ControlSpec(0, 100, \lin, 0, 30, units:"fx"),
-    \numtaps -> ControlSpec(2, 128, \lin, 0, 1, units:"fx"),
+    \numtaps -> ControlSpec(2, 128, \lin, 1, 1, units:"fx"),
     \firstdelay -> ControlSpec(0, 5, \lin, 0, 1, units:"fx"),
     \delayrange -> ControlSpec(0.0001, 6, \lin, 0, 1, units:"fx"),
     \delaychange -> ControlSpec(0.2, 5, \lin, 0, 1, units:"fx"),

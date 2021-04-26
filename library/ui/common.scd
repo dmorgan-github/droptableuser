@@ -266,6 +266,7 @@ Fdef(\playview, {arg node;
             .value_(4)
             .toolTip_("seconds"),
 
+            /*
             Button()
             .states_([ ["M"] ])
             .action_({
@@ -281,6 +282,7 @@ Fdef(\playview, {arg node;
                 "echo % | pbcopy".format(node.key).systemCmd;
             })
             .toolTip_("copy key to clipboard"),
+            */
 
             nil
         )

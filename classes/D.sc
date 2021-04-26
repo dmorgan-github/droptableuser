@@ -6,6 +6,8 @@ D : NodeProxy {
 
     classvar <all, <defaultout;
 
+    var <chain;
+
     var <>key;
 
     *new {|key|
@@ -66,6 +68,7 @@ D : NodeProxy {
 
     prInit {|argKey|
         key = argKey;
+        chain = Order.new;
         ^this.deviceInit
     }
 
@@ -85,6 +88,83 @@ D : NodeProxy {
         this.monitor.out = bus;
     }
 
+    fx {|index, fx|
+
+        if (fx.isNil) {
+            this[index] = nil;
+            this.chain.removeAt(index);
+        }{
+            var info = (
+                key: fx,
+            );
+
+            if (fx.isFunction) {
+                this.filter(index, fx);
+                info[\key] = "fx_%".format(index).asSymbol;
+            }{
+                var obj = N.loadFx(fx);
+                var func = obj[\synth];
+                var specs = obj[\specs];
+                var customui = obj[\ui];
+                this.filter(index, func);
+                if (specs.isNil.not) {
+                    info[\specs] = ();
+                    specs.do({|assoc|
+                        this.addSpec(assoc.key, assoc.value);
+                        info[\specs][assoc.key] = assoc.value;
+                    });
+                };
+                info[\customui] = customui;
+            };
+            this.addSpec("wet%".format(index).asSymbol, [0, 1, \lin, 0, 1].asSpec);
+
+            if (info[\specs].isNil ) {
+                var def = this.objects[index];//.synthDef
+                var controls = def.controlNames.reject({|cn| this.internalKeys.includes(cn.name) });
+                var specs = ();
+                controls.do({|cn|
+                    var key = cn.name;
+                    var spec = if (this.specs[key].notNil){
+                        this.specs[key];
+                    }{
+                        if (Spec.specs[key].notNil) {
+                            Spec.specs[key]
+                        }{
+                            [0, 1].asSpec
+                        }
+                    };
+                    specs[key] = spec;
+                });
+                info[\specs] = specs;
+            };
+            info[\specs]["wet%".format(index).asSymbol] = [0, 1, \lin, 0, 1].asSpec;
+
+            this.chain.put(index, info);
+            "added % at index %".format(fx, index).postln;
+        }
+    }
+
+    appendFx {|fx|
+        var slot = this.objects
+        .indices
+        .select({|val| val >= 200 and: {val < 300}  }).maxItem ?? {199};
+        slot = slot + 1;
+        this.fx(slot, fx);
+    }
+
+    view {|index|
+        U(\ngui, this);
+
+        /*
+        if (index.isNil) {
+            U(\ngraph, this);
+        }{
+            var specs = this.chain[index][\specs];
+            var uifunc = this.chain[index][\customui];
+            U(\ngui, this, uifunc.(this), specs);
+        }
+        */
+    }
 
     rec {|beats=4, preLevel=0, cb|
 
@@ -100,6 +180,7 @@ D : NodeProxy {
             var synth = Synth(\rec, [\buf, buf, \in, bus, \preLevel, preLevel, \run, 1], target:group, addAction:\addToTail);
             synth.onFree({
                 {
+                    "buffer saved to %".format(this.key).postln;
                     cb.(buf);
                 }.defer
             });

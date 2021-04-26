@@ -48,23 +48,20 @@ S : EventPatternProxy {
 
     fx {|index, fx, wet=1|
 
-        if (fx.isNil) {
-            node[index] = nil;
+        // TODO: move this logic to fx method of D
+        if (fx.asString.beginsWith("vst/")) {
+            var vst = fx.asString.split($/)[1..].join("/").asSymbol;
+            node.vst(index, vst, cb:{|ctrl|
+                vstctrls.put(index, ctrl);
+            });
         }{
-            if (fx.isFunction) {
-                node.filter(index, fx);
-            }{
-                if (fx.asString.beginsWith("vst/")) {
-                    var vst = fx.asString.split($/)[1..].join("/").asSymbol;
-                    node.vst(index, vst, cb:{|ctrl|
-                        vstctrls.put(index, ctrl);
-                    });
-                }{
-                    node.fx(index, fx);
-                };
-            };
-            node.set("wet%".format(index).asSymbol, wet);
+            node.fx(index, fx);
         };
+        node.set("wet%".format(index).asSymbol, wet);
+    }
+
+    view {
+        ^U(\ngraph, this.node);
     }
 
     quant_ {|quant|

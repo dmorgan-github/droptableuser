@@ -28,14 +28,21 @@ Fdef(\matrixgraph, {|matrix|
     .mouseUpAction_({|ctrl|
 
         if (ctrl.selection.size == 2) {
-
             var order = ctrl.selection.indexOf(ctrl.lastIndex);
             if (order == 0) {
                 var sel = ctrl.selection.reverse;
-                ev.connect(sel[0], sel[1].asArray);
+                var src = sel[0];
+                var dest = sel[1];
+                ev.connect(src, dest.asArray);
+                matrix.map[dest].mix(src, matrix.map[src], 1);
+                matrix.map[src].stop;
             } {
                 var sel = ctrl.selection;
-                ev.connect(sel[0], sel[1].asArray);
+                var src = sel[0];
+                var dest = sel[1];
+                ev.connect(src, dest.asArray);
+                matrix.map[dest].mix(src, matrix.map[src], 1);
+                matrix.map[src].stop;
             }
         }
 
@@ -75,13 +82,13 @@ Fdef(\matrixgraph, {|matrix|
             paths.collect({arg path;
                 var name = path.folderName ++ '/' ++ path.fileNameWithoutExtension;
                 MenuAction( name, {arg action, what, value;
-                    //[action.string, what, value].postln;
-
                     var index, values;
                     var id = action.string;
                     var nodeid = path.fileNameWithoutExtension;
                     var node = N((nodeid ++ '_' ++ UniqueID.next).asSymbol).fx_(id.asSymbol);
                     matrix.addSrc(node);
+                    node.play;
+
                     values = ev.value;
                     index = values[0].size;
 
@@ -140,8 +147,6 @@ Fdef(\matrixgraph, {|matrix|
     });
 
     playview = playview.(matrix);
-
-    ~ev = ev;
 
     view.layout.add(playview);
     view.layout.add(ev);

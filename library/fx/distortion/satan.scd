@@ -25,7 +25,7 @@ synth: {arg sig_in;
     ) * \output.ar(1);
 },
 specs: [
-    \decay -> ControlSpec(2, 30, \lin, 0, 60, units:"fx"),
+    \decay -> ControlSpec(2, 30, \lin, 0, 10, units:"fx"),
     \kneepointL -> ControlSpec(-90, 1, \lin, 0, -30, units:"fx"),
     \kneepointR -> ControlSpec(-90, 1, \lin, 0, -30, units:"fx"),
     \spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),

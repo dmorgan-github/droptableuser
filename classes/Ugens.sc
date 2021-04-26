@@ -1,3 +1,30 @@
+Modal {
+
+    *ar {|freq, harm=0, bright=0.5, morph=0|
+
+        var sig;
+        var exciter;
+        var k = (1..8);
+        var ratio = {
+            var val = k * (1 + ((k-1) * harm));
+            val/val[0];
+        }.();
+
+        bright = bright.linlin(0, 1, 80, 8000);
+        exciter = LPF.ar(Impulse.ar(0), bright);
+        morph = morph.linlin(0, 1, 1, 100);
+
+        sig = DynKlank.ar(`[
+            ratio,
+            (k * -3).dbamp,
+            ratio.squared.reciprocal * 5;
+        ], exciter, freq, decayscale: morph);
+
+        ^sig;
+    }
+}
+
+
 LoopBufCF {
 
     *ar {|numChannels=1, bufnum=0, rate=1.0, trigger=0.0, startPos=0.0, endPos=1.0, resetPos=0.0, ft=0.05|
@@ -30,3 +57,42 @@ LoopBufCF {
     }
 }
 
+/*
+# 1408 Barry's Satan Maximiser
+> k: Decay time (samples) (2 to 30)
+> k: Knee point (dB) (-90 to 0)
+> a: Input
+< a: Output
+*/
+Satan {
+
+    *ar {|in, decay=10, kneepointL=(-30), kneepointR=(-30)|
+        var sig = LADSPA.ar(1, 1408,
+            decay,
+            [
+                kneepointL,
+                kneepointR
+            ],
+            in
+        );
+
+        ^LeakDC.ar(sig);
+    }
+}
+
+ReverseDelay {
+
+    *ar {|in, delayL=1, delayR=1, feedbackL=(0.5), feedbackR=(0.5), crossfade=20|
+
+        var sig = LADSPA.ar(1, 1605,
+            in,
+            [delayL, delayR],
+            -60, // dry
+            0, // wet
+            [feedbackL, feedbackR],
+            crossfade
+        );
+
+        ^sig;
+    }
+}
