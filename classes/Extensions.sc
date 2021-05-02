@@ -40,7 +40,7 @@
     ppar {|repeats=inf| ^Ppar(this, repeats)}
     ptpar {|repeats=inf| ^Ptpar(this, repeats)}
 
-    playTimeline {|clock|
+    playTimeline {|clock=(TempoClock.default)|
         this.collect({|assoc|
             var beat = assoc.key;
             var func = assoc.value;
@@ -281,6 +281,7 @@
     }
     */
 
+    /*
     fx {|index, fx|
 
         if (fx.isNil) {
@@ -298,10 +299,10 @@
             this.addSpec("wet%".format(index).asSymbol, [0, 1, \lin, 0, 1].asSpec);
             "added % at index %".format(fx, index).postln;
         }
-
     }
+    */
 
-    vst {|index, vst, id, cb|
+    /*vst {|index, vst, id, cb|
 
         var node = this;
 
@@ -365,9 +366,8 @@
                 }
 
             }).play;
-
         }
-    }
+    }*/
 }
 
 + S {

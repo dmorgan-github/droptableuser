@@ -7,9 +7,11 @@ S : EventPatternProxy {
 
     var <node, <cmdperiodfunc, <synthdef;
 
-    var <instrument, <ptrn, <out, <hasGate;
+    var <instrument, <ptrn, <ptrnproxy, <out, <hasGate;
 
-    var <vstctrls, <key, isMono=false, <synths, <>debug=false;
+    var <key, isMono=false, <synths, <>debug=false;
+
+    var context, contextval;
 
     *new {|key|
 
@@ -21,7 +23,12 @@ S : EventPatternProxy {
         };
         res = all[key];
         if (res.isNil) {
-            res = super.new.prInit(key).synth(\default);
+            var def = SynthDescLib.global.at(key);
+            var instr = \default;
+            if (def.notNil)  {
+                instr = key;
+            };
+            res = super.new.prInit(key).synth(instr);
             all[key] = res;
         };
 
@@ -32,8 +39,120 @@ S : EventPatternProxy {
 		^this.new(selector);
 	}
 
+    *hh {
+        var obj = S(\hh).mono(\plaits_mono);
+        obj.set(
+            \engine, 15,
+            \harm, 0.5,
+            \timbre, 0.91,
+            \morph, 0.2,
+        );
+        ^obj;
+    }
+
+    *sd {
+        var obj = S(\sd).mono(\plaits_mono);
+        obj.set(
+            \engine, 14,
+            \harm, 0.94,
+            \timbre, 0.17,
+            \morph, 0,
+        );
+        ^obj;
+    }
+
+    *bd {
+        var obj = S(\bd).mono(\plaits_mono);
+        obj.set(
+            \engine, 13,
+            \octave, 3,
+            \harm, 0.32,
+            \timbre, 0.8,
+            \morph, 0.17,
+        );
+        ^obj;
+    }
+
     << {|pattern|
+        if (pattern.isKindOf(Array)) {
+            pattern = pattern.p;
+        };
+
         ptrn.source = pattern;
+    }
+
+    // experimental syntax
+    @ {|val, adverb|
+
+        if (adverb.isNil and: val.isKindOf(Array)) {
+            this.pset(*val);
+        } {
+
+            if (adverb.isNil) {
+                context.add(\prop);
+                contextval.add(val);
+            } {
+                switch(adverb,
+                    // TODO: refactor this
+                    \deg, {
+                        this.pset(\degree, val);
+                    },
+                    \dur, {
+                        this.pset(\dur, val);
+                    },
+                    \oct, {
+                        this.pset(\octave, val);
+                    },
+                    \leg, {
+                        this.pset(\legato, val);
+                    },
+                    \fx, {
+                        context.add(\fx);
+                        contextval.add(val);
+                    },
+                    {
+                        this.pset(adverb, val);
+                    }
+                );
+            };
+        }
+    }
+
+    -> {|val|
+        var cntx = context.pop;
+        var cntxval = contextval.pop;
+        if (cntx == \fx) {
+            this.fx(cntxval, val);
+        } {
+           this.pset(cntxval, val.value);
+        }
+    }
+
+    pset {|...args|
+
+        var pairs;
+        if (args.size.even.not) {
+            Error("args must be even number").throw;
+        };
+
+        pairs = args.collect({arg v, i;
+            if (i.even) {
+                v;
+            }{
+                var k = args[i-1];
+                if (v.isFunction) {
+                    var lfo;
+                    var key = "lfo_%".format(this.key);
+                    var lfokey = (key ++ '_' ++ k).asSymbol;
+                    "creating lfo node %".format(lfokey).debug(this.key);
+                    Ndef(lfokey, v);
+                }{
+                    v
+                }
+            }
+        });
+
+        ptrnproxy.source.set(*pairs);
     }
 
     synth {|synth, template=\adsr|
@@ -47,17 +166,7 @@ S : EventPatternProxy {
     }
 
     fx {|index, fx, wet=1|
-
-        // TODO: move this logic to fx method of D
-        if (fx.asString.beginsWith("vst/")) {
-            var vst = fx.asString.split($/)[1..].join("/").asSymbol;
-            node.vst(index, vst, cb:{|ctrl|
-                vstctrls.put(index, ctrl);
-            });
-        }{
-            node.fx(index, fx);
-        };
-        node.set("wet%".format(index).asSymbol, wet);
+        node.fx(index, fx, wet);
     }
 
     view {
@@ -79,6 +188,10 @@ S : EventPatternProxy {
 
     off {arg midinote;
         this.prNoteOff(midinote);
+    }
+
+    vstctrls {
+        ^this.node.vstctrls;
     }
 
     *def {|inKey, inFunc, inTemplate=\adsr|
@@ -124,8 +237,9 @@ S : EventPatternProxy {
 
         debug = false;
         key = argKey;
-        vstctrls = Order.new;
         instrument = \default;
+        context = List.new;
+        contextval = List.new;
         node = D(key);
         node.play;
 
@@ -170,6 +284,7 @@ S : EventPatternProxy {
 
         var chain;
 
+        ptrnproxy = EventPatternProxy(PbindProxy()).quant_(this.quant);
         ptrn = EventPatternProxy(Pbind()).quant_(this.quant);
 
         chain = Pbind(
@@ -190,6 +305,7 @@ S : EventPatternProxy {
                 1
             })
         )
+        <> ptrnproxy
         <> ptrn
         <> Pbind(
             \out, Pfunc({node.bus.index}),

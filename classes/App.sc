@@ -23,7 +23,7 @@ App {
         ^str
     }
 
-    *recAtCommit {arg dir="", commit="";
+    *recAtCommit {|commit|
         var filepath = Platform.recordingsDir;
         filepath = filepath ++ "%.wav".format(commit);
         Server.default.record(filepath, bus:D.defaultout, numChannels:2 );

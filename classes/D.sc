@@ -6,7 +6,7 @@ D : NodeProxy {
 
     classvar <all, <defaultout;
 
-    var <chain;
+    var <chain, <vstctrls;
 
     var <>key;
 
@@ -69,6 +69,7 @@ D : NodeProxy {
     prInit {|argKey|
         key = argKey;
         chain = Order.new;
+        vstctrls = Order.new;
         ^this.deviceInit
     }
 
@@ -88,7 +89,7 @@ D : NodeProxy {
         this.monitor.out = bus;
     }
 
-    fx {|index, fx|
+    fx {|index, fx, wet=1|
 
         if (fx.isNil) {
             this[index] = nil;
@@ -102,45 +103,123 @@ D : NodeProxy {
                 this.filter(index, fx);
                 info[\key] = "fx_%".format(index).asSymbol;
             }{
-                var obj = N.loadFx(fx);
-                var func = obj[\synth];
-                var specs = obj[\specs];
-                var customui = obj[\ui];
-                this.filter(index, func);
-                if (specs.isNil.not) {
-                    info[\specs] = ();
-                    specs.do({|assoc|
-                        this.addSpec(assoc.key, assoc.value);
-                        info[\specs][assoc.key] = assoc.value;
+                if (fx.asString.beginsWith("vst/")) {
+                    var vst = fx.asString.split($/)[1..].join("/").asSymbol;
+                    this.vst(index, vst, cb:{|ctrl|
+                        vstctrls.put(index, ctrl);
                     });
+                }{
+                    var obj = N.loadFx(fx);
+                    var func = obj[\synth];
+                    var specs = obj[\specs];
+                    var customui = obj[\ui];
+                    this.filter(index, func);
+                    if (specs.isNil.not) {
+                        info[\specs] = ();
+                        specs.do({|assoc|
+                            this.addSpec(assoc.key, assoc.value);
+                            info[\specs][assoc.key] = assoc.value;
+                        });
+                    };
+                    info[\customui] = customui;
                 };
-                info[\customui] = customui;
             };
             this.addSpec("wet%".format(index).asSymbol, [0, 1, \lin, 0, 1].asSpec);
+            this.set("wet%".format(index).asSymbol, wet);
 
-            if (info[\specs].isNil ) {
-                var def = this.objects[index];//.synthDef
-                var controls = def.controlNames.reject({|cn| this.internalKeys.includes(cn.name) });
-                var specs = ();
-                controls.do({|cn|
-                    var key = cn.name;
-                    var spec = if (this.specs[key].notNil){
-                        this.specs[key];
-                    }{
-                        if (Spec.specs[key].notNil) {
-                            Spec.specs[key]
+            // defer to accommodate latency for vst
+            {
+                if (info[\specs].isNil) {
+                    var def = this.objects[index];//.synthDef
+                    var controls = def.controlNames.reject({|cn| this.internalKeys.includes(cn.name) });
+                    var specs = ();
+                    controls.do({|cn|
+                        var key = cn.name;
+                        var spec = if (this.specs[key].notNil){
+                            this.specs[key];
                         }{
-                            [0, 1].asSpec
-                        }
-                    };
-                    specs[key] = spec;
-                });
-                info[\specs] = specs;
-            };
-            info[\specs]["wet%".format(index).asSymbol] = [0, 1, \lin, 0, 1].asSpec;
+                            if (Spec.specs[key].notNil) {
+                                Spec.specs[key]
+                            }{
+                                [0, 1].asSpec
+                            }
+                        };
+                        specs[key] = spec;
+                    });
+                    info[\specs] = specs;
+                };
+                info[\specs]["wet%".format(index).asSymbol] = [0, 1, \lin, 0, 1].asSpec;
 
-            this.chain.put(index, info);
-            "added % at index %".format(fx, index).postln;
+                this.chain.put(index, info);
+                "added % at index %".format(fx, index).postln;
+            }.defer(1)
+        }
+    }
+
+    vst {|index, vst, id, cb|
+
+        var node = this;
+
+        if (vst.isNil) {
+            node[index] = nil;
+        }{
+            var mykey = node.key ?? "n%".format(node.identityHash.abs);
+            var vstkey = vst.asString.select({|val| val.isAlphaNum});
+            var nodekey = mykey.asString.replace("/", "_");
+            var key = "%_%".format(nodekey, vstkey).toLower.asSymbol;
+            var server = Server.default;
+            var nodeId, ctrl;
+
+            Routine({
+
+                if (node.objects[index].isNil) {
+
+                    var path = App.librarydir ++ "vst/" ++ vst.asString ++ ".scd";
+                    var pathname = PathName(path.standardizePath);
+                    var fullpath = pathname.fullPath;
+
+                    if (File.exists(fullpath)) {
+                        var name = pathname.fileNameWithoutExtension;
+                        var obj = File.open(fullpath, "r").readAllString.interpret;
+                        node.filter(index, obj[\synth]);
+                    } {
+                        node.filter(index, {|in|
+                            if (id.isNil.not) {
+                                VSTPlugin.ar(in, 2, id:id);
+                            }{
+                                VSTPlugin.ar(in, 2);
+                            }
+                        });
+                    };
+                    1.wait;
+                };
+
+                nodeId = node.objects[index].nodeID;
+                ctrl = if (node.objects[index].class == SynthDefControl) {
+                    var synthdef = node.objects[index].synthDef;
+                    var synth = Synth.basicNew(synthdef.name, server, nodeId);
+                    if (id.isNil.not) {
+                        VSTPluginController(synth, id:id, synthDef:synthdef);
+                    }{
+                        VSTPluginController(synth, synthDef:synthdef);
+                    }
+                }{
+                    var synth = Synth.basicNew(vst, server, nodeId);
+                    if (id.isNil.not) {
+                        VSTPluginController(synth, id:id);
+                    }{
+                        VSTPluginController(synth);
+                    }
+                };
+                ctrl.open(vst, verbose: true, editor:true);
+                "loaded %".format(key).postln;
+                if (cb.isNil.not) {
+                    cb.value(ctrl);
+                }{
+                    currentEnvironment[key] = ctrl;
+                }
+
+            }).play;
         }
     }
 
