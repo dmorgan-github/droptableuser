@@ -51,11 +51,9 @@ Fdef(\matrix, {arg matrix;
 				paths.collect({arg path;
 					var name = path.folderName ++ '/' ++ path.fileNameWithoutExtension;
 					MenuAction( name, {arg action, what, value;
-						//[action.string, what, value].postln;
 						var id = action.string;
 						var nodeid = path.fileNameWithoutExtension;
 						var node = N((nodeid ++ '_' ++ UniqueID.next).asSymbol).fx_(id.asSymbol);
-						node.postln;
 						matrix.addSrc(node);
 					});
 				})

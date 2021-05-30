@@ -90,10 +90,10 @@ Fdef(\transport, {|clock=(TempoClock.default)|
                 Button().states_([ [ "", nil, Color.grey ], ["", Color.black, Color.red] ])
                 .action_({|ctrl|
                     if (ctrl.value == 1) {
-                        Server.default.record( bus:D.defaultout, numChannels:2);
+                        W.record;
                         ctrl.icon = Image.new(App.librarydir ++ "images/noun_Stop_1939990.png");
                     }{
-                        Server.default.stopRecording;
+                        W.stopRecording;
                         ctrl.icon = Image.new(App.librarydir ++ "images/noun_Record_1939983.png");
                     }
                 })

@@ -6,10 +6,10 @@ Y {
     // generates all compositions of n
     //------------------------------------------------------------------------
     /*
-    ~comp.(4).do{|x| x.postln};
-    ~comp.(5).do{|x| x.postln};
-    ~comp.(6).do{|x| x.postln};
-    ~comp.(7).do{|x| x.postln};
+    Y.comp(4).do{|x| x.postln};
+    Y.comp(5).do{|x| x.postln};
+    Y.comp(6).do{|x| x.postln};
+    Y.comp(7).do{|x| x.postln};
     */
     *comp {|n|
         var res = List.new;
@@ -672,10 +672,10 @@ Y {
     //   f= function number 0 -> 2^m-1
     //------------------------------------------------------------------------
     /*
-    ~pfold.(15, 4, 1);
-    ~pfold.(31, 5, 0);
-    ~pfold.(3, 4, 5);
-    ~pfold.(4, 5, 6);
+    Y.pfold(15, 4, 1);
+    Y.pfold(31, 5, 0);
+    Y.pfold(3, 4, 5);
+    Y.pfold(4, 5, 6);
     */
     *pfold {|n, m, f|
         var res= List.new;

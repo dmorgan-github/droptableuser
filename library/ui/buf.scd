@@ -8,6 +8,7 @@ Fdef(\buf, {arg node;
 	var baseview;
 	var baseViewFunc = Fdef(\baseview);
     var playview = Fdef(\playview);
+    //var ctrlView = Fdef(\ctrlview);
 	var key = node.key;
 	var buf = node.get(\buf).debug("buf for %".format(key));
 	var numframes = buf.numFrames;
@@ -92,6 +93,9 @@ Fdef(\buf, {arg node;
 
     playview = playview.(node);//.addDependant(viewListener);
     view.layout.add(playview);
+    view.layout.add(
+        Button().action_({U(\ngui, node)})
+    );
 	view.layout.add(
 		RangeSlider()
 		.orientation_(\horizontal)

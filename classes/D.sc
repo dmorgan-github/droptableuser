@@ -77,6 +77,11 @@ D : NodeProxy {
 		^this.new(selector);
 	}
 
+    // syntactic sugar
+    @ {|val, adverb|
+        this.set(adverb, val);
+    }
+
     deviceInit {
         // override to initialize
     }
@@ -250,7 +255,7 @@ D : NodeProxy {
         // how to coordinate clocks?
         var clock = TempoClock.default;
         var seconds = clock.beatDur * beats;
-        var buf = B.alloc(this.key, seconds * Server.default.sampleRate, 1);
+        var buf = B.alloc("%_%".format(this.key, UniqueID.next), seconds * Server.default.sampleRate, 1);
         var bus = this.bus;
         var group = this.group;
 

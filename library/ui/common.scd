@@ -170,7 +170,9 @@ Fdef(\playview, {arg node;
     var volspec = [0, 2, \lin, 0, 1].asSpec;
 
     var onrec = {|buf|
-        O( (node.key ++ '_loopr').asSymbol ).set(\buf, buf).view;
+        var key = "%_%_%".format(node.key, "loopr", UniqueID.next).asSymbol;
+        O(key).set(\buf, buf);
+        currentEnvironment.put(key, O(key))
     };
 
     view = View().layout_(
@@ -245,10 +247,12 @@ Fdef(\playview, {arg node;
             .fixedSize_(Size(height, height))
             .icon_(Image.new(App.librarydir ++ "images/noun_Record_1939983.png"))
             .toolTip_("record")
+            /*
             .setContextMenuActions(
                 MenuAction("loopr", {|action|
                     onrec = {|buf|
-                        O( (node.key ++ '_loopr').asSymbol ).set(\buf, buf).view;
+                        var key = (node.key ++ '_loopr').asSymbol;
+                        O(key).set(\buf, buf).view;
                     };
                 }),
                 MenuAction("grainr", {|action|
@@ -256,7 +260,8 @@ Fdef(\playview, {arg node;
                         G( (node.key ++ '_grainr').asSymbol ).set(\buf, buf).view;
                     };
                 })
-            ),
+            )*/
+            ,
 
             NumberBox()
             .minWidth_(20)

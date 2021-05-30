@@ -186,7 +186,7 @@ TwisterKnob {
     var <device, <midiout;
     var <spec, <node, <ccNum, <ccMapFunc, <noteOnFunc, <noteOffFunc, <>label;
     var onkey, offkey, nodekey, cckey;
-    var view, nb, knob;
+    //var view, nb, knob;
 
     *new {|ccNum, device, midiout|
         ^super.new.prInit(ccNum, device, midiout);
@@ -297,10 +297,11 @@ TwisterKnob {
             MIDIdef.cc(cckey, {arg val, ccNum, chan, src;
                 ccMapFunc.(val, ccNum, chan);
                 {
-                    if (view.isNil.not and: {view.isClosed.not}) {
-                        knob.value_(val/127);
-                        nb.value_(spec.map(val/127));
-                    }
+                    //if (view.isNil.not and: {view.isClosed.not}) {
+                    //    knob.value_(val/127);
+                    //    nb.value_(spec.map(val/127));
+                    //}
+                    this.changed(this.label, val/127);
                 }.defer
             }, ccNum: num, chan:chan, srcID:srcid)
             .permanent_(true);
@@ -315,6 +316,7 @@ TwisterKnob {
         }
     }
 
+    /*
     asView {
         var val = node.get(\val);
         val = if (val.isNumber) {val} {0.0};
@@ -348,6 +350,7 @@ TwisterKnob {
         .background_(Color.blue.alpha_(0.2));
         ^view
     }
+    */
 
     prNormalize {arg str;
         ^str.toLower().stripWhiteSpace().replace(" ", "")

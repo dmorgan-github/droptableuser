@@ -22,6 +22,10 @@
     pshuf {arg num=1, repeats=inf; ^Pn(Pshuf(this, num), repeats) }
     step {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
     pdv {|repeats=inf, key='degree'| ^Pdv(this, key).repeat(repeats) }
+    cycle {|dur=4, len|
+        if (len.isNil) {len = dur};
+        ^Psync(this.p.finDur(len), dur, dur)
+    }
 
     pa {
         var a;
@@ -49,6 +53,41 @@
     }
 }
 
++ Object {
+
+    // pattern filtering at event level
+    every {|func|
+
+        ^Prout({|inval|
+            var stream = this.asStream;
+            var next = stream.next(inval.copy);
+            var iteration = 0;
+            while({next.notNil},{
+                var val = func.(next, iteration, inval);
+                inval = val.embedInStream(inval);
+                iteration = iteration + 1;
+                next = stream.next(inval);
+            });
+        })
+    }
+
+    sometimes {|val,prob=0.3|
+        ^Prout({|inval|
+            var stream = this.asStream;
+            var next = stream.next(inval.copy);
+            var valstream = val.asStream;
+            var probstream = prob.asStream;
+            var iteration = 0;
+            while({next.notNil},{
+                var new = if (probstream.next(inval).coin) {valstream.next(inval)}{next};
+                inval = new.embedInStream(inval);
+                iteration = iteration + 1;
+                next = stream.next(inval);
+            });
+        })
+    }
+}
+
 + Pattern {
     limit {arg num; ^Pfin(num, this.iter) }
     step {arg dur, repeats=inf; ^Pstep(this, dur, repeats)}
@@ -72,11 +111,23 @@
     legato {|val| ^Pbindf(this, \legato, val)}
     degree {|val| ^Pbindf(this, \degree, val)}
     strum {|val| ^Pbindf(this, \strum, val)}
-    every {|beats, maxdur, lag=0, repeats=inf|
-        ^Pseq([
-            Psync(Plag(lag, this.finDur(maxdur)), beats, beats)
-        ], repeats)
+    cycle {|dur=4, len|
+        if (len.isNil) {len = dur};
+        ^Psync(this.finDur(len), dur, dur)
     }
+
+    // filtering at cycle level
+    each {|func|
+        var cycle = 0;
+        ^Plazy({|evt|
+            var return;
+            //[\filt, cycle].postln;
+            return = func.(this, cycle, evt);
+            cycle = cycle + 1;
+            return;
+        })
+    }
+
     m {|name, value| ^Pmul(name, value, this)}
     a {|name, value| ^Padd(name, value, this)}
     //s {|name, value| ^Pset(name, value, this)}
@@ -272,102 +323,6 @@
     getSettings {
         ^this.getKeysValues.flatten.asDict;
     }
-
-    /*
-    preset {
-        var key = this.key;
-        NdefPreset(key); // make a preset instance
-        ProxyPresetGui(NdefPreset(key)); // and it's GUI. stores preset as text file
-    }
-    */
-
-    /*
-    fx {|index, fx|
-
-        if (fx.isNil) {
-            this[index] = nil;
-        }{
-            var obj = N.loadFx(fx);
-            var func = obj[\synth];
-            var specs = obj[\specs];
-            this.filter(index, func);
-            if (specs.isNil.not) {
-                specs.do({|assoc|
-                    this.addSpec(assoc.key, assoc.value);
-                })
-            };
-            this.addSpec("wet%".format(index).asSymbol, [0, 1, \lin, 0, 1].asSpec);
-            "added % at index %".format(fx, index).postln;
-        }
-    }
-    */
-
-    /*vst {|index, vst, id, cb|
-
-        var node = this;
-
-        if (vst.isNil) {
-            node[index] = nil;
-        }{
-            var mykey = node.key ?? "n%".format(node.identityHash.abs);
-            var vstkey = vst.asString.select({|val| val.isAlphaNum});
-            var nodekey = mykey.asString.replace("/", "_");
-            var key = "%_%".format(nodekey, vstkey).toLower.asSymbol;
-            var server = Server.default;
-            var nodeId, ctrl;
-
-            Routine({
-
-                if (node.objects[index].isNil) {
-
-                    var path = App.librarydir ++ "vst/" ++ vst.asString ++ ".scd";
-                    var pathname = PathName(path.standardizePath);
-                    var fullpath = pathname.fullPath;
-
-                    if (File.exists(fullpath)) {
-                        var name = pathname.fileNameWithoutExtension;
-                        var obj = File.open(fullpath, "r").readAllString.interpret;
-                        node.filter(index, obj[\synth]);
-                    } {
-                        node.filter(index, {|in|
-                            if (id.isNil.not) {
-                                VSTPlugin.ar(in, 2, id:id);
-                            }{
-                                VSTPlugin.ar(in, 2);
-                            }
-                        });
-                    };
-                    1.wait;
-                };
-
-                nodeId = node.objects[index].nodeID;
-                ctrl = if (node.objects[index].class == SynthDefControl) {
-                    var synthdef = node.objects[index].synthDef;
-                    var synth = Synth.basicNew(synthdef.name, server, nodeId);
-                    if (id.isNil.not) {
-                        VSTPluginController(synth, id:id, synthDef:synthdef);
-                    }{
-                        VSTPluginController(synth, synthDef:synthdef);
-                    }
-                }{
-                    var synth = Synth.basicNew(vst, server, nodeId);
-                    if (id.isNil.not) {
-                        VSTPluginController(synth, id:id);
-                    }{
-                        VSTPluginController(synth);
-                    }
-                };
-                ctrl.open(vst, verbose: true, editor:true);
-                "loaded %".format(key).postln;
-                if (cb.isNil.not) {
-                    cb.value(ctrl);
-                }{
-                    currentEnvironment[key] = ctrl;
-                }
-
-            }).play;
-        }
-    }*/
 }
 
 + S {

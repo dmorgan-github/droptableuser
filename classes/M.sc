@@ -26,7 +26,6 @@ M : D {
     addSrc {|srcNode|
 
         var srcIndex = map.detectIndex({|v|
-            //[\v, v, \srcNode, srcNode].debug(\m_addsrc);
             v.key == srcNode.key
         });
         if (srcIndex.isNil) {
@@ -35,8 +34,8 @@ M : D {
             srcNode.monitor.out = outbus.index;
             map.put(srcIndex, srcNode);
             slot = slot + 1;
+            this.changed(\add, srcNode);
         };
-        this.changed(\add, srcNode);
     }
 
     removeSrc {|key|

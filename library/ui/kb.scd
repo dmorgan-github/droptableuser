@@ -7,7 +7,7 @@ Fdef(\kb, {arg synth;
 	var baseViewFunc = Fdef(\baseview);
 	var synthEnvir = synth.envir ? ();
 	var octave = synthEnvir[\octave] ?? 5;
-	var root = synthEnvir[\root] ? 4;
+	var root = synthEnvir[\root] ?? 4;
 
 	var map = [
 		'z', 'x', 'c', 'v', 'b',
@@ -38,16 +38,18 @@ Fdef(\kb, {arg synth;
 		.fixedHeight_(24)
 		.mouseDownAction_({arg ctrl;
 			var octave = synthEnvir[\octave] ?? 5;
-			var root = synthEnvir[\root] ?? S.defaultRoot;
+			var root = synthEnvir[\root] ?? 0;
 			var note = 12 * octave + num + root;
-			synth.on(note);
+			synth.on(note.postln);
+            \here1.postln;
 			ctrl.value = 1;
 		})
 		.mouseUpAction_({arg ctrl;
 			var octave = synthEnvir[\octave] ?? 5;
-			var root = synthEnvir[\root] ?? S.defaultRoot;
+			var root = synthEnvir[\root] ?? 0;
 			var note = 12 * octave + num + root;
-			synth.off(note);
+			synth.off(note.postln);
+            \here2.postln;
 			ctrl.value = 1;
 		});
 	});

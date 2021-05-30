@@ -77,8 +77,8 @@ Fdef(\launch, {|patterns, clock=(TempoClock.default)|
 		~view = View().layout_(VLayout().margins_(3).spacing_(3));
 		~gridview = View().layout_(VLayout().margins_(3).spacing_(3));
 		~gridview.layout.add(grid);
-		~view.layout.add(TextField().action_({|ctrl| ctrl.value.postln}));
-		~view.layout.add(TextField().action_({|ctrl| ctrl.value.postln;}));
+		//~view.layout.add(TextField().action_({|ctrl| ctrl.value.postln}));
+		//~view.layout.add(TextField().action_({|ctrl| ctrl.value.postln;}));
 		~view.layout.add(~gridview);
 		CmdPeriod.add(reset);
 		~view.onClose = {

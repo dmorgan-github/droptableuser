@@ -1,26 +1,87 @@
 /*
 Workspace
 */
-W : Environment {
+W : EnvironmentRedirect {
 
-    var <>daw;
+    classvar <current;
 
-    classvar <synths;
+    classvar <>matrixenabled;
+
+    var matrixListener;
+
+    var <matrix;
+
+    var <knobMap;
+
+    *push {
+		currentEnvironment.clear.pop;  // avoid nesting
+		current = super.new.init.push;
+        ^current;
+	}
+
+	at {|key|
+
+		var obj = super.at(key);
+		if(obj.isNil) {
+
+            case
+            {key.asString.beginsWith("s")} {
+                obj = S(key);
+            }
+            {key.asString.beginsWith("d")} {
+                obj = D(key);
+            }
+            {key.asString.beginsWith("o")} {
+                obj = O(key);
+            };
+
+            if (obj.notNil) {
+                this.put(key, obj);
+            }
+		};
+
+		^obj
+	}
+
+    put {|key, obj|
+        super.put(key, obj);
+        if (matrixenabled) {
+            if (obj.isKindOf(S)) {
+                matrix.addSrc(obj.node);
+            }{
+                if (obj.isKindOf(D)) {
+                    matrix.addSrc(obj);
+                }
+            }
+        }
+    }
+
+    init {
+
+        matrixListener = {|obj, event, val|
+            if (event == \add) {
+                var key = val.key;
+                if (envir.keys.includes(key).not) {
+                    envir.put(key, val);
+                }
+            };
+        };
+
+        matrix = M(\m);
+        matrix.addDependant(matrixListener);
+        knobMap = Order.new;
+    }
+
+    mixer {
+        ^matrix;
+    }
+
+    twister {
+        ^U(\twister)
+    }
 
     *transport {|clock|
         U(\transport, clock);
-    }
-
-    *recdir {|path|
-        var mypath = path ?? {Document.current.dir};
-        thisProcess.platform.recordingsDir_(mypath.debug(\recdir));
-    }
-
-    *mixer {
-        var m = NdefMixer(Server.default);
-        ProxyMeter.addMixer(m);
-        m.switchSize(0);
-        ^m;
     }
 
     *setParentEvent {|evt|
@@ -41,6 +102,7 @@ W : Environment {
         ^evt;
     }
 
+    /*
     *sendToTwister {
         var new = currentEnvironment
         .select({|v, k| v.isKindOf(S) or: v.isKindOf(O) })
@@ -62,44 +124,25 @@ W : Environment {
             //v.set(\vel, Twister.knobs(pos).asMap)
         });
     }
+    */
 
-    record {
-        if (daw == \bitwig) {
-            Bitwig.record;
-        };
-        if (daw == \reaper) {
-            Reaper.record
-        }
+    *recdir {|path|
+        var mypath = path ?? {Document.current.dir};
+        thisProcess.platform.recordingsDir_(mypath.debug(\recdir));
     }
 
-    stopRecording {
-        if (daw == \bitwig) {
-            Bitwig.stop;
-        };
-        if (daw == \reaper) {
-            Reaper.stopRecording;
-        }
+    *record {
+        var filename = "SC_" ++ Date.getDate.stamp ++ ".wav";
+        var path = thisProcess.platform.recordingsDir ++ filename;
+        Server.default.record(path, bus:D.defaultout, numChannels:2);
+        Document.current.string_("/*%*/\n".format(filename), 0, 0);
     }
 
-    tempo {|bps=1|
-        if (daw == \bitwig) {
-            Bitwig.tempo(bps)
-        };
-        if (daw == \reaper) {
-            Reaper.tempo(bps)
-        }
-    }
-
-    time {|val=0|
-        if (daw == \bitwig) {
-            Bitwig.time(val)
-        };
-        if (daw == \reaper) {
-            Reaper.time(val);
-        }
+    *stopRecording {
+        Server.default.stopRecording;
     }
 
     *initClass {
-        synths = Order.new;
+        matrixenabled = true;
     }
 }
