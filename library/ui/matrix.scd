@@ -200,14 +200,14 @@ Fdef(\matrix, {arg matrix;
 	};
 
 	matrix.addDependant(listener);
-	matrixPlayView = playView.(matrix);//.addDependant(viewListener);
+	//matrixPlayView = playView.(matrix);//.addDependant(viewListener);
 
-    view.layout.add(
-        HLayout(
-            matrixPlayView,
-            //Button().action_({ U(\matrixgraph, matrix) })
-        )
-    );
+    //view.layout.add(
+    //    HLayout(
+    //        matrixPlayView,
+    //        //Button().action_({ U(\matrixgraph, matrix) })
+    //    )
+    //);
 	outergrid.layout.add(gridview);
 	view.layout.add(outergrid);
 

@@ -5,21 +5,12 @@
     pfunc { ^Pfunc(this) }
 }
 
-+ Integer {
-    peuclid {arg beats, offset=0, repeats=inf; ^Pbjorklund(this, beats, repeats, offset)}
-    peuclid2 {arg beats, offset=0, repeats=inf; ^Pbjorklund2(this, beats, repeats, offset)}
-}
-
-+ Number {
-    incr {arg step, repeats=inf; ^Pseries(this, step, inf)}
-}
-
 + SequenceableCollection {
     pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
     prand {arg repeats=inf; ^Prand(this, repeats) }
     pxrand {arg repeats=inf; ^Pxrand(this, repeats) }
     pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
-    pshuf {arg num=1, repeats=inf; ^Pn(Pshuf(this, num), repeats) }
+    pshuf {arg repeats=inf; ^Pshuf(this, repeats) }
     step {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
     pdv {|repeats=inf, key='degree'| ^Pdv(this, key).repeat(repeats) }
     cycle {|dur=4, len|
@@ -71,7 +62,7 @@
         })
     }
 
-    sometimes {|val,prob=0.3|
+    sometimes {|val, prob=0.5|
         ^Prout({|inval|
             var stream = this.asStream;
             var next = stream.next(inval.copy);
@@ -86,6 +77,44 @@
             });
         })
     }
+
+    arp {|algo=0|
+        ^Prout({|inval|
+            var lastchord = nil;
+            var stream = this.asStream;
+            var chord = stream.next(inval);
+            var arpstream;
+            while({chord.notNil}, {
+                var val;
+                if (chord != lastchord) {
+                    arpstream = Pseq(chord, inf).asStream;
+                    lastchord = chord;
+                };
+                val = arpstream.next(inval);
+                inval = val.embedInStream(inval);
+                chord = stream.next(inval);
+            });
+        })
+    }
+
+    then {|val|
+        ^Prout({|inval|
+
+            var stream = this.asStream;
+            var valstream = val.asStream;
+
+            var first = stream.next(inval);
+            var second = valstream.next(inval);
+
+            while({first.notNil and: {second.notNil} },{
+                inval = first.embedInStream(inval);
+                inval = second.embedInStream(inval);
+                first = stream.next(inval);
+                second = valstream.next(inval);
+            });
+            inval;
+        })
+    }
 }
 
 + Pattern {
@@ -95,25 +124,32 @@
     latch {arg func; ^Pclutch(this, Pfunc(func)) }
     // don't advance pattern on rests
     norest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
-    s {|...args| ^Pbindf(this, *args)}
-    c {|...args| ^Pchain(this, *args) }
-    octave {|val| ^Pbindf(this, \octave, val)}
-    atk {|val| ^Pbindf(this, \atk, val)}
-    dec {|val| ^Pbindf(this, \dec, val)}
-    rel {|val| ^Pbindf(this, \rel, val)}
-    suslevel {|val| ^Pbindf(this, \suslevel, val)}
-    curve {|val| ^Pbindf(this, \curve, val)}
-    harmonic {|val| ^Pbindf(this, \harmonic, val)}
-    amp {|val| ^Pbindf(this, \amp, val)}
-    vel {|val| ^Pbindf(this, \vel, val)}
-    detunehz {|val| ^Pbindf(this, \detunehz, val)}
-    mtranspose {|val| ^Pbindf(this, \mtranspose, val)}
-    legato {|val| ^Pbindf(this, \legato, val)}
-    degree {|val| ^Pbindf(this, \degree, val)}
-    strum {|val| ^Pbindf(this, \strum, val)}
+    pset {|...args| ^Pbindf(this, *args)}
+    chain {|...args| ^Pchain(this, *args) }
+    octave {|val| ^Pset(\octave, val, this)}
+    atk {|val| ^Pset(\atk, val, this)}
+    dec {|val| ^Pset(\dec, val, this)}
+    rel {|val| ^Pset(\rel, val, this)}
+    suslevel {|val| ^Pset(\suslevel, val, this)}
+    curve {|val| ^Pset(\curve, val, this)}
+    harmonic {|val| ^Pset(\harmonic, val, this)}
+    amp {|val| ^Pset(\amp, val, this)}
+    vel {|val| ^Pset(\vel, val, this)}
+    detunehz {|val| ^Pset(\detunehz, val, this)}
+    mtranspose {|val| ^Pset(\mtranspose, val, this)}
+    legato {|val| ^Pset(\legato, val, this)}
+    degree {|val| ^Pset(\degree, val, this)}
+    strum {|val| ^Pset(\strum, val, this)}
     cycle {|dur=4, len|
         if (len.isNil) {len = dur};
         ^Psync(this.finDur(len), dur, dur)
+    }
+    clutch {|connected| ^Pclutch(this, connected) }
+    add {|name, val| ^Paddp(name, val, this)}
+    mul {|name, val| ^Pmulp(name, val, this)}
+    node {|node|
+        var current = node.value;
+        ^Pbindf(this, \out, Pfunc({current.bus}), \group, Pfunc({current.group}) )
     }
 
     // filtering at cycle level
@@ -128,10 +164,30 @@
         })
     }
 
+    spawn {|func|
+        ^Pspawner({|sp|
+            var pattern = this.asStream;
+            var next = pattern.next(Event.default);
+            var iteration = 0;
+            while({next.notNil},{
+                var vals = func.(next, iteration);
+                var dur = next[\dur] ?? 1;
+                vals.asArray.do({|val|
+                    sp.par(val);
+                });
+                sp.wait(dur);
+                next = pattern.next(Event.default);
+                iteration = iteration + 1;
+            })
+        })
+    }
+
     m {|name, value| ^Pmul(name, value, this)}
     a {|name, value| ^Padd(name, value, this)}
     //s {|name, value| ^Pset(name, value, this)}
     pdef {|key| ^Pdef(key, this)}
+
+    seed {|val| ^Pseed(val, this)}
 }
 
 + String {
@@ -207,76 +263,7 @@
     nums { ^this.asInteger.join("").collectAs({|chr| chr.asString.asInteger }, Array) }
 }
 
-+ Symbol {
-
-    def {
-        var synthdef = SynthDescLib.global.at(this);
-        if (synthdef.isNil.not) {
-            ^synthdef.controlDict;
-        }
-    }
-
-    p {|...args|
-
-        /*
-        p(\foo, 1, \bar, 2) will be converted to Pbind(\foo, 1, \bar, 2)
-        p([foo: 1, bar:2]) will be converted to Pbind(\foo, 1, \bar, 2)
-        p(Pbind(\foo, 1, \bar, 2)) will remain as is
-        */
-
-        var base, ptrn;//, envir;
-        var vals = this.asString.split($/);
-
-        base = {
-            var instr = vals[0].asSymbol;
-            Pbind(\instrument, instr);
-        };
-
-        ptrn = {
-            var pattern = args[0];
-            pattern = case
-            {pattern.isKindOf(Array)} { pattern.p; }
-            {pattern.isKindOf(Symbol)} { args.p; }
-            {pattern.isKindOf(Pattern)} { pattern;}
-            {pattern.isNil} {Pbind()}
-            { Error("invalid argument").throw };
-
-            pattern;
-        };
-
-        /*
-        envir = {
-        if (args[0].isKindOf(Symbol)) {
-        () // not sure
-        } {
-        args[1..].asEvent
-        }
-        };
-        */
-
-        if (args.isEmpty) {
-            if (Pdef(this).source.isNil) {
-                ^Pdef(this, base.())
-            }{
-                ^Pdef(this)
-            }
-        }{
-            ^Pdef(this, ptrn.() <> base.())
-        }
-    }
-
-    out {
-        var node = Ndef(this);
-        if (node.monitor.isNil) {node.play};
-        ^node.forPattern;
-    }
-}
-
 + NodeProxy {
-
-    debugScope {
-        this.bus.debugScope();
-    }
 
     view {
         ^U(\ngui, this);
@@ -325,30 +312,7 @@
     }
 }
 
-+ S {
-    kb {
-        ^U(\kb, this);
-    }
-    nscope {
-        ^U(\scope, this.node);
-    }
-    microlab {
-        Microlab().note(
-            {|note, vel|
-                vel = 127/vel;
-                this.on(note, vel);
-            },
-            {|note|
-                this.off(note);
-            }
-        );
-    }
-}
-
 + Pdef {
-    sgui {
-        ^U(\sgui, this);
-    }
 
     << {|pattern|
         ^this.source = pattern;

@@ -9,7 +9,7 @@ S : EventPatternProxy {
 
     var <instrument, <ptrn, <ptrnproxy, <out, <hasGate;
 
-    var <key, isMono=false, <synths, <>debug=false;
+    var <>key, isMono=false, <synths, <>debug=false;
 
     *new {|key|
 
@@ -84,11 +84,13 @@ S : EventPatternProxy {
     }
 
     | {|val, adverb|
+
         if (val.isKindOf(Association)) {
-            var num = val.key.asInteger;
+            var num = adverb.asInteger;
+            var prop = val.key;
             var spec = val.value.asSpec;
-            Twister.knobs(num).cc(spec);
-            this.pset(adverb, Twister.knobs(num).asMap)
+            Twister.knobs(num).cc(spec).label_("%_%".format(key, prop));
+            this.pset(prop, Twister.knobs(num).asMap)
         }
     }
 
@@ -103,7 +105,7 @@ S : EventPatternProxy {
                         repeats = adverb.asInteger;
                     }
                 };*/
-                pattern = Plazy(pattern);//.repeat(repeats)
+                pattern = PlazyEnvir(pattern);//.repeat(repeats)
             }
         };
         ptrn.source = pattern;
@@ -205,6 +207,7 @@ S : EventPatternProxy {
         var path = App.librarydir ++  "templates/" ++ inTemplate.asString ++ ".scd";
         var pathname = PathName(path.standardizePath);
         var fullpath = pathname.fullPath;
+
         if (File.exists(fullpath)) {
             var template = File.open(fullpath, "r").readAllString.interpret;
             template.(inKey, inFunc);
@@ -245,7 +248,7 @@ S : EventPatternProxy {
         debug = false;
         key = argKey;
         instrument = \default;
-        node = D(key);
+        node = D("d_%".format(key).asSymbol);
         node.play;
 
         synths = Array.fill(127, {List.new});

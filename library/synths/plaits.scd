@@ -14,6 +14,7 @@ SynthDef(\plaits_mono, {
 	var timbremod = \timbremod.kr(0);
 	var morphmod = \morphmod.kr(0);
 	var lpg = \lpg.kr(0.5);
+    //var level = \level.kr(0.5);
 
 	var note = freq.cpsmidi;
 	var sig = MiPlaits.ar(note,
@@ -22,7 +23,7 @@ SynthDef(\plaits_mono, {
 		timbre: timbre,
 		morph:morph,
 		trigger:trigger,
-		level: 0,
+        level: 0, //not sure how to make this work
 		fm_mod: fmmod,
 		timb_mod: timbremod,
 		morph_mod: morphmod,

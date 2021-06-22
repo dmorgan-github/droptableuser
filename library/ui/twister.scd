@@ -56,6 +56,7 @@ numKnobs.do({|i|
         slider.value = val;
         valnb.value = spec.map(val);
     };
+    var tooltip = "";
 
     if (map[i].notNil) {
         obj = map[i];
@@ -65,6 +66,7 @@ numKnobs.do({|i|
         enabled = true;
         val = Twister.knobs(i).asMap.get(\val);
         Twister.knobs(i).addDependant(func);
+        tooltip = obj[\label]
     };
 
     minnb = NumberBox().value_(spec.minval).minWidth_(30).enabled_(enabled)
@@ -83,9 +85,11 @@ numKnobs.do({|i|
     slider = Slider().enabled_(enabled)
     .value_(spec.unmap(val))
     .orientation_(\horizontal)
-    .minWidth_(50)
+    .minWidth_(51)
     .maxHeight_(20)
     .thumbSize_(10)
+    //.shift_scale_(0.1)
+    .step_(0.01)
     .action_({|ctrl|
         var val = ctrl.value.linlin(0, 1, 0, 127);
         Twister.knobs(i).ccMapFunc.(val);
@@ -115,6 +119,7 @@ numKnobs.do({|i|
         PopUpMenu()
         .items_( [""] ++ list.collect(_.label))
         .value_(selected)
+        .toolTip_(tooltip)
         .action_({|ctrl|
 
             if (obj.notNil) {
@@ -127,6 +132,7 @@ numKnobs.do({|i|
                 maxnb.value = 1;
                 slider.value = 0;
                 valnb.value = 0;
+                ctrl.toolTip = "";
 
                 minnb.enabled = false;
                 maxnb.enabled = false;
@@ -148,6 +154,7 @@ numKnobs.do({|i|
                 valnb.enabled = true;
                 warp.enabled = true;
 
+                ctrl.toolTip = new[\label];
                 Twister.knobs(i).cc(spec).label_(new[\label]);
                 Twister.knobs(i).addDependant(func);
                 new.node.set(new.prop, Twister.knobs(i).asMap);

@@ -24,12 +24,12 @@ SynthDef(\modal, {
 		attackTime:0.01,
 		releaseTime:\rel.kr(1),
 		curve:\curve.kr(-4)
-	).ar(doneAction:Done.freeSelf, gate:\gate.kr(1));
+	).ar(doneAction:Done.freeSelf, gate:1);
 
 	sig = sig * 0.dbamp;
 
 	// sub
-	sig = sig + (SinOsc.ar(freq * \sinratio.kr(0.5)) * \sine.kr(0.5));
+	sig = sig + (SinOsc.ar(freq * \sinratio.kr(0.5)) * \sine.kr(0.2));
 
 	sig = sig * aeg * \amp.kr(0.1) * AmpCompA.kr(freq) * vel;
 

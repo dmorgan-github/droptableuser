@@ -220,14 +220,23 @@ TwisterKnob {
 
         noteOnFunc = on;
         noteOffFunc = off;
+        onkey = ("%_%_on").format(key, ccNum).asSymbol;
+        offkey = ("%_%_off").format(key, ccNum).asSymbol;
+
+        if (on.isNil) {
+            "free %".format(onkey).debug(key);
+            MIDIdef(onkey).permanent_(false).free;
+        };
+
+        if (off.isNil) {
+            "free %".format(offkey).debug(key);
+            MIDIdef(offkey).permanent_(false).free;
+        };
 
         if (device.isNil.not) {
 
             var srcid = device.uid;
             var srcdevice = this.prNormalize(device.device);
-
-            onkey = ("%_%_on").format(key, ccNum).asSymbol;
-            offkey = ("%_%_off").format(key, ccNum).asSymbol;
 
             "register %".format(onkey).debug(key);
             MIDIdef.noteOn(onkey, func:{arg vel, note, chan, src;
@@ -297,10 +306,6 @@ TwisterKnob {
             MIDIdef.cc(cckey, {arg val, ccNum, chan, src;
                 ccMapFunc.(val, ccNum, chan);
                 {
-                    //if (view.isNil.not and: {view.isClosed.not}) {
-                    //    knob.value_(val/127);
-                    //    nb.value_(spec.map(val/127));
-                    //}
                     this.changed(this.label, val/127);
                 }.defer
             }, ccNum: num, chan:chan, srcID:srcid)

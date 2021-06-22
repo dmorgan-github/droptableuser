@@ -273,6 +273,13 @@ Pdur{
 }
 
 
+Pchance {
+    *new {|prob=(0.5)|
+        ^Pfunc({ if (prob.coin) {1}{0} })
+    }
+}
+
+
 Pmap {
     *new{|k, n, lo, hi, offset=0, repeats=inf|
         ^Pbjorklund(k, n, repeats, offset).linlin(0, 1, lo, hi)

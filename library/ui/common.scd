@@ -227,8 +227,8 @@ Fdef(\playview, {arg node;
 
             NumberBox()
             .action_({arg ctrl;
-                var msg;
-                msg = "channel:" + ctrl.value;
+                var msg = "channel:" + ctrl.value;
+                node.monitor.out = ctrl.value;
                 view.changed(\prop, (key:\channel, val:msg));
             })
             .font_(font)
@@ -237,7 +237,7 @@ Fdef(\playview, {arg node;
             .decimals_(0)
             .fixedWidth_(25)
             .fixedHeight_(height-2)
-            .value_(node.monitor.out)
+            .value_(node.monitor.out.postln)
             .toolTip_("channel"),
 
             Button()

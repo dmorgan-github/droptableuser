@@ -82,6 +82,19 @@ D : NodeProxy {
         this.set(adverb, val);
     }
 
+    | {|val, adverb|
+        if (val.isNil) {
+            this.set(adverb, val)
+        }{
+            if (val.isKindOf(Association)) {
+                var num = val.key.asInteger;
+                var spec = val.value.asSpec;
+                Twister.knobs(num).cc(spec).label("%: %".format(this.key, adverb));
+                this.set(adverb, Twister.knobs(num).asMap)
+            }
+        }
+    }
+
     deviceInit {
         // override to initialize
     }
