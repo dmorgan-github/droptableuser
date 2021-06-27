@@ -5,7 +5,7 @@ synth: {arg sig_in;
     var fblevel = [\fbL.ar(0.3), \fbR.kr(0.5)];
     var delL = \delL.ar(3).lag(0.1) * 4.reciprocal;
     var delR = \delR.ar(4).lag(0.1) * 4.reciprocal;
-    var tempo = \speed.ar(1).lag(0.1);
+    var tempo = \beatDur.ar(TempoClock.default.beatDur).lag(0.1);
     var offsetL = \offsetL.ar(0).lag(0.1);
     var offsetR = \offsetR.ar(0).lag(0.1);
 

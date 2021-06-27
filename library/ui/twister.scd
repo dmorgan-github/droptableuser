@@ -60,13 +60,22 @@ numKnobs.do({|i|
 
     if (map[i].notNil) {
         obj = map[i];
-        selected = list.selectIndices({|val| val.label == obj.label});
-        selected = selected.first + 1;
-        spec = obj[\spec];
-        enabled = true;
-        val = Twister.knobs(i).asMap.get(\val);
-        Twister.knobs(i).addDependant(func);
-        tooltip = obj[\label]
+        selected = list.selectIndices({|val|
+            val.label == obj.label
+        });
+
+        if (selected.notNil) {
+            if (selected.first.notNil) {
+                selected = selected.first + 1;
+                spec = obj[\spec];
+                enabled = true;
+                val = Twister.knobs(i).asMap.get(\val);
+                Twister.knobs(i).addDependant(func);
+                tooltip = obj[\label];
+            } {
+                "Could not map property %".format(obj.label).warn
+            }
+        };
     };
 
     minnb = NumberBox().value_(spec.minval).minWidth_(30).enabled_(enabled)

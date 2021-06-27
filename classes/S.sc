@@ -90,7 +90,8 @@ S : EventPatternProxy {
             var prop = val.key;
             var spec = val.value.asSpec;
             Twister.knobs(num).cc(spec).label_("%_%".format(key, prop));
-            this.pset(prop, Twister.knobs(num).asMap)
+            this.pset(prop, Twister.knobs(num).asMap);
+            this.changed(\midiknob, num, prop, spec);
         }
     }
 
@@ -120,9 +121,6 @@ S : EventPatternProxy {
                 // TODO: refactor this
                 \deg, {
                     this.pset(\degree, val);
-                },
-                \dur, {
-                    this.pset(\dur, val);
                 },
                 \oct, {
                     this.pset(\octave, val);
@@ -248,7 +246,7 @@ S : EventPatternProxy {
         debug = false;
         key = argKey;
         instrument = \default;
-        node = D("d_%".format(key).asSymbol);
+        node = D("%".format(key).asSymbol);
         node.play;
 
         synths = Array.fill(127, {List.new});

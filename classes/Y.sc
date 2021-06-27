@@ -779,7 +779,7 @@ Y {
 
     /*
     https://scsynth.org/t/rhythmic-algorithms/3648/5
-    ~polybjorklund.([3, 2, 2], 24, [4, 0, 3]).asStream.nextN(25);
+    Y.polybjorklund([3, 2, 2], 24, [4, 0, 3]).asStream.nextN(25);
     */
     *polybjorklund  {|k = 4, n = 12, offset = 0, weight = 1|
         // k: number of "hits" per phrase (use an array for polyrhythms, integer for monorhythm)

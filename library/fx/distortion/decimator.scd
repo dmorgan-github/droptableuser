@@ -3,7 +3,7 @@ synth: {arg sig_in;
 
     var in = sig_in * \input.ar(1);
     var sig = Decimator.ar(in,
-        rate: 44100/\rate.ar(1).clip(1,10),
+        rate: \samplerate.ar(41000),
         bits: \bits.ar(24)
     );
 
@@ -13,7 +13,7 @@ synth: {arg sig_in;
     ) * \output.ar(1);
 },
 specs: [
-    \rate -> ControlSpec(1, 10, \lin, 0, 1, units:"fx"),
+    \samplerate -> ControlSpec(512, 41000, \lin, 0, 41000, units:"fx"),
     \bits -> ControlSpec(2, 24, \lin, 0, 24, units:"fx"),
     \spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
     \pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),

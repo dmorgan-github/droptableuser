@@ -21,12 +21,14 @@ SynthDef(\pm4, {
 		var atk = ('op' ++ num ++ 'atk').asSymbol.kr(0.01);
 		var dec = ('op' ++ num ++ 'dec').asSymbol.kr(0.1);
 		var suslevel = ('op' ++ num ++ 'suslevel').asSymbol.kr(1);
+        var peak = ('op' ++ num ++ 'peaklevel').asSymbol.kr(1);
 		var rel = ('op' ++ num ++ 'rel').asSymbol.kr(1);
 		var env = Env.adsr(
 			attackTime:atk,
 			decayTime:dec,
 			sustainLevel:suslevel,
 			releaseTime:rel,
+            peakLevel: peak,
 			curve:curve
 		).ar(gate:gate);
 		[freq * ratio.kr(1) + Rand(detunehz.neg, detunehz), env]
@@ -47,10 +49,10 @@ SynthDef(\pm4, {
 		var index = mods[i];
 		var mod = (fb * index).sum; // also sounds good not summed here
 		var sig = SinOsc.ar(freq, mod.mod(2pi)) * car[i][1];
-		var coef = ('op' ++ num ++ 'coef').asSymbol.kr(0.5).clip(0, 1);
+		//var coef = ('op' ++ num ++ 'coef').asSymbol.kr(0.5).clip(0, 1);
 		//sig = OnePole.ar(sig, coef);
-		var lpf = coef.linlin(0, 1, 20, 20000);
-		sig = LPF.ar(sig, lpf);
+		//var lpf = coef.linlin(0, 1, 20, 20000);
+		//sig = LPF.ar(sig, lpf);
 		sig;
 	});
 
@@ -81,7 +83,7 @@ SynthDef(\pm4, {
 		\lpfres.kr(0).linlin(0, 1, 1, 0.001)
 	);
 
-	sig = sig * AmpCompA.kr(freq, 32) * \amp.kr(0.3) * \vel.kr(1);
+	sig = sig * AmpCompA.kr(freq) * \amp.kr(0.3) * \vel.kr(1);
 	DetectSilence.ar(sig, doneAction:Done.freeSelf);
 	Out.ar(\out.kr(0), sig);
 

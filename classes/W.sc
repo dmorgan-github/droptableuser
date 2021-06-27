@@ -13,6 +13,8 @@ W : EnvironmentRedirect {
 
     var <knobMap;
 
+    var <knobListener;
+
     *push {
 		currentEnvironment.clear.pop;  // avoid nesting
 		current = super.new.init.push;
@@ -33,9 +35,13 @@ W : EnvironmentRedirect {
             }
             {key.asString.beginsWith("o")} {
                 obj = O(key);
+            }
+            {key.asString.beginsWith("g")} {
+                obj = G(key);
             };
 
             if (obj.notNil) {
+                obj.addDependant(knobListener);
                 this.put(key, obj);
             }
 		};
@@ -65,6 +71,19 @@ W : EnvironmentRedirect {
                     envir.put(key, val);
                 }
             };
+        };
+
+        knobListener = {|obj, evt, num, prop, spec|
+            // this is fine
+            if (evt == \midiknob) {
+                var item = (
+                    label: "%:%".format(obj.key, prop),
+                    node: obj,
+                    prop: prop,
+                    spec: spec
+                );
+                knobMap.put(num, item);
+            }
         };
 
         matrix = M(\m);
@@ -129,6 +148,10 @@ W : EnvironmentRedirect {
     *recdir {|path|
         var mypath = path ?? {Document.current.dir};
         thisProcess.platform.recordingsDir_(mypath.debug(\recdir));
+    }
+
+    *currentRecDir {
+        W.recdir(PathName(Document.current.path).pathOnly)
     }
 
     *record {

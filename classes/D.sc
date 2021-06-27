@@ -79,6 +79,15 @@ D : NodeProxy {
 
     // syntactic sugar
     @ {|val, adverb|
+
+        if (val.isFunction) {
+            var lfo;
+            var key = "lfo_%".format(this.key);
+            var lfokey = (key ++ '_' ++ adverb).asSymbol;
+            "creating lfo node %".format(lfokey).debug(this.key);
+            val = Ndef(lfokey, val);
+        };
+
         this.set(adverb, val);
     }
 
