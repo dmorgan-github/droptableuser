@@ -38,6 +38,6 @@ if __name__ == "__main__":
 			print('copying to Music')
 			copy(full_path, '/Users/david/Music/Music/Media.localized/Automatically Add to Music.localized/')
 
-	except Exception as e: 
+	except Exception as e:
 		print(e)
 

@@ -4,7 +4,7 @@ https://doc.sccode.org/Classes/RecNodeProxy.html
 */
 D : NodeProxy {
 
-    classvar <all, <defaultout;
+    classvar <all, <>defaultout;
 
     var <chain, <vstctrls;
 
@@ -93,15 +93,26 @@ D : NodeProxy {
 
     | {|val, adverb|
         if (val.isNil) {
-            this.set(adverb, val)
-        }{
+            var num = adverb.asInteger;
+            var cckey = Twister.knobs(num).cckey;
+            Evt.off(cckey, key);
+        } {
             if (val.isKindOf(Association)) {
-                var num = val.key.asInteger;
+                var num = adverb.asInteger;
+                var prop = val.key;
                 var spec = val.value.asSpec;
-                Twister.knobs(num).cc(spec).label("%: %".format(this.key, adverb));
-                this.set(adverb, Twister.knobs(num).asMap)
-            }
+                var node = Ndef("midi_%_%".format(key, prop).asSymbol, {\val.kr(spec.default)});
+                //var ccdefault = spec.default.linlin(spec.minval, spec.maxval, 0, 127);
+                var cckey = Twister.knobs(num).cckey;
+                Evt.on(cckey, key, {|data|
+                    var val = data[\val];
+                    node.set(\val, spec.map(val))
+                });
+                this.set(prop, node);
+                this.changed(\midiknob, num, prop, spec);
+            };
         }
+
     }
 
     deviceInit {

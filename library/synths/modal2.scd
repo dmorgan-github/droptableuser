@@ -8,7 +8,7 @@ SynthDef(\modal2, {
 	var decaycoef = \decaycoef.kr(2);
 	var decayscale = \decayscale.kr(0);
 	var position = \pos.kr(0.414);
-	var harm = \harm.kr(1);
+    var harm = \harm.kr(1);
 	var bright = \bright.kr(0.5).linlin(0, 1, 80, 8000);
 	var k = (1..num);
 

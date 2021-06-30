@@ -37,6 +37,7 @@ S : EventPatternProxy {
         ^this.new(selector);
     }
 
+    /*
     *hh {
         var obj = S(\hh).mono(\plaits_mono);
         obj.set(
@@ -70,6 +71,7 @@ S : EventPatternProxy {
         );
         ^obj;
     }
+    */
 
     <+ {|val, adverb|
         if (adverb == \mono) {
@@ -85,13 +87,25 @@ S : EventPatternProxy {
 
     | {|val, adverb|
 
-        if (val.isKindOf(Association)) {
+        if (val.isNil) {
             var num = adverb.asInteger;
-            var prop = val.key;
-            var spec = val.value.asSpec;
-            Twister.knobs(num).cc(spec).label_("%_%".format(key, prop));
-            this.pset(prop, Twister.knobs(num).asMap);
-            this.changed(\midiknob, num, prop, spec);
+            var cckey = Twister.knobs(num).cckey;
+            Evt.off(cckey, key);
+        } {
+            if (val.isKindOf(Association)) {
+                var num = adverb.asInteger;
+                var prop = val.key;
+                var spec = val.value.asSpec;
+                var node = Ndef("midi_%_%".format(key, prop).asSymbol, {\val.kr(spec.default)});
+                var ccdefault = spec.default.linlin(spec.minval, spec.maxval, 0, 127);
+                var cckey = Twister.knobs(num).cckey;
+                Evt.on(cckey, key, {|data|
+                    var val = data[\val];
+                    node.set(\val, spec.map(val))
+                });
+                this.pset(prop, node);
+                this.changed(\midiknob, num, prop, spec);
+            };
         }
     }
 
@@ -100,13 +114,7 @@ S : EventPatternProxy {
             pattern = pattern.p;
         } {
             if (pattern.isKindOf(Function)) {
-                /*var repeats = inf;
-                if (adverb.notNil) {
-                    if(adverb.isNumber) {
-                        repeats = adverb.asInteger;
-                    }
-                };*/
-                pattern = PlazyEnvir(pattern);//.repeat(repeats)
+                pattern = PlazyEnvir(pattern);
             }
         };
         ptrn.source = pattern;

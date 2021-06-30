@@ -177,185 +177,96 @@ MidiCtrl {
     *initClass { all = () }
 }
 
-
-
 TwisterKnob {
 
     classvar key = 'twisterknob';
-
     var <device, <midiout;
-    var <spec, <node, <ccNum, <ccMapFunc, <noteOnFunc, <noteOffFunc, <>label;
-    var onkey, offkey, nodekey, cckey;
-    //var view, nb, knob;
+    var <ccNum, <ccChan, <noteChan;
+    var <onkey, <offkey, <cckey;
 
-    *new {|ccNum, device, midiout|
-        ^super.new.prInit(ccNum, device, midiout);
+    *new {|ccNum, device, midiout, ccChan=0, noteChan=1|
+        ^super.new.prInit(ccNum, device, midiout, ccChan, noteChan);
     }
 
-    prInit {|argNum, argDevice, argMidiout|
+    prInit {|argNum, argDevice, argMidiout, argCcChan=0, argNoteChan=1|
         ccNum = argNum;
+        ccChan = argCcChan;
+        noteChan = argNoteChan;
         device = argDevice.debug(\device);
         midiout = argMidiout.debug(\midiout);
-        label = "kn" ++ argNum;
-        spec = [0, 1].asSpec;
-        nodekey = "%_cc%".format(key, ccNum).asSymbol.debug(\ccmap);
+        this.prInitCC();
+        this.prInitNote();
     }
 
-    ccFunc {|func, argSpec, chan=0|
-        ccMapFunc = func;
-        if (argSpec.notNil) { spec = argSpec.asSpec};
-        this.prInitCC(ccNum, chan);
-    }
-
-    cc {|argSpec, chan=0|
-        spec = argSpec.asSpec;
-        node = Ndef(nodekey.asSymbol, { \val.kr(spec:spec) });
-        ccMapFunc = {|val|
-            node.set(\val, this.spec.map(val/127));
+    default {|val|
+        if (midiout.notNil) {
+            midiout.control(ccChan, ccNum, val);
         };
-        this.prInitCC(ccNum, chan);
     }
 
-    note {|on, off, chan=1|
+    prInitNote {
 
-        noteOnFunc = on;
-        noteOffFunc = off;
         onkey = ("%_%_on").format(key, ccNum).asSymbol;
         offkey = ("%_%_off").format(key, ccNum).asSymbol;
 
-        if (on.isNil) {
-            "free %".format(onkey).debug(key);
-            MIDIdef(onkey).permanent_(false).free;
-        };
-
-        if (off.isNil) {
-            "free %".format(offkey).debug(key);
-            MIDIdef(offkey).permanent_(false).free;
-        };
-
         if (device.isNil.not) {
-
             var srcid = device.uid;
             var srcdevice = this.prNormalize(device.device);
 
             "register %".format(onkey).debug(key);
             MIDIdef.noteOn(onkey, func:{arg vel, note, chan, src;
-                this.noteOnFunc.(note, vel, chan);
-            }, noteNum: ccNum, chan:chan, srcID:srcid)
+                Evt.trigger(onkey, (note:note, vel:vel, chan:chan));
+            }, noteNum: ccNum, chan:noteChan, srcID:srcid)
             .permanent_(true);
 
             "register %".format(offkey).debug(key);
             MIDIdef.noteOff(offkey, func:{arg vel, note, chan, src;
-                this.noteOffFunc.(note, chan);
-            }, noteNum: ccNum, chan:chan, srcID:srcid)
+                Evt.trigger(offkey, (note:note, vel:vel, chan:chan));
+            }, noteNum: ccNum, chan:noteChan, srcID:srcid)
             .permanent_(true);
         } {
             "Midi Fighter Twister not connected".warn;
         }
-
     }
 
-    prFreeNoteOn {
+    free {
+        this.prFreeNote;
+        this.prFreeCc;
+    }
+
+    prInitCC {
+        if (device.isNil.not) {
+            var srcid = device.uid;
+            var srcdevice = this.prNormalize(device.device);
+            cckey = "%_%_cc".format(key, ccNum).asSymbol;
+            "register %".format(cckey).debug(key);
+            MIDIdef.cc(cckey, {arg val, ccNum, chan, src;
+                Evt.trigger(cckey, (val:val/127, ccNum:ccNum, chan:chan));
+            }, ccNum: ccNum, chan:ccChan, srcID:srcid)
+            .permanent_(true);
+        } {
+            "Midi Fighter Twister not connected".warn;
+        }
+    }
+
+    prFreeNote {
         if (onkey.isNil.not) {
             "free %".format(onkey).debug(key);
             MIDIdef(onkey).permanent_(false).free;
-        }
-    }
-    prFreeNoteOff {
+        };
+
         if (offkey.isNil.not) {
             "free %".format(offkey).debug(key);
             MIDIdef(offkey).permanent_(false).free;
         }
     }
+
     prFreeCc {
         if (cckey.isNil.not) {
             "free %".format(cckey).debug(key);
             MIDIdef(cckey).permanent_(false).free;
         }
     }
-    prFreeNode {
-        if (node.isNil.not) {
-            node.clear;
-        }
-    }
-
-    free {
-        this.prFreeNoteOn;
-        this.prFreeNoteOff;
-        this.prFreeCc;
-        this.prFreeNode;
-    }
-
-    asMap {
-        ^node
-    }
-
-    asPfunc {
-        ^Pfunc({
-            node.get(\val)
-        });
-    }
-
-    prInitCC {|num, chan|
-
-        if (device.isNil.not) {
-            var srcid = device.uid;
-            var srcdevice = this.prNormalize(device.device);
-            cckey = "%_cc%".format(key, num).asSymbol;
-            "register %".format(cckey).debug(key);
-            MIDIdef.cc(cckey, {arg val, ccNum, chan, src;
-                ccMapFunc.(val, ccNum, chan);
-                {
-                    this.changed(this.label, val/127);
-                }.defer
-            }, ccNum: num, chan:chan, srcID:srcid)
-            .permanent_(true);
-
-            if (midiout.notNil) {
-                var val = spec.default;
-                var default = val.linlin(spec.minval, spec.maxval, 0, 127);
-                midiout.control(chan, num, default);
-            };
-        } {
-            "Midi Fighter Twister not connected".warn;
-        }
-    }
-
-    /*
-    asView {
-        var val = node.get(\val);
-        val = if (val.isNumber) {val} {0.0};
-        val.postln;
-
-        nb = NumberBox().normalColor_(Color.black);
-        knob = Knob();
-        view = View().layout_(VLayout(
-            StaticText().string_(label).align_(\center),
-            knob.mode_(\vert).action_({|ctrl|
-                this.ccMapFunc.(ctrl.value.linlin(0, 1, 0, 127));
-                nb.value_(spec.map(ctrl.value));
-            })
-            .value_(spec.unmap(val)),
-
-            nb
-            .value_(val)
-            .background_(Color.white),
-
-            Button().states_([ ["on"], ["off"] ]).action_({|ctrl|
-                if (ctrl.value == 1) {
-                    this.noteOnFunc.(ccNum, 127);
-                } {
-                    this.noteOffFunc.(ccNum, 0)
-                }
-            })
-        )
-        .spacing_(0)
-        .margins_(0)
-        )
-        .background_(Color.blue.alpha_(0.2));
-        ^view
-    }
-    */
 
     prNormalize {arg str;
         ^str.toLower().stripWhiteSpace().replace(" ", "")
@@ -371,6 +282,7 @@ Twister {
     classvar <deviceName = "Midi Fighter Twister";
     classvar <devicePort = "Midi Fighter Twister";
     classvar <isconnected=false;
+    classvar <>ccChan=0, <>noteChan=1;
 
     *connect {
         MIDIClient.init;
@@ -390,7 +302,7 @@ Twister {
     *knobs {|ccNum|
         var knob = knobOrder[ccNum];
         if (knob.isNil) {
-            knob = TwisterKnob(ccNum, device, midiout);
+            knob = TwisterKnob(ccNum, device, midiout, ccChan, noteChan);
             knobOrder[ccNum] = knob;
         };
         ^knob;
@@ -398,38 +310,9 @@ Twister {
 
     *clear {
         knobOrder.do({|knob, i|
-            [knob, i].postln;
             knob.free;
         });
         knobOrder.makeEmpty;
-    }
-
-    *view {
-        var rows = 4, cols = 4;
-        var cells = rows.collect({|row|
-            cols.collect({|col|
-                var num = col + (row * cols);
-                var view;
-                if (knobOrder[num].isNil.not and: { (view = knobOrder[num].asView).isNil.not } ) {
-                    view;
-                } {
-                    view = StaticText()
-                    .string_(num)
-                    .align_(\center)
-                };
-                view
-                .minWidth_(75)
-                .minHeight_(75)
-            });
-        });
-
-        var view = View()
-        .layout_(
-            GridLayout.rows(*cells).margins_(0).spacing_(0)
-        );
-        //.palette_(QPalette.dark);
-
-        ^view.front;
     }
 
     *initClass {
