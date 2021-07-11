@@ -3,9 +3,13 @@ Workspace
 */
 W : EnvironmentRedirect {
 
-    classvar <current;
+    classvar <current, <>clock;
 
     classvar <>matrixenabled;
+
+    classvar <tracks=0;
+
+    classvar <>daw;
 
     var matrixListener;
 
@@ -29,15 +33,28 @@ W : EnvironmentRedirect {
             case
             {key.asString.beginsWith("s")} {
                 obj = S(key);
+                obj.clock = W.clock;
+                obj.node.out = D.defaultout + (tracks * 2);
+                daw.asClass.trackname(tracks + 1, key);
+                tracks = tracks + 1;
             }
             {key.asString.beginsWith("d")} {
                 obj = D(key);
+                obj.out = D.defaultout + (tracks * 2);
+                daw.asClass.trackname(tracks + 1, key);
+                tracks = tracks + 1;
             }
             {key.asString.beginsWith("o")} {
                 obj = O(key);
+                obj.out = D.defaultout + (tracks * 2);
+                daw.asClass.trackname(tracks + 1, key);
+                tracks = tracks + 1;
             }
             {key.asString.beginsWith("g")} {
                 obj = G(key);
+                obj.out = D.defaultout + (tracks * 2);
+                daw.asClass.trackname(tracks + 1, key);
+                tracks = tracks + 1;
             };
 
             if (obj.notNil) {
@@ -121,30 +138,6 @@ W : EnvironmentRedirect {
         ^evt;
     }
 
-    /*
-    *sendToTwister {
-        var new = currentEnvironment
-        .select({|v, k| v.isKindOf(S) or: v.isKindOf(O) })
-        .reject({|v, k| synths.collect({|assoc| assoc.key}).includes(k) })
-        .keysValuesDo({|k, v|
-            var pos = synths.pos;
-            synths.put(pos, k -> v);
-            Twister.knobs(pos)
-            .ccFunc({|vel|
-                if (v.isKindOf(S)) {
-                    v.node.vol = vel/127;
-                } {
-                    v.vol = vel/127;
-                }
-                //[pos, vel].postln;
-            }, [0, 1, \lin, 0, 0])
-            .note({ v.play; },{ v.stop; })
-            .label_(k);
-            //v.set(\vel, Twister.knobs(pos).asMap)
-        });
-    }
-    */
-
     *recdir {|path|
         var mypath = path ?? {Document.current.dir};
         thisProcess.platform.recordingsDir_(mypath.debug(\recdir));
@@ -167,5 +160,7 @@ W : EnvironmentRedirect {
 
     *initClass {
         matrixenabled = true;
+        clock = TempoClock.default;
+        daw = \Bitwig;
     }
 }

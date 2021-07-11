@@ -1,9 +1,21 @@
 (
 var foo = Require(App.librarydir ++ "ui/common.scd");
 var numKnobs = 3 * 16;
-var scrollView = ScrollView().minWidth_(400).name_("Twister");
+var scrollView = ScrollView().minWidth_(150).name_("Twister");
 var view = View().layout_(VLayout());
 var list = List.new;
+
+16.do({|i|
+    view.layout.add(HLayout(
+        StaticText().string_(i),
+        Slider().orientation_(\horizontal).action_({|ctrl|
+            var val = ctrl.value;
+            Evt.trigger(Twister.knobs(i).cckey, (val:val))
+        })
+    ));
+});
+
+/*
 var map = W.current.knobMap;
 W.current.keysValuesDo({|k, v|
     if (v.isKindOf(S)) {
@@ -183,6 +195,7 @@ numKnobs.do({|i|
     );
     view.layout.add(hlayout);
 });
+*/
 scrollView.canvas = view;
 scrollView.front;
 )

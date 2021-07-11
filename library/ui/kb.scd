@@ -6,8 +6,21 @@ Fdef(\kb, {arg synth;
 	var baseview;
 	var baseViewFunc = Fdef(\baseview);
 	var synthEnvir = synth.envir ? ();
-	var octave = synthEnvir[\octave] ?? 5;
-	var root = synthEnvir[\root] ?? 4;
+
+    var getDefault = {|key, default|
+        var val = Event.parentEvents[\default][key] ?? {default};
+        val = if (Event.partialEvents.playerEvent.parentTypes[\note].notNil) {
+            Event.partialEvents.playerEvent.parentTypes[\note][key];
+        }{
+            val
+        };
+        val = synthEnvir[key] ?? {val};
+        val;
+    };
+
+    var octave = getDefault.(\octave, 5);
+    var root = getDefault.(\root, 0);
+    var scale = getDefault.(\scale, Scale.dorian);
 
 	var map = [
 		'z', 'x', 'c', 'v', 'b',
@@ -17,8 +30,14 @@ Fdef(\kb, {arg synth;
 		'y', 'u', 'i', 'o', 'p'
 	];
 
-	var scale = synthEnvir[\scale] ? Scale.at(\dorian);
-	var hilight = scale.degrees;
+    var hilight = {
+        if (scale.isKindOf(Scale)) {
+            scale.degrees;
+        }{
+            scale
+        }
+    }.value;
+
 	var rows = 5;
 	var cols = 5;
 
@@ -37,19 +56,15 @@ Fdef(\kb, {arg synth;
 		.fixedWidth_(40)
 		.fixedHeight_(24)
 		.mouseDownAction_({arg ctrl;
-			var octave = synthEnvir[\octave] ?? 5;
-			var root = synthEnvir[\root] ?? 0;
 			var note = 12 * octave + num + root;
-			synth.on(note.postln);
-            \here1.postln;
+			synth.on(note);
 			ctrl.value = 1;
 		})
 		.mouseUpAction_({arg ctrl;
-			var octave = synthEnvir[\octave] ?? 5;
-			var root = synthEnvir[\root] ?? 0;
+			//var octave = synthEnvir[\octave] ?? 5;
+			//var root = synthEnvir[\root] ?? 0;
 			var note = 12 * octave + num + root;
-			synth.off(note.postln);
-            \here2.postln;
+			synth.off(note);
 			ctrl.value = 1;
 		});
 	});

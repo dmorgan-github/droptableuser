@@ -11,6 +11,7 @@
     pxrand {arg repeats=inf; ^Pxrand(this, repeats) }
     pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
     pshuf {arg repeats=inf; ^Pshuf(this, repeats) }
+    pstretch {|val| ^Pstretch(val, this) }
     step {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
     pdv {|repeats=inf, key='degree'| ^Pdv(this, key).repeat(repeats) }
     cycle {|dur=4, len|
@@ -121,7 +122,7 @@
     limit {arg num; ^Pfin(num, this.iter) }
     step {arg dur, repeats=inf; ^Pstep(this, dur, repeats)}
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
-    latch {arg func; ^Pclutch(this, Pfunc(func)) }
+    //latch {arg func; ^Pclutch(this, Pfunc(func)) }
     // don't advance pattern on rests
     norest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
     pset {|...args| ^Pbindf(this, *args)}
@@ -142,7 +143,7 @@
     strum {|val| ^Pset(\strum, val, this)}
     cycle {|dur=4, len|
         if (len.isNil) {len = dur};
-        ^Psync(this.finDur(len), dur, dur)
+        ^Psync(this.finDur(len), dur, dur).repeat
     }
     clutch {|connected| ^Pclutch(this, connected) }
     add {|name, val| ^Paddp(name, val, this)}
@@ -150,6 +151,24 @@
     node {|node|
         var current = node.value;
         ^Pbindf(this, \out, Pfunc({current.bus}), \group, Pfunc({current.group}) )
+    }
+    skipsame {
+        ^Plazy({
+            var prev;
+            var pattern = this.asStream;
+            Prout{|inval|
+                var next = pattern.next(inval);
+                while({next.notNil}, {
+                    if (next != prev) {
+                        prev = next;
+                        inval = prev.embedInStream(inval);
+                    }{
+                        inval = Rest(1).embedInStream(inval);
+                    };
+                    next = pattern.next(inval)
+                })
+            }
+        })
     }
 
     // filtering at cycle level

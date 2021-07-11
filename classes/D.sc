@@ -37,6 +37,9 @@ D : NodeProxy {
             ServerTree.add({
                 \cmdperiod.debug(key);
                 res.send;
+                if (res.isPlaying) {
+                    res.play
+                };
             });
 
             // if we're using a synthdef as a source
@@ -80,17 +83,42 @@ D : NodeProxy {
     // syntactic sugar
     @ {|val, adverb|
 
-        if (val.isFunction) {
-            var lfo;
-            var key = "lfo_%".format(this.key);
-            var lfokey = (key ++ '_' ++ adverb).asSymbol;
-            "creating lfo node %".format(lfokey).debug(this.key);
-            val = Ndef(lfokey, val);
-        };
+        if (val.isKindOf(Association)) {
 
-        this.set(adverb, val);
+            var prop = adverb;
+            var num = val.key;
+
+            // would like to find a better way to do this
+            if (val.value.isNil) {
+                var cckey = Twister.knobs(num).cckey;
+                Evt.off(cckey, key);
+                this.pset(prop, nil);
+            }{
+                var spec = val.value.asSpec;
+                var node = Ndef("midi_%_%".format(key, prop).asSymbol, {\val.kr(spec.default)});
+                var ccdefault = spec.default.linlin(spec.minval, spec.maxval, 0, 127);
+                var cckey = Twister.knobs(num).cckey;
+                Evt.on(cckey, key, {|data|
+                    var val = data[\val];
+                    node.set(\val, spec.map(val))
+                });
+                this.set(prop, node);
+                this.changed(\midiknob, num, prop, spec);
+            }
+
+        } {
+            if (val.isFunction) {
+                var lfo;
+                var key = "lfo_%".format(this.key);
+                var lfokey = (key ++ '_' ++ adverb).asSymbol;
+                "creating lfo node %".format(lfokey).debug(this.key);
+                val = Ndef(lfokey, val);
+                this.set(adverb, val);
+            };
+        }
     }
 
+    /*
     | {|val, adverb|
         if (val.isNil) {
             var num = adverb.asInteger;
@@ -112,8 +140,8 @@ D : NodeProxy {
                 this.changed(\midiknob, num, prop, spec);
             };
         }
-
     }
+    */
 
     deviceInit {
         // override to initialize
@@ -288,7 +316,7 @@ D : NodeProxy {
         // how to coordinate clocks?
         var clock = TempoClock.default;
         var seconds = clock.beatDur * beats;
-        var buf = B.alloc("%_%".format(this.key, UniqueID.next), seconds * Server.default.sampleRate, 1);
+        var buf = B.alloc("%_%".format(this.key, UniqueID.next).asSymbol, seconds * Server.default.sampleRate, 1);
         var bus = this.bus;
         var group = this.group;
 

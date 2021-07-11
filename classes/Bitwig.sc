@@ -22,6 +22,10 @@ Bitwig {
         server.sendMsg("/time", time);
     }
 
+    *trackname {|num, name|
+        server.sendMsg("/track/%/name".format(num), name);
+    }
+
     *initClass {
         server = NetAddr("127.0.0.1", 8000); // loopback
     }

@@ -174,7 +174,33 @@ MidiCtrl {
         all.clear;
     }
 
-    *initClass { all = () }
+    *stopMidiwatch {
+        SkipJack.stop(\midiwatch);
+    }
+
+    *initClass {
+
+        all = ();
+
+        StartUp.add({
+            var devices = [];
+            "midiwatch start".debug(\MidiCtrl);
+            SkipJack({
+                var new;
+                MIDIClient.init(verbose:false);
+                new = MIDIClient.sources.collect({|val| val.device.asSymbol }).difference(devices);
+                devices = devices.addAll(new);
+                if (new.size > 0) {
+                    new.debug("midi detected");
+                };
+                new.do({|device|
+                    var data = (device:device, status:\connect);
+                    Evt.trigger(\midiconnect, data)
+                });
+
+            }, dt:5, name:\midiwatch, autostart:true)
+        });
+    }
 }
 
 TwisterKnob {
@@ -208,7 +234,6 @@ TwisterKnob {
 
         onkey = ("%_%_on").format(key, ccNum).asSymbol;
         offkey = ("%_%_off").format(key, ccNum).asSymbol;
-
         if (device.isNil.not) {
             var srcid = device.uid;
             var srcdevice = this.prNormalize(device.device);
@@ -235,10 +260,11 @@ TwisterKnob {
     }
 
     prInitCC {
+
+        cckey = "%_%_cc".format(key, ccNum).asSymbol;
         if (device.isNil.not) {
             var srcid = device.uid;
             var srcdevice = this.prNormalize(device.device);
-            cckey = "%_%_cc".format(key, ccNum).asSymbol;
             "register %".format(cckey).debug(key);
             MIDIdef.cc(cckey, {arg val, ccNum, chan, src;
                 Evt.trigger(cckey, (val:val/127, ccNum:ccNum, chan:chan));
@@ -285,12 +311,11 @@ Twister {
     classvar <>ccChan=0, <>noteChan=1;
 
     *connect {
-        MIDIClient.init;
-
+        //MIDIClient.init;
         device = MIDIIn.findPort(deviceName, devicePort);
         if (device.isNil) {
             "% device is not connected".format(deviceName).warn;
-            device = MIDIIn.findPort("IAC Driver", "Bus 1");
+            //device = MIDIIn.findPort("IAC Driver", "Bus 1");
         } {
             midiout = MIDIOut.newByName(deviceName, devicePort);
         };
@@ -317,6 +342,18 @@ Twister {
 
     *initClass {
         knobOrder = Order.new;
+        StartUp.add({
+            Evt.on(\midiconnect, \twister, {|data|
+                var device = data[\device].asSymbol;
+                var status = data[\status].asSymbol;
+                if (device == Twister.deviceName.asSymbol) {
+                    if (status == \connect) {
+                        "connecting".debug(\Twister);
+                        Twister.connect;
+                    };
+                }
+            });
+        })
     }
 }
 

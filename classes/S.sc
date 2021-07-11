@@ -37,42 +37,6 @@ S : EventPatternProxy {
         ^this.new(selector);
     }
 
-    /*
-    *hh {
-        var obj = S(\hh).mono(\plaits_mono);
-        obj.set(
-            \engine, 15,
-            \harm, 0.5,
-            \timbre, 0.91,
-            \morph, 0.2,
-        );
-        ^obj;
-    }
-
-    *sd {
-        var obj = S(\sd).mono(\plaits_mono);
-        obj.set(
-            \engine, 14,
-            \harm, 0.94,
-            \timbre, 0.17,
-            \morph, 0,
-        );
-        ^obj;
-    }
-
-    *bd {
-        var obj = S(\bd).mono(\plaits_mono);
-        obj.set(
-            \engine, 13,
-            \octave, 3,
-            \harm, 0.32,
-            \timbre, 0.8,
-            \morph, 0.17,
-        );
-        ^obj;
-    }
-    */
-
     <+ {|val, adverb|
         if (adverb == \mono) {
             this.mono(val)
@@ -82,30 +46,6 @@ S : EventPatternProxy {
             } {
                this.synth(val)
             }
-        }
-    }
-
-    | {|val, adverb|
-
-        if (val.isNil) {
-            var num = adverb.asInteger;
-            var cckey = Twister.knobs(num).cckey;
-            Evt.off(cckey, key);
-        } {
-            if (val.isKindOf(Association)) {
-                var num = adverb.asInteger;
-                var prop = val.key;
-                var spec = val.value.asSpec;
-                var node = Ndef("midi_%_%".format(key, prop).asSymbol, {\val.kr(spec.default)});
-                var ccdefault = spec.default.linlin(spec.minval, spec.maxval, 0, 127);
-                var cckey = Twister.knobs(num).cckey;
-                Evt.on(cckey, key, {|data|
-                    var val = data[\val];
-                    node.set(\val, spec.map(val))
-                });
-                this.pset(prop, node);
-                this.changed(\midiknob, num, prop, spec);
-            };
         }
     }
 
@@ -120,29 +60,57 @@ S : EventPatternProxy {
         ptrn.source = pattern;
     }
 
+    // TODO: clean up lfos
     @ {|val, adverb|
 
         if (adverb.isNil and: val.isKindOf(Array)) {
             this.pset(*val);
         } {
-            switch(adverb,
-                // TODO: refactor this
-                \deg, {
-                    this.pset(\degree, val);
-                },
-                \oct, {
-                    this.pset(\octave, val);
-                },
-                \leg, {
-                    this.pset(\legato, val);
-                },
-                {
-                    this.pset(adverb, val);
+            if (val.isKindOf(Association)) {
+
+                var prop = adverb;
+                var num = val.key;
+
+                // would like to find a better way to do this
+                if (val.value.isNil) {
+                    var cckey = Twister.knobs(num).cckey;
+                    Evt.off(cckey, key);
+                    this.pset(prop, nil);
+                }{
+                    var spec = val.value.asSpec;
+                    var node = Ndef("midi_%_%".format(key, prop).asSymbol, {\val.kr(spec.default)});
+                    var ccdefault = spec.default.linlin(spec.minval, spec.maxval, 0, 127);
+                    var cckey = Twister.knobs(num).cckey;
+                    Evt.on(cckey, key, {|data|
+                        var val = data[\val];
+                        node.set(\val, spec.map(val))
+                    });
+                    this.pset(prop, node);
+                    this.changed(\midiknob, num, prop, spec);
                 }
-            );
+
+            } {
+
+                switch(adverb,
+                    // TODO: refactor this
+                    \deg, {
+                        this.pset(\degree, val);
+                    },
+                    \oct, {
+                        this.pset(\octave, val);
+                    },
+                    \leg, {
+                        this.pset(\legato, val);
+                    },
+                    {
+                        this.pset(adverb, val);
+                    }
+                );
+            }
         }
     }
 
+    // TODO: clean up lfos
     pset {|...args|
 
         var pairs;
@@ -188,9 +156,8 @@ S : EventPatternProxy {
         ^U(\ngraph, this.node);
     }
 
-    quant_ {|quant|
-        ptrn.quant = quant;
-        super.quant = quant;
+    kb {
+        ^U(\kb, this);
     }
 
     printSynthControls {
@@ -298,9 +265,13 @@ S : EventPatternProxy {
 
         var chain;
 
+        // not sure if this is entirely necessary
+        // but it seems to work well having a base pattern
+        // and chaining a pattern on top for overrides
         ptrnproxy = EventPatternProxy(PbindProxy()).quant_(this.quant);
         ptrn = EventPatternProxy(Pbind()).quant_(this.quant);
 
+        // allows for setting properties in fx
         chain = Pbind(
             "nodeset_func".asSymbol, Pfunc({|evt|
                 var keys = node.controlKeys;
@@ -341,7 +312,7 @@ S : EventPatternProxy {
 
         var ignore = [\instrument,
             \root, \scale, \out, \group, \key, \dur, \legato,
-            \delta, \freq, \degree, \octave, \gate, \fx, \vel,
+            \delta, \stretch, \freq, \degree, \octave, \gate, \fx, \vel,
             \harmonic, \strum];
 
         if (node.isPlaying) {
