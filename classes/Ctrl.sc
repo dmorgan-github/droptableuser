@@ -34,8 +34,6 @@ MidiCtrl {
     }
 
     init {arg inKey, inSrcKey;
-
-        \superinit.postln;
         key = inKey;
         enabled = true;
         MIDIClient.init;
@@ -178,80 +176,66 @@ MidiCtrl {
         SkipJack.stop(\midiwatch);
     }
 
+    *startMidiwatch {
+        var devices = [];
+        "midiwatch start".debug(\MidiCtrl);
+        SkipJack({
+            var new;
+            MIDIClient.init(verbose:false);
+            new = MIDIClient.sources.collect({|val| val.device.asSymbol }).difference(devices);
+            devices = devices.addAll(new);
+            if (new.size > 0) {
+                new.debug("midi detected");
+            };
+            MIDIIn.connectAll;
+            new.do({|device|
+                var data = (device:device, status:\connect);
+                Evt.trigger(\midiconnect, data)
+            });
+
+        }, dt:5, name:\midiwatch, autostart:true)
+
+    }
+
     *initClass {
-
         all = ();
-
-        StartUp.add({
-            var devices = [];
-            "midiwatch start".debug(\MidiCtrl);
-            SkipJack({
-                var new;
-                MIDIClient.init(verbose:false);
-                new = MIDIClient.sources.collect({|val| val.device.asSymbol }).difference(devices);
-                devices = devices.addAll(new);
-                if (new.size > 0) {
-                    new.debug("midi detected");
-                };
-                new.do({|device|
-                    var data = (device:device, status:\connect);
-                    Evt.trigger(\midiconnect, data)
-                });
-
-            }, dt:5, name:\midiwatch, autostart:true)
-        });
     }
 }
 
 TwisterKnob {
 
     classvar key = 'twisterknob';
-    var <device, <midiout;
     var <ccNum, <ccChan, <noteChan;
     var <onkey, <offkey, <cckey;
 
-    *new {|ccNum, device, midiout, ccChan=0, noteChan=1|
-        ^super.new.prInit(ccNum, device, midiout, ccChan, noteChan);
+    *new {|ccNum, ccChan=0, noteChan=1|
+        ^super.new.prInit(ccNum, ccChan, noteChan);
     }
 
-    prInit {|argNum, argDevice, argMidiout, argCcChan=0, argNoteChan=1|
+    prInit {|argNum, argCcChan=0, argNoteChan=1|
         ccNum = argNum;
         ccChan = argCcChan;
         noteChan = argNoteChan;
-        device = argDevice.debug(\device);
-        midiout = argMidiout.debug(\midiout);
         this.prInitCC();
         this.prInitNote();
-    }
-
-    default {|val|
-        if (midiout.notNil) {
-            midiout.control(ccChan, ccNum, val);
-        };
     }
 
     prInitNote {
 
         onkey = ("%_%_on").format(key, ccNum).asSymbol;
         offkey = ("%_%_off").format(key, ccNum).asSymbol;
-        if (device.isNil.not) {
-            var srcid = device.uid;
-            var srcdevice = this.prNormalize(device.device);
 
-            "register %".format(onkey).debug(key);
-            MIDIdef.noteOn(onkey, func:{arg vel, note, chan, src;
-                Evt.trigger(onkey, (note:note, vel:vel, chan:chan));
-            }, noteNum: ccNum, chan:noteChan, srcID:srcid)
-            .permanent_(true);
+        "register %".format(onkey).debug(key);
+        MIDIdef.noteOn(onkey, func:{arg vel, note, chan, src;
+            Evt.trigger(onkey, (note:note, vel:vel, chan:chan));
+        }, noteNum: ccNum, chan:noteChan)
+        .permanent_(true);
 
-            "register %".format(offkey).debug(key);
-            MIDIdef.noteOff(offkey, func:{arg vel, note, chan, src;
-                Evt.trigger(offkey, (note:note, vel:vel, chan:chan));
-            }, noteNum: ccNum, chan:noteChan, srcID:srcid)
-            .permanent_(true);
-        } {
-            "Midi Fighter Twister not connected".warn;
-        }
+        "register %".format(offkey).debug(key);
+        MIDIdef.noteOff(offkey, func:{arg vel, note, chan, src;
+            Evt.trigger(offkey, (note:note, vel:vel, chan:chan));
+        }, noteNum: ccNum, chan:noteChan)
+        .permanent_(true);
     }
 
     free {
@@ -260,19 +244,12 @@ TwisterKnob {
     }
 
     prInitCC {
-
         cckey = "%_%_cc".format(key, ccNum).asSymbol;
-        if (device.isNil.not) {
-            var srcid = device.uid;
-            var srcdevice = this.prNormalize(device.device);
-            "register %".format(cckey).debug(key);
-            MIDIdef.cc(cckey, {arg val, ccNum, chan, src;
-                Evt.trigger(cckey, (val:val/127, ccNum:ccNum, chan:chan));
-            }, ccNum: ccNum, chan:ccChan, srcID:srcid)
-            .permanent_(true);
-        } {
-            "Midi Fighter Twister not connected".warn;
-        }
+        "register %".format(cckey).debug(key);
+        MIDIdef.cc(cckey, {arg val, ccNum, chan, src;
+            Evt.trigger(cckey, (val:val/127, ccNum:ccNum, chan:chan));
+        }, ccNum: ccNum, chan:ccChan)
+        .permanent_(true);
     }
 
     prFreeNote {
@@ -294,40 +271,21 @@ TwisterKnob {
         }
     }
 
-    prNormalize {arg str;
-        ^str.toLower().stripWhiteSpace().replace(" ", "")
-    }
-
     *classInit {
     }
 }
 
 Twister {
 
-    classvar <knobOrder, <device, <midiout;
+    classvar <knobOrder;
     classvar <deviceName = "Midi Fighter Twister";
     classvar <devicePort = "Midi Fighter Twister";
-    classvar <isconnected=false;
     classvar <>ccChan=0, <>noteChan=1;
-
-    *connect {
-        //MIDIClient.init;
-        device = MIDIIn.findPort(deviceName, devicePort);
-        if (device.isNil) {
-            "% device is not connected".format(deviceName).warn;
-            //device = MIDIIn.findPort("IAC Driver", "Bus 1");
-        } {
-            midiout = MIDIOut.newByName(deviceName, devicePort);
-        };
-
-        MIDIIn.connectAll;
-        isconnected = true;
-    }
 
     *knobs {|ccNum|
         var knob = knobOrder[ccNum];
         if (knob.isNil) {
-            knob = TwisterKnob(ccNum, device, midiout, ccChan, noteChan);
+            knob = TwisterKnob(ccNum, ccChan, noteChan);
             knobOrder[ccNum] = knob;
         };
         ^knob;
@@ -342,18 +300,6 @@ Twister {
 
     *initClass {
         knobOrder = Order.new;
-        StartUp.add({
-            Evt.on(\midiconnect, \twister, {|data|
-                var device = data[\device].asSymbol;
-                var status = data[\status].asSymbol;
-                if (device == Twister.deviceName.asSymbol) {
-                    if (status == \connect) {
-                        "connecting".debug(\Twister);
-                        Twister.connect;
-                    };
-                }
-            });
-        })
     }
 }
 

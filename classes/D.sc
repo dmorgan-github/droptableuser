@@ -95,7 +95,7 @@ D : NodeProxy {
                 this.pset(prop, nil);
             }{
                 var spec = val.value.asSpec;
-                var node = Ndef("midi_%_%".format(key, prop).asSymbol, {\val.kr(spec.default)});
+                var node = Ndef("midi_%_%".format(key, prop).asSymbol.postln, {\val.kr(spec.default)});
                 var ccdefault = spec.default.linlin(spec.minval, spec.maxval, 0, 127);
                 var cckey = Twister.knobs(num).cckey;
                 Evt.on(cckey, key, {|data|
@@ -117,31 +117,6 @@ D : NodeProxy {
             };
         }
     }
-
-    /*
-    | {|val, adverb|
-        if (val.isNil) {
-            var num = adverb.asInteger;
-            var cckey = Twister.knobs(num).cckey;
-            Evt.off(cckey, key);
-        } {
-            if (val.isKindOf(Association)) {
-                var num = adverb.asInteger;
-                var prop = val.key;
-                var spec = val.value.asSpec;
-                var node = Ndef("midi_%_%".format(key, prop).asSymbol, {\val.kr(spec.default)});
-                //var ccdefault = spec.default.linlin(spec.minval, spec.maxval, 0, 127);
-                var cckey = Twister.knobs(num).cckey;
-                Evt.on(cckey, key, {|data|
-                    var val = data[\val];
-                    node.set(\val, spec.map(val))
-                });
-                this.set(prop, node);
-                this.changed(\midiknob, num, prop, spec);
-            };
-        }
-    }
-    */
 
     deviceInit {
         // override to initialize
@@ -287,14 +262,6 @@ D : NodeProxy {
 
             }).play;
         }
-    }
-
-    appendFx {|fx|
-        var slot = this.objects
-        .indices
-        .select({|val| val >= 200 and: {val < 300}  }).maxItem ?? {199};
-        slot = slot + 1;
-        this.fx(slot, fx);
     }
 
     view {|index|
