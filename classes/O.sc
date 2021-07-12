@@ -5,12 +5,6 @@ O : D {
 
     var <phase;
 
-    /*
-    *doesNotUnderstand {|selector|
-		^super.new(selector);
-	}
-    */
-
     phase_ {|func|
         phase = func;
         this.prBuild;
