@@ -237,7 +237,7 @@ Fdef(\playview, {arg node;
             .decimals_(0)
             .fixedWidth_(25)
             .fixedHeight_(height-2)
-            .value_(node.monitor.out.postln)
+            .value_(node.monitor.out)
             .toolTip_("channel"),
 
             Button()
@@ -372,7 +372,6 @@ Fdef(\playview, {arg node;
     }, 0.03, false, 'ProxyMeter');
 
     view.onClose_({
-        [node.key, \playview, \release].postln;
         skipjack.stop;
         OSCdef(levelkey).free;
         Ndef(levelkey).free;

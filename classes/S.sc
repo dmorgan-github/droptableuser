@@ -224,7 +224,7 @@ S : EventPatternProxy {
         node = D("%".format(key).asSymbol);
         node.play;
 
-        synths = Array.fill(127, {List.new});
+        synths = Array.newClear(128);
 
         cmdperiodfunc = {
             {
@@ -329,9 +329,7 @@ S : EventPatternProxy {
             };
 
             if (hasGate) {
-                if (synths[midinote].last.isNil) {
-                    synths[midinote].add( Synth(instrument, args, target:node.nodeID) );
-                }
+                synths[midinote] = Synth(instrument, args, target:node.nodeID);
             } {
                 Synth(instrument, args, target:node.nodeID)
             }
@@ -339,17 +337,9 @@ S : EventPatternProxy {
     }
 
     prNoteOff {arg midinote;
-        // popping from a queue seems more atomic
-        // than dealing strictly with an array
-        // removeAt(0) changes the size of the array
-        // copying seems to produce better results
-        // but i'm not sure why
-        var mysynths = synths.copy;
-        var synth = mysynths[midinote].pop;
-        while({synth.isNil.not},{
-            synth.set(\gate, 0);
-            synth = mysynths[midinote].pop;
-        });
+        if (hasGate) {
+            synths[midinote].set(\gate, 0);
+        }
     }
 
     *initClass {

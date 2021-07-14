@@ -1,14 +1,18 @@
 Microlab : MidiCtrl {
 
-    classvar id;
+    classvar id, <noteChan;
 
-    var <>ccChan, <>noteChan;
-
-    *new {|chan=2|
+    *new {||
         ^super.new(id, "Arturia MicroLab");
     }
 
+
+    note {|on, off|
+        super.note(on, off, noteChan);
+    }
+
     *initClass {
+        noteChan = 3;
         id = ('microlab_' ++ UniqueID.next).asSymbol;
     }
 }

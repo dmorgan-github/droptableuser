@@ -161,7 +161,6 @@ Fdef(\matrix, {arg matrix;
 				};
 				ctrlview = ctrlView.("", [0, 1, \lin, 0, 0].asSpec, colors[j], val, {arg key, val;
 					if (destNode[i].isNil/*hassrc.not*/)  {
-                        [\hassrc, hassrc].debug(\matrix);
 						destNode.mix(i, srcNode, val);
 					};
 					destNode.set(srcNode.key, val);

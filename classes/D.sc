@@ -114,7 +114,9 @@ D : NodeProxy {
                 "creating lfo node %".format(lfokey).debug(this.key);
                 val = Ndef(lfokey, val);
                 this.set(adverb, val);
-            };
+            } {
+                this.set(adverb, val)
+            }
         }
     }
 
