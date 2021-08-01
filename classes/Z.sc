@@ -60,7 +60,7 @@ Z : Ndef {
 
     disconnect {
         MIDIdef.noteOn(noteonkey).permanent_(false).free;
-        MIDIdef.noteOn(noteoffkey).permanent_(false).free;
-        MIDIdef.noteOn(cckey).permanent_(false).free;
+        MIDIdef.noteOff(noteoffkey).permanent_(false).free;
+        MIDIdef.cc(cckey).permanent_(false).free;
     }
 }

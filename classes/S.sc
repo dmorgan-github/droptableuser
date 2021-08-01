@@ -20,12 +20,6 @@ S : Pdef {
         ^res;
     }
 
-    /*
-    *doesNotUnderstand {|selector|
-        ^this.new(selector);
-    }
-    */
-
     <+ {|val, adverb|
         if (adverb == \mono) {
             this.mono(val)
@@ -101,11 +95,13 @@ S : Pdef {
         ptrnproxy.source.set(*pairs);
     }
 
+    /*
     set {| ... args|
         //TODO: don't send all parameters to each
         super.set(*args);
-        this.node.set(*args);
+        //this.node.set(*args);
     }
+    */
 
     synth {|synth, template=\adsr|
         isMono = false;
@@ -146,25 +142,9 @@ S : Pdef {
         .fix;
     }
 
-    cc {|ctrl, ccNum, ccChan=0|
-        var order = Order.newFromIndices(ctrl.asArray, ccNum.asArray);
-        MIDIdef.cc(cckey, {|val, num|
-            var ctrl = order[num];
-            var spec = if (this.getSpec(ctrl).notNil) {
-                this.getSpec(ctrl)
-            }{
-                [0, 1].asSpec;
-            };
-            var mapped = spec.map(val/127);
-            this.set(ctrl, mapped);
-        }, ccNum:ccNum, chan:ccChan)
-        .fix;
-    }
-
-    disconnect {
+    disconnectNote {
         MIDIdef.noteOn(noteonkey).permanent_(false).free;
-        MIDIdef.noteOn(noteoffkey).permanent_(false).free;
-        MIDIdef.noteOn(cckey).permanent_(false).free;
+        MIDIdef.noteOff(noteoffkey).permanent_(false).free;
     }
 
     vstctrls {
@@ -260,11 +240,6 @@ S : Pdef {
             [\freq, \out, \trig, \in, \buf, \gate, \glis, \bend, \amp, \vel].includes(cn.name.asSymbol)
         }).do({|cn|
             var key = cn.name.asSymbol;
-            //var spec = Spec.specs[key];
-            //if (spec.isNil) {
-            //    spec = [0, 1].asSp;
-            //};
-            //this.addSpec(key, spec.default_(cn.defaultValue));
             this.set(key, cn.defaultValue)
         });
 
@@ -319,21 +294,18 @@ S : Pdef {
     }
 
     prNoteOn {arg midinote, vel=1;
+        var evt = this.envir ?? {()};
+        var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps, \vel, vel] ++ evt.asPairs();
 
-        //if (node.isPlaying) {
-            var evt = this.envir ?? {()};
-            var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps, \vel, vel] ++ evt.asPairs();
+        if (debug) {
+            args.postln;
+        };
 
-            if (debug) {
-                args.postln;
-            };
-
-            if (hasGate) {
-                synths[midinote] = Synth(instrument, args, target:node.nodeID);
-            } {
-                Synth(instrument, args, target:node.nodeID)
-            }
-        //}
+        if (hasGate) {
+            synths[midinote] = Synth(instrument, args, target:node.nodeID);
+        } {
+            Synth(instrument, args, target:node.nodeID)
+        }
     }
 
     prNoteOff {arg midinote;

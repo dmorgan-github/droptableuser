@@ -10,7 +10,15 @@ Fdef(\buf, {arg node;
     var playview = Fdef(\playview);
     //var ctrlView = Fdef(\ctrlview);
 	var key = node.key;
-	var buf = node.get(\buf).debug("buf for %".format(key));
+    var buf = {
+
+        var buf = node.get(\buf);
+        if (buf.isNumber) {
+            buf = Buffer.cachedBufferAt(Server.default, buf.asInteger)
+        };
+        buf;
+
+    }.();//
 	var numframes = buf.numFrames;
 	var osckey = 'bufpos';
 	//(key ++ 'pos').asSymbol;

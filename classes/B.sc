@@ -5,6 +5,8 @@ NOTE: this could use a lot of refactoring
 B {
     classvar <all;
 
+    classvar <stereoDirs, <wtDirs, <monoDirs;
+
     *new {arg key;
         ^all[key]
     }
@@ -15,10 +17,6 @@ B {
             "% does not exist".format(key).warn;
         };
         ^res;
-    }
-
-    *readMono {|path|
-        ^Buffer.readChannel(Server.default, path, channels:[0]);
     }
 
     *read {arg key, path, channels=nil;
@@ -44,77 +42,71 @@ B {
         ^buf;
     }
 
-    *dir {|path|
+    *dirStereo {|path|
+
+        var bufs;
+        var pathkey = path.asSymbol;
         var func = {|path|
             var buffer;
             var file = SoundFile.openRead(path);
             var channels = if(file.numChannels < 2, { [0,0] },{ [0,1] });
-            buffer = Buffer.readChannel(Server.default, path, channels: channels);
+            buffer = Buffer.readChannel(Server.default, path, channels: channels );
             buffer
         };
 
-        var dir = PathName.new(path);
-        var bufs = dir.entries.select({|pn| pn.extension == "wav"}).collect({|pn|
-            var buf = func.(pn.fullPath);
-            buf
-        });
+        if (stereoDirs[pathkey].notNil) {
+            bufs = stereoDirs[pathkey];
+            path.debug(\from_cache);
+        } {
+            var dir = PathName.new(path);
+            bufs = dir.entries.select({|pn| pn.extension == "wav"}).collect({|pn|
+                var buf = func.(pn.fullPath);
+                buf
+            });
+            stereoDirs[pathkey] = bufs;
+        };
+
         ^bufs;
     }
 
-    *open {|channels=0|
-        var path = App.mediadir;
-        Dialog.openPanel({|path|
-            var id = PathName(path)
-            .fileNameWithoutExtension
-            .replace("-", "")
-            .replace(" ", "")
-            .replace("_", "")
-            .toLower;
-
-            B.read(id, path, channels);
-        },{
-            "cancelled".postln;
-        }, path:path);
-    }
-
-    *free {
-        all.keys.do({|k|
-            all[k].free;
-            all.removeAt(k);
-        });
-    }
-
     *dirMono {|path|
-        var paths = "%/*.wav".format(path).pathMatch ++ "%/*.aif".format(path).pathMatch;
-        var obj = ();
-        paths.do({|path|
-            var pn = PathName(path);
-            var key = pn.fileNameWithoutExtension.replace(" ", "").toLower().asSymbol;
-            Buffer.readChannel(Server.default, path, channels:[0], action:{arg buf;
-                obj[key] = buf;
+
+        var bufs;
+        var pathkey = path.asSymbol;
+
+        if (monoDirs[pathkey].notNil) {
+            bufs = monoDirs[pathkey];
+            path.debug(\from_cache);
+        }{
+            var paths = "%/*.wav".format(path).pathMatch ++ "%/*.aif".format(path).pathMatch;
+            bufs = paths.collect({|path|
+                Buffer.readChannel(Server.default, path, channels:[0]);
             });
-        });
-        ^obj
+            monoDirs[pathkey] = bufs;
+        };
+
+        ^bufs
     }
 
     *dirWt {|path|
-        var obj = (
-            bufs: (),
-            nums: List[]
-        );
-        var wtsize = 4096;
-        var wtpaths = "%/**.wtable".format(path).pathMatch;
-        var wtbuffers = Buffer.allocConsecutive(wtpaths.size, Server.default, wtsize * 2, 1);
-        wtpaths.do {|it i|
-            wtbuffers[i].read(wtpaths[i])
+
+        var bufs;
+        var pathkey = path.asSymbol;
+
+        if (wtDirs[pathkey].notNil) {
+            bufs = wtDirs[pathkey];
+            path.debug(\from_cache);
+        } {
+            var wtsize = 4096;
+            var wtpaths = "%/**.wtable".format(path).pathMatch;
+            bufs = Buffer.allocConsecutive(wtpaths.size, Server.default, wtsize * 2, 1);
+            wtpaths.do {|it i|
+                bufs[i].read(wtpaths[i])
+            };
+            wtDirs[pathkey] = bufs;
         };
-        wtpaths.do {|it i|
-            var name = wtbuffers[i].path.basename.findRegexp(".*\.wav")[0][1].splitext[0];
-            var buffer = wtbuffers[i].bufnum;
-            obj[\bufs][name.asSymbol] = buffer;
-            obj[\nums].add(buffer);
-        };
-        ^obj
+
+        ^bufs
     }
 
     // adapted from here:
@@ -169,5 +161,8 @@ B {
 
     *initClass {
         all = IdentityDictionary();
+        stereoDirs = IdentityDictionary();
+        wtDirs = IdentityDictionary();
+        monoDirs = IdentityDictionary();
     }
 }

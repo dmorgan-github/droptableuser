@@ -260,11 +260,111 @@
     getSettings {
         ^this.getKeysValues.flatten.asDict;
     }
+
+
+    cc {|ctrl, ccNum, ccChan=0|
+        var order = Order.newFromIndices(ctrl.asArray, ccNum.asArray);
+        var cckey = "%_cc".format(this.key).asSymbol;
+        MIDIdef.cc(cckey, {|val, num|
+            var mapped;
+            var ctrl = order[num];
+            var spec = this.getSpec(ctrl);
+            if (this.getSpec(ctrl).isNil) {
+                spec = [0, 1].asSpec;
+            };
+            mapped = spec.map(val/127);
+            this.set(ctrl, mapped);
+        }, ccNum:ccNum, chan:ccChan)
+        .fix;
+    }
+
+    note {|noteChan, note|
+        // assumes Ndef().prime(\instrument) has been called
+        var noteonkey = "%_noteon".format(this.key).asSymbol;
+        var noteoffkey = "%_noteoff".format(this.key).asSymbol;
+        var hasGate = this.objects[0].synthDesc.hasGate;
+        var instrument = this.objects[0].synthDesc.name.asSymbol;
+        MIDIdef.noteOn(noteonkey, {|vel, note, chan|
+            if (hasGate) {
+                this.put(note, instrument, extraArgs:[\freq, note.midicps, \vel, vel/127, \gate, 1])
+            } {
+                this.put(note, instrument, extraArgs:[\freq, note.midicps, \vel, vel/127])
+            }
+        }, noteNum:note, chan:noteChan)
+        .fix;
+
+        MIDIdef.noteOff(noteoffkey, {|vel, note, chan|
+            var hasGate = this.objects[0].synthDesc.hasGate;
+            if (hasGate) {
+                this.objects[note].set(\gate, 0);
+            }
+        }, noteNum:note, chan:noteChan)
+        .fix;
+    }
+
+    disconnect {
+        MIDIdef.noteOn("%_noteon".format(this.key).asSymbol).permanent_(false).free;
+        MIDIdef.noteOn("%_noteoff".format(this.key).asSymbol).permanent_(false).free;
+        MIDIdef.noteOn("%_cc".format(this.key).asSymbol).permanent_(false).free;
+    }
 }
 
 + Pdef {
 
     << {|pattern|
         ^this.source = pattern;
+    }
+
+    cc {|ctrl, ccNum, ccChan=0|
+        var order = Order.newFromIndices(ctrl.asArray, ccNum.asArray);
+        var cckey = "%_cc".format(this.key).asSymbol;
+        MIDIdef.cc(cckey, {|val, num|
+            var mapped;
+            var ctrl = order[num];
+            var spec = this.getSpec(ctrl);
+            if (this.getSpec(ctrl).isNil) {
+                spec = [0, 1].asSpec;
+            };
+            mapped = spec.map(val/127);
+            this.set(ctrl, mapped);
+        }, ccNum:ccNum, chan:ccChan)
+        .fix;
+    }
+
+    note {|noteChan, note|
+        var noteonkey = "%_noteon".format(this.key).asSymbol;
+        var noteoffkey = "%_noteoff".format(this.key).asSymbol;
+        var pattern = this.asStream.next(Event.default);
+        var out = pattern[\out] ?? 0;
+        var target = if (pattern[\group].isFunction) { Server.default.defaultGroup } {pattern[\group]};
+        var instrument = pattern[\instrument] ?? \default;
+        var synthdef = SynthDescLib.global.at(instrument);
+        var hasGate = synthdef.hasGate;
+        var synths = Order.new;
+        Halo.put(this.key, \synths, synths);
+
+        MIDIdef.noteOn(noteonkey, {|vel, note, chan|
+            var evt = this.envir ?? {()};
+            var args = [\out, out, \gate, 1, \freq, note.midicps, \vel, vel/127] ++ evt.asPairs();
+            if (hasGate) {
+                synths[note] = Synth(instrument, args, target:target);
+            } {
+                Synth(instrument, args, target:target);
+            }
+        }, noteNum:note, chan:noteChan)
+        .fix;
+
+        MIDIdef.noteOff(noteoffkey, {|vel, note, chan|
+            if (hasGate) {
+                synths[note].set(\gate, 0);
+            }
+        }, noteNum:note, chan:noteChan)
+        .fix;
+    }
+
+    disconnect {
+        MIDIdef.noteOn("%_noteon".format(this.key).asSymbol).permanent_(false).free;
+        MIDIdef.noteOff("%_noteoff".format(this.key).asSymbol).permanent_(false).free;
+        MIDIdef.cc("%_cc".format(this.key).asSymbol).permanent_(false).free;
     }
 }
