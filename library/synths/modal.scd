@@ -44,8 +44,9 @@ SynthDef(\modal, {
 	type: \perc,
 	created: "09/27/2020",
 	specs: (
-		\harm: ControlSpec(-0.06, 2, \lin, 0, 0),
-		\bright: ControlSpec(0.0, 1.0, \lin, 0, 0.5)
+		harm: ControlSpec(-0.06, 2, \lin, 0, 0),
+		bright: ControlSpec(0.0, 1.0, \lin, 0, 0.5),
+        morph: ControlSpec(0.0, 1.0, \lin, 0, 0)
 	)
 )).add;
 )

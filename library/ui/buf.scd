@@ -14,9 +14,13 @@ Fdef(\buf, {arg node;
 	var numframes = buf.numFrames;
 	var osckey = 'bufpos';
 	//(key ++ 'pos').asSymbol;
-	var wavecolors = [Color.rand, Color.rand].debug(\wavecolors);
+	//var wavecolors = [Color.rand, Color.rand].debug(\wavecolors);
+
+    var wavecolors = [ Color(0.8730087518692, 0.55612449645996, 0.8803555727005), Color(0.76174085140228, 0.44574573040009, 0.67218403816223) ];
+
 	var cursorcolor = Color.rand.debug(\cursorcolor);
 	var selectioncolor = Color.rand.alpha_(0.3).debug(\selectioncolor);
+    var skipjackname = "buf_%".format(UniqueID.next).asSymbol;
 
 	//var wavecolors = [
 	//	Color(0.78598186969757, 0.75455839633942, 0.59287083148956),
@@ -46,9 +50,25 @@ Fdef(\buf, {arg node;
 		}
 	};
 
+    var func2 = {
+        var buf = node.get(\buf);
+        var startPos = node.get(\startPos);
+        var endPos = node.get(\endPos);
+        buf.loadToFloatArray(action:{arg a;
+            {
+                var start = startPos * numframes;
+                var end = (endPos * numframes) - start;
+                sfv.setData(a, channels: buf.numChannels);
+                sfv.setSelection (0, [start, end]);
+            }.defer
+        });
+    };
+
 	var view = View()
 	.layout_(VLayout().margins_(2).spacing_(2));
 	//.palette_(QPalette.dark);
+
+    SkipJack(func2, 1/10, name:skipjackname);
 
     /*
     To zoom in/out: Shift + right-click + mouse-up/down
@@ -110,13 +130,14 @@ Fdef(\buf, {arg node;
 		.hi_(endPos)
 	);
 
-	node.addDependant(func);
+	//node.addDependant(func);
 
 	view.layout.add(sfv);
 	view = view.onClose_({
 		\free.debug(osckey);
 		node.removeDependant(func);
 		OSCdef(node.key).free;
+        SkipJack.stop(skipjackname);
 	})
 	.fixedWidth_(width)
 	.fixedHeight_(height);

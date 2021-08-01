@@ -118,7 +118,7 @@ Fdef(\transport, {|clock=(TempoClock.default)|
         if (view.isClosed) {
             nil;
         }{
-            1;
+            clock.beatDur;
         }
     });
 

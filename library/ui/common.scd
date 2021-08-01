@@ -7,7 +7,7 @@ Fdef(\baseview, {arg view, title, w, h;
     var top = Window.screenBounds.height * 0.5;
     var left = Window.screenBounds.width * 0.3;
     var win = Window.new(title, bounds:Rect(left, top, width, height), border:true);
-    var status = StaticText().string_("").background_(Color.black.alpha_(0.1));
+    var status = StaticText().string_("");
 
     var viewListener = {arg view, key, value;
         var msg = "";
@@ -26,7 +26,6 @@ Fdef(\baseview, {arg view, title, w, h;
     view.addDependant(viewListener);
     win.layout = VLayout(outerview).margins_(0).spacing_(0);
     win.asView
-    //.palette_(QPalette.dark)
     .onClose_({
         view.removeDependant(viewListener);
     });
@@ -38,26 +37,19 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
     var myval = val ?? controlSpec.default;
 
     var stack, view;
-    var font = Font(size:9);
     var label = if (key.asString.size > 0) {key ++ ": "}{""};
     var labelView = StaticText().string_(label)
-    .font_(font)
-    .stringColor_(Color.white)
     .toolTip_(label);
 
     var li, st, nb;
     var getValue = {}, setValue = {};
 
-    //color = Color.white.alpha_( rrand(0.0, 1.0) );
-
     if (myval.isNumber) {
 
         li = LevelIndicator().value_(controlSpec.unmap(myval));
-        st = StaticText().string_(myval.trunc(0.001)).font_(font).stringColor_(Color.white);
+        st = StaticText().string_(myval.trunc(0.001));
         nb = NumberBox()
-        .font_(font)
         .value_(myval)
-        .background_(Color.white)
         .minDecimals_(3)
         .clipLo_(controlSpec.minval)
         .clipHi_(controlSpec.maxval);
@@ -143,12 +135,11 @@ Fdef(\ctrlview, {arg key, spec, color, val, cb;
                 };
                 true;
             })
-            //.fixedHeight_(25)
         ).margins_(0.5).spacing_(1))
     } {
         var text = label + myval.asCompileString;
-        var st = StaticText().string_(text).font_(font).stringColor_(Color.white);
-        view = View().layout_(HLayout( st ).margins_(1).spacing_(1) )//.fixedHeight_(25);
+        var st = StaticText().string_(text);
+        view = View().layout_(HLayout( st ).margins_(1).spacing_(1) );
     };
 
     (
@@ -162,7 +153,7 @@ Fdef(\playview, {arg node;
 
     var levelkey;
     var view;
-    var font = Font(size:8);
+    //var font = Font(size:8);
     var slider = Slider();
     var levelView, setAmps, skipjack;
     var uv, preAmp = 0, postAmp = 0;
@@ -207,7 +198,7 @@ Fdef(\playview, {arg node;
             .fixedHeight_(height)
             .fixedWidth_(75)
             .toolTip_("vol")
-            .background_(Color.new255(77, 77, 77)),
+            ,
 
             NumberBox()
             .action_({arg ctrl;
@@ -216,9 +207,6 @@ Fdef(\playview, {arg node;
                 msg = "fadetime:" + node.fadeTime.trunc(0.001);
                 view.changed(\prop, (key:\fadetime, val:msg));
             })
-            .font_(font)
-            //.normalColor_(Color.white)
-            //.background_(Color.gray)
             .decimals_(2)
             .fixedWidth_(35)
             .fixedHeight_(height-2)
@@ -231,9 +219,6 @@ Fdef(\playview, {arg node;
                 node.monitor.out = ctrl.value;
                 view.changed(\prop, (key:\channel, val:msg));
             })
-            .font_(font)
-            //.normalColor_(Color.white)
-            //.background_(Color.gray)
             .decimals_(0)
             .fixedWidth_(25)
             .fixedHeight_(height-2)
@@ -303,7 +288,6 @@ Fdef(\playview, {arg node;
         var satCol = Color.red(1, 0.6);
 
         uv = UserView(parent, bounds);
-        //uv.background_(Color(1,1,1,0));
         uv.acceptsMouse_(false);
 
         // horizontal for now:
@@ -379,58 +363,4 @@ Fdef(\playview, {arg node;
     });
 
 });
-
-Fdef(\presetsview, {|node, cb|
-    var num = 10;
-    var size = 12;
-    var grid, view;
-    var buttons;
-    var presets = node.getPresets;
-    var active = if (~preset_active.isNil) { ~preset_active = (); ~preset_active } {~preset_active};
-
-    buttons = num.collect({|i|
-
-        var color = if (presets[i].isNil.not) {
-            Color.green.alpha_(0.5)
-        }{
-            Color.clear.alpha_(1.5)
-        };
-        var isactive = (active[node.key] == i);
-
-        Button()
-        .states_([ [nil, nil, color], [nil, nil, Color.red.alpha_(0.5) ] ])
-        .action_({|ctrl|
-            buttons.do({|btn, j|
-                if (i != j) {
-                    if (btn.value == 1) {
-                        btn.states = [ [nil, nil, Color.green.alpha_(0.5) ], [nil, nil, Color.red.alpha_(0.5) ] ]
-                    };
-                    btn.value = 0;
-                }
-            });
-            if (ctrl.value == 1) {
-                ~preset_active[node.key] = i;
-                cb.(i);
-            } {
-                ~preset_active[node.key] = nil;
-            }
-        })
-        .mouseDownAction_({|ctrl, x, y, mod, num, count|
-            if (mod == 262144) {
-                ctrl.states = [ [nil, nil, Color.clear.alpha_(1.5) ], [nil, nil, Color.red.alpha_(0.5) ] ];
-                if (~preset_active[node.key] == i) {
-                    ~preset_active[node.key] = nil
-                };
-                cb.(i, true);
-            }
-        })
-        .value_(if(isactive){1}{0})
-    });
-
-    grid = GridLayout.rows(
-        buttons
-    ).margins_(0).spacing_(0);
-    view = View().layout_(grid);
-    view;
-})
 )

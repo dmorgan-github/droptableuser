@@ -1,39 +1,17 @@
-/*
-(
-MidiCtrl(\qaryrf)
-.note(
-{arg note, vel;
-var myvel = vel/127;
-S(\usmo).on(note, myvel)
-},
-{arg note;
-S(\usmo).off(note)
-}
-)
-.cc(0, {arg val, num, chan;
-var myval = val/127;
-S(\usmo).set(\start, myval);
-});
-)
-MidiCtrl(\qaryrf).note(nil, nil).cc(0, nil);
-*/
+
 MidiCtrl {
 
-    classvar <all;
+    var <key, <ccChan, <noteChan;
 
-    var <key, <src;
-
-    *new {arg key, src=\iac;
-        var res = all[key];
-        if (res.isNil) {
-            res = super.new.init(key, src);
-            all.put(key, res);
-        };
+    *new {|key=\iac, ccChan=0, noteChan=0|
+        var res = super.new.init(key, ccChan, noteChan);
         ^res;
     }
 
-    init {arg inKey, inSrcKey;
-        key = inKey;
+    init {arg argKey, argCcChan, argNoteChan;
+        key = argKey;
+        ccChan = argCcChan;
+        noteChan = argNoteChan;
     }
 
     *trace {arg enable=true;
@@ -41,11 +19,10 @@ MidiCtrl {
     }
 
     note {arg on, off, chan;
-        var mychan = if (chan.isNil) {"all"}{chan};
-        var srcid = if (this.src.isNil.not){src.uid}{nil};
-        var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
-        var onkey = ("%_%_%_on").format(this.key, mychan, srcdevice).asSymbol;
-        var offkey = ("%_%_%_off").format(this.key, mychan, srcdevice).asSymbol;
+
+        var mychan = if (chan.isNil) {noteChan} {chan};
+        var onkey = ("%_%_on").format(this.key, mychan).asSymbol;
+        var offkey = ("%_%_off").format(this.key, mychan).asSymbol;
 
         if (on.isNil) {
             "free %".format(onkey).debug(this.key);
@@ -54,7 +31,7 @@ MidiCtrl {
             "register %".format(onkey).debug(this.key);
             MIDIdef.noteOn(onkey, func:{arg vel, note, chan, src;
                 on.(note, vel, chan);
-            }, chan:chan, srcID:srcid)
+            }, chan:mychan)
             .permanent_(true);
         };
 
@@ -65,7 +42,7 @@ MidiCtrl {
             "register %".format(offkey).debug(this.key);
             MIDIdef.noteOff(offkey, func:{arg vel, note, chan, src;
                 off.(note, chan);
-            }, chan:chan, srcID:srcid)
+            }, chan:mychan)
             .permanent_(true);
         };
 
@@ -75,9 +52,7 @@ MidiCtrl {
     cc {arg num, func, chan;
 
         var mychan = if (chan.isNil) {"all"}{chan};
-        var srcid = if (this.src.isNil.not){src.uid}{nil};
-        var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
-        var key = "%_%_%_cc%".format(this.key, mychan, srcdevice, num).asSymbol;
+        var key = "%_%_cc%".format(this.key, mychan, num).asSymbol;
         if (func.isNil) {
             "free %".format(key).debug(this.key);
             MIDIdef(key).permanent_(false).free;
@@ -85,16 +60,14 @@ MidiCtrl {
             "register %".format(key).debug(this.key);
             MIDIdef.cc(key, {arg val, ccNum, chan, src;
                 func.(val, ccNum, chan);
-            }, ccNum: num, chan:chan, srcID:srcid)
+            }, ccNum: num, chan:mychan)
             .permanent_(true);
         }
     }
 
     bend {arg func, chan;
-        var mychan = if (chan.isNil) {"all"}{chan};
-        var srcid = if (this.src.isNil.not){src.uid}{nil};
-        var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
-        var key = "%_%_%_bend".format(this.key, mychan, srcdevice).asSymbol;
+        var mychan = if (chan.isNil) {this.noteChan}{chan};
+        var key = "%_%_bend".format(this.key, mychan).asSymbol;
         if (func.isNil) {
             "free %".format(key).debug(this.key);
             MIDIdef(key).permanent_(false).free;
@@ -102,8 +75,8 @@ MidiCtrl {
             "register %".format(key).debug(this.key);
             MIDIdef.bend(key, {arg val, chan, src;
                 // var bend = val.linlin(0, 16383, 0.9, 1.1);
-                func.(val, chan);
-            }, chan:chan, srcID:srcid)
+                func.(val, mychan);
+            }, chan:chan)
             .permanent_(true);
         }
     }
@@ -111,9 +84,7 @@ MidiCtrl {
     // pressure
     touch {arg func, chan;
         var mychan = if (chan.isNil) {"all"}{chan};
-        var srcid = if (this.src.isNil.not){src.uid}{nil};
-        var srcdevice = if (this.src.isNil.not){this.prNormalize(src.device)}{"any"};
-        var key = "%_%_%_touch".format(this.key, mychan, srcdevice).asSymbol;
+        var key = "%_%_touch".format(this.key, mychan).asSymbol;
         if (func.isNil) {
             "free %".format(key).debug(this.key);
             MIDIdef(key).permanent_(false).free;
@@ -121,7 +92,7 @@ MidiCtrl {
             "register %".format(key).debug(this.key);
             MIDIdef.touch(key, {arg val, chan, src;
                 func.(val, chan);
-            }, chan:chan, srcID:srcid)
+            }, chan:chan)
             .permanent_(true);
         }
     }
@@ -133,25 +104,12 @@ MidiCtrl {
         128.do({arg i;
             this.cc(i, nil);
         });
-        all.removeAt(key)
-    }
-
-    prNormalize {arg str;
-        ^str.toLower().stripWhiteSpace().replace(" ", "")
-    }
-
-    *clearAll {
-        all.do({arg m; m.clear()});
-        all.clear;
+        //all.removeAt(key)
     }
 
     *connect {
         MIDIClient.init(verbose:true);
         MIDIIn.connectAll(verbose: true);
-    }
-
-    *initClass {
-        all = ();
     }
 }
 

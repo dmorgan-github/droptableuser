@@ -1,41 +1,30 @@
 /*
 Synth
 */
-S : EventPatternProxy {
-
-    classvar <all;
+S : Pdef {
 
     var <node, <cmdperiodfunc, <synthdef;
 
-    var <instrument, <ptrn, <ptrnproxy, <out, <hasGate;
+    var <instrument, <ptrn, <ptrnproxy, <hasGate;
 
-    var <>key, isMono=false, <synths, <>debug=false;
+    var <cckey, <noteonkey, <noteoffkey;
+
+    var isMono=false, <synths, <>debug=false;
 
     *new {|key|
-
-        var res;
-
-        if (key.isNil) {
-            key = "s_%".format(UniqueID.next).asSymbol;
-            "using key %".debug("S");
-        };
-        res = all[key];
+        var res = Pdef.all[key];
         if (res.isNil) {
-            var def = SynthDescLib.global.at(key);
-            var instr = \default;
-            if (def.notNil)  {
-                instr = key;
-            };
-            res = super.new.prInit(key).synth(instr);
-            all[key] = res;
+            res = super.new(key).prInit.synth(key);
         };
 
         ^res;
     }
 
+    /*
     *doesNotUnderstand {|selector|
         ^this.new(selector);
     }
+    */
 
     <+ {|val, adverb|
         if (adverb == \mono) {
@@ -66,47 +55,21 @@ S : EventPatternProxy {
         if (adverb.isNil and: val.isKindOf(Array)) {
             this.pset(*val);
         } {
-            if (val.isKindOf(Association)) {
-
-                var prop = adverb;
-                var num = val.key;
-
-                // would like to find a better way to do this
-                if (val.value.isNil) {
-                    var cckey = Twister.knobs(num).cckey;
-                    Evt.off(cckey, key);
-                    this.pset(prop, nil);
-                }{
-                    var spec = val.value.asSpec;
-                    var node = Ndef("midi_%_%".format(key, prop).asSymbol, {\val.kr(spec.default)});
-                    var ccdefault = spec.default.linlin(spec.minval, spec.maxval, 0, 127);
-                    var cckey = Twister.knobs(num).cckey;
-                    Evt.on(cckey, key, {|data|
-                        var val = data[\val];
-                        node.set(\val, spec.map(val))
-                    });
-                    this.pset(prop, node);
-                    this.changed(\midiknob, num, prop, spec);
+            switch(adverb,
+                // TODO: refactor this
+                \deg, {
+                    this.pset(\degree, val);
+                },
+                \oct, {
+                    this.pset(\octave, val);
+                },
+                \leg, {
+                    this.pset(\legato, val);
+                },
+                {
+                    this.pset(adverb, val);
                 }
-
-            } {
-
-                switch(adverb,
-                    // TODO: refactor this
-                    \deg, {
-                        this.pset(\degree, val);
-                    },
-                    \oct, {
-                        this.pset(\octave, val);
-                    },
-                    \leg, {
-                        this.pset(\legato, val);
-                    },
-                    {
-                        this.pset(adverb, val);
-                    }
-                );
-            }
+            );
         }
     }
 
@@ -138,6 +101,12 @@ S : EventPatternProxy {
         ptrnproxy.source.set(*pairs);
     }
 
+    set {| ... args|
+        //TODO: don't send all parameters to each
+        super.set(*args);
+        this.node.set(*args);
+    }
+
     synth {|synth, template=\adsr|
         isMono = false;
         this.prInitSynth(synth, template);
@@ -152,16 +121,8 @@ S : EventPatternProxy {
         node.fx(index, fx, wet);
     }
 
-    view {
-        ^U(\ngraph, this.node);
-    }
-
     kb {
         ^U(\kb, this);
-    }
-
-    printSynthControls {
-        S.printSynthControls(this.instrument);
     }
 
     on {arg midinote, vel=1;
@@ -172,8 +133,46 @@ S : EventPatternProxy {
         this.prNoteOff(midinote);
     }
 
+    // TODO: handle mono synth
+    note {|noteChan, note|
+        MIDIdef.noteOn(noteonkey, {|vel, note, chan|
+            this.on(note, vel);
+        }, noteNum:note, chan:noteChan)
+        .fix;
+
+        MIDIdef.noteOff(noteoffkey, {|vel, note, chan|
+            this.off(note);
+        }, noteNum:note, chan:noteChan)
+        .fix;
+    }
+
+    cc {|ctrl, ccNum, ccChan=0|
+        var order = Order.newFromIndices(ctrl.asArray, ccNum.asArray);
+        MIDIdef.cc(cckey, {|val, num|
+            var ctrl = order[num];
+            var spec = if (this.getSpec(ctrl).notNil) {
+                this.getSpec(ctrl)
+            }{
+                [0, 1].asSpec;
+            };
+            var mapped = spec.map(val/127);
+            this.set(ctrl, mapped);
+        }, ccNum:ccNum, chan:ccChan)
+        .fix;
+    }
+
+    disconnect {
+        MIDIdef.noteOn(noteonkey).permanent_(false).free;
+        MIDIdef.noteOn(noteoffkey).permanent_(false).free;
+        MIDIdef.noteOn(cckey).permanent_(false).free;
+    }
+
     vstctrls {
         ^this.node.vstctrls;
+    }
+
+    view {
+        U(\sgui, this)
     }
 
     *def {|inKey, inFunc, inTemplate=\adsr|
@@ -216,16 +215,16 @@ S : EventPatternProxy {
         path.loadPaths;
     }
 
-    prInit {|argKey|
+    prInit {
 
         debug = false;
-        key = argKey;
+        noteonkey = "%_noteon".format(this.key).asSymbol;
+        noteoffkey = "%_noteff".format(this.key).asSymbol;
+        cckey = "%_cc".format(this.key).asSymbol;
         instrument = \default;
-        node = D("%".format(key).asSymbol);
+        node = D("%".format(this.key).asSymbol);
         node.play;
-
         synths = Array.newClear(128);
-
         cmdperiodfunc = {
             {
                 node.wakeUp
@@ -237,6 +236,7 @@ S : EventPatternProxy {
 
     prInitSynth {|argSynth, argTemplate=\adsr|
 
+        var meta;
         instrument = argSynth;
         if (argSynth.isFunction) {
             instrument = "synth_%".format(this.key).asSymbol;
@@ -244,19 +244,29 @@ S : EventPatternProxy {
         };
 
         synthdef = SynthDescLib.global.at(instrument);
-
         if (synthdef.isNil) {
-            var path = App.librarydir ++  "synths/" ++ instrument.asString ++ ".scd";
-            var pathname = PathName(path.standardizePath);
-            var name = pathname.fileNameWithoutExtension;
-            var fullpath = pathname.fullPath;
-            if (File.exists(fullpath)) {
-                File.open(fullpath, "r").readAllString.interpret;
-                synthdef = SynthDescLib.global.at(instrument);
-            } {
-                Error("synthdef not found").throw;
-            }
+            instrument = \default;
+            synthdef = SynthDescLib.global.at(instrument);
         };
+        meta = synthdef.metadata;
+        if (meta.notNil and: {meta[\specs].notNil} ) {
+            meta[\specs].keysValuesDo({|k, v|
+                this.addSpec(k, v);
+            })
+        };
+
+        synthdef
+        .controls.reject({|cn|
+            [\freq, \out, \trig, \in, \buf, \gate, \glis, \bend, \amp, \vel].includes(cn.name.asSymbol)
+        }).do({|cn|
+            var key = cn.name.asSymbol;
+            //var spec = Spec.specs[key];
+            //if (spec.isNil) {
+            //    spec = [0, 1].asSp;
+            //};
+            //this.addSpec(key, spec.default_(cn.defaultValue));
+            this.set(key, cn.defaultValue)
+        });
 
         hasGate = synthdef.hasGate;
     }
@@ -305,23 +315,13 @@ S : EventPatternProxy {
             }{
                 chain
             }
-        })
+        });
     }
 
     prNoteOn {arg midinote, vel=1;
 
-        var ignore = [\instrument,
-            \root, \scale, \out, \group, \key, \dur, \legato,
-            \delta, \stretch, \freq, \degree, \octave, \gate, \fx, \vel,
-            \harmonic, \strum];
-
-        if (node.isPlaying) {
-
-            var evt = (this.envir ?? {()} )
-            .reject({arg v, k;
-                ignore.includes(k) or: v.isKindOf(Function);
-            });
-
+        //if (node.isPlaying) {
+            var evt = this.envir ?? {()};
             var args = [\out, node.bus.index, \gate, 1, \freq, midinote.midicps, \vel, vel] ++ evt.asPairs();
 
             if (debug) {
@@ -333,7 +333,7 @@ S : EventPatternProxy {
             } {
                 Synth(instrument, args, target:node.nodeID)
             }
-        }
+        //}
     }
 
     prNoteOff {arg midinote;
@@ -343,6 +343,6 @@ S : EventPatternProxy {
     }
 
     *initClass {
-        all = IdentityDictionary.new;
+        //all = IdentityDictionary.new;
     }
 }

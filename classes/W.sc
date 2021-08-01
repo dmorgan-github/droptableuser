@@ -7,17 +7,13 @@ W : EnvironmentRedirect {
 
     classvar <>matrixenabled;
 
-    classvar <tracks=0;
+    classvar <>tracks=0;
 
     classvar <>daw;
 
     var matrixListener;
 
     var <matrix;
-
-    var <knobMap;
-
-    var <knobListener;
 
     *push {
 		currentEnvironment.clear.pop;  // avoid nesting
@@ -58,13 +54,14 @@ W : EnvironmentRedirect {
             };
 
             if (obj.notNil) {
-                obj.addDependant(knobListener);
                 this.put(key, obj);
             }
 		};
 
 		^obj
 	}
+
+    includes { |proxy| ^envir.includes(proxy) }
 
     put {|key, obj|
         super.put(key, obj);
@@ -90,30 +87,12 @@ W : EnvironmentRedirect {
             };
         };
 
-        knobListener = {|obj, evt, num, prop, spec|
-            // this is fine
-            if (evt == \midiknob) {
-                var item = (
-                    label: "%:%".format(obj.key, prop),
-                    node: obj,
-                    prop: prop,
-                    spec: spec
-                );
-                knobMap.put(num, item);
-            }
-        };
-
         matrix = M(\m);
         matrix.addDependant(matrixListener);
-        knobMap = Order.new;
     }
 
     mixer {
         ^matrix;
-    }
-
-    twister {
-        ^U(\twister)
     }
 
     *transport {|clock|

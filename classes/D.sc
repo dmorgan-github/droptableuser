@@ -52,7 +52,7 @@ D : NodeProxy {
                         var def = SynthDescLib.global.at(obj);
                         if (def.notNil) {
                             if (def.metadata.notNil and: {def.metadata[\specs].notNil}) {
-                                "adding specs from % synthdef".format(obj).debug(key);
+                                //"adding specs from % synthdef".format(obj).debug(key);
                                 def.metadata[\specs].keysValuesDo({|k, v|
                                     node.addSpec(k, v.asSpec);
                                 });

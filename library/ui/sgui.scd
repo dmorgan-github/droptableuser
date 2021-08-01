@@ -4,14 +4,22 @@ Fdef(\sgui, {arg synth;
 
 	var win, nodeListener;
 	var view = View()
-	.layout_(VLayout().margins_(0.5).spacing_(0.5));
+	.layout_(VLayout().margins_(0).spacing_(0));
 
 	var baseview;
 	var ctrlView = Fdef(\ctrlview);
 	var baseViewFunc = Fdef(\baseview);
 	var playview = Fdef(\playview);
 	var presetsview = Fdef(\presetsview);
-	var specs = Halo.at(synth, \spec);
+	//var foo = Halo.at(synth, \spec);
+
+    var specs = synth.envir.keys.collect({|key|
+        var spec = synth.getSpec(key);
+        if (spec.isNil) {
+            spec = [0, 1].asSpec;
+        };
+        [key, spec]
+    }).asArray.flatten.asDict;
 
 	var scrollView = ScrollView();
 	var cb = {arg key, val;
@@ -19,20 +27,7 @@ Fdef(\sgui, {arg synth;
 	};
 
 	var ctrlViews = ();
-
 	playview = playview.(synth.node);//.addDependant(viewListener);
-	presetsview = presetsview.(synth, {|num, remove=false|
-		var preset = synth.getPreset(num);
-		if (preset.isNil) {
-			synth.addPreset(num);
-		} {
-			if (remove){
-				synth.removePreset(num);
-			}{
-				synth.loadPreset(num);
-			}
-		}
-	});
 
 	{
 		var groups = ();
@@ -52,7 +47,7 @@ Fdef(\sgui, {arg synth;
 			val.do({arg assoc;
 				var k = assoc.key;
 				var v = assoc.value;
-				var ctrl = ctrlView.(k, v.asSpec, Color.rand, synth.get(k), cb, synth);
+				var ctrl = ctrlView.(k, v.asSpec, QtGUI.palette.highlight, synth.get(k), cb, synth);
 				ctrlViews[k] = ctrl;
 				view.layout.add(ctrl.asView.maxHeight_(20));
 			});
@@ -61,9 +56,9 @@ Fdef(\sgui, {arg synth;
 	}.();
 
 	view.layout.add(nil);
-	scrollView.canvas = view.background_(Color.clear);
+	scrollView.canvas = view;
 	presetsview = presetsview.();
-	playview = playview.(synth.node);//.addDependant(viewListener);
+	playview = playview.(synth.node);
 
 	nodeListener = {|obj, op, pairs|
 		if (op == \set) {
@@ -74,7 +69,9 @@ Fdef(\sgui, {arg synth;
 					if (v.isNil.not) {
 						var current = v.getValue();
 						if (current != val) {
-							v.setValue(val);
+                            {
+                                v.setValue(val);
+                            }.defer
 						}
 					}
 				}

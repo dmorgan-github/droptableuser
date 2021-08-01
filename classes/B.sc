@@ -44,6 +44,23 @@ B {
         ^buf;
     }
 
+    *dir {|path|
+        var func = {|path|
+            var buffer;
+            var file = SoundFile.openRead(path);
+            var channels = if(file.numChannels < 2, { [0,0] },{ [0,1] });
+            buffer = Buffer.readChannel(Server.default, path, channels: channels);
+            buffer
+        };
+
+        var dir = PathName.new(path);
+        var bufs = dir.entries.select({|pn| pn.extension == "wav"}).collect({|pn|
+            var buf = func.(pn.fullPath);
+            buf
+        });
+        ^bufs;
+    }
+
     *open {|channels=0|
         var path = App.mediadir;
         Dialog.openPanel({|path|
