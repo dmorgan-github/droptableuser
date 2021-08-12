@@ -38,15 +38,19 @@ Fdef(\buf, {arg node;
 	//var cursorcolor = Color(0.48647997379303, 0.57335543632507, 0.37658343315125);
 	//var selectioncolor = Color(0.78476850986481, 0.36488585472107, 0.75622744560242, 0.3);
     var gridcolor = Color.rand.debug(\gridcolor);
-	var startPos = node.get(\startPos) ? 0;
-	var endPos = node.get(\endPos) ? 1;
+    var startPos = node.get(\startPos) ?? {0};
+    var endPos = node.get(\endPos) ?? {1};
 	var sfv;
 
 	var func = {arg obj, key, vals;
 		if (key == \set) {
 			var dict = vals.asDict;
 			if (dict[\buf].isNil.not) {
-				dict[\buf].loadToFloatArray(action:{arg a;
+                var buf = dict[\buf];
+                if (buf.isNumber) {
+                    buf = Buffer.cachedBufferAt(Server.default, buf.asInteger);
+                };
+				buf.loadToFloatArray(action:{arg a;
 					{
 						var start = startPos * numframes;
 						var end = (endPos * numframes) - start;
@@ -60,8 +64,12 @@ Fdef(\buf, {arg node;
 
     var func2 = {
         var buf = node.get(\buf);
-        var startPos = node.get(\startPos);
-        var endPos = node.get(\endPos);
+        var startPos = node.get(\startPos) ?? {0};
+        var endPos = node.get(\endPos) ?? {1};
+
+        if (buf.isNumber) {
+            buf = Buffer.cachedBufferAt(Server.default, buf.asInteger);
+        };
         buf.loadToFloatArray(action:{arg a;
             {
                 var start = startPos * numframes;

@@ -1,6 +1,6 @@
 (
 Require(App.librarydir ++ "ui/common.scd");
-Fdef(\launch, {|patterns, clock=(TempoClock.default)|
+Fdef(\launch, {|patterns|
 
 	var rows, grid;
 	var active = if (~launch_active.isNil) { ~launch_active = (); ~launch_active } {~launch_active};
@@ -13,21 +13,26 @@ Fdef(\launch, {|patterns, clock=(TempoClock.default)|
 
 	rows = patterns.flatten.collect({|assoc|
 		var buttons;
-		buttons = assoc.value.value.collect({|func, i|
+        var key = (assoc.key ++ '_obj_launch').asSymbol.postln;
+		buttons = assoc.value.collect({|obj, i|
 
-			var key = (assoc.key ++ '_ptrn_launch').asSymbol;
-			var pdef = Pdef(key);
-			var isactive = (active[key] == i);//if (pdef.isPlaying) {1} {0};
+            var func;
+			var isactive = (active[key] == i);
 			var button = Button();
-
-			if (isactive) {
-				Pdef(key, PfsetC({ { { button.value = 0}.defer } }, func.()) ).quant_(clock.beatsPerBar);
-			};
+            if (obj.isKindOf(Pattern)) {
+                if (isactive) {
+                    Pdef(key, PfsetC({ { { button.value = 0}.defer } }, obj ));
+                };
+                func = { Pdef(key, PfsetC({ { { button.value = 0}.defer } }, obj )) };
+            }{
+                func = { obj }
+            };
 
 			button
 			.states_([ [nil, nil, Color.clear.alpha_(1.5) ], [nil, nil, Color.white.alpha_(0.8) ] ])
 			.action_({|ctrl|
 
+                var myobj;
 				if (ctrl.value == 1) {
 					buttons.do({|btn, j|
 						if (i != j) {
@@ -35,11 +40,20 @@ Fdef(\launch, {|patterns, clock=(TempoClock.default)|
 						}
 					});
 
-					Pdef(key, PfsetC({ { { button.value = 0}.defer } }, func.()) );
 					active[key] = i;
-					pdef.play(argClock:clock, quant:clock.beatsPerBar)
+                    myobj = func.value;
+                    if (myobj.isKindOf(Function)) {
+                        myobj.value(1);
+                    }{
+                        myobj.play;
+                    }
 				} {
-					pdef.stop;
+                    myobj = func.value;
+                    if (myobj.isKindOf(Function)) {
+                        myobj.value(0)
+                    }{
+                        myobj.stop
+                    };
 					active[key] = nil;
 				}
 			})
@@ -47,22 +61,37 @@ Fdef(\launch, {|patterns, clock=(TempoClock.default)|
 		});
 
 		allButtons.addAll(buttons);
-		[StaticText()
-			.string_(assoc.key)
-			.minWidth_(50)
-			.mouseUpAction_({|ctrl, x, y, mod, num, click|
-				if (Pdef.all[assoc.key].isKindOf(S)) {
-					S(assoc.key).view;
-				}
-			})
-			.mouseOverAction_({|ctrl|
-				if (Pdef.all[assoc.key].isKindOf(S)) {
-					ctrl.stringColor = Color.blue;
-				}
-			})
-			.mouseLeaveAction_({|ctrl|
-				ctrl.stringColor = Color.white;
-			})
+		[
+            HLayout(
+                StaticText()
+                .string_(assoc.key)
+                .minWidth_(50)
+                .mouseUpAction_({|ctrl, x, y, mod, num, click|
+                    //if (Pdef.all[assoc.key].isKindOf(S)) {
+                    //	S(assoc.key).view;
+                    //}
+                    //Pdef(assoc.key).gui
+                })
+                .mouseOverAction_({|ctrl|
+                    //if (Pdef.all[assoc.key].isKindOf(S)) {
+                    //	ctrl.stringColor = Color.blue;
+                    //}
+                })
+                .mouseLeaveAction_({|ctrl|
+                    //ctrl.stringColor = Color.white;
+                }),
+                NumberBox().fixedSize_(25).action_({|ctrl|
+                    Pdef(key.postln).fadeTime = ctrl.value;
+                })
+                .value_(Pdef(key).fadeTime.ifnil(2)),
+
+                NumberBox().fixedSize_(25).action_({|ctrl|
+                    Pdef(key).quant = ctrl.value;
+                })
+                .value_(Pdef(key).quant.ifnil(1)),
+            )
+            .spacing_(2)
+            .margins_(2)
 		]
 		++
 		buttons

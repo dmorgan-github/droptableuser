@@ -11,13 +11,8 @@
     pxrand {arg repeats=inf; ^Pxrand(this, repeats) }
     pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
     pshuf {arg repeats=inf; ^Pshuf(this, repeats) }
-    pstretch {|val| ^Pstretch(val, this) }
     step {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
     pdv {|repeats=inf, key='degree'| ^Pdv(this, key).repeat(repeats) }
-    cycle {|dur=4, len|
-        if (len.isNil) {len = dur};
-        ^Psync(this.p.finDur(len), dur, dur)
-    }
 
     pa {
         var a;
@@ -46,6 +41,15 @@
 }
 
 + Object {
+
+    ifnil {|val|
+
+        if (this.isNil) {
+            ^val;
+        }{
+            ^this
+        }
+    }
 
     // pattern filtering at event level
     every {|func|
@@ -246,6 +250,7 @@
             }
         };
     }
+
     nscope {
         ^U(\scope, this);
     }
@@ -260,7 +265,6 @@
     getSettings {
         ^this.getKeysValues.flatten.asDict;
     }
-
 
     cc {|ctrl, ccNum, ccChan=0|
         var order = Order.newFromIndices(ctrl.asArray, ccNum.asArray);
@@ -322,13 +326,23 @@
             var mapped;
             var ctrl = order[num];
             var spec = this.getSpec(ctrl);
+            var filter = Fdef("%_ccFilter_%".format(this.key, num).asSymbol);
             if (this.getSpec(ctrl).isNil) {
                 spec = [0, 1].asSpec;
             };
             mapped = spec.map(val/127);
+            if (filter.source.notNil) {
+              mapped = filter.(mapped);
+              mapped;
+            };
             this.set(ctrl, mapped);
         }, ccNum:ccNum, chan:ccChan)
         .fix;
+    }
+
+    ccFilter {|ccNum, func|
+        var key = "%_ccFilter_%".format(this.key, ccNum).asSymbol;
+        Fdef(key, func)
     }
 
     note {|noteChan, note|

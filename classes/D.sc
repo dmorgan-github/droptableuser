@@ -37,7 +37,7 @@ D : NodeProxy {
             ServerTree.add({
                 \cmdperiod.debug(key);
                 res.send;
-                if (res.isPlaying) {
+                if (res.isMonitoring) {
                     res.play
                 };
             });

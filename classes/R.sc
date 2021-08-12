@@ -1,3 +1,4 @@
+/*
 R {
 
     *rec {|bus, buf|
@@ -25,5 +26,46 @@ R {
             }).add;
 
         });
+    }
+}
+*/
+
+R : D {
+
+var <phase;
+
+    deviceInit {
+        this.prBuild
+    }
+
+    prBuild {
+
+        // requires mono buffer
+        //~rec.set(\rate, -1, \rec, 0, \fb, 0.99)
+		this.filter(200, {|sig_in|
+            var updateFreq = 15;
+            var replyid = \bufposreplyid.kr(-1);
+            var buf = \buf.kr(0);
+            var in = sig_in.asArray.sum;//In.ar(\in.kr(0), 2).asArray.sum;
+            var frames = BufFrames.kr(buf);
+            var rate = \rate.kr(1);
+            var start = \startPos.kr(0) * frames;
+            var end = \endPos.kr(1) * frames;
+            var rec = \rec.kr(1);
+            var phase = Phasor.ar(1, rate * BufRateScale.kr(buf), start, end);
+            var fb = LocalIn.ar(1);
+            var wr = BufWr.ar( (in * rec) + (fb * \fb.kr(0.7)), buf, phase, 1);
+            var sig = BufRd.ar(1, buf, phase, 1, 4);
+            sig = LeakDC.ar(sig);
+            LocalOut.ar(sig);
+            SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase], replyid);
+            Splay.ar(sig, \spread.kr(1), center:\pan.kr(0));
+		});
+
+		this.wakeUp;
+	}
+
+    view {|index|
+       U(\buf, this)
     }
 }
