@@ -81,7 +81,7 @@ Fdef(\launch, {|patterns|
                     //ctrl.stringColor = Color.white;
                 }),
                 NumberBox().fixedSize_(25).action_({|ctrl|
-                    Pdef(key.postln).fadeTime = ctrl.value;
+                    Pdef(key).fadeTime = ctrl.value;
                 })
                 .value_(Pdef(key).fadeTime.ifnil(2)),
 
