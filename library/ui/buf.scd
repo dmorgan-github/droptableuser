@@ -22,9 +22,14 @@ Fdef(\buf, {arg node;
 	var numframes = buf.numFrames;
 	var osckey = 'bufpos';
 	//(key ++ 'pos').asSymbol;
-	//var wavecolors = [Color.rand, Color.rand].debug(\wavecolors);
+	var wavecolors = [Color.rand, Color.rand].debug(\wavecolors);
 
-    var wavecolors = [ Color(0.8730087518692, 0.55612449645996, 0.8803555727005), Color(0.76174085140228, 0.44574573040009, 0.67218403816223) ];
+    /*
+    var wavecolors = [ 
+        Color(0.8730087518692, 0.55612449645996, 0.8803555727005), 
+        Color(0.76174085140228, 0.44574573040009, 0.67218403816223) 
+    ];
+    */
 
 	var cursorcolor = Color.rand.debug(\cursorcolor);
 	var selectioncolor = Color.rand.alpha_(0.3).debug(\selectioncolor);

@@ -51,7 +51,7 @@ B {
         ^buf;
     }
 
-    *load {|path, key, cb|
+    *load {|key, path, cb|
 
         var condition = Condition(false);
         var normalize = true;
@@ -109,7 +109,7 @@ B {
                         });
                     }
                 };
-                recurse.(path, "");
+                recurse.(path, "root");
                 all[key] = obj;
                 cb.(obj);
                 "buffers loaded".debug(key);

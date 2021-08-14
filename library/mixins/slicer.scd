@@ -1,43 +1,57 @@
 /////////////////////////////////////////////////////////////////////
 // buffer slicer
-/////////////////////////////////////////////////////////////////////
-//~buf = ~buf ?? Buffer.read(s, Platform.resourceDir +/+ "sounds/a11wlk01.wav");
-//~beats = nil;
-//~numslices = 8;
 (
-Pdef(\slicer,
-	Pbind(
-		\instrument, \smplr_1chan,
-		\buf, Pkey(\buf),
-		\cf, 0.05,
-		\dir, 1, //[-1, 1].prand,
-		\bufdur, Pfunc({|evt|
-			var buf = evt[\buf];
-			buf.duration;
-		}),
-		\numslices, Pfunc({|evt|
-			var num = evt[\numslices];
-			if (num.isNil) {8}{num};
-		}),
-		\slicedur, Pkey(\numslices).reciprocal * Pkey(\bufdur),
-		\slices, Pfunc({|evt|
-			var numslices = evt[\numslices];
-			(0..numslices-1)/numslices;
-		}),
-		\stretch, Pfunc({|evt|
-			var len = evt[\beats];
-			var bufdur = evt[\bufdur];
-			var val = if (len.isNil) {1}{len/bufdur};
-			val;
-		}),
-		\dur, Pkey(\slicedur),
-		\speed, Pkey(\stretch).reciprocal,
-		\sustain, Pkey(\dur) * Pkey(\stretch),
-		\start, Plazy({|evt|
-			var val = evt[\slices];
-			Pseq(val, inf)
-		}),
-	)
-)
+Pdef(\slicer, Pbind(
+    \numslices, Pfunc({|evt| if (evt[\numslices].isNil) {8} {evt[\numslices]} }),
+    \numbeats, Pfunc({|evt|
+        var numbeats = 4;
+        if (evt[\numbeats].notNil) {
+            numbeats = evt[\numbeats]
+        };
+        numbeats
+    }),
+    \bufdur, Pfunc({|evt| 
+        evt[\buf].duration
+    }),
+    \rate, Pfunc({|evt|
+        var numbeats = evt[\numbeats];
+        var beatdur = (evt[\bufdur]/numbeats);
+        (beatdur/thisThread.clock.beatDur)
+    }),
+    \slicedur, Pfunc({|evt|
+        var numslices = evt[\numslices];
+        var numbeats = evt[\numbeats];
+        var dur = (thisThread.clock.beatDur * numbeats);
+        numslices.reciprocal * dur * thisThread.clock.tempo;
+    }),
+    \slices, Pfunc({|evt|
+        var numslices = evt[\numslices];
+        (0..numslices-1)/numslices;
+    }),
+    \dur, Pkey(\slicedur),
+    \legato, 1,
+    \dir, 1,
+    \rel, 0,
+    \atk, 0,
+    \curve, 0,
+    \startPos, Plazy({|evt|
+        var val = evt[\slices];
+        Pseq(val, 1)
+    }).repeat,
+    \loopprob, Pfunc({|evt|
+        var val = evt[\loopprob];
+        if (val.isNil) {val = 0};
+        val
+    }),
+    \endPos, Pfunc({|evt|
+        var slicedur = evt[\slicedur];
+        var loopprob = evt[\loopprob];
+        if (loopprob.coin) {
+            evt[\startPos] + (slicedur * [1/3, 1/6, 1/8, 1/16].choose)
+        }{
+            1
+        }
+    })
+))
 )
 

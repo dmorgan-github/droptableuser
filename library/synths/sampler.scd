@@ -3,8 +3,8 @@ var func = {arg numchannels = 2;
 
 	var buf = \buf.kr(0);
 	var numframes = BufFrames.kr(buf);
-	var rate = \speed.kr(1);
-	var start = \start.kr(0) * numframes;
+	var rate = \rate.kr(1);
+	var start = \startPos.kr(0) * numframes;
 	var len = \sustain.kr(0);
 	var dir = \dir.kr(1);
 	var loop = \loop.kr(0);
@@ -153,7 +153,8 @@ SynthDef(\sampler, {
     var start = \startPos.kr(0);
     var end = \endPos.kr(1).max(start);
     var rate = \rate.kr(1) * BufRateScale.kr(buf);
-    var phase = Phasor.ar(rate: rate, start:numframes * start, end:numframes * end);
+    var dir = \dir.kr(1);
+    var phase = dir * Phasor.ar(rate: rate, start:numframes * start, end:numframes * end);
 
     var aeg = Env.asr(
         \atk.kr(0.01),

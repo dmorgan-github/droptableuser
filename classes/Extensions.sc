@@ -316,7 +316,7 @@
 + Pdef {
 
     << {|pattern|
-        ^this.source = pattern;
+        this.source = pattern;
     }
 
     cc {|ctrl, ccNum, ccChan=0|

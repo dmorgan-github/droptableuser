@@ -1,7 +1,117 @@
 /*
 Synth
 */
+
 S : Pdef {
+
+    *new {|key|
+        var res = Pdef.all[key];
+        if (res.isNil) {
+            res = super.new(key).prInit.synth(key);
+        };
+
+        ^res;
+    }
+
+    *doesNotUnderstand {|key|
+		var res = Pdef.all[key];
+		if (res.isNil){
+			res = S(key);
+		};
+		^res;
+	}
+  
+    @ {|val, adverb|
+
+        if (adverb.isNil and: val.isKindOf(Array)) {
+            this.set(*val);
+        } {
+            this.set(adverb, val);
+        }
+    }
+
+    synth {|synth, template=\adsr|
+        this.prInitSynth(synth, template);
+    }
+
+    prInit {
+        clock = W.clock;
+        this.source = Pbind();
+    }
+
+    prInitSynth {|argSynth, argTemplate=\adsr|
+        var meta, synthdef;
+        var instrument = argSynth;
+        if (argSynth.isFunction) {
+            instrument = "synth_%".format(this.key).asSymbol;
+            S.def(instrument, argSynth, argTemplate);
+        };
+
+        synthdef = SynthDescLib.global.at(instrument);
+        if (synthdef.isNil) {
+            instrument = \default;
+            synthdef = SynthDescLib.global.at(instrument);
+        };
+        meta = synthdef.metadata;
+        if (meta.notNil and: {meta[\specs].notNil} ) {
+            meta[\specs].keysValuesDo({|k, v|
+                this.addSpec(k, v);
+            })
+        };
+
+        //synthdef
+        //.controls.reject({|cn|
+        //    [\freq, \trig, \in, \buf, \gate, \glis, \bend].includes(cn.name.asSymbol)
+        //}).do({|cn|
+        //    var key = cn.name.asSymbol;
+        //    this.set(key, cn.defaultValue)
+        //});
+
+        this.set(\instrument, instrument);
+    }
+
+    *def {|inKey, inFunc, inTemplate=\adsr|
+        var path = App.librarydir ++  "templates/" ++ inTemplate.asString ++ ".scd";
+        var pathname = PathName(path.standardizePath);
+        var fullpath = pathname.fullPath;
+
+        if (File.exists(fullpath)) {
+            var template = File.open(fullpath, "r").readAllString.interpret;
+            template.(inKey, inFunc);
+        } {
+            Error("synth template not found").throw;
+        };
+
+        "built synth % with template %".format(inKey, inTemplate).postln;
+    }
+
+    *printSynths {
+        SynthDescLib.all[\global].synthDescs
+        .keys
+        .reject({|key|
+            key.asString.beginsWith("system") or: key.asString.beginsWith("pbindFx_")
+        })
+        .asArray
+        .sort
+        .do({|val| val.postln})
+    }
+
+    *printSynthControls {|synth|
+        SynthDescLib.all[\global]
+        .synthDescs[synth]
+        .controls.do({|cn|
+            [cn.name, cn.defaultValue].postln
+        });
+    }
+
+    *loadSynths {
+        var path = App.librarydir.standardizePath ++ "synths/*.scd";
+        "loading synths: %".format(path).debug;
+        path.loadPaths;
+    }
+}
+
+S2 : Pdef {
 
     var <node, <cmdperiodfunc, <synthdef;
 
