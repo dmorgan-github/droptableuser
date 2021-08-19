@@ -2,6 +2,8 @@
 NOTE: can record with nodeproxy
 https://doc.sccode.org/Classes/RecNodeProxy.html
 */
+
+// TODO: use Ndef
 D : NodeProxy {
 
     classvar <all, <>defaultout;

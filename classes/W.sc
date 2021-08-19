@@ -91,6 +91,11 @@ W : EnvironmentRedirect {
         matrix.addDependant(matrixListener);
     }
 
+    *ndefmixer {
+        var m = NdefMixer(Server.default);
+        ProxyMeter.addMixer(m);
+    }
+
     mixer {
         ^matrix;
     }

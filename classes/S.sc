@@ -2,7 +2,22 @@
 Synth
 */
 
+/*
+presets
+PdefPreset.all.clear
+~a = PdefPreset(\kxu, namesToStore: [\rel, \legato, \res, \suslevel] )
+~a.namesToStore
+~a.addSet(\curr)
+~a.addSet(\set1)
+~a.getSetNames
+~a.settings.printcsAll
+~ui = PdefPresetGui(~a)
+*/
+
+
 S : Pdef {
+
+    var <node, <cmdperiodfunc;
 
     *new {|key|
         var res = Pdef.all[key];
@@ -20,7 +35,7 @@ S : Pdef {
 		};
 		^res;
 	}
-  
+
     @ {|val, adverb|
 
         if (adverb.isNil and: val.isKindOf(Array)) {
@@ -34,9 +49,55 @@ S : Pdef {
         this.prInitSynth(synth, template);
     }
 
+    // TODO: refactor this
+    view {
+        U(\sgui, this)
+        /*
+        var node = this;
+        var keys = node.getSpec.keys.asArray;
+        var view = View().layout_(VLayout()).minSize_(Size(400, 300));
+        var preset = PdefPreset(node.key, namesToStore: keys );
+        PdefPresetGui(preset, parent: view);
+        PdefGui(node, 20, parent:view);
+        view.front;
+        */
+    }
+
+    out {
+        ^this.node.monitor.out
+    }
+
+    out_ {|bus|
+        this.node.monitor.out = bus
+    }
+
+    source_ {|pattern|
+        super.source = Pchain(
+          pattern,
+          Pbind(\out, Pfunc({node.bus.index}), \group, Pfunc({node.group}))
+        )
+    }
+
     prInit {
         clock = W.clock;
+        // use D when converted to Ndef
+        node = Ndef(this.key);
+        node.play;
         this.source = Pbind();
+        this.set(\nkey, this.key, \type, \composite, \types, [\note, \nset]);
+        // don't think this is necessary
+        // when using D:Ndef
+        cmdperiodfunc = {
+            {
+                node.wakeUp;
+                if (node.isMonitoring) {
+                    \cmdperiod.debug(node.key);
+                    node.play
+                };
+            }.defer(0.5)
+        };
+        ServerTree.add(cmdperiodfunc);
+        ^this
     }
 
     prInitSynth {|argSynth, argTemplate=\adsr|
@@ -52,20 +113,24 @@ S : Pdef {
             instrument = \default;
             synthdef = SynthDescLib.global.at(instrument);
         };
+
+        synthdef
+        .controls.reject({|cn|
+            [\freq, \trig, \in, \buf, \gate, \glis, \bend].includes(cn.name.asSymbol)
+        }).do({|cn|
+            var key = cn.name.asSymbol;
+            var spec = Spec.specs[key];
+            if (spec.notNil) {
+              this.addSpec(key, spec);
+            }
+        });
+
         meta = synthdef.metadata;
         if (meta.notNil and: {meta[\specs].notNil} ) {
             meta[\specs].keysValuesDo({|k, v|
                 this.addSpec(k, v);
             })
         };
-
-        //synthdef
-        //.controls.reject({|cn|
-        //    [\freq, \trig, \in, \buf, \gate, \glis, \bend].includes(cn.name.asSymbol)
-        //}).do({|cn|
-        //    var key = cn.name.asSymbol;
-        //    this.set(key, cn.defaultValue)
-        //});
 
         this.set(\instrument, instrument);
     }
@@ -108,6 +173,14 @@ S : Pdef {
         var path = App.librarydir.standardizePath ++ "synths/*.scd";
         "loading synths: %".format(path).debug;
         path.loadPaths;
+    }
+
+    *initClass {
+        Event.addEventType(\nset, {|server|
+          ~id = Ndef(~nkey).nodeID;
+          ~args = Ndef(~nkey).controlKeys(except: ~exceptArgs);
+          ~eventTypes[\set].value(~server);
+        });
     }
 }
 

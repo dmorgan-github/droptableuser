@@ -1,59 +1,25 @@
-
 /*
 Presets
 */
 P {
 
-    *hh {
-        var obj = S(\hh).mono(\plaits_mono);
-        obj.set(
-            \engine, 15,
-            \harm, 0.5,
-            \timbre, 0.91,
-            \morph, 0.2,
-        );
-        ^obj;
-    }
-
-    *sd {
-        var obj = S(\sd).mono(\plaits_mono);
-        obj.set(
-            \engine, 14,
-            \harm, 0.94,
-            \timbre, 0.17,
-            \morph, 0,
-        );
-        ^obj;
-    }
-
-    *bd {
-        var obj = S(\bd).mono(\plaits_mono);
-        obj.set(
-            \engine, 13,
-            \octave, 3,
-            \harm, 0.32,
-            \timbre, 0.8,
-            \morph, 0.17,
-        );
-        ^obj;
-    }
-
-    *addPreset {|node, num, preset|
+    *addCurrent {|node, num|
         var key = node.key;
-        var presets = Halo.at(key);
+        var vals = P.getCurrentVals(node);
+        var presets = Halo.at(\presets, key);
         if (presets.isNil) {
             presets = Order.new;
-            Halo.put(key, presets);
+            Halo.put(\presets, key, presets);
         };
-        presets.put(num, preset);
+        presets.put(num, vals);
     }
 
     *getPresets {|node|
         var key = node.key;
-        var presets = Halo.at(key);
+        var presets = Halo.at(\presets, key);
         if (presets.isNil) {
             presets = Order.new;
-            Halo.put(key, presets);
+            Halo.put(\presets, key, presets);
         }
         ^presets
     }
@@ -64,20 +30,32 @@ P {
         ^presets[num];
     }
 
-    *morph {|node, from, to, numsteps=20, wait=0.1|
+    *getCurrentVals {|node|
+        var vals = node.envir.keys
+        .select({|key| node.get(key).isNumber }).
+        collect({|key| [key, node.get(key)] });
+        ^vals.asArray.flatten.asDict
+    }
+
+    *morph {|node, num, beats=20, wait=0.01|
         var key = node.key;
-        Routine({
-            var presets = P.getPresets(node);
-            var numsteps = 20;
-            var fromCopy = presets[from].copy;
-            var toPreset = presets[to];
+        var presets = P.getPresets(node);
+        Tdef(key, {|ev|
+            var presets = ev[\presets];
+            var curr = P.getCurrentVals(node);
+            var target = presets[ev[\preset]];
+            var numsteps;
+            ev[\dt] ? ev[\dt] ? 0.01;
+            ev[\beats] = ev[\beats] ? 1;
+            numsteps = ev[\beats]/ev[\dt];
             numsteps.do({|i|
-                var blend = 1 + i / numsteps;
-                fromCopy = fromCopy.blend(toPreset, blend);
-                node.set(*fromCopy.getPairs);
-                wait.wait;
+                var blend = 1+i/numsteps;
+                var result = curr.blend(target, blend);
+                node.set(*result.getPairs);
+                ev[\dt].wait;
             });
-            \morph_done.debug(key);
-        }).play;
+        })
+        .set(\presets, presets, \preset, num, \dt, wait, \beats, beats)
+        .play
     }
 }

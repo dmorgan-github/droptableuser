@@ -2,7 +2,13 @@
 // buffer slicer
 (
 Pdef(\slicer, Pbind(
-    \numslices, Pfunc({|evt| if (evt[\numslices].isNil) {8} {evt[\numslices]} }),
+    \numslices, Pfunc({|evt|
+        var numslices = 8;
+        if (evt[\numslices].notNil) {
+            numslices = evt[\numslices]
+        };
+        numslices
+    }),
     \numbeats, Pfunc({|evt|
         var numbeats = 4;
         if (evt[\numbeats].notNil) {
@@ -47,7 +53,7 @@ Pdef(\slicer, Pbind(
         var slicedur = evt[\slicedur];
         var loopprob = evt[\loopprob];
         if (loopprob.coin) {
-            evt[\startPos] + (slicedur * [1/3, 1/6, 1/8, 1/16].choose)
+            evt[\startPos] + (slicedur * [1/6, 1/8, 1/16, 1/32].choose)
         }{
             1
         }
