@@ -21,18 +21,24 @@ Fdef(\buf, {arg node;
     }.();//
 	var numframes = buf.numFrames;
 	var osckey = 'bufpos';
-	//(key ++ 'pos').asSymbol;
-	var wavecolors = [Color.rand, Color.rand].debug(\wavecolors);
+
+	//var wavecolors = [Color.rand, Color.rand].debug(\wavecolors);
+    var wavecolors =  [
+        Color(0.59429912567139, 0.71457996368408, 0.45395700931549),
+        Color(0.85957117080688, 0.86903350353241, 0.57564690113068)
+    ];
 
     /*
-    var wavecolors = [ 
-        Color(0.8730087518692, 0.55612449645996, 0.8803555727005), 
-        Color(0.76174085140228, 0.44574573040009, 0.67218403816223) 
+    var wavecolors = [
+        Color(0.8730087518692, 0.55612449645996, 0.8803555727005),
+        Color(0.76174085140228, 0.44574573040009, 0.67218403816223)
     ];
     */
 
-	var cursorcolor = Color.rand.debug(\cursorcolor);
-	var selectioncolor = Color.rand.alpha_(0.3).debug(\selectioncolor);
+	//var cursorcolor = Color.rand.debug(\cursorcolor);
+    var cursorcolor = Color(0.84076716899872, 0.8562139749527, 0.69819803237915);
+	//var selectioncolor = Color.rand.alpha_(0.3).debug(\selectioncolor);
+    var selectioncolor = Color(0.38695478439331, 0.68618059158325, 0.31084091663361, 0.3);
     var skipjackname = "buf_%".format(UniqueID.next).asSymbol;
 
 	//var wavecolors = [
@@ -42,7 +48,9 @@ Fdef(\buf, {arg node;
 
 	//var cursorcolor = Color(0.48647997379303, 0.57335543632507, 0.37658343315125);
 	//var selectioncolor = Color(0.78476850986481, 0.36488585472107, 0.75622744560242, 0.3);
-    var gridcolor = Color.rand.debug(\gridcolor);
+   // var gridcolor = Color.rand.debug(\gridcolor);
+    var gridcolor = Color(0.59298334121704, 0.61996343135834, 0.82784349918365);
+    var backgroundcolor =Color(0.32606270313263, 0.39292259216309, 0.8526659488678);// Color.rand.debug(\background);
     var startPos = node.get(\startPos) ?? {0};
     var endPos = node.get(\endPos) ?? {1};
 	var sfv;
@@ -75,6 +83,7 @@ Fdef(\buf, {arg node;
         if (buf.isNumber) {
             buf = Buffer.cachedBufferAt(Server.default, buf.asInteger);
         };
+        // is it safe to do this?
         buf.loadToFloatArray(action:{arg a;
             {
                 var start = startPos * numframes;
@@ -84,6 +93,7 @@ Fdef(\buf, {arg node;
             }.defer
         });
     };
+
 
 	var view = View()
 	.layout_(VLayout().margins_(2).spacing_(2));
@@ -96,7 +106,7 @@ Fdef(\buf, {arg node;
     To scroll: right-click + mouse-left/right
     */
 	sfv = SoundFileView()
-	.background_(Color.rand.alpha_(0.3))
+    .background_(backgroundcolor.alpha_(0.3))
 	.timeCursorOn_(true)
 	.gridOn_(true)
 	.resize_(5)
@@ -111,7 +121,6 @@ Fdef(\buf, {arg node;
 	});
 	sfv.setSelectionColor(0, selectioncolor);
 
-	// TODO: refactor to use func from above
 	buf.loadToFloatArray(action:{arg a;
 		{
 			var start = startPos * numframes;
@@ -134,9 +143,7 @@ Fdef(\buf, {arg node;
 
     playview = playview.(node);//.addDependant(viewListener);
     view.layout.add(playview);
-    view.layout.add(
-        Button().action_({U(\ngui, node)})
-    );
+
 	view.layout.add(
 		RangeSlider()
 		.orientation_(\horizontal)

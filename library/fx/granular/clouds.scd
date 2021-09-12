@@ -41,17 +41,17 @@ synth: {|sig_in|
 },
 
 specs: [
-    \pitch -> ControlSpec(-48, 48, \lin, 0, 7, units:"pitch"),
-    \pos -> ControlSpec(0, 1, \lin, 0, 0.5, units:"grain"),
-    \size -> ControlSpec(0, 1, \lin, 0, 0.25, units:"grain"),
-    \dens -> ControlSpec(0, 1, \lin, 0, 04, units:"grain"),
-    \tex -> ControlSpec(0, 1, \lin, 0, 0.5, units:"timbre"),
-    \stereo -> ControlSpec(0, 1, \lin, 0, 0.5, units:"stereo"),
-    \rvb -> ControlSpec(0, 1, \lin, 0, 0, units:"reverb"),
-    \fb -> ControlSpec(0, 1, \lin, 0, 0, units:"reverb"),
-    \freeze -> ControlSpec(0, 1, \lin, 1, 0, units:"reverb"),
-    \mode -> ControlSpec(0, 3, \lin, 1, 2, units:"timbre"),
-    \lofi -> ControlSpec(0, 1, \lin, 1, 0, units:"timbre"),
-    \lag -> ControlSpec(0, 1, \lin, 1, 0.1, units:"pitch")
+    pitch: ControlSpec(-48, 48, \lin, 0, 7, units:"pitch"),
+    pos: ControlSpec(0, 1, \lin, 0, 0.5, units:"grain"),
+    size: ControlSpec(0, 1, \lin, 0, 0.25, units:"grain"),
+    dens: ControlSpec(0, 1, \lin, 0, 04, units:"grain"),
+    tex: ControlSpec(0, 1, \lin, 0, 0.5, units:"timbre"),
+    stereo: ControlSpec(0, 1, \lin, 0, 0.5, units:"stereo"),
+    rvb: ControlSpec(0, 1, \lin, 0, 0, units:"reverb"),
+    fb: ControlSpec(0, 1, \lin, 0, 0, units:"reverb"),
+    freeze: ControlSpec(0, 1, \lin, 1, 0, units:"reverb"),
+    mode: ControlSpec(0, 3, \lin, 1, 2, units:"timbre"),
+    lofi: ControlSpec(0, 1, \lin, 1, 0, units:"timbre"),
+    lag: ControlSpec(0, 1, \lin, 1, 0.1, units:"pitch")
 ]
 )

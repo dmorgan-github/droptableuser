@@ -1,6 +1,8 @@
-{|inKey, inFunc|
+{|inKey, inFunc, specs|
 
-	SynthDef(inKey, {
+    var metadata = if (specs.notNil) {(specs:specs.asDict)};
+	
+    SynthDef(inKey, {
 
 		var trig = \trig.tr(1);
 		var in_freq = \freq.ar(261).lag(\glis.kr(0));
@@ -38,5 +40,7 @@
 		sig = sig * \amp.kr(-6.dbamp);
 		Out.ar(\out.kr(0), sig);
 
-	}).add;
+	},
+    metadata: metadata
+).add;
 }

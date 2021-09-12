@@ -21,7 +21,7 @@ var func = {arg numchannels = 2;
 };
 
 var specs = (
-	start: ControlSpec(0, 1, \lin, 0, 0),
+	startPos: ControlSpec(0, 1, \lin, 0, 0),
 );
 
 SynthDef(\smplr_2chan, {
@@ -124,7 +124,6 @@ SynthDef(\oneshot1, {
 	var start = \start.kr(0);
 	var sig = PlayBuf.ar(1, buf, rate * dir, 1, startPos:start, loop:0, doneAction:Done.freeSelf);
 	sig = sig * \amp.kr(-3.dbamp) * \vel.kr(1);
-	sig = sig.softclip;
 	sig = Splay.ar(sig, spread:\spread.kr(1), center:\pan.kr(0));
 	Out.ar(\out.kr(0), sig);
 }).add;
@@ -136,13 +135,10 @@ SynthDef(\oneshot2, {
 	var start = \start.kr(0);
 	var sig = PlayBuf.ar(2, buf, rate * dir, 1, startPos:start, loop:0, doneAction:Done.freeSelf);
 	sig = sig * \amp.kr(-3.dbamp) * \vel.kr(1);
-	sig = sig.softclip;
 	sig = Splay.ar(sig, spread:\spread.kr(1), center:\pan.kr(0));
 	Out.ar(\out.kr(0), sig);
 }).add;
 
-/////////////////////////////////////////////
-//
 SynthDef(\sampler, {
 
     var updateFreq = 15;
@@ -177,4 +173,8 @@ SynthDef(\sampler, {
     Out.ar(\out.kr(0), sig);
 
 }).add;
+
 )
+
+
+

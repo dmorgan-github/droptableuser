@@ -3,14 +3,12 @@ NOTE: can record with nodeproxy
 https://doc.sccode.org/Classes/RecNodeProxy.html
 */
 
-// TODO: use Ndef
-D : NodeProxy {
+// using Ndef so we can use JitLib UIs
+D : Ndef {
 
-    classvar <all, <>defaultout;
+    classvar <>defaultout;
 
-    var <chain, <vstctrls;
-
-    var <>key;
+    var <vstctrls;
 
     *new {|key|
 
@@ -20,13 +18,12 @@ D : NodeProxy {
             Error("key is required").throw;
         };
 
-        res = all[key];
+        res = Ndef.dictFor(Server.default).envir[key];
 
         if (res.isNil) {
 
-            res = super.new(Server.default, rate:\audio, numChannels:2)
-            .prInit(key);
-
+            res = super.new(key).prInit();
+            res.mold(2, \audio);
             res.wakeUp;
             res.vol = 1;
             res.postInit;
@@ -34,14 +31,6 @@ D : NodeProxy {
             res.filter(1000, {|in|
                 var sig = Select.ar(CheckBadValues.ar(in, 0, 0), [in, DC.ar(0), DC.ar(0), in]);
                 Limiter.ar(LeakDC.ar(sig));
-            });
-
-            ServerTree.add({
-                \cmdperiod.debug(key);
-                res.send;
-                if (res.isMonitoring) {
-                    res.play
-                };
             });
 
             // if we're using a synthdef as a source
@@ -65,15 +54,12 @@ D : NodeProxy {
             });
 
             res.monitor.out = defaultout;
-            all[key] = res;
         };
 
         ^res;
     }
 
     prInit {|argKey|
-        key = argKey;
-        chain = Order.new;
         vstctrls = Order.new;
         ^this.deviceInit
     }
@@ -137,16 +123,10 @@ D : NodeProxy {
     fx {|index, fx, wet=1|
 
         if (fx.isNil) {
-            this[index] = nil;
-            this.chain.removeAt(index);
+            this.removeAt(index);
         }{
-            var info = (
-                key: fx,
-            );
-
             if (fx.isFunction) {
                 this.filter(index, fx);
-                info[\key] = "fx_%".format(index).asSymbol;
             }{
                 if (fx.asString.beginsWith("vst/")) {
                     var vst = fx.asString.split($/)[1..].join("/").asSymbol;
@@ -159,48 +139,15 @@ D : NodeProxy {
                     var specs = obj[\specs];
                     var customui = obj[\ui];
                     this.filter(index, func);
-                    if (specs.isNil.not) {
-                        info[\specs] = ();
-                        specs.do({|assoc|
-                            this.addSpec(assoc.key, assoc.value);
-                            info[\specs][assoc.key] = assoc.value;
-                        });
-                    };
-                    info[\customui] = customui;
+                    this.addSpec(*specs);
                 };
             };
             this.addSpec("wet%".format(index).asSymbol, [0, 1, \lin, 0, 1].asSpec);
             this.set("wet%".format(index).asSymbol, wet);
-
-            // defer to accommodate latency for vst
-            {
-                if (info[\specs].isNil) {
-                    var def = this.objects[index];//.synthDef
-                    var controls = def.controlNames.reject({|cn| this.internalKeys.includes(cn.name) });
-                    var specs = ();
-                    controls.do({|cn|
-                        var key = cn.name;
-                        var spec = if (this.specs[key].notNil){
-                            this.specs[key];
-                        }{
-                            if (Spec.specs[key].notNil) {
-                                Spec.specs[key]
-                            }{
-                                [0, 1].asSpec
-                            }
-                        };
-                        specs[key] = spec;
-                    });
-                    info[\specs] = specs;
-                };
-                info[\specs]["wet%".format(index).asSymbol] = [0, 1, \lin, 0, 1].asSpec;
-
-                this.chain.put(index, info);
-                "added % at index %".format(fx, index).postln;
-            }.defer(1)
         }
     }
 
+    // TODO: add specs
     vst {|index, vst, id, cb|
 
         var node = this;
@@ -306,8 +253,7 @@ D : NodeProxy {
 
     *initClass {
 
-        all = IdentityDictionary.new;
-        defaultout = 4;
+        defaultout = 0;
 
         StartUp.add({
             SynthDef(\rec, {
@@ -323,7 +269,6 @@ D : NodeProxy {
                     doneAction:Done.freeSelf);
                 Out.ar(0, Silent.ar(2));
             }).add;
-
         });
     }
 }

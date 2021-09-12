@@ -15,12 +15,12 @@ synth: {arg sig_in;
     ) * \output.ar(1);
 },
 specs: [
-    \gainL -> ControlSpec(1, 100, \lin, 0, 1, units:"fx"),
-    \gainR -> ControlSpec(1, 100, \lin, 0, 1, units:"fx"),
-    \hpf -> ControlSpec(20, 2000, \lin, 0, 80, units:"fx"),
-    \spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
-    \pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
-    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
-    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
+    gainL: ControlSpec(1, 100, \lin, 0, 1, units:"fx"),
+    gainR: ControlSpec(1, 100, \lin, 0, 1, units:"fx"),
+    hpf: ControlSpec(20, 2000, \lin, 0, 80, units:"fx"),
+    spread: ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+    pan: ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    input: ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

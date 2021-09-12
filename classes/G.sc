@@ -1,6 +1,7 @@
 G : D {
 
     deviceInit {
+        this.play;
         this.prBuild;
     }
 
@@ -16,7 +17,7 @@ G : D {
             var overlap = \overlap.ar(2);
             var sig, env;
             var bufFrames = BufFrames.ir(buf);
-            var trig, phase, dur;
+            var trig, phase, dur, dir;
 
             var freqLfo = {
                 var freqLfoHz = \freqLfoHz.kr(0);
@@ -66,7 +67,7 @@ G : D {
             };
 
             var grainDur = {
-                var default = freq.reciprocal * overlap;
+                var default = freq.reciprocal;
 
                 var grainDurLfo = {
                     var grainDurLfoHz = \grainDurLfoHz.kr(0);
@@ -75,7 +76,7 @@ G : D {
                 };
                 var dur = \grainDur.kr(0) + grainDurLfo.dup;
                 var which = dur > 0;
-                Select.kr(which, [default, dur]).max(0);
+                Select.kr(which, [default, dur]).max(0) * overlap;
             };
 
             var resLfo = {
@@ -96,6 +97,11 @@ G : D {
                 SelectX.ar(which, [sig, moog]);
             };
 
+            var rev = {|trig|
+                var revprob = \revprob.kr(0);
+                Demand.kr(A2K.kr(trig), 0, Dwrand([-1, 1], [revprob, 1-revprob], inf));
+            };
+
             var prob = \prob.kr(1);
 
             freq = freq + freqLfo.dup;
@@ -103,13 +109,14 @@ G : D {
             trig = grainRate.();
             phase = phasor.();
             dur = grainDur.();
+            dir = rev.(trig);
 
             sig = GrainBuf.ar(
                 numChannels: 1,
                 trigger: CoinGate.ar(prob, trig),
                 dur: dur,
                 sndbuf: buf,
-                rate: rate,
+                rate: rate * dir,
                 pos: phase / bufFrames,
                 interp: 2,
                 pan: 0,
@@ -122,10 +129,29 @@ G : D {
             sig = filter.(sig);
             sig = LPF.ar(HPF.ar(sig, \hpf.kr(20)), \lpf.kr(2000));
             SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase], replyid);
-            sig;
+            Splay.ar(sig, spread:\spread.kr(1), center:\pan.kr(0));
         });
 
-        this.wakeUp;
+        this.addSpec(\overlap, [1, 24, \lin, 1, 12]);
+        this.addSpec(\speed, [0, 1, \lin, 0, 1]);
+        this.addSpec(\speedLfoHz, [0.0, 20, \lin, 0, 0]);
+        this.addSpec(\speedLfoDepth, [0.0, 4, \lin, 0, 0]);
+        this.addSpec(\rate, [0.01, 4, \lin, 0, 1]);
+        this.addSpec(\rateLfoHz, [0.0, 20, \lin, 0, 0]);
+        this.addSpec(\rateLfoDepth, [0.0, 4, \lin, 0, 0]);
+        this.addSpec(\grainDur, [0.0, 4, \lin, 0, 0.0]);
+        this.addSpec(\grainDurLfoHz, [0.0, 20, \lin, 0, 0]);
+        this.addSpec(\grainDurLfoDepth, [0.0, 4, \lin, 0, 0]);
+        this.addSpec(\async, [0, 1, \lin, 1, 0]);
+        this.addSpec(\revprob, [0, 1, \lin, 0, 0]);
+        this.addSpec(\prob, [0, 1, \lin, 0, 1]);
+        this.addSpec(\cutoffLfoHz, [0.0, 20, \lin, 0, 0]);
+        this.addSpec(\cutoffLfoDepth, [0.0, 4, \lin, 0, 0]);
+        this.addSpec(\resLfoHz, [0.0, 20, \lin, 0, 0]);
+        this.addSpec(\resLfoDepth, [0.0, 4, \lin, 0, 0]);
+        this.addSpec(\freq, [0.01, 20, \lin, 0, 20]);
+        this.addSpec(\freqLfoHz, [0.0, 20, \lin, 0, 0]);
+        this.addSpec(\freqLfoDepth, [0.0, 4, \lin, 0, 0]);
 	}
 
     view {

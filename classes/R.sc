@@ -32,7 +32,7 @@ R {
 
 R : D {
 
-var <phase;
+    var <phase;
 
     deviceInit {
         this.prBuild
@@ -42,7 +42,8 @@ var <phase;
 
         // requires mono buffer
         //~rec.set(\rate, -1, \rec, 0, \fb, 0.99)
-		this.filter(200, {|sig_in|
+		this.play;
+        this.filter(100, {|sig_in|
             var updateFreq = 15;
             var replyid = \bufposreplyid.kr(-1);
             var buf = \buf.kr(0);
@@ -61,8 +62,6 @@ var <phase;
             SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase], replyid);
             Splay.ar(sig, \spread.kr(1), center:\pan.kr(0));
 		});
-
-		this.wakeUp;
 	}
 
     view {|index|

@@ -25,12 +25,12 @@ synth: {arg sig_in;
     ) * \output.ar(1);
 },
 specs: [
-    \decay -> ControlSpec(2, 30, \lin, 0, 10, units:"fx"),
-    \kneepointL -> ControlSpec(-90, 1, \lin, 0, -30, units:"fx"),
-    \kneepointR -> ControlSpec(-90, 1, \lin, 0, -30, units:"fx"),
-    \spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
-    \pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
-    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
-    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
+    decay: ControlSpec(2, 30, \lin, 0, 10, units:"fx"),
+    kneepointL: ControlSpec(-90, 1, \lin, 0, -30, units:"fx"),
+    kneepointR: ControlSpec(-90, 1, \lin, 0, -30, units:"fx"),
+    spread: ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+    pan: ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    input: ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

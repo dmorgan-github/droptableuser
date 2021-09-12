@@ -12,11 +12,11 @@ synth: {arg sig_in;
     ) * \output.ar(1);
 },
 specs: [
-    \pitchratio -> ControlSpec(1, 24, \lin, 1, 12, "fx"),
-    \zcperchunk -> ControlSpec(1, 100, \lin, 0, 1, "fx"),
-    \spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
-    \pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
-    \input -> ControlSpec(0, 2, \lin, 0, 1, "vol"),
-    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
+    pitchratio: ControlSpec(1, 24, \lin, 1, 12, "fx"),
+    zcperchunk: ControlSpec(1, 100, \lin, 0, 1, "fx"),
+    spread: ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+    pan: ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    input: ControlSpec(0, 2, \lin, 0, 1, "vol"),
+    output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

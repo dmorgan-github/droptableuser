@@ -1,4 +1,6 @@
-{|inKey, inFunc|
+{|inKey, inFunc, specs|
+
+    var metadata = if (specs.notNil;) { (specs:specs.asDict)};
 
 	SynthDef(inKey, {
 
@@ -37,5 +39,7 @@
 		sig = sig * \amp.kr(-6.dbamp);
 		Out.ar(\out.kr(0), sig);
 
-	}).add;
+	},
+    metadata: metadata
+).add;
 }

@@ -1,6 +1,8 @@
-{|inKey, inFunc|
+{|inKey, inFunc, specs|
 
-	SynthDef(inKey, {
+    var metadata = if (specs.notNil) {(specs:specs.asDict)};
+	
+    SynthDef(inKey, {
 
 		var freq_in = \freq.ar(261);
 		var detune = \detunehz.kr(0.6) * PinkNoise.ar(0.007).range(0.9, 1.1);
@@ -31,5 +33,7 @@
 		sig = sig * \amp.kr(-6.dbamp);
 		Out.ar(\out.kr(0), sig);
 
-	}).add;
+	}, 
+    metadata: metadata
+).add;
 }

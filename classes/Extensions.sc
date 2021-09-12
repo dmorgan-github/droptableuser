@@ -319,6 +319,32 @@
         this.source = pattern;
     }
 
+    ccMap {|ctrl, ccNum, ccChan=0|
+        var order = Order.newFromIndices(ctrl.asArray, ccNum.asArray);
+        var cckey = "%_cc".format(this.key).asSymbol;
+        ctrl.asArray.do({|c|
+            var nodekey = "%_%".format(cckey, c).asSymbol;
+            var spec = this.getSpec(c).ifnil([0, 1].asSpec);
+            // TODO: how does this get cleaned up?
+            var node = Ndef(nodekey, { \val.kr(spec.default) });
+            this.set(c, node);
+        });
+        MIDIdef.cc(cckey, {|val, num|
+            var mapped;
+            var ctrl = order[num];
+            var spec = this.getSpec(ctrl).ifnil([0, 1].asSpec);
+            var filter = Fdef("%_ccFilter_%".format(this.key, num).asSymbol);
+            var nodekey = "%_%".format(cckey, ctrl).asSymbol;
+            mapped = spec.map(val/127);
+            if (filter.source.notNil) {
+              mapped = filter.(mapped);
+              mapped;
+            };
+            Ndef(nodekey).set(\val, mapped);
+        }, ccNum:ccNum, chan:ccChan)
+        .fix;
+    }
+
     cc {|ctrl, ccNum, ccChan=0|
         var order = Order.newFromIndices(ctrl.asArray, ccNum.asArray);
         var cckey = "%_cc".format(this.key).asSymbol;
@@ -345,12 +371,23 @@
         Fdef(key, func)
     }
 
+    noteFilter {|func|
+        var key = "%_noteFilter".format(this.key).asSymbol;
+        Fdef(key, func);
+    }
+
     note {|noteChan, note|
         var noteonkey = "%_noteon".format(this.key).asSymbol;
         var noteoffkey = "%_noteoff".format(this.key).asSymbol;
         var pattern = this.asStream.next(Event.default);
         var out = pattern[\out] ?? 0;
-        var target = if (pattern[\group].isFunction) { Server.default.defaultGroup } {pattern[\group]};
+        var hasnkey = pattern[\nkey].notNil;
+        //var target = if (pattern[\group].isFunction) { Server.default.defaultGroup } {pattern[\group]};
+        var target = if (hasnkey) {
+            Ndef(\nkey).group
+        } {
+            Server.default.defaultGroup
+        };
         var instrument = pattern[\instrument] ?? \default;
         var synthdef = SynthDescLib.global.at(instrument);
         var hasGate = synthdef.hasGate;
@@ -359,7 +396,13 @@
 
         MIDIdef.noteOn(noteonkey, {|vel, note, chan|
             var evt = this.envir ?? {()};
-            var args = [\out, out, \gate, 1, \freq, note.midicps, \vel, vel/127] ++ evt.asPairs();
+            var args;
+            var filter = Fdef("%_noteFilter".format(this.key).asSymbol);
+            if (filter.source.notNil) {
+                #note, vel = filter.(note, vel);
+            };
+            // TODO set evt properties on group if we have an nkey
+            args = [\out, out, \gate, 1, \freq, note.midicps, \vel, vel/127] ++ evt.asPairs();
             if (hasGate) {
                 synths[note] = Synth(instrument, args, target:target);
             } {
@@ -369,6 +412,10 @@
         .fix;
 
         MIDIdef.noteOff(noteoffkey, {|vel, note, chan|
+            var filter = Fdef("%_noteFilter".format(this.key).asSymbol);
+            if (filter.source.notNil) {
+                #note, vel = filter.(note, vel);
+            };
             if (hasGate) {
                 synths[note].set(\gate, 0);
             }

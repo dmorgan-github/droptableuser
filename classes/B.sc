@@ -26,7 +26,7 @@ B {
             channels = channels.asArray;
         };
         Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
-            all.put(key, buf);
+            all.put(key, buf.normalize);
             "added buffer with key: %; %".format(key, path).inform;
         });
     }
@@ -36,9 +36,6 @@ B {
     }
 
     *stereo {|key, path|
-
-        // normalize buffer
-        //buffers = if(normalized, { buffers.collect{|b| b.normalize} }, { buffers });
         var file = SoundFile.openRead(path);
         var channels = if (file.numChannels < 2) { [0,0] }{ [0, 1] };
         B.read(key, path, channels);
@@ -51,15 +48,18 @@ B {
         ^buf;
     }
 
+    /*
+    Loads a directory of sound files into mono bufs
+    */
     *load {|key, path, cb|
 
         var condition = Condition(false);
         var normalize = true;
 
-        var stereo = {|path|
+        var read = {|path|
             var buffer;
             var file = SoundFile.openRead(path);
-            var channels = if(file.numChannels < 2, { [0,0] },{ [0,1] });
+            var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });
             buffer = Buffer.readChannel(Server.default, path, channels: channels, action:{|buf|
                 condition.unhang;
             });
@@ -89,7 +89,7 @@ B {
                             files
                             .sort({|a, b| a.fileName < b.fileName })
                             .do({|file, i|
-                                var buf = stereo.(file.fullPath);
+                                var buf = read.(file.fullPath);
                                 condition.hang;
                                 if (normalize) {
                                     obj[mykey].put(i, buf.normalize);
@@ -144,46 +144,6 @@ B {
         };
 
         ^bufs;
-    }
-
-    *dirMono {|path|
-
-        var bufs;
-        var pathkey = path.asSymbol;
-
-        if (monoDirs[pathkey].notNil) {
-            bufs = monoDirs[pathkey];
-            path.debug(\from_cache);
-        }{
-            var paths = "%/*.wav".format(path).pathMatch ++ "%/*.aif".format(path).pathMatch;
-            bufs = paths.collect({|path|
-                Buffer.readChannel(Server.default, path, channels:[0]);
-            });
-            monoDirs[pathkey] = bufs;
-        };
-
-        ^bufs
-    }
-
-    *dirWt {|path|
-
-        var bufs;
-        var pathkey = path.asSymbol;
-
-        if (wtDirs[pathkey].notNil) {
-            bufs = wtDirs[pathkey];
-            path.debug(\from_cache);
-        } {
-            var wtsize = 4096;
-            var wtpaths = "%/**.wtable".format(path).pathMatch;
-            bufs = Buffer.allocConsecutive(wtpaths.size, Server.default, wtsize * 2, 1);
-            wtpaths.do {|it i|
-                bufs[i].read(wtpaths[i])
-            };
-            wtDirs[pathkey] = bufs;
-        };
-
-        ^bufs
     }
 
     // adapted from here:

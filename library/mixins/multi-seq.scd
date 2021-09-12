@@ -29,11 +29,9 @@ Pdef(\seq,
         }).repeat
     })
 );
-)
 
 /////////////////////////////////////////////
 // sequencer ui
-(
 Fdef(\sequi, {|source, props|
 
     var view = View();

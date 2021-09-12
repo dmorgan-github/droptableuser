@@ -1,8 +1,6 @@
 (
-SynthDef(\modal, {
-	var vel = \vel.kr(1);
-	var detune = \detuneratio.kr(1);
-	var freq = \freq.kr(440) * ([1, detune] ** Rand(-1, 1));
+synth: {|freq, gate, aeg|
+
 	var harm = \harm.kr(0);
 	var k = (1..8);
 	var ratio = {
@@ -20,33 +18,15 @@ SynthDef(\modal, {
 		ratio.squared.reciprocal * 5;
 	], exciter, freq, decayscale: morph);
 
-	var aeg = Env.perc(
-		attackTime:0.01,
-		releaseTime:\rel.kr(1),
-		curve:\curve.kr(-4)
-	).ar(doneAction:Done.freeSelf, gate:1);
-
-	sig = sig * 0.dbamp;
-
-	// sub
-	sig = sig + (SinOsc.ar(freq * \sinratio.kr(0.5)) * \sine.kr(0.2));
-
-	sig = sig * aeg * \amp.kr(0.1) * AmpCompA.kr(freq) * vel;
-
-	sig = Splay.ar(sig, \spread.kr(1), center:\pan.kr(0));
-
-	sig = Limiter.ar(sig);
-
-	Out.ar(\out.kr(0), sig);
-
-}, metadata: (
-	credit: "adapted from formulas by Nathan Ho",
-	type: \perc,
-	created: "09/27/2020",
-	specs: (
-		harm: ControlSpec(-0.06, 2, \lin, 0, 0),
-		bright: ControlSpec(0.0, 1.0, \lin, 0, 0.5),
-        morph: ControlSpec(0.0, 1.0, \lin, 0, 0)
-	)
-)).add;
+    sig
+},
+specs: [
+    harm: ControlSpec(-0.06, 2, \lin, 0, 0),
+	bright: ControlSpec(0.0, 1.0, \lin, 0, 0.5),
+    morph: ControlSpec(0.0, 1.0, \lin, 0, 0)
+], 
+credit: "adapted from formula by Nathan Ho"
 )
+
+
+

@@ -92,7 +92,8 @@ W : EnvironmentRedirect {
     }
 
     *ndefmixer {
-        var m = NdefMixer(Server.default);
+        var m = NdefMixer(Server.default, 8);
+        m.switchSize(0);
         ProxyMeter.addMixer(m);
     }
 
@@ -131,11 +132,19 @@ W : EnvironmentRedirect {
         W.recdir(PathName(Document.current.path).pathOnly)
     }
 
-    *record {
-        var filename = "SC_" ++ Date.getDate.stamp ++ ".wav";
+    *record {|name|
+        var filename = (name ?? { "SC_" ++ Date.getDate.stamp}) ++ ".wav";
         var path = thisProcess.platform.recordingsDir ++ filename;
         Server.default.record(path, bus:D.defaultout, numChannels:2);
-        Document.current.string_("/*%*/\n".format(filename), 0, 0);
+        //Document.current.string_("/*%*/\n".format(filename), 0, 0);
+    }
+
+    *recordAtCommit {
+        var commit = ("cd " ++ thisProcess.platform.recordingsDir ++ "; git rev-parse --short HEAD").unixCmdGetStdOut;
+        var filename = commit.stripWhiteSpace ++ ".wav";
+        var path = thisProcess.platform.recordingsDir ++ filename;
+        Server.default.record(path, bus:D.defaultout, numChannels:2);
+        //Document.current.string_("/*%*/\n".format(filename), 0, 0);
     }
 
     *stopRecording {

@@ -37,9 +37,15 @@ P {
         ^vals.asArray.flatten.asDict
     }
 
+    *remove {|node, num|
+        var presets = P.getPresets(node);
+        presets.removeAt(num);
+    }
+
     *morph {|node, num, beats=20, wait=0.01|
         var key = node.key;
         var presets = P.getPresets(node);
+        Tdef(key).stop.play;
         Tdef(key, {|ev|
             var presets = ev[\presets];
             var curr = P.getCurrentVals(node);
@@ -56,6 +62,7 @@ P {
             });
         })
         .set(\presets, presets, \preset, num, \dt, wait, \beats, beats)
-        .play
+        //.play
     }
+
 }

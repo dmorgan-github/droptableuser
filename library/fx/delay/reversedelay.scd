@@ -17,14 +17,14 @@ synth: {arg sig_in;
     ) * \output.ar(1);
 },
 specs: [
-    \delayL -> ControlSpec(0, 5, \lin, 0, 1, units:"fx"),
-    \delayR -> ControlSpec(0, 5, \lin, 0, 1, units:"fx"),
-    \feedbackL -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
-    \feedbackR -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
-    \crossfade -> ControlSpec(0, 100, \lin, 0, 20, units:"fx"),
-    \spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
-    \pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
-    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
-    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
+    delayL: ControlSpec(0, 5, \lin, 0, 1, units:"fx"),
+    delayR: ControlSpec(0, 5, \lin, 0, 1, units:"fx"),
+    feedbackL: ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+    feedbackR: ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+    crossfade: ControlSpec(0, 100, \lin, 0, 20, units:"fx"),
+    spread: ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+    pan: ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    input: ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

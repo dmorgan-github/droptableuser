@@ -49,10 +49,10 @@ synth: {|in|
     wet * \output.ar(1);
 },
 specs: [
-    \drive -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
-    \wow -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
-    \noise -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
-    \tone -> ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
-    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
+    drive: ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+    wow: ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+    noise: ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+    tone: ControlSpec(0, 1, \lin, 0, 0.5, units:"fx"),
+    output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

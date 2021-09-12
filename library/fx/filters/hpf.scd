@@ -11,11 +11,11 @@ synth: {arg sig_in;
     ) * \output.ar(1);
 },
 specs: [
-    \cutoff -> ControlSpec(20, 20000, \lin, 0, 20, units:"fx"),
-    \res -> ControlSpec(0, 1, \lin, 0, 0, units:"fx"),
-    \spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
-    \pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
-    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
-    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
+    cutoff: ControlSpec(20, 20000, \lin, 0, 20, units:"fx"),
+    res: ControlSpec(0, 1, \lin, 0, 0, units:"fx"),
+    spread: ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+    pan: ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    input: ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

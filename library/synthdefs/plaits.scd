@@ -39,5 +39,17 @@ SynthDef(\plaits_mono, {
 	sig = Splay.ar(sig, spread: \spread.kr(1), center:\pan.kr(0));
 	Out.ar(\out.kr(0), sig);
 
-}).add;
+}, metadata: (
+    specs: (
+        engine: ControlSpec(0, 15, \lin, 1, 0, "timbre"),
+        harm: ControlSpec(0, 1, \lin, 0, 0.1, "timbre"),
+        timbre: ControlSpec(0, 1, \lin, 0, 0.1, "timbre"),
+        morph: ControlSpec(0, 1, \lin, 0, 0.5, "timbre"),
+        fm_mod: ControlSpec(-1, 1, \lin, 0, 0, "fm"),
+        timb_mod: ControlSpec(-1, 1, \lin, 0, 0, "timbre"),
+        morph_mod: ControlSpec(-1, 1, \lin, 0, 0, "timbre"),
+        decay: ControlSpec(0, 1, \lin, 0, 0.5, "env"),
+        lpg_colour: ControlSpec(0, 1, \lin, 0, 0.5, "filter")
+    )
+)).add;
 )

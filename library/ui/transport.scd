@@ -4,20 +4,20 @@ Fdef(\transport, {|clock=(TempoClock.default)|
 
     var baseViewFunc = Fdef(\baseview);
     var baseview;
-    var ctrlTempo = StaticText().string_(t.tempo * 60),
-    ctrlBar = StaticText().string_(0).minWidth_(25),
-    ctrlBeat = StaticText().string_(0).minWidth_(25);
+    //var ctrlTempo = StaticText().string_(t.tempo * 60),
+    var ctrlBar = StaticText().string_(0).minWidth_(25);
+    var ctrlBeat = StaticText().string_(0).minWidth_(25);
 
-    var controller = SimpleController(clock)
-    .put(\tempo, {|obj, prop|
-        { ctrlTempo.string = obj.tempo * 60 }.defer
-    });
+    //var controller = SimpleController(clock)
+    //.put(\tempo, {|obj, prop|
+    //    { ctrlTempo.string = obj.tempo * 60 }.defer
+    //});
 
     var view = View().layout_(
         VLayout(
 
             HLayout(
-                ctrlTempo,
+                //ctrlTempo,
                 ctrlBar,
                 ctrlBeat,
                 nil
@@ -99,14 +99,19 @@ Fdef(\transport, {|clock=(TempoClock.default)|
                 })
                 .maxWidth_(35)
                 .toolTip_("record")
-                .icon_(Image.new(App.librarydir ++ "images/noun_Record_1939983.png"))
+                .icon_(Image.new(App.librarydir ++ "images/noun_Record_1939983.png")), 
+
+                Button().action_({
+                    MidiCtrl.connect
+                })
+
             ).margins_(2).spacing_(2),
         ).margins_(2).spacing_(2),
-    )
-    .onClose_({controller.remove});
+    );
 
-    var nextBar = clock.nextBar/clock.beatsPerBar;
+    //var nextBar = clock.nextBar/clock.beatsPerBar;
 
+    /*
     clock.schedAbs(clock.nextTimeOnGrid(1), {
         {
             var barnum = clock.bar;// - nextBar;
@@ -121,6 +126,7 @@ Fdef(\transport, {|clock=(TempoClock.default)|
             clock.beatDur;
         }
     });
+    */
 
     baseview = baseViewFunc.(view, 'transport');
     baseview.front;

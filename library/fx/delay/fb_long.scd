@@ -12,11 +12,11 @@ synth: {arg sig_in;
     ) * \output.ar(1);
 },
 specs: [
-    \fb -> ControlSpec(0.0, 1, \lin, 0.0, 0.7, units:"fx"),
-    \del -> ControlSpec(1, 16, \lin, 1, 6, units:"fx"),
-    \spread -> ControlSpec(0,1,\lin,0, 1, units:"stereo"),
-    \pan -> ControlSpec(-1,1,\lin,0,0, units:"stereo"),
-    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
-    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
+    fb: ControlSpec(0.0, 1, \lin, 0.0, 0.7, units:"fx"),
+    del: ControlSpec(1, 16, \lin, 1, 6, units:"fx"),
+    spread: ControlSpec(0,1,\lin,0, 1, units:"stereo"),
+    pan: ControlSpec(-1,1,\lin,0,0, units:"stereo"),
+    input: ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

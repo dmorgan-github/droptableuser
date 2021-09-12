@@ -34,24 +34,24 @@ synth: {arg sig_in;
 },
 specs: [
 
-    \tap1_delay -> ControlSpec(1, 32, \lin, 1, 2, units:"tap1"),
-    \tap2_delay -> ControlSpec(1, 32, \lin, 1, 6, units:"tap2"),
-    \tap3_delay -> ControlSpec(1, 32, \lin, 1, 10, units:"tap3"),
-    \tap4_delay -> ControlSpec(1, 32, \lin, 1, 16, units:"tap4"),
+    tap1_delay: ControlSpec(1, 32, \lin, 1, 2, units:"tap1"),
+    tap2_delay: ControlSpec(1, 32, \lin, 1, 6, units:"tap2"),
+    tap3_delay: ControlSpec(1, 32, \lin, 1, 10, units:"tap3"),
+    tap4_delay: ControlSpec(1, 32, \lin, 1, 16, units:"tap4"),
 
-    \tap1_mul -> ControlSpec(0, 1, \lin, 0, 1, units:"tap1"),
-    \tap2_mul -> ControlSpec(0, 1, \lin, 0, 0.7, units:"tap2"),
-    \tap3_mul -> ControlSpec(0, 1, \lin, 0, 0.5, units:"tap3"),
-    \tap4_mul -> ControlSpec(0, 1, \lin, 0, 0.2, units:"tap4"),
+    tap1_mul: ControlSpec(0, 1, \lin, 0, 1, units:"tap1"),
+    tap2_mul: ControlSpec(0, 1, \lin, 0, 0.7, units:"tap2"),
+    tap3_mul: ControlSpec(0, 1, \lin, 0, 0.5, units:"tap3"),
+    tap4_mul: ControlSpec(0, 1, \lin, 0, 0.2, units:"tap4"),
 
-    \tap1_fb -> ControlSpec(0, 1, \lin, 0, 0, units:"tap1"),
-    \tap2_fb -> ControlSpec(0, 1, \lin, 0, 0, units:"tap2"),
-    \tap3_fb -> ControlSpec(0, 1, \lin, 0, 0, units:"tap3"),
-    \tap4_fb -> ControlSpec(0, 1, \lin, 0, 0, units:"tap4"),
+    tap1_fb: ControlSpec(0, 1, \lin, 0, 0, units:"tap1"),
+    tap2_fb: ControlSpec(0, 1, \lin, 0, 0, units:"tap2"),
+    tap3_fb: ControlSpec(0, 1, \lin, 0, 0, units:"tap3"),
+    tap4_fb: ControlSpec(0, 1, \lin, 0, 0, units:"tap4"),
 
-    \spread -> ControlSpec(0, 1, \lin, 0, 1, units:"stereo"),
-    \pan -> ControlSpec(-1, 1, \lin, 0, 0, units:"stereo"),
-    \input -> ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
-    \output -> ControlSpec(0, 2, \lin, 0, 1, units: "vol")
+    spread: ControlSpec(0, 1, \lin, 0, 1, units:"stereo"),
+    pan: ControlSpec(-1, 1, \lin, 0, 0, units:"stereo"),
+    input: ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

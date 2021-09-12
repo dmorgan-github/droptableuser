@@ -6,20 +6,9 @@ Fdef(\sgui, {|node|
     var skipId = UniqueID.next.asSymbol;
     var keys;
     var connections;
-
-    var getKeys = {
-        node.envir.keys
-        .select({|key|
-            node.get(key).isNumber
-        })
-        .reject({|key|
-            [\gate, \trig, \out, \in].includes(key)
-        }).asArray
-        .sort({|a, b|
-            //"%%".format(node.getSpec[a].units, a) < "%%".format(node.getSpec[b].units, b)
-            a < b
-        })
-    };
+    var morphbeats = 20;
+    var status = StaticText().font_(Font("Courier New", 9)).background_(Color.black.alpha_(0.3));
+    var color = node.color ? Color.rand;
 
     var getSpec = {|key|
         var specs = node.getSpec;
@@ -28,6 +17,27 @@ Fdef(\sgui, {|node|
             spec = [0, 1, \lin, 0, 0].asSpec;
         };
         spec
+    };
+
+    var getKeys = {
+        node.envir.keys
+        .select({|key|
+            node.get(key).isNumber
+        })
+        .reject({|key|
+            [\gate, \trig, \out, \in, \bufposreplyid].includes(key)
+        }).asArray
+        .sort({|a, b|
+
+            var specA = getSpec.(a);
+            var specB = getSpec.(b);
+            "%%".format(specA.units, a) < "%%".format(specB.units, b)
+           //a < b
+        })
+    };
+
+    var log = {|msg|
+        status.string = msg;
     };
 
     var getView = {
@@ -69,7 +79,9 @@ Fdef(\sgui, {|node|
             )
         });
 
-        view = View().layout_(VLayout(*ctrls).margins_(5).spacing_(2)).background_(Color.rand.alpha_(0.3));
+        view = View()
+        .layout_(VLayout(*ctrls).margins_(5).spacing_(2))
+        .background_(color.alpha_(0.4));
 
         connections = ConnectionList.make {
             controls.connectEach(\input, sliders, _.valueSlot);
@@ -98,22 +110,116 @@ Fdef(\sgui, {|node|
         view
     };
 
-    var view = View(bounds:220@200).layout_(VLayout().margins_(4).spacing_(4)).name_(node.key);
+    var scope = {|srcNode|
+
+        var node = srcNode;
+        var view = View().layout_(VLayout().margins_(0).spacing_(0))
+        //.palette_(QPalette.dark)
+        .maxHeight_(10);
+        var scope = Stethoscope.new(s, view:view).style_(1)
+        .index_(node.bus.index)
+        .numChannels_(2).yZoom_(2).xZoom_(2);
+        //win.onClose = { scope.free;  };
+        4.do({
+            view.children[0].children[0].remove
+        });
+        view.children[0].children[0].waveColors_([Color.rand, Color.rand]);
+        view.children[0].children[2].remove;
+        view.children[0].children[1].remove;
+        view.maxHeight = 20;
+        view.children[0].children[0].background = Color.new255(77, 77, 77);
+        view.maxWidth = 80;
+        view.onClose = { \freescope.postln; scope.free };
+        view.mouseUpAction = {
+            node.scope
+        };
+        view;
+    };
+
+    var view = View(bounds:220@200).layout_(VLayout().margins_(2).spacing_(2)).name_(node.key);
+    var buttons = 14.collect({|i|
+        var color_active = Color.white.alpha_(0.9);
+        var color_saved = Color.green.alpha_(0.9);
+        var color_empty = Color.gray;
+        var issaved = P.getPreset(node, i).notNil;
+        var color_init = if (issaved) {color_saved}{color_empty};
+        Button()
+        .fixedSize_(10)
+        .action_({|ctrl|
+            buttons.do({|btn, j|
+                if (i != j) {
+                    if (btn.value == 1) {
+                        btn.states = [ [nil, nil, color_saved ], [nil, nil, color_active ] ]
+                    };
+                    btn.value = 0;
+                }
+            });
+
+            if (ctrl.value == 1) {
+                var preset = P.getPreset(node, i);
+                if (preset.isNil) {
+                    log.("% preset %".format(\save, i));
+                    P.addCurrent(node, i);
+                } {
+                    log.("% preset %".format(\morph, i));
+                    P.morph(node, i, beats:morphbeats);
+                };
+            }{
+                // button stays on
+                ctrl.value = 1
+            }
+        })
+        .mouseDownAction_({|ctrl, x, y, mod, num, count|
+            // 262144 ctrl delete
+            // 131072 shift overwrite
+            // 524288 option
+            if (mod == 262144) {
+                log.("% preset %".format(\remove, i));
+                P.remove(node, i);
+                ctrl.states = [ [nil, nil, color_empty ], [nil, nil, color_active ] ];
+            };
+            if (mod == 131072) {
+                log.("% preset %".format(\overwrite, i));
+                P.addCurrent(node, i);
+            };
+            //[mod, num].postln;
+        })
+        .states_([ [nil, nil, color_init ], [nil, nil, color_active ] ])
+    });
+
     var scroll = ScrollView();
     scroll.canvas = getView.();
 
     view.layout.add(scroll);
-    view.layout.add(HLayout(
-        Button().states_([ [">"], [ "[]" ] ]).action_({|ctrl|
-            if (ctrl.value == 1) {
-                node.play
-            }{
-                node.stop
-            }
-        })
-        .value_(node.isPlaying),
-        nil
-    ));
+    view.layout.add(
+        VLayout(
+            HLayout(
+                Button().states_([ [">"], [ "[]" ] ]).action_({|ctrl|
+                    if (ctrl.value == 1) {
+                        node.play
+                    }{
+                        node.stop
+                    }
+                })
+                .maxWidth_(20)
+                .value_(node.isPlaying),
+
+                scope.(node.node),
+
+                NumberBox().maxWidth_(25).action_({|ctrl|
+                    morphbeats = ctrl.value;
+                })
+                .value_(morphbeats),
+
+                GridLayout.rows(
+                    buttons[0..6],
+                    buttons[7..13]
+                ).margins_(0).spacing_(0),
+
+            ),
+           status
+        )
+    );
 
     SkipJack({
         var prev = keys.size;
@@ -129,99 +235,5 @@ Fdef(\sgui, {|node|
         SkipJack.stop(skipId)
     })
     .front;
-
-    /*
-	var win, nodeListener;
-	var view = View()
-	.layout_(VLayout().margins_(0).spacing_(0));
-
-	var baseview;
-	var ctrlView = Fdef(\ctrlview);
-	var baseViewFunc = Fdef(\baseview);
-	var playview = Fdef(\playview);
-	var presetsview = Fdef(\presetsview);
-	//var foo = Halo.at(synth, \spec);
-
-    var specs = synth.envir.keys.collect({|key|
-        var spec = synth.getSpec(key);
-        if (spec.isNil) {
-            spec = [0, 1].asSpec;
-        };
-        [key, spec]
-    }).asArray.flatten.asDict;
-
-	var scrollView = ScrollView();
-	var cb = {arg key, val;
-		synth.set(key, val)
-	};
-
-	var ctrlViews = ();
-	playview = playview.(synth.node);//.addDependant(viewListener);
-
-	{
-		var groups = ();
-		var specgroups;
-		specs.do({arg val; groups[val.asSpec.units.asSymbol] = 1});
-		specgroups = groups.keys.asSortedList.collect({arg group;
-			var returnval = List.new;
-			specs.keysValuesDo({arg k, v;
-				if (v.units == group.asString) {
-					returnval.add(k -> v);
-				}
-			});
-			returnval.quickSort({arg a, b; a.key < b.key})
-		});
-
-		specgroups.do({arg val;
-			val.do({arg assoc;
-				var k = assoc.key;
-				var v = assoc.value;
-				var ctrl = ctrlView.(k, v.asSpec, QtGUI.palette.highlight, synth.get(k), cb, synth);
-				ctrlViews[k] = ctrl;
-				view.layout.add(ctrl.asView.maxHeight_(20));
-			});
-		});
-
-	}.();
-
-	view.layout.add(nil);
-	scrollView.canvas = view;
-	presetsview = presetsview.();
-	playview = playview.(synth.node);
-
-	nodeListener = {|obj, op, pairs|
-		if (op == \set) {
-			var vals = pairs.flatten;
-			vals.doAdjacentPairs({|key, val|
-				if (val.isNumber) {
-					var v = ctrlViews[key];
-					if (v.isNil.not) {
-						var current = v.getValue();
-						if (current != val) {
-                            {
-                                v.setValue(val);
-                            }.defer
-						}
-					}
-				}
-			});
-		}
-	};
-	synth.addDependant(nodeListener);
-
-	win = View().layout_(VLayout(
-		playview,
-		scrollView
-	)
-	.margins_(2)
-	.spacing_(2))
-	.onClose_({
-		\onclose.debug(synth.key);
-		synth.removeDependant(nodeListener);
-	});
-
-	baseview = baseViewFunc.(win, synth.key, 150, 170);
-	baseview.front;
-    */
 });
 )

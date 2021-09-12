@@ -18,6 +18,7 @@ if __name__ == "__main__":
 			copy_to_music = args[2]
 
 		full_path = os.path.abspath(path)
+		orig_path = full_path
 		print('open ' + full_path)
 		song = AudioSegment.from_wav(full_path)
 		#song = AudioSegment.from_file(full_path, "wav")
@@ -37,6 +38,9 @@ if __name__ == "__main__":
 		if (copy_to_music != 0):
 			print('copying to Music')
 			copy(full_path, '/Users/david/Music/Music/Media.localized/Automatically Add to Music.localized/')
+
+		#don't need to keep original
+		os.remove(orig_path)
 
 	except Exception as e:
 		print(e)
