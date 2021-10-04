@@ -73,7 +73,15 @@ Fdef(\sgui, {|node|
 
         ctrls = keys.collect({|key, i|
             HLayout(
-                StaticText().fixedWidth_(50).string_(key).toolTip_(key),
+                StaticText()
+                .mouseDownAction_({
+                    if (key == \buf) {
+                        U(\buf, node)
+                    }
+                })
+                .fixedWidth_(50)
+                .string_(key)
+                .toolTip_(key),
                 sliders[i],
                 numbers[i]
             )

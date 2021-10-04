@@ -13,26 +13,52 @@ Pdef(\slicer, Pbind(
         buf
     }),
     \numslices, Pfunc({|evt|
-        var numslices = 8;
-        if (evt[\numslices].notNil) {
-            numslices = evt[\numslices]
+        var numslices = evt[\numslices];
+        if (numslices.isNil) {
+            numslices = 8;
         };
         numslices
     }),
     \numbeats, Pfunc({|evt|
-        var numbeats = 4;
-        if (evt[\numbeats].notNil) {
-            numbeats = evt[\numbeats]
+        var numbeats = evt[\numbeats];
+        if (numbeats.isNil) {
+            numbeats = 4;//
         };
         numbeats
     }),
+    \start, Pfunc({|evt|
+        var start = evt[\startPos];
+        if (start.isNil) {
+            start = 0;
+        };
+        start;
+    }),
+    \end, Pfunc({|evt|
+        var end = evt[\endPos];
+        if (end.isNil) {
+            end = 1;
+        };
+        end;
+    }),
     \bufdur, Pfunc({|evt|
-        evt[\buf].duration
+        var bufdur = evt[\bufdur];
+        if (bufdur.isNil) {
+            var buf = evt[\buf];
+            var start = evt[\start] * buf.numFrames;
+            var end = evt[\end] * buf.numFrames;
+            var frames = end - start;
+            bufdur = frames/buf.sampleRate;
+        };
+        bufdur;
     }),
     \rate, Pfunc({|evt|
-        var numbeats = evt[\numbeats];
-        var beatdur = (evt[\bufdur]/numbeats);
-        (beatdur/thisThread.clock.beatDur)
+        var rate = evt[\speed];
+        if (rate.isNil) {
+            var numbeats = evt[\numbeats];
+            var beatdur = (evt[\bufdur]/numbeats);
+            rate = (beatdur/thisThread.clock.beatDur)
+        };
+        rate;
     }),
     \slicedur, Pfunc({|evt|
         var numslices = evt[\numslices];
@@ -45,18 +71,56 @@ Pdef(\slicer, Pbind(
         (0..numslices-1)/numslices;
     }),
     \dur, Pkey(\slicedur),
-    \legato, 1,
-    \dir, 1,
-    \rel, 0.01,
-    \atk, 0.01,
-    \curve, 0,
+    \legato, {|evt|
+        var legato = evt[\legato];
+        if (legato.isNil) {
+            legato = 1;
+        };
+        legato
+    }.pfunc,
+    \dir, {|evt|
+        var dir = evt[\dir];
+        if (dir.isNil) {
+            dir = 1
+        };
+        dir;
+    }.pfunc,
+    \rel, {|evt|
+        var rel = evt[\rel];
+        if (rel.isNil) {
+            rel = 0.1;
+        };
+        rel;
+    }.pfunc,
+    \atk, {|evt|
+        var atk = evt[\atk];
+        if (atk.isNil) {
+            atk = 0.1;
+        };
+        atk;
+    }.pfunc,
+    \curve, {|evt|
+        var curve = evt[\curve];
+        if (curve.isNil) {
+            curve = 0;
+        };
+        curve;
+    }.pfunc, //0,
     \startPos, Plazy({|evt|
         var val = evt[\slices];
-        Pseq(val, 1)
+        var start = evt[\start];
+        var end = evt[\end];
+        var filter = evt[\slicesfilter];
+        if (filter.notNil) {
+            val = filter.(val);
+        };
+        Pseq(val, 1).linlin(0, 1, start, end);
     }),
     \loopprob, Pfunc({|evt|
         var val = evt[\loopprob];
-        if (val.isNil) {val = 0};
+        if (val.isNil) {
+            val = 0
+        };
         val
     }),
     \endPos, Pfunc({|evt|
@@ -72,109 +136,5 @@ Pdef(\slicer, Pbind(
             1
         }
     })
-))
+));
 )
-
-/*
-Pbind(
-        \buf, Pfunc({|evt|
-            var buf = evt[\buf];
-            if (buf.isNumber) {
-                buf = Buffer.cachedBufferAt(Server.default, buf.asInteger);
-            };
-            buf
-        }),
-        \numslices, Pfunc({|evt|
-            var numslices = 8;
-            if (evt[\numslices].notNil) {
-                numslices = evt[\numslices]
-            };
-            numslices
-        }),
-        \numbeats, Pfunc({|evt|
-            var numbeats = 4;
-            if (evt[\numbeats].notNil) {
-                numbeats = evt[\numbeats]
-            };
-            numbeats
-        }),
-        \bufdur, Pfunc({|evt|
-            var bufdur = evt[\bufdur];
-            if (bufdur.isNil) {
-                var startPos = evt[\startPos] ? 0;
-                var endPos = evt[\endPos] ? 1;
-                var sr = evt[\buf].sampleRate;
-                var numframes = evt[\buf].numFrames;
-                var start = numframes * startPos;
-                var end = numframes * endPos;
-                bufdur = (end - start) / sr;
-            };
-            bufdur
-        }),
-        \rate, Pfunc({|evt|
-            var rate = evt[\rate];
-            if (rate.isNil) {
-                if (evt[\bufdur] != evt[\buf].duration) {
-                    rate = evt[\bufdur]/evt[\buf].duration;
-                    rate = rate.reciprocal
-                }{
-                    var numbeats = evt[\numbeats];
-                    var beatdur = (evt[\bufdur]/numbeats);
-                    rate = (beatdur/thisThread.clock.beatDur);
-                };
-            };
-            rate
-        }),
-        \slicedur, Pfunc({|evt|
-            var numslices = evt[\numslices];
-            var numbeats = evt[\numbeats];
-            var dur = evt[\bufdur];//(thisThread.clock.beatDur * numbeats);
-            numslices.reciprocal * dur * thisThread.clock.tempo;
-        }),
-        \slices, Pfunc({|evt|
-            var numslices = evt[\numslices];
-            var startPos = evt[\startPos] ? 0;
-            var endPos = evt[\endPos] ? 1;
-            numslices = (0..numslices-1)/numslices;
-            numslices = numslices.linlin(0, 1, startPos, endPos);
-            numslices
-        }),
-        \dur, Pkey(\slicedur),
-        \legato, 1,
-        \dir, Pfunc({|evt|
-            var revprob = evt[\revprob] ? 0;
-            if (revprob.coin) {
-                -1
-            }{
-                1
-            }
-        }),
-        \rel, 0.01,
-        \atk, 0.01,
-        \curve, 0,
-        \startPos, Plazy({|evt|
-            var val = evt[\slices].mirror2.scramble;
-            Pseq(val, 1);
-        }),
-        \loopprob, Pfunc({|evt|
-            var val = evt[\loopprob];
-            if (val.isNil) {val = 0};
-            val
-        }),
-        \endPos, Pfunc({|evt|
-            var slicedur = evt[\slicedur];
-            var loopprob = evt[\loopprob];
-            var loopdurs = evt[\loopdurs];
-            var endPos = evt[\endPos] ? 1;
-            if (loopdurs.isNil) {
-                loopdurs = [1/6, 1/8, 1/16, 1/32];
-            };
-            if (loopprob.coin) {
-                evt[\startPos] + (slicedur * loopdurs.choose)
-            }{
-                1
-            }
-        })
-    ).repeat
-*/
-

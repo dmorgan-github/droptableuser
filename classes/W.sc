@@ -1,3 +1,45 @@
+
+Tracks : Order {
+
+    var <>daw;
+    
+    var <matrix;
+
+    *new {|size=8|
+		^super.new.clear(size).init
+	}
+
+    put {|index obj|
+        var key = obj.key;
+        if (obj.respondsTo(\out)) {
+            obj.out = index * 2;
+        };
+        daw.asClass.trackname(index + 1, key);
+
+        if (obj.isKindOf(S)) {
+             matrix.addSrc(obj.node);
+        }{
+            if (obj.isKindOf(D)) {
+                matrix.addSrc(obj);
+            }
+        };
+        super.put(index, obj);
+    }
+
+    view {
+        U(\tracks, this)
+    }
+
+    init {
+        daw = \Reaper;
+        matrix = M(\m);
+
+    }
+
+    *initClass {
+    }
+}
+
 /*
 Workspace
 */

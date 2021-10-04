@@ -3,6 +3,10 @@
         ^Pif(Pfunc(this), iftrue, iffalse)
     }
     pfunc { ^Pfunc(this) }
+
+    plazy { ^Plazy(this) }
+
+    s {|key| ^S(key).source_(this.plazy) }
 }
 
 + SequenceableCollection {
@@ -12,7 +16,7 @@
     pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
     pshuf {arg repeats=inf; ^Pshuf(this, repeats) }
     step {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
-    pdv {|repeats=inf, key='degree'| ^Pdv(this, key).repeat(repeats) }
+    pdv {|repeats=inf, key=\val| ^Pdv(this, key).repeat(repeats) }
 
     pa {
         var a;
@@ -211,6 +215,12 @@
     pdef {|key| ^Pdef(key, this)}
 
     seed {|val| ^Pseed(val, this)}
+
+    s {|key|
+        var obj = S(key);
+        obj.source = this;
+        ^obj;
+    }
 }
 
 + Array {

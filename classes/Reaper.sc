@@ -46,6 +46,23 @@ Reaper {
         server.sendMsg(path, name);
     }
 
+    *newprojectab {
+        Reaper.action(40859);
+    }
+
+    *mixer {
+        Reaper.action(40078);
+    }
+
+    *media {
+        Reaper.action(50124);
+    }
+
+    *action {|num|
+        var path = "/action/%".format(num);
+        server.sendMsg(path);
+    }
+
     *initClass {
         server = NetAddr("127.0.0.1", 8000); // loopback
         isrecording = false;

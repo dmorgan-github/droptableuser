@@ -30,7 +30,7 @@ D : Ndef {
 
             res.filter(1000, {|in|
                 var sig = Select.ar(CheckBadValues.ar(in, 0, 0), [in, DC.ar(0), DC.ar(0), in]);
-                Limiter.ar(LeakDC.ar(sig));
+                SafetyLimiter.ar(LeakDC.ar(sig));
             });
 
             // if we're using a synthdef as a source

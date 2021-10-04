@@ -2,10 +2,11 @@
 SynthDef(\abstract_drum, {
 	arg
 	// Standard values
-	out = 0, freq = 140, amp = 1, pan = 0, att = 0.001, dec = 0.01, rel = 1,
+	out = 0, freq = 140, amp = 1, pan = 0, atk = 0.001, dec = 0.01, rel = 1,
 	// Other Controls (position goes from 0 to 1)
 	position = 0.5, ampSlope = 3, decCoef = 0.15, hiFreqSus = 0;
 
+    var att = atk;
 	var freqarray, amparray, decarray, exciter, snd;
 
 	// Setting up arrays for Klank
@@ -55,7 +56,7 @@ SynthDef(\abstract_drum, {
 		decayscale: rel);
 
 	// Output Stuff
-	snd = Mix.ar(snd * amp * 2);
+	snd = Mix.ar(snd * amp * 2) * \vel.kr(1);
 	snd = Limiter.ar(snd);
 
 	DetectSilence.ar(in: snd, doneAction: 2);
@@ -65,7 +66,13 @@ SynthDef(\abstract_drum, {
 metadata: (
 	credit: "by Josh Mitchell",
 	category: \percussion,
-	tags: [\pitched, \modal]
+	tags: [\pitched, \modal],
+    specs: (
+        decCoef: [0, 1, \lin, 0, 0.15].asSpec,
+        position: [0, 1, \lin, 0, 0.5].asSpec,
+        ampSlope: [0, 10, \lin, 0, 3].asSpec,
+        hiFreqSus: [0, 1, \lin, 0, 0].asSpec
+    )
 )
 ).add;
 

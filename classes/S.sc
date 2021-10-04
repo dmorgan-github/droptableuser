@@ -5,13 +5,15 @@ Synth
 S : Pdef {
 
     var <node, <cmdperiodfunc, <>color;
-    var <isMono=false, <instrument;
+    var <isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
+    var <ptrnproxy;
 
-    *new {|key|
+    *new {|key, synth|
         var res = Pdef.all[key];
         if (res.isNil) {
-            res = super.new(key).prInit.synth(key);
+            var mysynth = synth ? key;
+            res = super.new(key).prInit.synth_(mysynth);
         };
 
         ^res;
@@ -34,13 +36,20 @@ S : Pdef {
         }
     }
 
-    synth {|synth, template=\adsr|
-        this.prInitSynth(synth, template);
+    pset {|...args|
+        this.ptrnproxy.set(*args);
     }
 
-    mono {|synth, template=\mono|
+    synth_ {|synthname|
+        if (synthname != synth) {
+            // synth is already initialized
+            this.prInitSynth(synthname);
+        }
+    }
+
+    mono {|synthname, template=\mono|
         isMono = true;
-        this.prInitSynth(synth, template);
+        this.prInitSynth(synthname, template);
     }
 
     fx {|index, fx, wet=1|
@@ -78,6 +87,7 @@ S : Pdef {
                     })
                 })
             ),
+            ptrnproxy,
             pattern,
             Pbind(
                 \out, Pfunc({node.bus.index}),
@@ -87,11 +97,13 @@ S : Pdef {
 
         super.source = Plazy({
             if (isMono) {
-                Pmono(instrument, \trig, 1) <> chain
+                Pmono(synth, \trig, 1) <> chain
             }{
                 chain
             }
         });
+
+        ^this;
     }
 
     prInit {
@@ -106,8 +118,9 @@ S : Pdef {
         node.addDependant(nodewatcherfunc);
 
         node.play;
+        ptrnproxy = PbindProxy();
         this.source = Pbind();
-        //this.set(\nkey, this.key, \type, \composite, \types, [\note, \nset]);
+        this.set(\amp, -12.dbamp);
 
         cmdperiodfunc = {
             {
@@ -122,18 +135,15 @@ S : Pdef {
         ^this
     }
 
-    prInitSynth {|argSynth, argTemplate=\adsr|
+    prInitSynth {|argSynth|
         var meta, synthdef;
-        instrument = argSynth;
-        //if (argSynth.isFunction) {
-        //    instrument = "synth_%".format(this.key).asSymbol;
-        //    S.def(instrument, argSynth, argTemplate);
-        //};
+        synth = argSynth;
 
-        synthdef = SynthDescLib.global.at(instrument);
+        synthdef = SynthDescLib.global.at(synth);
         if (synthdef.isNil) {
-            instrument = \default;
-            synthdef = SynthDescLib.global.at(instrument);
+            "synth not found".debug(synth);
+            synth = \default;
+            synthdef = SynthDescLib.global.at(synth);
         };
 
         synthdef
@@ -143,7 +153,11 @@ S : Pdef {
             var key = cn.name.asSymbol;
             var spec = Spec.specs[key];
             if (spec.notNil) {
-              this.addSpec(key, spec);
+                this.addSpec(key, spec);
+            } {
+                var default = cn.defaultValue;
+                var spec = [0, default*2, \lin, 0, default].asSpec;
+                this.addSpec(key, spec);
             }
         });
 
@@ -154,82 +168,16 @@ S : Pdef {
             })
         };
 
-        this.set(\instrument, instrument);
+        this.getSpec.keys.do({|key|
+            var spec = this.getSpec[key];
+            this.set(key, spec.default);
+        });
+
+        this.set(\instrument, synth);
     }
 
     *initClass {
-        /*
-        Event.addEventType(\nset, {|server|
-          ~id = Ndef(~nkey).nodeID;
-          ~args = Ndef(~nkey).controlKeys(except: ~exceptArgs);
-          ~eventTypes[\set].value(~server);
-        });
-        */
     }
 }
-
-
-SynthLib {
-
-    var <func, <specs, <name;
-
-    *new {|key|
-        ^super.new.prInit(key);
-    }
-
-    prInit {|key|
-        var path = App.librarydir ++ key.asString ++ ".scd";
-        var pathname = PathName(path.standardizePath);
-        var fullpath = pathname.fullPath;
-        name = pathname.fileNameWithoutExtension.asSymbol;
-
-        if (File.exists(fullpath)) {
-            var name = pathname.fileNameWithoutExtension;
-            var obj = File.open(fullpath, "r").readAllString.interpret;
-            func = obj[\synth];
-            specs = obj[\specs];
-        } {
-            Error("node not found").throw;
-        }
-        ^this;
-    }
-
-    toSynthDef {|template=\adsr|
-        SynthLib.def(this.name, this.func, template, this.specs)
-    }
-
-    *def {|inKey, inFunc, inTemplate=\adsr, specs|
-        var path = App.librarydir ++  "templates/" ++ inTemplate.asString ++ ".scd";
-        var pathname = PathName(path.standardizePath);
-        var fullpath = pathname.fullPath;
-
-        if (File.exists(fullpath)) {
-            var template = File.open(fullpath, "r").readAllString.interpret;
-            template.(inKey, inFunc, specs);
-        } {
-            Error("synth template not found").throw;
-        };
-    }
-
-    *printSynths {
-        SynthDescLib.all[\global].synthDescs
-        .keys
-        .reject({|key|
-            key.asString.beginsWith("system") or: key.asString.beginsWith("pbindFx_")
-        })
-        .asArray
-        .sort
-        .do({|val| val.postln})
-    }
-
-    *printSynthControls {|synth|
-        SynthDescLib.all[\global]
-        .synthDescs[synth]
-        .controls.do({|cn|
-            [cn.name, cn.defaultValue].postln
-        });
-    }
-}
-
 
 

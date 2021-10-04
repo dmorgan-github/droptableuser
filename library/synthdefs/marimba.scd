@@ -1,3 +1,4 @@
+(
 SynthDef(\marimba, {
 	arg
 	// Standard values
@@ -43,7 +44,7 @@ SynthDef(\marimba, {
 		decayscale: rel);
 
 	// Output stuff
-	snd = Mix.ar(snd) * amp;
+	snd = Mix.ar(snd) * amp * \vel.kr(1);
 	snd = Limiter.ar(snd);
 
 	DetectSilence.ar(in: snd, doneAction: 2);
@@ -55,4 +56,5 @@ metadata: (
 	category: \percussion,
 	tags: [\pitched, \modal]
 )).add;
+)
 

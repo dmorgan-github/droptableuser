@@ -1,41 +1,4 @@
 (
-var func = {arg numchannels = 2;
-
-	var buf = \buf.kr(0);
-	var numframes = BufFrames.kr(buf);
-	var rate = \rate.kr(1);
-	var start = \startPos.kr(0) * numframes;
-	var len = \sustain.kr(0);
-	var dir = \dir.kr(1);
-	var loop = \loop.kr(0);
-	var cf = \cf.kr(0.01);
-	var sig = PlayBuf.ar(numchannels, buf, BufRateScale.kr(buf) * rate * dir, 1, start, loop:loop);
-	var fullDur = BufFrames.kr(buf) * BufSampleRate.kr(buf).reciprocal;
-	var dur = Select.kr(len > 0, [fullDur, len]);
-	var aeg = Env.linen(cf, dur, cf).ar(gate:1, doneAction:Done.freeSelf);
-
-	sig = LeakDC.ar(sig);
-	sig = sig * aeg * \amp.kr(0.3) * \vel.kr(1);
-	sig = Splay.ar(sig, \spread.kr(0), center:\center.kr(0));
-	Out.ar(\out.kr(0), sig);
-};
-
-var specs = (
-	startPos: ControlSpec(0, 1, \lin, 0, 0),
-);
-
-SynthDef(\smplr_2chan, {
-	func.(2)
-}, metadata: (
-	specs: specs
-)).add;
-
-SynthDef(\smplr_1chan, {
-	func.(1)
-}, metadata: (
-	specs: specs
-)).add;
-
 /////////////////////////////////////////////
 //
 SynthDef(\loopr, {
@@ -115,30 +78,6 @@ SynthDef(\loopr2, {
 
 }).add;
 
-/////////////////////////////////////////////
-//
-SynthDef(\oneshot1, {
-	var buf = \buf.kr(0);
-	var rate = \rate.kr(1);
-	var dir = \dir.kr(1);
-	var start = \start.kr(0);
-	var sig = PlayBuf.ar(1, buf, rate * dir, 1, startPos:start, loop:0, doneAction:Done.freeSelf);
-	sig = sig * \amp.kr(-3.dbamp) * \vel.kr(1);
-	sig = Splay.ar(sig, spread:\spread.kr(1), center:\pan.kr(0));
-	Out.ar(\out.kr(0), sig);
-}).add;
-
-SynthDef(\oneshot2, {
-	var buf = \buf.kr(0);
-	var rate = \rate.kr(1);
-	var dir = \dir.kr(1);
-	var start = \start.kr(0);
-	var sig = PlayBuf.ar(2, buf, rate * dir, 1, startPos:start, loop:0, doneAction:Done.freeSelf);
-	sig = sig * \amp.kr(-3.dbamp) * \vel.kr(1);
-	sig = Splay.ar(sig, spread:\spread.kr(1), center:\pan.kr(0));
-	Out.ar(\out.kr(0), sig);
-}).add;
-
 SynthDef(\sampler, {
 
     var updateFreq = 15;
@@ -156,11 +95,11 @@ SynthDef(\sampler, {
         \atk.kr(0.01),
         \suslevel.kr(1),
         \rel.kr(0.1),
-        curve:\curve.kr(-4)
+        curve:\curve.kr(0)
     ).ar(gate:gate, doneAction:Done.freeSelf);
 
 	var sig = BufRd.ar(
-		numChannels: 2,
+		numChannels: 1,
 		bufnum: buf,
 		phase: phase,
 		interpolation: 4
@@ -172,7 +111,13 @@ SynthDef(\sampler, {
     SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase], replyid);
     Out.ar(\out.kr(0), sig);
 
-}).add;
+}, metadata: (
+    specs: (
+        rel: [0, 1, \lin, 0, 0.1].asSpec,
+        atk: [0, 1, \lin, 0, 0.01].asSpec,
+        curve: [-4, 4, \lin, 0, 0].asSpec
+    )
+)).add;
 
 )
 

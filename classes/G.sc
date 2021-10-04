@@ -1,3 +1,4 @@
+// TODO: deprecate
 G : D {
 
     deviceInit {

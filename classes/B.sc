@@ -1,6 +1,9 @@
 /*
 Buffer
-NOTE: this could use a lot of refactoring
+*/
+
+/*
+* TODO: buflib obj 
 */
 B {
     classvar <all;
@@ -48,13 +51,48 @@ B {
         ^buf;
     }
 
+    *loadFiles {|key, paths, normalize=true|
+
+        var condition = Condition(false);
+
+        var read = {|path|
+            var buffer;
+            var file = SoundFile.openRead(path);
+            var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });
+            buffer = Buffer.readChannel(Server.default, path, channels: channels, action:{|buf|
+                condition.unhang;
+            });
+            buffer;
+        };
+
+        key = key.asSymbol;
+        {
+            all[key] = Order();
+            paths.do({|path|
+                var buf = read.(path);
+                condition.hang;
+                if (normalize) {
+                    all[key].put(buf.bufnum, buf.normalize);
+                }{
+                    all[key].put(buf.bufnum, buf);
+                };
+            });
+            "buffers loaded".postln
+        }.fork
+    }
+
+    *getLibSpec {|key|
+        var lib = B(key);
+        var spec = [lib.indices.minItem, lib.indices.maxItem, \lin, 1, lib.indices.minItem].asSpec;
+        ^spec;
+    }
+
     /*
     Loads a directory of sound files into mono bufs
     */
-    *load {|key, path, cb|
+    *loadLib {|key, path, normalize=true|
 
         var condition = Condition(false);
-        var normalize = true;
 
         var read = {|path|
             var buffer;
@@ -68,55 +106,48 @@ B {
 
         key = key.asSymbol;
         path = path.standardizePath;
-        if (all[key].isNil) {
-            {
-                var recurse;
-                var obj = ();
-                recurse = {|dirpath, folderName|
-                    var pn = PathName.new(dirpath);
-                    if (pn.isFolder) {
+        {
+            var recurse;
+            recurse = {|dirpath, folderName|
+                var pn = PathName.new(dirpath);
+                if (pn.isFolder) {
 
-                        var files;
-                        var mykey = folderName.toLower;
-                        mykey = mykey[mykey.findAllRegexp("[a-zA-Z0-9_]")].join.asSymbol;
+                    var files;
+                    var mykey = folderName.toLower;
+                    mykey = mykey[mykey.findAllRegexp("[a-zA-Z0-9_]")].join.asSymbol;
 
-                        files = pn.files.select({|file|
-                            file.extension.toLower == "wav" or: {file.extension.toLower.beginsWith("aif")}
-                        });
+                    files = pn.files.select({|file|
+                        file.extension.toLower == "wav" or: {file.extension.toLower.beginsWith("aif")}
+                    });
 
-                        if (files.size > 0) {
-                            obj[mykey] = Order();
-                            files
-                            .sort({|a, b| a.fileName < b.fileName })
-                            .do({|file, i|
-                                var buf = read.(file.fullPath);
-                                condition.hang;
-                                if (normalize) {
-                                    obj[mykey].put(i, buf.normalize);
-                                }{
-                                    obj[mykey].put(i, buf);
-                                }
-                            });
-                        };
-
-                        pn.folders.do({|dir|
-                            var folderName = if (mykey.asString.size > 0) {
-                                "%_%". format(mykey, dir.folderName)
+                    if (files.size > 0) {
+                        all[mykey] = Order();
+                        files
+                        .sort({|a, b| a.fileName < b.fileName })
+                        .do({|file, i|
+                            var buf = read.(file.fullPath);
+                            condition.hang;
+                            if (normalize) {
+                                all[mykey].put(buf.bufnum, buf.normalize);
                             }{
-                                dir.folderName
+                                all[mykey].put(buf.bufnum, buf);
                             };
-                            recurse.(dir.fullPath, folderName);
                         });
-                    }
-                };
-                recurse.(path, "root");
-                all[key] = obj;
-                cb.(obj);
-                "buffers loaded".debug(key);
-            }.fork
-        } {
-            cb.(all[key]);
-        }
+                    };
+
+                    pn.folders.do({|dir|
+                        var folderName = if (mykey.asString.size > 0) {
+                            "%_%". format(mykey, dir.folderName)
+                        }{
+                            dir.folderName
+                        };
+                        recurse.(dir.fullPath, folderName);
+                    });
+                }
+            };
+            recurse.(path, key.asString);
+            "buffers loaded".debug(key);
+        }.fork
     }
 
     *dirStereo {|path|

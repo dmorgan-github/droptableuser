@@ -181,7 +181,8 @@ Order.newFromIndices(16.collect({List.new}), (0..15))
         });
 
         ndefkey = "m_%".format(i).asSymbol;
-        Ndef(ndefkey).play(out: D.defaultout + (i * 2));
+        //Ndef(ndefkey).play(out: D.defaultout + (i * 2));
+        Ndef(ndefkey).play();
         Ndef(ndefkey).clock = W.clock;
         Ndef(ndefkey).quant = 4.0;
         Ndef(ndefkey)[1] = Pbind(\instrument, instrument)

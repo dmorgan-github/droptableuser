@@ -2,6 +2,8 @@ Roli : MidiCtrl {
 
     classvar id, instance;
 
+    classvar <>noteChan=2, <>ccChan=2;
+
     // bend semitones
     classvar <>bendst;
 
@@ -9,7 +11,7 @@ Roli : MidiCtrl {
 
     *new {
         if (instance.isNil) {
-            instance = super.new(id, ccChan:2, noteChan:2).roliInit
+            instance = super.new(id, ccChan:Roli.ccChan, noteChan:Roli.noteChan).roliInit
         };
         ^instance;
     }
