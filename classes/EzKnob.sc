@@ -1,3 +1,4 @@
+/*
 EzKnob {
 
     var knobView, labelView, nbView, view, ctrlSpec;
@@ -53,3 +54,4 @@ EzKnob {
         ^view;
     }
 }
+*/

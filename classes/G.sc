@@ -1,4 +1,5 @@
 // TODO: deprecate
+/*
 G : D {
 
     deviceInit {
@@ -159,3 +160,4 @@ G : D {
         ^U(\buf, this)
     }
 }
+*/

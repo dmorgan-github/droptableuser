@@ -2,17 +2,17 @@
 synth: {arg sig_in;
 
     var in = sig_in * \input.ar(1);
-    var fblevel = [\fbL.ar(0.3), \fbR.kr(0.5)];
-    var delL = \delL.ar(3).lag(0.1) * 4.reciprocal;
-    var delR = \delR.ar(4).lag(0.1) * 4.reciprocal;
-    var tempo = \beatDur.ar(TempoClock.default.beatDur).lag(0.1);
-    var offsetL = \offsetL.ar(0).lag(0.1);
-    var offsetR = \offsetR.ar(0).lag(0.1);
+    var fblevel = [\fbL.kr(0.3), \fbR.kr(0.5)];
+    var delL = \delL.kr(3).lag(0.1) * 4.reciprocal;
+    var delR = \delR.kr(4).lag(0.1) * 4.reciprocal;
+    var tempo = \beatDur.kr(TempoClock.default.beatDur).lag(0.1);
+    var offsetL = \offsetL.kr(0).lag(0.1);
+    var offsetR = \offsetR.kr(0).lag(0.1);
 
     var sig = HPF.ar(in, \hpf.kr(20));
     sig = FbC({arg fb;
         fb.reverse * fblevel + sig
-    }, 4, [delL, delR] * tempo + [offsetL, offsetR]) * 1.5;
+    }, 4, [delL, delR] * tempo + [offsetL, offsetR]);
 
     sig * \output.kr(1);
 },

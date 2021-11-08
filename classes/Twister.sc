@@ -1,3 +1,4 @@
+/*
 TwisterKnob {
 
     classvar key = 'twisterknob';
@@ -70,7 +71,9 @@ TwisterKnob {
     *classInit {
     }
 }
+*/
 
+/*
 Twister {
 
     classvar <knobOrder;
@@ -98,3 +101,4 @@ Twister {
         knobOrder = Order.new;
     }
 }
+*/

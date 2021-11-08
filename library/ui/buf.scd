@@ -99,7 +99,7 @@ Fdef(\buf, {arg node;
 	.layout_(VLayout().margins_(2).spacing_(2));
 	//.palette_(QPalette.dark);
 
-    SkipJack(func2, 1/10, name:skipjackname);
+    //SkipJack(func2, 1/10, name:skipjackname);
 
     /*
     To zoom in/out: Shift + right-click + mouse-up/down
@@ -165,7 +165,7 @@ Fdef(\buf, {arg node;
 		\free.debug(osckey);
 		node.removeDependant(func);
 		OSCdef(node.key).free;
-        SkipJack.stop(skipjackname);
+        //SkipJack.stop(skipjackname);
 	})
 	.fixedWidth_(width)
 	.fixedHeight_(height);

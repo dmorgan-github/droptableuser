@@ -5,15 +5,14 @@ Synth
 S : Pdef {
 
     var <node, <cmdperiodfunc, <>color;
-    var <isMono=false, <synth;
+    var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
     var <ptrnproxy;
 
     *new {|key, synth|
         var res = Pdef.all[key];
         if (res.isNil) {
-            var mysynth = synth ? key;
-            res = super.new(key).prInit.synth_(mysynth);
+            res = super.new(key).prInit
         };
 
         ^res;
@@ -36,20 +35,24 @@ S : Pdef {
         }
     }
 
+    set {|...args|
+
+        var controlKeys = this.node.controlKeys;
+        Server.default.makeBundle(Server.default.latency, {
+            var dict = args.asDict;
+            var val = dict.select({|v, k| controlKeys.includes(k)  });
+            node.set(*val.getPairs)
+        });
+
+        super.set(*args)
+    }
+
     pset {|...args|
         this.ptrnproxy.set(*args);
     }
 
     synth_ {|synthname|
-        if (synthname != synth) {
-            // synth is already initialized
-            this.prInitSynth(synthname);
-        }
-    }
-
-    mono {|synthname, template=\mono|
-        isMono = true;
-        this.prInitSynth(synthname, template);
+        this.prInitSynth(synthname);
     }
 
     fx {|index, fx, wet=1|
@@ -61,7 +64,7 @@ S : Pdef {
     }
 
     view {
-        U(\sgui, this)
+        ^U(\sgui, this)
     }
 
     out {
@@ -85,23 +88,31 @@ S : Pdef {
                         current = current.select({|v, k| args.includes(k) });
                         node.set(*current.getPairs)
                     })
-                })
+                }),
+                // enable some aliases
+                \degree, Pfunc({|evt| if (evt[\deg].notNil) {evt[\deg]} {evt[\degree]} }),
+                \octave, Pfunc({|evt| if (evt[\oct].notNil) {evt[\oct]} {evt[\octave]} }),
+                \legato, Pfunc({|evt| if (evt[\leg].notNil) {evt[\leg]} {evt[\legato]} }),
+                \mtranspose, Pfunc({|evt| if (evt[\mtrans].notNil) {evt[\mtrans]} {evt[\mtranspose]} }),
+                \sustain, Pfunc({|evt| if (evt[\sus].notNil) {evt[\sus]} {evt[\sustain]} })
             ),
             ptrnproxy,
             pattern,
             Pbind(
                 \out, Pfunc({node.bus.index}),
-                \group, Pfunc({node.group})
+                \group, Pfunc({node.group}),
             )
         );
 
-        super.source = Plazy({
-            if (isMono) {
-                Pmono(synth, \trig, 1) <> chain
-            }{
-                chain
-            }
-        });
+        super.source = PfsetC({ { this.changed(\stop) } },
+            Plazy({
+                if (isMono) {
+                    Pmono(synth, \trig, 1) <> chain
+                }{
+                    Pbind(\instrument, synth) <> chain
+                }
+            })
+        );
 
         ^this;
     }
@@ -119,8 +130,9 @@ S : Pdef {
 
         node.play;
         ptrnproxy = PbindProxy();
-        this.source = Pbind();
+        super.source = Pbind();
         this.set(\amp, -12.dbamp);
+        this.quant = 4.0;
 
         cmdperiodfunc = {
             {
@@ -141,14 +153,14 @@ S : Pdef {
 
         synthdef = SynthDescLib.global.at(synth);
         if (synthdef.isNil) {
-            "synth not found".debug(synth);
             synth = \default;
             synthdef = SynthDescLib.global.at(synth);
         };
 
         synthdef
         .controls.reject({|cn|
-            [\freq, \pitch, \trigger, \trig, \in, \buf, \gate, \glis, \bend].includes(cn.name.asSymbol)
+            [\freq, \pitch, \trigger, \trig,
+                \in, \buf, \gate, \glis, \bend, \out].includes(cn.name.asSymbol)
         }).do({|cn|
             var key = cn.name.asSymbol;
             var spec = Spec.specs[key];

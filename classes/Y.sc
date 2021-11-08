@@ -128,9 +128,9 @@ Y {
     // generate random composition of n
     //------------------------------------------------------------------------
     /*
-    ~comprnd.(3).do{|x| x.postln};
-    ~comprnd.(4).do{|x| x.postln};
-    ~comprnd.(8).do{|x| x.postln};
+    Y.comprnd(3).do{|x| x.postln};
+    Y.comprnd(4).do{|x| x.postln};
+    Y.comprnd(8).do{|x| x.postln};
     */
     *comprnd {|n|
         var res= List.new;

@@ -1,3 +1,33 @@
++ Buffer {
+
+    view {
+        U(\bufinfo, this)
+    }
+
+    loopr {
+        var buf = this;
+        var numchannels = buf.numChannels;
+        var bufname = PathName(buf.path).fileNameWithoutExtension;
+        var node = D(bufname.asSymbol).put(0, {
+            var rate = \rate.kr(1);
+            var start = \start.kr(0);
+            var dur = \loopdur.kr(-1);
+            var loop = \loop.kr(1);
+            var trig = \trig.tr(1);
+            var sig = XPlayBuf.ar(numchannels, buf, rate, trig, start, dur, loop);
+            sig = Splay.ar(sig, \spread.kr(1), center:\pan.kr(0));
+            sig * \amp.kr(-12.dbamp)
+        });
+        node.addSpec(\loopdur, [-1, buf.duration, \lin, 0, -1]);
+        node.addSpec(\start, [0, buf.duration, \lin, 0, -1]);
+        node.addSpec(\rate, [1/16, 4, \lin, 0, 1]);
+        node.addSpec(\loop, [0, 1, \lin, 1, 1]);
+        node.addSpec(\spread, [0, 1, \lin, 0, 1]);
+        node.addSpec(\pan, [-1, 1, \lin, 0, 0]);
+        ^node
+    }
+}
+
 + AbstractFunction {
     pchoose {|iftrue, iffalse|
         ^Pif(Pfunc(this), iftrue, iffalse)
@@ -41,6 +71,15 @@
             var func = assoc.value;
             clock.sched(beat, { beat.debug(\beat); func.value; nil } );
         });
+    }
+
+    loop {|dur=8, len|
+        var iteration = -1;
+        if (len.isNil) {len = dur};
+        ^Plazy({
+            iteration = iteration + 1;
+            Psync(this.p.finDur(len), dur, dur) <> (iter:iteration);
+        }).repeat
     }
 }
 
@@ -149,10 +188,25 @@
     legato {|val| ^Pset(\legato, val, this)}
     degree {|val| ^Pset(\degree, val, this)}
     strum {|val| ^Pset(\strum, val, this)}
-    cycle {|dur=4, len|
+
+    /*
+    cycle {|dur=8, len|
         if (len.isNil) {len = dur};
-        ^Psync(this.finDur(len), dur, dur).repeat
+        ^Plazy({
+            Psync(this.finDur(len), dur, dur)
+        }).repeat
     }
+    */
+
+    loop {|dur=8, len, repeats=inf|
+        var iteration = -1;
+        if (len.isNil) {len = dur};
+        ^Plazy({
+            iteration = iteration + 1;
+            Psync(this.finDur(len), dur, dur) <> (iter:iteration);
+        }).repeat(repeats)
+    }
+
     clutch {|connected| ^Pclutch(this, connected) }
     add {|name, val| ^Paddp(name, val, this)}
     mul {|name, val| ^Pmulp(name, val, this)}
@@ -363,7 +417,7 @@
             var ctrl = order[num];
             var spec = this.getSpec(ctrl);
             var filter = Fdef("%_ccFilter_%".format(this.key, num).asSymbol);
-            if (this.getSpec(ctrl).isNil) {
+            if (spec.isNil) {
                 spec = [0, 1].asSpec;
             };
             mapped = spec.map(val/127);
@@ -374,6 +428,25 @@
             this.set(ctrl, mapped);
         }, ccNum:ccNum, chan:ccChan)
         .fix;
+
+        // initialize midi cc value
+        // not sure how to find the correct midiout
+        // so trying all of them
+        MIDIClient.destinations.do({|dest, i|
+            order.indices.do({|num|
+                var ctrl = order[num];
+                var spec = this.getSpec(ctrl);
+                var min, max, current, ccval;
+                if (spec.isNil) {
+                    spec = [0, 1].asSpec;
+                };
+                min = spec.minval;
+                max = spec.maxval;
+                current = this.get(ctrl);
+                ccval = current.linlin(min, max, 0, 127);
+                MIDIOut(i).control(ccChan, num, ccval);
+            });
+        })
     }
 
     ccFilter {|ccNum, func|
@@ -387,34 +460,39 @@
     }
 
     note {|noteChan, note|
+
         var noteonkey = "%_noteon".format(this.key).asSymbol;
         var noteoffkey = "%_noteoff".format(this.key).asSymbol;
         var pattern = this.asStream.next(Event.default);
-        var out = pattern[\out] ?? 0;
-        var hasnkey = pattern[\nkey].notNil;
-        //var target = if (pattern[\group].isFunction) { Server.default.defaultGroup } {pattern[\group]};
-        var target = if (hasnkey) {
-            Ndef(\nkey).group
-        } {
-            Server.default.defaultGroup
-        };
+        var out = this.node.bus.index;//pattern[\out] ?? 0;
+        var target = this.node.group;
         var instrument = pattern[\instrument] ?? \default;
         var synthdef = SynthDescLib.global.at(instrument);
         var hasGate = synthdef.hasGate;
         var synths = Order.new;
         Halo.put(this.key, \synths, synths);
 
+        if (MIDIClient.initialized.not) {
+            MidiCtrl.connect;
+        };
+
+        if (note.isNil) {
+            note = (0..110);
+        };
+
         MIDIdef.noteOn(noteonkey, {|vel, note, chan|
+
             var evt = this.envir ?? {()};
             var args;
             var filter = Fdef("%_noteFilter".format(this.key).asSymbol);
+
             if (filter.source.notNil) {
                 #note, vel = filter.(note, vel);
             };
             // TODO set evt properties on group if we have an nkey
             args = [\out, out, \gate, 1, \freq, note.midicps, \vel, vel/127] ++ evt.asPairs();
             if (hasGate) {
-                synths[note] = Synth(instrument, args, target:target);
+                synths[note] = Synth(instrument, args, target:target, addAction:\addToHead);
             } {
                 Synth(instrument, args, target:target);
             }

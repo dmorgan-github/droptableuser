@@ -1,7 +1,7 @@
 (
 synth: {|freq, gate, aeg|
 	var trig = Impulse.ar(0);
-    var decay = \puckdecay.kr(0.9);
+    var decay = \pluckdecay.kr(0.9);
     var coef = \coef.kr(0.5);
 	var sig = Pluck.ar(
         Hasher.ar(Sweep.ar(trig)), 

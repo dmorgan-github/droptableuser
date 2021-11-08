@@ -71,41 +71,6 @@ Pdef(\slicer, Pbind(
         (0..numslices-1)/numslices;
     }),
     \dur, Pkey(\slicedur),
-    \legato, {|evt|
-        var legato = evt[\legato];
-        if (legato.isNil) {
-            legato = 1;
-        };
-        legato
-    }.pfunc,
-    \dir, {|evt|
-        var dir = evt[\dir];
-        if (dir.isNil) {
-            dir = 1
-        };
-        dir;
-    }.pfunc,
-    \rel, {|evt|
-        var rel = evt[\rel];
-        if (rel.isNil) {
-            rel = 0.1;
-        };
-        rel;
-    }.pfunc,
-    \atk, {|evt|
-        var atk = evt[\atk];
-        if (atk.isNil) {
-            atk = 0.1;
-        };
-        atk;
-    }.pfunc,
-    \curve, {|evt|
-        var curve = evt[\curve];
-        if (curve.isNil) {
-            curve = 0;
-        };
-        curve;
-    }.pfunc, //0,
     \startPos, Plazy({|evt|
         var val = evt[\slices];
         var start = evt[\start];

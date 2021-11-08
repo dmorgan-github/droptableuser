@@ -2,6 +2,7 @@
 EQ
 */
 
+/*
 Q {
     classvar vst, synth, <ctrl, synthdef=\vsteq;
 
@@ -31,6 +32,7 @@ Q {
         });
     }
 }
+*/
 /*
 Q : Device {
 

@@ -53,7 +53,7 @@ V : D {
 
     *printSynthParams {|vst, ctrl|
         var params = ctrl.info.parameters;
-        var cache = ctrl.paramCache;
+        var cache = ctrl.parameterCache;
         var vals = List.new;
         params.do({|p, i|
             vals.add(p['name'].asSymbol -> cache[i][0]);
@@ -71,7 +71,7 @@ V : D {
 
     *printPatternParams {|vst, ctrl|
         var params = ctrl.info.parameters;
-        var cache = ctrl.paramCache;
+        var cache = ctrl.parameterCache;
         var vals = List.new;
         params.do({|p, i|
             vals.add(p['name'].asSymbol -> cache[i][0]);
@@ -85,6 +85,20 @@ V : D {
             var named = "%_%".format(vstkey, param)[0..30];
             ("'" ++ named ++ "', %".format(v) ++ ",").postln;
         })
+    }
+
+    *printParamVals {|ctrl|
+        var cb = {|vals| vals.asCompileString.postln;};
+        var vals = ();
+        var parms = ctrl.info.parameters;
+
+        ctrl.getn(action: {arg v;
+            v.do({|val, i|
+                var name = parms[i][\name];
+                vals[name] = val;
+            });
+            cb.(vals);
+        });
     }
 
     set {|key, val|

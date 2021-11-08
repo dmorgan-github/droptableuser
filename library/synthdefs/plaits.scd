@@ -36,7 +36,7 @@ SynthDef(\plaits_mono, {
 	sig = SelectXFocus.ar(\which.kr(0), [pri, aux], \focus.kr(1));
 	sig = sig * Env.asr.ar(gate:gate, doneAction:Done.freeSelf);
     sig = sig * AmpCompA.kr(freq) * \amp.kr(-6.dbamp) * \vel.kr(1);
-	sig = Splay.ar(sig, spread: \spread.kr(1), center:\pan.kr(0));
+	sig = Splay.ar(sig, spread: \spread.kr(0), center:\pan.kr(0));
 	Out.ar(\out.kr(0), sig);
 
 }, metadata: (

@@ -1,14 +1,10 @@
 /*
 Buffer
 */
-
-/*
-* TODO: buflib obj 
-*/
 B {
     classvar <all;
 
-    classvar <stereoDirs, <wtDirs, <monoDirs;
+    classvar <wtDirs;
 
     *new {arg key;
         ^all[key]
@@ -24,14 +20,17 @@ B {
 
     *read {arg key, path, channels=nil;
         if (channels.isNil) {
-            channels = [0,1];
+            Buffer.read(Server.default, path, action:{|buf|
+                all.put(key, buf.normalize);
+                "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
+            });
         }{
             channels = channels.asArray;
+            Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
+                all.put(key, buf.normalize);
+                "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
+            });
         };
-        Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
-            all.put(key, buf.normalize);
-            "added buffer with key: %; %".format(key, path).inform;
-        });
     }
 
     *mono {|key, path|
@@ -40,7 +39,7 @@ B {
 
     *stereo {|key, path|
         var file = SoundFile.openRead(path);
-        var channels = if (file.numChannels < 2) { [0,0] }{ [0, 1] };
+        var channels = if (file.numChannels.debug('numchannels') < 2) { [0,0] }{ [0, 1] };
         B.read(key, path, channels);
     }
 
@@ -49,6 +48,22 @@ B {
         all.put(key, buf);
         "allocated buffer with key: %".format(key).inform;
         ^buf;
+    }
+
+    *loadWavetables {|key, path|
+
+        var obj = Order();
+        var wtsize = 4096;
+        var wtpaths = "%/**.wtable".format(path).pathMatch;
+        var wtbuffers = Buffer.allocConsecutive(wtpaths.size, Server.default, wtsize * 2, 1);
+        wtpaths.do {|it, i|
+            var buf = wtbuffers[i].read(wtpaths[i]);
+            obj.put(buf.bufnum, buf);
+        };
+
+        obj.addSpec(\bufnums, [obj.indices.minItem, obj.indices.maxItem, \lin, 1, obj.indices.minItem].asSpec);
+        all[key] = obj;
+        "wavetables loaded".debug(key);
     }
 
     *loadFiles {|key, paths, normalize=true|
@@ -77,14 +92,9 @@ B {
                     all[key].put(buf.bufnum, buf);
                 };
             });
+            all[key].addSpec(\bufnums, [all[key].indices.minItem, all[key].indices.maxItem, \lin, 1, all[key].indices.minItem].asSpec);
             "buffers loaded".postln
         }.fork
-    }
-
-    *getLibSpec {|key|
-        var lib = B(key);
-        var spec = [lib.indices.minItem, lib.indices.maxItem, \lin, 1, lib.indices.minItem].asSpec;
-        ^spec;
     }
 
     /*
@@ -133,6 +143,8 @@ B {
                                 all[mykey].put(buf.bufnum, buf);
                             };
                         });
+                        all[mykey].addSpec(\bufnums,
+                          [all[mykey].indices.minItem, all[mykey].indices.maxItem, \lin, 1, all[mykey].indices.minItem].asSpec);
                     };
 
                     pn.folders.do({|dir|
@@ -150,37 +162,10 @@ B {
         }.fork
     }
 
-    *dirStereo {|path|
-
-        var bufs;
-        var pathkey = path.asSymbol;
-        var func = {|path|
-            var buffer;
-            var file = SoundFile.openRead(path);
-            var channels = if(file.numChannels < 2, { [0,0] },{ [0,1] });
-            buffer = Buffer.readChannel(Server.default, path, channels: channels );
-            buffer
-        };
-
-        if (stereoDirs[pathkey].notNil) {
-            bufs = stereoDirs[pathkey];
-            path.debug(\from_cache);
-        } {
-            var dir = PathName.new(path);
-            bufs = dir.entries.select({|pn| pn.extension == "wav"}).collect({|pn|
-                var buf = func.(pn.fullPath);
-                buf
-            });
-            stereoDirs[pathkey] = bufs;
-        };
-
-        ^bufs;
-    }
-
     // adapted from here:
     //https://github.com/alikthename/Musical-Design-in-Supercollider/blob/master/5_wavetables.sc
     // run once to convert and resample wavetable files
-    *convertWt {|path|
+    *convertWavetables {|path|
         var paths, file, data, n, newData, outFile;
         paths = "%/*.wav".format(path).pathMatch;
 
@@ -229,8 +214,6 @@ B {
 
     *initClass {
         all = IdentityDictionary();
-        stereoDirs = IdentityDictionary();
         wtDirs = IdentityDictionary();
-        monoDirs = IdentityDictionary();
     }
 }

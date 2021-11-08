@@ -8,7 +8,7 @@ D : Ndef {
 
     classvar <>defaultout;
 
-    var <vstctrls;
+    var <vstctrls, <>color;
 
     *new {|key|
 
@@ -61,6 +61,7 @@ D : Ndef {
 
     prInit {|argKey|
         vstctrls = Order.new;
+        color = Color.rand;
         ^this.deviceInit
     }
 
@@ -216,17 +217,7 @@ D : Ndef {
     }
 
     view {|index|
-        U(\ngui, this);
-
-        /*
-        if (index.isNil) {
-            U(\ngraph, this);
-        }{
-            var specs = this.chain[index][\specs];
-            var uifunc = this.chain[index][\customui];
-            U(\ngui, this, uifunc.(this), specs);
-        }
-        */
+        ^U(\sgui, this);
     }
 
     rec {|beats=4, preLevel=0, cb|

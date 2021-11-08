@@ -108,6 +108,13 @@ MidiCtrl {
     }
 
     *connect {
+
+        /*
+        MIDIClient.disposeClient;
+		MIDIClient.init;
+		MIDIIn.connectAll;
+        */
+        MIDIClient.disposeClient;
         MIDIClient.init(verbose:true);
         MIDIIn.connectAll(verbose: true);
     }

@@ -2,6 +2,8 @@
 Require(App.librarydir ++ "ui/common.scd");
 Fdef(\kb, {arg synth;
 
+    var noteChan = 0;
+    var midiout = MIDIOut(noteChan).latency_(0);
 	var view = View();
 	var baseview;
 	var baseViewFunc = Fdef(\baseview);
@@ -57,14 +59,12 @@ Fdef(\kb, {arg synth;
 		.fixedHeight_(24)
 		.mouseDownAction_({arg ctrl;
 			var note = 12 * octave + num + root;
-			synth.on(note);
+			midiout.noteOn(noteChan, note: note);
 			ctrl.value = 1;
 		})
 		.mouseUpAction_({arg ctrl;
-			//var octave = synthEnvir[\octave] ?? 5;
-			//var root = synthEnvir[\root] ?? 0;
 			var note = 12 * octave + num + root;
-			synth.off(note);
+            midiout.noteOff(noteChan, note:note);
 			ctrl.value = 1;
 		});
 	});
@@ -99,7 +99,7 @@ Fdef(\kb, {arg synth;
 		if (val.isNil.not) {
 			var num = val;
 			var note = 12 * octave + val + root;
-			synth.on(note);
+            midiout.noteOn(noteChan, note: note);
 			if (num < keyboard.size) {
 				keyboard[num].value = 1;
 			}
@@ -111,13 +111,14 @@ Fdef(\kb, {arg synth;
 		if (val.isNil.not) {
 			var num = val;
 			var note = 12 * octave + val + root;
-			synth.off(note);
+            midiout.noteOff(noteChan, note: note);
 			if (num < keyboard.size) {
 				keyboard[num].value = 0;
 			}
 		}
 	})
 	.onClose_({arg ctrl;
+        \onclose.postln;
 		synth.removeDependant(func);
 	});
 

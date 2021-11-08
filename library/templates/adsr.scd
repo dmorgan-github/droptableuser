@@ -19,7 +19,7 @@
 			var rel = \rel.kr(0.1);
 			var suslevel = \suslevel.kr(1);
 			var ts = \ts.kr(1);
-			var curve = \curve.kr(-4);
+            var curve = [\atkcurve.kr(-4), \deccurve.kr(-4), \relcurve.kr(-4)];//\curve.kr(-4);
 			var env = Env.adsr(
 				attackTime:atk,
 				decayTime:dec,

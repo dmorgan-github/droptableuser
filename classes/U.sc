@@ -10,7 +10,7 @@ U {
         if (File.exists(fullpath)) {
             var name = pathname.fileNameWithoutExtension;
             File.open(fullpath, "r").readAllString.interpret;
-            Fdef(key).value(*args);
+            ^Fdef(key).value(*args);
         } {
             Error("node not found").throw;
         };

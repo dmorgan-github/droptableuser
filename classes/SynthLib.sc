@@ -24,19 +24,19 @@ SynthLib {
         ^this;
     }
 
-    toSynthDef {|template=\adsr|
-        SynthLib.def(this.name, this.func, template, this.specs)
+    addSynthDef {|template=\adsr|
+        SynthLib.def(key:this.name, func:this.func, template:template, specs:this.specs)
     }
 
-    *def {|inKey, inFunc, inTemplate=\adsr, specs|
-        var path = App.librarydir ++  "templates/" ++ inTemplate.asString ++ ".scd";
+    *def {|key, func, template=\adsr, specs|
+        var path = App.librarydir ++  "templates/" ++ template.asString ++ ".scd";
         var pathname = PathName(path.standardizePath);
         var fullpath = pathname.fullPath;
 
         if (File.exists(fullpath)) {
             var template = File.open(fullpath, "r").readAllString.interpret;
-            template.(inKey, inFunc, specs);
-            "synth created".debug(inKey);
+            template.(key, func, specs);
+            "synth created".debug(key);
         } {
             Error("synth template not found").throw;
         };

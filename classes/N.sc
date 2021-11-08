@@ -1,6 +1,7 @@
 /*
 Node
 */
+
 N : D {
 
     var <uifunc, fx;
@@ -37,11 +38,7 @@ N : D {
         uifunc = obj[\ui];
         this.filter(100, func);
         if (specs.isNil.not) {
-            specs.do({arg assoc, i;
-                //var key = "%/%".format(i, assoc.key).asSymbol;
-                var key = assoc.key;
-                this.addSpec(key, assoc.value);
-            });
+            this.addSpec(*specs);
         };
     }
 

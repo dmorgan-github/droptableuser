@@ -59,7 +59,8 @@ K {
 
     *initClass {
         StartUp.add({
-            SynthLib('synths/oneshot').toSynthDef(\slim)
+            "create oneshot synth".debug(\K);
+            SynthLib('synths/oneshot').addSynthDef(\slim)
         })
     }
 }

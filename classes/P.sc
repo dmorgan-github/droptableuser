@@ -31,9 +31,18 @@ P {
     }
 
     *getCurrentVals {|node|
-        var vals = node.envir.keys
-        .select({|key| node.get(key).isNumber }).
-        collect({|key| [key, node.get(key)] });
+        //var vals = if (node) node.envir.keys
+
+        var vals = if (node.respondsTo(\controlKeys)) {
+            node.controlKeys;
+        }{
+            node.envir.keys;
+        };
+
+        vals = vals
+        .select({|key| node.get(key).isNumber })
+        .collect({|key| [key, node.get(key)] });
+
         ^vals.asArray.flatten.asDict
     }
 

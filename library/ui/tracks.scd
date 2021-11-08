@@ -2,7 +2,7 @@
 Require(App.librarydir ++ "ui/common.scd");
 Fdef(\tracks, {arg node;
 
-    var view = View().layout_(VLayout());
+    var view = View().layout_(VLayout().spacing_(5).margins_(5));
     node.indices.do({|i|
 
         var t = node[i];
@@ -20,7 +20,7 @@ Fdef(\tracks, {arg node;
                 }
             })
             .value_(isplaying)
-        ));
+        ).spacing_(1).margins_(1));
         view.layout.add(v);
     });
     view.layout.add(nil);

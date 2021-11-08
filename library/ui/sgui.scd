@@ -12,7 +12,7 @@ Fdef(\sgui, {|node|
 
     var getSpec = {|key|
         var specs = node.getSpec;
-        var spec = specs[key];
+        var spec = if (specs.isNil) {nil} { specs[key] };
         if (spec.isNil) {
             spec = [0, 1, \lin, 0, 0].asSpec;
         };
@@ -20,7 +20,16 @@ Fdef(\sgui, {|node|
     };
 
     var getKeys = {
-        node.envir.keys
+
+        var keys = {
+            if (node.respondsTo(\controlKeys)) {
+                node.controlKeys;
+            }{
+                node.envir.keys;
+            }
+        }.value;
+
+        keys
         .select({|key|
             node.get(key).isNumber
         })
@@ -32,7 +41,6 @@ Fdef(\sgui, {|node|
             var specA = getSpec.(a);
             var specB = getSpec.(b);
             "%%".format(specA.units, a) < "%%".format(specB.units, b)
-           //a < b
         })
     };
 
@@ -40,19 +48,25 @@ Fdef(\sgui, {|node|
         status.string = msg;
     };
 
+    var prevcolor, prevunit;
+
     var getView = {
 
         var controls, sliders, numbers, ctrls, view;
-
         keys = getKeys.();
-
         controls = keys.collect({|key|
-            var val = node.get(key);
-            var spec = getSpec.(key);
-            if (val.isNil) {
-                val = spec.default;
-            };
-            NumericControlValue(val, spec:spec)
+
+            try({
+                var val = node.get(key);
+                var spec = getSpec.(key);
+                if (val.isNil) {
+                    val = spec.default;
+                };
+                NumericControlValue(val, spec:spec)
+            }, {|error|
+                error.postln;
+                error.throw;
+            })
         });
 
         sliders = keys.collect({|key, i|
@@ -61,30 +75,65 @@ Fdef(\sgui, {|node|
             .value_(controls[i].input)
             .orientation_(\horizontal)
             .thumbSize_(10)
+            .mouseDownAction_({arg ctrl, x, y, mod, num, count;
+                var spec = controls[i].spec;
+                var val = spec.default;
+                if (count == 2) {
+                    controls[i].value = val;
+                    false;
+                }
+            })
         });
 
         numbers = keys.collect({|key, i|
             var hi = controls[i].spec.maxval;
             var lo = controls[i].spec.minval;
             NumberBox().clipHi_(hi).clipLo_(lo)
+            .decimals_(3)
             .maxHeight_(height)
             .maxWidth_(80)
         });
 
         ctrls = keys.collect({|key, i|
-            HLayout(
-                StaticText()
-                .mouseDownAction_({
-                    if (key == \buf) {
-                        U(\buf, node)
-                    }
-                })
-                .fixedWidth_(50)
-                .string_(key)
-                .toolTip_(key),
-                sliders[i],
-                numbers[i]
-            )
+
+            var new;
+            var spec = getSpec.(key);
+            var unit = if (spec.notNil) { spec.units } {""};
+            var color = if (unit != prevunit) {
+                prevcolor = Color.rand.alpha_(0.35);
+                prevunit = unit;
+                new = true;
+                prevcolor;
+            }{
+                new = false;
+                prevcolor;
+            };
+
+            View().layout_(
+                VLayout(
+                    if (new) { StaticText().string_(prevunit).stringColor_(Color.black) }{nil},
+                    HLayout(
+                        StaticText()
+                        .mouseDownAction_({
+                            if (key == \buf) {
+                                U(\buf, node)
+                            }
+                        })
+                        .fixedWidth_(60)
+                        .string_(key)
+                        .toolTip_(key),
+                        sliders[i],
+                        numbers[i],
+                        Button()
+                        .states_([ ["x", nil, nil],["x", nil, nil] ])
+                        .action_({|ctrl|
+                            node.set(key, nil)
+                        })
+                        .maxWidth_(12)
+                        .maxHeight_(12)
+                    ).margins_(0).spacing_(2)
+                ).margins_(0).spacing_(0)
+            ).background_(color);//.margins_(0).spacing_(0);
         });
 
         view = View()
@@ -120,7 +169,14 @@ Fdef(\sgui, {|node|
 
     var scope = {|srcNode|
 
-        var node = srcNode;
+        var node = {
+            if (srcNode.respondsTo(\node)) {
+                srcNode.node;
+            }{
+                srcNode
+            }
+        }.value;
+
         var view = View().layout_(VLayout().margins_(0).spacing_(0))
         //.palette_(QPalette.dark)
         .maxHeight_(10);
@@ -137,14 +193,15 @@ Fdef(\sgui, {|node|
         view.maxHeight = 20;
         view.children[0].children[0].background = Color.new255(77, 77, 77);
         view.maxWidth = 80;
-        view.onClose = { \freescope.postln; scope.free };
+        view.onClose = { scope.free };
         view.mouseUpAction = {
             node.scope
         };
         view;
     };
 
-    var view = View(bounds:220@200).layout_(VLayout().margins_(2).spacing_(2)).name_(node.key);
+    var view = View(bounds:275@200).layout_(VLayout().margins_(2).spacing_(2)).name_(node.key);
+
     var buttons = 14.collect({|i|
         var color_active = Color.white.alpha_(0.9);
         var color_saved = Color.green.alpha_(0.9);
@@ -196,13 +253,22 @@ Fdef(\sgui, {|node|
     });
 
     var scroll = ScrollView();
+    var playbutton = Button();
+    var watcher = {|obj, what|
+        if (what == \stop) {
+            {
+                playbutton.value = 0;
+            }.defer
+        }
+    };
+    node.addDependant(watcher);
+
     scroll.canvas = getView.();
 
-    view.layout.add(scroll);
     view.layout.add(
-        VLayout(
+        //VLayout(
             HLayout(
-                Button().states_([ [">"], [ "[]" ] ]).action_({|ctrl|
+                playbutton.states_([ [">"], [ "[]" ] ]).action_({|ctrl|
                     if (ctrl.value == 1) {
                         node.play
                     }{
@@ -212,7 +278,7 @@ Fdef(\sgui, {|node|
                 .maxWidth_(20)
                 .value_(node.isPlaying),
 
-                scope.(node.node),
+                scope.(node),
 
                 NumberBox().maxWidth_(25).action_({|ctrl|
                     morphbeats = ctrl.value;
@@ -225,23 +291,29 @@ Fdef(\sgui, {|node|
                 ).margins_(0).spacing_(0),
 
             ),
-           status
-        )
+           //status
+        //)
     );
+
+    view.layout.add(scroll);
+    view.layout.add(status);
 
     SkipJack({
         var prev = keys.size;
         var new = getKeys.().size;
         if (prev != new) {
-            connections.free;
-            scroll.canvas = getView.();
+            {
+                connections.free;
+                scroll.canvas = getView.();
+            }.defer
         }
     }, name: skipId);
 
     view.onClose_({
         connections.free;
+        node.removeDependant(watcher);
         SkipJack.stop(skipId)
-    })
-    .front;
+    });
+
 });
 )
