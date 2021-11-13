@@ -29,7 +29,8 @@ D : Ndef {
             res.postInit;
 
             res.filter(1000, {|in|
-                var sig = Select.ar(CheckBadValues.ar(in, 0, 0), [in, DC.ar(0), DC.ar(0), in]);
+                var sig = in;//Select.ar(CheckBadValues.ar(in, 0, 0), [in, DC.ar(0), DC.ar(0), in]);
+                sig = Sanitize.ar(sig);
                 SafetyLimiter.ar(LeakDC.ar(sig));
             });
 

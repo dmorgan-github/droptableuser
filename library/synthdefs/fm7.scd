@@ -1,4 +1,5 @@
 (
+/*
 var func = {|freq, gate, aeg|
 
 	var ops = 6.collect({|i|
@@ -35,11 +36,12 @@ var func = {|freq, gate, aeg|
 
 SynthLib.def(\fm7, func);
 SynthLib.def(\fm7_mono, func, \mono);
+*/
 
 // create synths for each algo
 32.do({|i|
 
-	var key = "fm7_algo%".format(i);
+    var key = "fm7_algo%".format(i);
     SynthLib.def(key.asSymbol, {|f, g, a|
 
         var freq = \freq.kr(220);
@@ -54,8 +56,12 @@ SynthLib.def(\fm7_mono, func, \mono);
             var rel = ('op' ++ num ++ 'rel').asSymbol.kr(1);
             var suslevel = ('op' ++ num ++ 'suslevel').asSymbol.kr(1);
             var peak = ('op' ++ num ++ 'peak').asSymbol.kr(1);
-            var curve = ('op' ++ num ++ 'curve').asSymbol.kr(-4);
-            var env = Env.adsr(atk, dec, suslevel, rel, peakLevel: peak, curve:curve).ar(gate:gate);
+            var atkcurve = ('op' ++ num ++ 'atkcurve').asSymbol.kr(-4);
+            var deccurve = ('op' ++ num ++ 'deccurve').asSymbol.kr(-4);
+            var relcurve = ('op' ++ num ++ 'relcurve').asSymbol.kr(-4);
+
+            var env = Env.adsr(atk, dec, suslevel, rel, peakLevel: peak,
+                curve:[atkcurve, deccurve, relcurve]).ar(gate:gate);
             [freq * ratio, 0, env];
         });
 
@@ -68,14 +74,17 @@ SynthLib.def(\fm7_mono, func, \mono);
 
     }, template:'slim', specs: 6.collect({|i|
         var num = i+1;
+        var units = "op" ++ num;
         [
-            ('op' ++ num ++ 'ratio').asSymbol, ControlSpec(1/8, 12, \lin, 0.125, 1, units: "op" ++ num),
-            ('op' ++ num ++ 'atk').asSymbol, ControlSpec(0, 2, \lin, 0, 0.01, units: "op" ++ num),
-            ('op' ++ num ++ 'dec').asSymbol, ControlSpec(0, 1, \lin, 0, 0.2, units: "op" ++ num),
-            ('op' ++ num ++ 'rel').asSymbol, ControlSpec(0, 8, \lin, 0, 0.29, units: "op" ++ num),
-            ('op' ++ num ++ 'suslevel').asSymbol, ControlSpec(0, 1, \lin, 0, 1, units: "op" ++ num),
-            ('op' ++ num ++ 'peak').asSymbol, ControlSpec(0, 1, \lin, 0, 1, units: "op" ++ num),
-            ('op' ++ num ++ 'curve').asSymbol, ControlSpec(-8, 8, \lin, 0, -4, units: "op" ++ num)
+            ('op' ++ num ++ 'ratio').asSymbol, ControlSpec(1/8, 12, \lin, 0.01, 1, units: units),
+            ('op' ++ num ++ 'atk').asSymbol, ControlSpec(0, 2, \lin, 0, 0.01, units: units),
+            ('op' ++ num ++ 'dec').asSymbol, ControlSpec(0, 1, \lin, 0, 0.2, units: units),
+            ('op' ++ num ++ 'rel').asSymbol, ControlSpec(0, 8, \lin, 0, 0.29, units: units),
+            ('op' ++ num ++ 'suslevel').asSymbol, ControlSpec(0, 1, \lin, 0, 1, units: units),
+            ('op' ++ num ++ 'peak').asSymbol, ControlSpec(0, 1, \lin, 0, 1, units: units),
+            ('op' ++ num ++ 'atkcurve').asSymbol, ControlSpec(-8, 8, \lin, 0, -4, units: units),
+            ('op' ++ num ++ 'deccurve').asSymbol, ControlSpec(-8, 8, \lin, 0, -4, units: units),
+            ('op' ++ num ++ 'relcurve').asSymbol, ControlSpec(-8, 8, \lin, 0, -4, units: units)
         ]
     }).flatten
     );

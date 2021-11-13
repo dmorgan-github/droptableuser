@@ -1,7 +1,10 @@
 {|inKey, inFunc, specs|
 
-    var metadata = if (specs.notNil) {(specs:specs.asDict)};
-	
+    var metadata = ('env': 'perc');
+    if (specs.notNil;) {
+        metadata['specs'] = specs.asDict
+    };
+
     SynthDef(inKey, {
 
 		var freq_in = \freq.ar(261);
@@ -33,7 +36,7 @@
 		sig = sig * \amp.kr(-6.dbamp);
 		Out.ar(\out.kr(0), sig);
 
-	}, 
+	},
     metadata: metadata
 ).add;
 }

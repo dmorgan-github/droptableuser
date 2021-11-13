@@ -21,10 +21,10 @@ synth: {|freq, gate, aeg|
     sig
 },
 specs: [
-    harm: ControlSpec(-0.06, 2, \lin, 0, 0),
-	bright: ControlSpec(0.0, 1.0, \lin, 0, 0.5),
-    morph: ControlSpec(0.0, 1.0, \lin, 0, 0)
-], 
+    harm: ControlSpec(-0.06, 2, \lin, 0, 0, units:"timbre"),
+	bright: ControlSpec(0.0, 1.0, \lin, 0, 0.5, units:"timbre"),
+    morph: ControlSpec(0.0, 1.0, \lin, 0, 0, units:"timbre")
+],
 credit: "adapted from formula by Nathan Ho"
 )
 

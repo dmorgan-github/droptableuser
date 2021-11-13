@@ -28,5 +28,21 @@ synth: {|freq, gate, aeg|
     frelcurve: ControlSpec(-8, 8, \lin, 0, -4, units:"filter"),
     fatk: ControlSpec(0, 1, \lin, 0, 0, units:"filter"),
     snappy: ControlSpec(0, 1, \lin, 0, 0.5, units:"filter"),
-]
+],
+presets: (
+    preset1: [
+        'fatk', 0.00018315018315018,
+        'frel', 0.52747252747253,
+        'which', 1.0549450549451,
+        'width', 0.5,
+        'cutoff', 3234.6046344323,
+        'focus', 0.087912087912088,
+        'frelcurve', -4.0029304029304,
+        'pw', 0.5,
+        'snappy', 0.93406593406593,
+        'fatkcurve', -4.0029304029304,
+        'skew', 0.53846153846154,
+        'res', 0.41758241758242
+    ]
+)
 )

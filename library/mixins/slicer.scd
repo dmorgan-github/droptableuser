@@ -19,13 +19,6 @@ Pdef(\slicer, Pbind(
         };
         numslices
     }),
-    \numbeats, Pfunc({|evt|
-        var numbeats = evt[\numbeats];
-        if (numbeats.isNil) {
-            numbeats = 4;//
-        };
-        numbeats
-    }),
     \start, Pfunc({|evt|
         var start = evt[\startPos];
         if (start.isNil) {
@@ -54,17 +47,17 @@ Pdef(\slicer, Pbind(
     \rate, Pfunc({|evt|
         var rate = evt[\speed];
         if (rate.isNil) {
-            var numbeats = evt[\numbeats];
-            var beatdur = (evt[\bufdur]/numbeats);
-            rate = (beatdur/thisThread.clock.beatDur)
+            rate = 1
         };
         rate;
     }),
     \slicedur, Pfunc({|evt|
         var numslices = evt[\numslices];
-        var numbeats = evt[\numbeats];
-        var dur = (thisThread.clock.beatDur * numbeats);
-        numslices.reciprocal * dur * thisThread.clock.tempo;
+        var bufdur = evt[\bufdur];
+        bufdur/numslices
+        //var numbeats = evt[\numbeats];
+        //var dur = (thisThread.clock.beatDur * numbeats);
+        //numslices.reciprocal * dur * thisThread.clock.tempo;
     }),
     \slices, Pfunc({|evt|
         var numslices = evt[\numslices];

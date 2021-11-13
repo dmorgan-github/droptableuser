@@ -5,25 +5,45 @@
     }
 
     loopr {
-        var buf = this;
-        var numchannels = buf.numChannels;
-        var bufname = PathName(buf.path).fileNameWithoutExtension;
+        var buffer = this;
+        var numchannels = buffer.numChannels;
+        var bufname = PathName(buffer.path).fileNameWithoutExtension;
         var node = D(bufname.asSymbol).put(0, {
+            var buf = \buf.kr(buffer.bufnum);
+            var bufFrames = BufFrames.ir(buf);
+            var bufdur = BufDur.ir(buf);
+            var samplerate = BufSampleRate.ir(buf);
             var rate = \rate.kr(1);
-            var start = \start.kr(0);
-            var dur = \loopdur.kr(-1);
+            var startPos = \startPos.kr(0) * bufFrames;
+            var endPos = \endPos.kr(1) * bufFrames;
+            var start = startPos / samplerate;
+            var dur = (endPos - startPos) / samplerate;
+            var loopdur = Select.kr(dur < bufdur, [-1, dur]);
             var loop = \loop.kr(1);
-            var trig = \trig.tr(1);
-            var sig = XPlayBuf.ar(numchannels, buf, rate, trig, start, dur, loop);
+            var ft = \cf.kr(0.001);
+            var trig = Changed.kr(start) + Changed.kr(loopdur);
+            var sig = XPlayBuf.ar(numchannels, buf, rate, trig, start, loopdur, loop:loop, fadeTime:ft);
             sig = Splay.ar(sig, \spread.kr(1), center:\pan.kr(0));
-            sig * \amp.kr(-12.dbamp)
+            sig * \amp.kr(-6.dbamp)
         });
-        node.addSpec(\loopdur, [-1, buf.duration, \lin, 0, -1]);
-        node.addSpec(\start, [0, buf.duration, \lin, 0, -1]);
-        node.addSpec(\rate, [1/16, 4, \lin, 0, 1]);
-        node.addSpec(\loop, [0, 1, \lin, 1, 1]);
-        node.addSpec(\spread, [0, 1, \lin, 0, 1]);
-        node.addSpec(\pan, [-1, 1, \lin, 0, 0]);
+        //node.addSpec(\loopdur, ControlSpec(-1, buf.duration, \lin, 0, -1, "loop"));
+        node.addSpec(\startPos, ControlSpec(0, 1, \lin, 0, 0, "loop"));
+        node.addSpec(\endPos, ControlSpec(0, 1, \lin, 0, 1, "loop"));
+        node.addSpec(\rate, ControlSpec(1/16, 4, \lin, 0, 1, "loop"));
+        node.addSpec(\loop, ControlSpec(0, 1, \lin, 1, 1, "loop"));
+        node.addSpec(\cf, ControlSpec(0.001, 0.1, \lin, 0, 0.001, "loop"));
+        node.addSpec(\spread, ControlSpec(0, 1, \lin, 0, 1, "stereo"));
+        node.addSpec(\pan, ControlSpec(-1, 1, \lin, 0, 0, "stereo"));
+        ^node
+    }
+
+    grainr {
+        var buffer = this;
+        var bufname = PathName(buffer.path).fileNameWithoutExtension;
+        var synth = SynthLib('synths/grainr');
+        var node = D("%_grainr".format(bufname).asSymbol).put(0, synth.func);
+        node.set(\buf, buffer.bufnum);
+        node.addSpec(*synth.specs);
         ^node
     }
 }
@@ -327,7 +347,7 @@
     }
 
     getSettings {
-        ^this.getKeysValues.flatten.asDict;
+        ^this.getKeysValues.flatten
     }
 
     cc {|ctrl, ccNum, ccChan=0|
@@ -381,6 +401,14 @@
 
     << {|pattern|
         this.source = pattern;
+    }
+
+    getSettings {
+        if (this.envir.notNil) {
+            ^this.envir.getPairs
+        } {
+            ^[]
+        }
     }
 
     ccMap {|ctrl, ccNum, ccChan=0|

@@ -1,122 +1,66 @@
+Microlab {
+    classvar <>ccChan=3, <>noteChan=3;
+}
+
+Roli {
+    classvar <>noteChan=2, <>ccChan=2;
+}
+
 
 MidiCtrl {
 
-    var <key, <ccChan, <noteChan;
-
-    *new {|key=\iac, ccChan=0, noteChan=0|
-        var res = super.new.init(key, ccChan, noteChan);
-        ^res;
-    }
-
-    init {arg argKey, argCcChan, argNoteChan;
-        key = argKey;
-        ccChan = argCcChan;
-        noteChan = argNoteChan;
-    }
+    classvar <skipjack, <>frequency = 0.5;
+	classvar <sources, <destinations;
 
     *trace {arg enable=true;
         MIDIFunc.trace(enable);
     }
 
-    note {arg on, off, chan;
+    *start {
+		if (skipjack.notNil) {
+			skipjack.stop();
+		};
 
-        var mychan = if (chan.isNil) {noteChan} {chan};
-        var onkey = ("%_%_on").format(this.key, mychan).asSymbol;
-        var offkey = ("%_%_off").format(this.key, mychan).asSymbol;
+		skipjack = SkipJack({ MidiCtrl.update }, { MidiCtrl.frequency }, name:'MidiCtrl');
+	}
 
-        if (on.isNil) {
-            "free %".format(onkey).debug(this.key);
-            MIDIdef(onkey).permanent_(false).free;
-        }{
-            "register %".format(onkey).debug(this.key);
-            MIDIdef.noteOn(onkey, func:{arg vel, note, chan, src;
-                on.(note, vel, chan);
-            }, chan:mychan)
-            .permanent_(true);
-        };
+	*stop {
+		skipjack.stop();
+	}
 
-        if (off.isNil){
-            "free %".format(offkey).debug(this.key);
-            MIDIdef(offkey).permanent_(false).free;
-        }{
-            "register %".format(offkey).debug(this.key);
-            MIDIdef.noteOff(offkey, func:{arg vel, note, chan, src;
-                off.(note, chan);
-            }, chan:mychan)
-            .permanent_(true);
-        };
+    *update {
 
-        ^this;
-    }
+        // adapted from here: https://github.com/scztt/MIDIWatcher.quark/blob/master/MIDIWatcher.sc
+		var oldSources, oldDestinations;
+        oldSources = sources ?? { () };
+        oldDestinations = destinations ?? { () };
 
-    cc {arg num, func, chan;
+		MIDIClient.list;
 
-        var mychan = if (chan.isNil) {"all"}{chan};
-        var key = "%_%_cc%".format(this.key, mychan, num).asSymbol;
-        if (func.isNil) {
-            "free %".format(key).debug(this.key);
-            MIDIdef(key).permanent_(false).free;
-        }{
-            "register %".format(key).debug(this.key);
-            MIDIdef.cc(key, {arg val, ccNum, chan, src;
-                func.(val, ccNum, chan);
-            }, ccNum: num, chan:mychan)
-            .permanent_(true);
-        }
-    }
+        sources = MIDIClient.sources.collectAs({ |e| e.asSymbol -> e }, IdentityDictionary);
+		destinations = MIDIClient.destinations.collectAs({ |e| e.asSymbol -> e}, IdentityDictionary);
 
-    bend {arg func, chan;
-        var mychan = if (chan.isNil) {this.noteChan}{chan};
-        var key = "%_%_bend".format(this.key, mychan).asSymbol;
-        if (func.isNil) {
-            "free %".format(key).debug(this.key);
-            MIDIdef(key).permanent_(false).free;
-        }{
-            "register %".format(key).debug(this.key);
-            MIDIdef.bend(key, {arg val, chan, src;
-                // var bend = val.linlin(0, 16383, 0.9, 1.1);
-                func.(val, mychan);
-            }, chan:chan)
-            .permanent_(true);
-        }
-    }
+		oldSources.keys.difference(sources.keys).do {|removed|
+            [\sourceRemoved, oldSources[removed]].postln;
+            MIDIIn.disconnect(device:oldSources[removed])
+		};
+		oldDestinations.keys.difference(destinations.keys).do {|removed|
+            [ \destinationRemoved, oldDestinations[removed] ].postln;
+		};
 
-    // pressure
-    touch {arg func, chan;
-        var mychan = if (chan.isNil) {"all"}{chan};
-        var key = "%_%_touch".format(this.key, mychan).asSymbol;
-        if (func.isNil) {
-            "free %".format(key).debug(this.key);
-            MIDIdef(key).permanent_(false).free;
-        }{
-            "register %".format(key).debug(this.key);
-            MIDIdef.touch(key, {arg val, chan, src;
-                func.(val, chan);
-            }, chan:chan)
-            .permanent_(true);
-        }
-    }
+		sources.keys.difference(oldSources.keys).do {|added|
+            [ \sourceAdded, sources[added] ].postln;
+            MIDIIn.connect(device:sources[added]);
+		};
+		destinations.keys.difference(oldDestinations.keys).do {|added|
+            [ \destinationAdded, destinations[added] ].postln;
+		};
+	}
 
-    clear {
-        this.note(nil, nil);
-        this.bend(nil);
-        // clear all with brute force
-        128.do({arg i;
-            this.cc(i, nil);
-        });
-        //all.removeAt(key)
-    }
-
-    *connect {
-
-        /*
-        MIDIClient.disposeClient;
-		MIDIClient.init;
-		MIDIIn.connectAll;
-        */
-        MIDIClient.disposeClient;
+    *initClass {
         MIDIClient.init(verbose:true);
-        MIDIIn.connectAll(verbose: true);
-    }
+        sources = IdentityDictionary();
+		destinations = IdentityDictionary();
+	}
 }
 

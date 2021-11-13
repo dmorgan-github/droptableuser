@@ -44,7 +44,8 @@ S : Pdef {
             node.set(*val.getPairs)
         });
 
-        super.set(*args)
+        super.set(*args);
+        ^this;
     }
 
     pset {|...args|

@@ -1,7 +1,10 @@
 {|inKey, inFunc, specs|
 
-    var metadata = if (specs.notNil) {(specs:specs.asDict)};
-	
+    var metadata = ('env': 'adsr');
+    if (specs.notNil;) {
+        metadata['specs'] = specs.asDict
+    };
+
     SynthDef(inKey, {
 
 		var trig = \trig.tr(1);

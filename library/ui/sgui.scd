@@ -1,6 +1,6 @@
 (
 Require(App.librarydir ++ "ui/common.scd");
-Fdef(\sgui, {|node|
+Fdef(\sgui, {|node, index|
 
     var height = 19;
     var skipId = UniqueID.next.asSymbol;
@@ -22,10 +22,14 @@ Fdef(\sgui, {|node|
     var getKeys = {
 
         var keys = {
-            if (node.respondsTo(\controlKeys)) {
-                node.controlKeys;
-            }{
-                node.envir.keys;
+            if (index.notNil) {
+                node.objects[index].controlNames.collect({|cn| cn.name})
+            } {
+                if (node.respondsTo(\controlKeys)) {
+                    node.controlKeys;
+                }{
+                    node.envir.keys;
+                }
             }
         }.value;
 
@@ -34,7 +38,7 @@ Fdef(\sgui, {|node|
             node.get(key).isNumber
         })
         .reject({|key|
-            [\gate, \trig, \out, \in, \bufposreplyid].includes(key)
+            [\gate, \trig, \out, \in, \bufposreplyid, \wet1000, \fadeTime].includes(key)
         }).asArray
         .sort({|a, b|
 
@@ -111,18 +115,45 @@ Fdef(\sgui, {|node|
 
             View().layout_(
                 VLayout(
-                    if (new) { StaticText().string_(prevunit).stringColor_(Color.black) }{nil},
+                    if (new) {
+                        var st = StaticText().string_(prevunit).stringColor_(Color.black);
+                        if (prevunit == "aeg") {
+                            var func = {
+                                var atk = node.get(\atk);
+                                var atkcurve = node.get(\atkcurve);
+                                var dec = node.get(\dec);
+                                var deccurve = node.get(\deccurve);
+                                var rel = node.get(\rel);
+                                var relcurve = node.get(\relcurve);
+                                var suslevel = node.get(\suslevel);
+                                Env.adsr(atk, dec, suslevel, rel,
+                                        curve:[atkcurve, deccurve, relcurve]).plot
+                            };
+                            st.mouseUpAction_({|ctrl|
+                                func.()
+                            })
+                        };
+                        if (prevunit == "buf") {
+                            st.mouseUpAction_({
+                                if (key == \buf) {
+                                    U(\buf, node)
+                                }
+                            })
+                        };
+                        st;
+                    }{
+                        nil
+                    },
                     HLayout(
-                        StaticText()
-                        .mouseDownAction_({
-                            if (key == \buf) {
-                                U(\buf, node)
-                            }
-                        })
-                        .fixedWidth_(60)
-                        .string_(key)
-                        .toolTip_(key),
-                        sliders[i],
+
+                        StackLayout(
+                            sliders[i].background_(Color.clear),
+                            StaticText()
+                            .string_(" " ++ key)
+                            .toolTip_(key)
+                        )
+                        .mode_(\stackAll),
+
                         numbers[i],
                         Button()
                         .states_([ ["x", nil, nil],["x", nil, nil] ])
@@ -157,7 +188,9 @@ Fdef(\sgui, {|node|
                 val.pairsDo({|k, v|
                     var index = keys.indexOf(k);
                     if (index.notNil) {
-                        controls[index].value = v;
+                        if (v.isNumber) {
+                            controls[index].value = v;
+                        }
                     }
                 })
             });
@@ -178,8 +211,8 @@ Fdef(\sgui, {|node|
         }.value;
 
         var view = View().layout_(VLayout().margins_(0).spacing_(0))
-        //.palette_(QPalette.dark)
         .maxHeight_(10);
+
         var scope = Stethoscope.new(s, view:view).style_(1)
         .index_(node.bus.index)
         .numChannels_(2).yZoom_(2).xZoom_(2);
@@ -265,6 +298,14 @@ Fdef(\sgui, {|node|
 
     scroll.canvas = getView.();
 
+    if (node.respondsTo(\node)) {
+        view.layout.add(
+            Button().states_([ ["fx"] ]).action_({|ctrl|
+                node.node.view.front
+            })
+        )
+    };
+
     view.layout.add(
         //VLayout(
             HLayout(
@@ -296,6 +337,18 @@ Fdef(\sgui, {|node|
     );
 
     view.layout.add(scroll);
+    if (node.respondsTo(\vstctrls)){
+        var ctrls = node.vstctrls;
+        var layout = VLayout();
+        ctrls.do({|obj, i|
+            layout.add(
+                Button().states_( [ ["vst %".format(i)] ] ).action_({|ctrl|
+                    obj.editor
+                })
+            );
+        });
+        view.layout.add(layout);
+    };
     view.layout.add(status);
 
     SkipJack({

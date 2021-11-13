@@ -80,18 +80,34 @@ metadata: (
 	type: \noise,
 	created: "04/11/2021",
     specs: (
-        freq1: ControlSpec( 20.0, 14000.0, \exp, 0, 70, "Hz"),
-        freq2: ControlSpec( 0.1, 14000.0, \exp, 0, 4, "Hz"),
-        filtFreq: ControlSpec( 20.0, 20000.0, \exp, 0, 40, "Hz"),
-        q: ControlSpec( 0.0, 1.0, \lin, 0, 0.82),
-        gain: ControlSpec( 0.0, 3.0, \lin, 0, 1),
-        filterType: ControlSpec( 0.0, 3.0, \lin, 1, 0),
-        rungler1: ControlSpec( 0.0, 1.0, \lin, 0, 0.16),
-        rungler2: ControlSpec( 0.0, 1.0, \lin, 0, 0),
-        runglerFilt: ControlSpec( 0.0, 1.0, \lin, 0, 9),
-        loop: ControlSpec( 0.0, 1.0, \lin, 0, 1),
-        scale: ControlSpec( 0.0, 1.0, \lin, 0, 1),
-        outSignal: ControlSpec( 0.0, 6.0, \lin, 0, 6)
+        freq1: ControlSpec( 20.0, 14000.0, \exp, 0, 70, "signal"),
+        freq2: ControlSpec( 0.1, 14000.0, \exp, 0, 4, "signal"),
+        outSignal: ControlSpec( 0.0, 6.0, \lin, 0, 6, "signal"),
+        loop: ControlSpec( 0.0, 1.0, \lin, 0, 1, "signal"),
+        filtFreq: ControlSpec( 20.0, 20000.0, \exp, 0, 40, "filter"),
+        q: ControlSpec( 0.0, 1.0, \lin, 0, 0.82, "filter"),
+        filterType: ControlSpec( 0.0, 3.0, \lin, 1, 0, "filter"),
+        rungler1: ControlSpec( 0.0, 1.0, \lin, 0, 0.16, "rungler"),
+        rungler2: ControlSpec( 0.0, 1.0, \lin, 0, 0, "rungler"),
+        runglerFilt: ControlSpec( 0.0, 1.0, \lin, 0, 9, "rungler"),
+        scale: ControlSpec( 0.0, 1.0, \lin, 0, 1, "rungler"),
+        gain: ControlSpec( 0.0, 3.0, \lin, 0, 1, "vol"),
+    ),
+    presets: (
+        preset1: [
+            'gain', 1.0,
+            'rungler1', 0.13385826771654,
+            'scale', 1.0,
+            'outSignal', 6.0,
+            'loop', 0.50393700787402,
+            'rungler2', 0.13385826771654,
+            'filtFreq', 56.214570041615,
+            'freq1', 33.500667727666,
+            'freq2', 6.6593400751124,
+            'filterType', 0.0,
+            'q', 0.81999999284744,
+            'runglerFilt', 1.0
+        ]
     )
 )
 ).add;
