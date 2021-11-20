@@ -192,8 +192,9 @@
     //latch {arg func; ^Pclutch(this, Pfunc(func)) }
     // don't advance pattern on rests
     norest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
-    pset {|...args| ^Pbindf(this, *args)}
-    chain {|...args| ^Pchain(this, *args) }
+    pfilter {|...args| ^Pbindf(this, *args)}
+
+    pchain {|...args| ^Pchain(this, *args) }
     octave {|val| ^Pset(\octave, val, this)}
     atk {|val| ^Pset(\atk, val, this)}
     dec {|val| ^Pset(\dec, val, this)}
@@ -518,7 +519,13 @@
                 #note, vel = filter.(note, vel);
             };
             // TODO set evt properties on group if we have an nkey
-            args = [\out, out, \gate, 1, \freq, note.midicps, \vel, vel/127] ++ evt.asPairs();
+            args = [\out, out, \gate, 1, \freq, note.midicps, \vel, vel/127]
+            ++ evt
+            .reject({|v, k|
+                (v.isNumber.not and: v.isArray.not and: {v.isKindOf(BusPlug).not})
+            })
+            .asPairs();
+
             if (hasGate) {
                 synths[note] = Synth(instrument, args, target:target, addAction:\addToHead);
             } {

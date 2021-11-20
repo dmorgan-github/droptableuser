@@ -1,7 +1,7 @@
 (
 synth: {arg sig_in;
 
-    var in = sig_in * \input.ar(1);
+    var in = sig_in * \tap4_input.ar(1);
     var tap1, tap2, tap3, tap4;
     var fbNode = FbNode(1, 6.5, 4);
 
@@ -27,10 +27,9 @@ synth: {arg sig_in;
         + (tap4 * \tap4_fb.ar(0).lag(0.1))
     );
 
-    Splay.ar([tap1 * tap1_mul, tap2 * tap2_mul, tap3 * tap3_mul, tap4 * tap4_mul],
-        \spread.ar(1),
-        center:\pan.ar(0)
-    ) * \output.ar(1);
+    var sig = Splay.ar([tap1 * tap1_mul, tap2 * tap2_mul, tap3 * tap3_mul, tap4 * tap4_mul], \tap4_spread.kr(1));
+    sig = in.blend(sig, \tap4_mix.kr(0.5));
+    sig = sig * \tap4_output.ar(1);
 },
 specs: [
 
@@ -49,9 +48,8 @@ specs: [
     tap3_fb: ControlSpec(0, 1, \lin, 0, 0, units:"tap3"),
     tap4_fb: ControlSpec(0, 1, \lin, 0, 0, units:"tap4"),
 
-    spread: ControlSpec(0, 1, \lin, 0, 1, units:"stereo"),
-    pan: ControlSpec(-1, 1, \lin, 0, 0, units:"stereo"),
-    input: ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
-    output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
+    tap4_spread: ControlSpec(0, 1, \lin, 0, 1, units:"stereo"),
+    tap4_input: ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    tap4_output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
 ]
 )

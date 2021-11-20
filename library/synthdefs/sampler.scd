@@ -106,7 +106,7 @@ SynthDef(\sampler, {
 	);
 
 	sig = LeakDC.ar(sig);
-    sig = sig * aeg * \amp.kr(0.3) * \vel.kr(1);
+    sig = sig * aeg * \amp.kr(-10.dbamp) * \vel.kr(1);
     sig = Splay.ar(sig, spread:\spread.kr(1), center:\pan.kr(0));
     SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase], replyid);
     Out.ar(\out.kr(0), sig);

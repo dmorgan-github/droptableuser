@@ -9,6 +9,9 @@ Fdef(\sgui, {|node, index|
     var morphbeats = 20;
     var status = StaticText().font_(Font("Courier New", 9)).background_(Color.black.alpha_(0.3));
     var color = node.color ? Color.rand;
+    var path = App.librarydir ++ "fx/";
+    var fxnode = if (node.respondsTo(\node)) { node.node }{ node };
+    var watcher, fxwatcher;
 
     var getSpec = {|key|
         var specs = node.getSpec;
@@ -25,12 +28,16 @@ Fdef(\sgui, {|node, index|
             if (index.notNil) {
                 node.objects[index].controlNames.collect({|cn| cn.name})
             } {
-                if (node.respondsTo(\controlKeys)) {
-                    node.controlKeys;
-                }{
-                    node.envir.keys;
-                }
-            }
+                var except = List.new;
+                var controlKeys;
+                fxnode.objects.doRange({|obj, index, i|
+                    if (index >= 100 and: {index < 1000}) {
+                        var names = obj.controlNames.collect({|cn| cn.name});
+                        except.addAll(names);
+                    }
+                });
+                node.controlKeys(except:except);
+            };
         }.value;
 
         keys
@@ -38,7 +45,7 @@ Fdef(\sgui, {|node, index|
             node.get(key).isNumber
         })
         .reject({|key|
-            [\gate, \trig, \out, \in, \bufposreplyid, \wet1000, \fadeTime].includes(key)
+            [\gate, \trig, \out, \in, \bufposreplyid, \wet1000, \fadeTime, \envbuf].includes(key)
         }).asArray
         .sort({|a, b|
 
@@ -46,6 +53,65 @@ Fdef(\sgui, {|node, index|
             var specB = getSpec.(b);
             "%%".format(specA.units, a) < "%%".format(specB.units, b)
         })
+    };
+
+    var vsts = {
+        if (~vstlist.isNil) {
+            ~vstlist = V
+            .ls
+            .reject({arg val;
+                val.asString.endsWith(".vst3") or: val.asString.contains("/");
+            });
+            ~vstlist = ~vstlist.sort;
+        };
+        ~vstlist
+    };
+
+    var browse = {arg path, files=List.new;
+        var folder = PathName.new(path);
+        if (folder.isFolder) {
+            var folders = folder.folders;
+            files = files.addAll(folder.files);
+            folders.do({arg folder;
+                browse.(folder.fullPath, files);
+            });
+        };
+        files;
+    };
+
+    var paths = browse.(path);
+
+    var st = {
+        StaticText().string_("...")
+        .setContextMenuActions(
+            *(
+                paths.collect({arg path;
+                    var name = path.folderName ++ '/' ++ path.fileNameWithoutExtension;
+                    MenuAction( name, {arg action, what, value;
+
+                        var id = action.string.asSymbol;
+                        var maxindex;
+
+                        maxindex = fxnode.objects.indices
+                        .reject({|val| val < 100 or: {val >= 1000} }).maxItem ?? {100};
+
+                        fxnode.fx(maxindex + 10, id);
+                    });
+                })
+                ++ vsts.().collect({arg vst;
+                    MenuAction(vst, {arg action;
+
+                        var id = "vst/%".format(action.string).asSymbol;
+                        var maxindex;
+
+                        maxindex = fxnode.objects.indices
+                        .reject({|val| val < 100 or: {val >= 1000} }).maxItem ?? {100};
+
+                        fxnode.fx(maxindex + 10, id);
+                    })
+                })
+            )
+        );
     };
 
     var log = {|msg|
@@ -58,6 +124,7 @@ Fdef(\sgui, {|node, index|
 
         var controls, sliders, numbers, ctrls, view;
         keys = getKeys.();
+
         controls = keys.collect({|key|
 
             try({
@@ -87,15 +154,23 @@ Fdef(\sgui, {|node, index|
                     false;
                 }
             })
+            .mouseWheelAction_({
+                false
+            })
         });
 
         numbers = keys.collect({|key, i|
             var hi = controls[i].spec.maxval;
             var lo = controls[i].spec.minval;
-            NumberBox().clipHi_(hi).clipLo_(lo)
+            NumberBox()
+            .clipHi_(hi)
+            .clipLo_(lo)
             .decimals_(3)
             .maxHeight_(height)
             .maxWidth_(80)
+            .mouseWheelAction_({
+                false
+            })
         });
 
         ctrls = keys.collect({|key, i|
@@ -155,13 +230,7 @@ Fdef(\sgui, {|node, index|
                         .mode_(\stackAll),
 
                         numbers[i],
-                        Button()
-                        .states_([ ["x", nil, nil],["x", nil, nil] ])
-                        .action_({|ctrl|
-                            node.set(key, nil)
-                        })
-                        .maxWidth_(12)
-                        .maxHeight_(12)
+
                     ).margins_(0).spacing_(2)
                 ).margins_(0).spacing_(0)
             ).background_(color);//.margins_(0).spacing_(0);
@@ -200,15 +269,9 @@ Fdef(\sgui, {|node, index|
         view
     };
 
-    var scope = {|srcNode|
+    var scope = {
 
-        var node = {
-            if (srcNode.respondsTo(\node)) {
-                srcNode.node;
-            }{
-                srcNode
-            }
-        }.value;
+        var node = fxnode;
 
         var view = View().layout_(VLayout().margins_(0).spacing_(0))
         .maxHeight_(10);
@@ -287,27 +350,49 @@ Fdef(\sgui, {|node, index|
 
     var scroll = ScrollView();
     var playbutton = Button();
-    var watcher = {|obj, what|
-        if (what == \stop) {
-            {
-                playbutton.value = 0;
-            }.defer
-        }
+    var fxbuttonsview = View().layout_(VLayout());
+    var updateButtons;
+
+    updateButtons = {
+
+        if (index.isNil) {
+
+            var ctrls = fxnode.fxchain;
+
+            fxbuttonsview.children.do({|child|
+                child.remove
+            });
+
+            if (ctrls.indices.size > 0) {
+
+                ctrls.doRange({|obj, index, i|
+
+                    fxbuttonsview.layout.add(
+                        HLayout(
+                            Button().states_([  ["↓"]  ]),
+                            Button().states_([  ["↑"]  ]),
+                            Button().states_( [ [obj.name] ] ).action_({|ctrl|
+                                if (obj.type == 'vst') {
+                                    obj['ctrl'].editor
+                                }{
+                                    U(\sgui, fxnode, index).front
+                                }
+                            }),
+                            Button().states_([  ["x"]  ]).action_({
+                                node.fx(index, nil)
+                            }),
+                        )
+                    );
+                });
+            };
+        };
     };
-    node.addDependant(watcher);
 
     scroll.canvas = getView.();
 
-    if (node.respondsTo(\node)) {
-        view.layout.add(
-            Button().states_([ ["fx"] ]).action_({|ctrl|
-                node.node.view.front
-            })
-        )
-    };
+    if (index.isNil){
 
-    view.layout.add(
-        //VLayout(
+        view.layout.add(
             HLayout(
                 playbutton.states_([ [">"], [ "[]" ] ]).action_({|ctrl|
                     if (ctrl.value == 1) {
@@ -319,7 +404,7 @@ Fdef(\sgui, {|node, index|
                 .maxWidth_(20)
                 .value_(node.isPlaying),
 
-                scope.(node),
+                scope.(),
 
                 NumberBox().maxWidth_(25).action_({|ctrl|
                     morphbeats = ctrl.value;
@@ -330,26 +415,36 @@ Fdef(\sgui, {|node, index|
                     buttons[0..6],
                     buttons[7..13]
                 ).margins_(0).spacing_(0),
+            )
+        );
 
-            ),
-           //status
-        //)
-    );
-
-    view.layout.add(scroll);
-    if (node.respondsTo(\vstctrls)){
-        var ctrls = node.vstctrls;
-        var layout = VLayout();
-        ctrls.do({|obj, i|
-            layout.add(
-                Button().states_( [ ["vst %".format(i)] ] ).action_({|ctrl|
-                    obj.editor
-                })
-            );
-        });
-        view.layout.add(layout);
+        view.layout.add(st.());
     };
+    view.layout.add(scroll);
+    view.layout.add(fxbuttonsview);
     view.layout.add(status);
+
+    watcher = {|obj, what|
+        if (what == \stop) {
+            {
+                playbutton.value = 0;
+            }.defer
+        }
+    };
+    node.addDependant(watcher);
+
+    if (index.isNil) {
+        updateButtons.();
+        fxwatcher = {|obj, what|
+            if (what == \source or: {what == \reorder}) {
+                var wait = if (what == \reorder) {0.1}{1};
+                {
+                    updateButtons.();
+                }.defer(wait)
+            }
+        };
+        fxnode.addDependant(fxwatcher);
+    };
 
     SkipJack({
         var prev = keys.size;
@@ -365,7 +460,10 @@ Fdef(\sgui, {|node, index|
     view.onClose_({
         connections.free;
         node.removeDependant(watcher);
+        fxnode.removeDependant(fxwatcher);
         SkipJack.stop(skipId)
+        //Tdef(skipId).stop;
+        //Tdef(skipId).clear
     });
 
 });

@@ -64,6 +64,8 @@ Fdef(\buf, {arg node;
             nb.value = selsize/buf.sampleRate;
             sfv.setSelectionStart(0, selstart);
             sfv.setSelectionSize(0, selsize);
+        })
+        .mouseUpAction_({|ctrl|
             node.set(\startPos, selstart/numframes, \endPos, selend/numframes);
         })
         .value_(startPos),
@@ -74,6 +76,8 @@ Fdef(\buf, {arg node;
             selsize = selend - selstart;
             sfv.setSelectionSize(0, selsize);
             nb.value = selsize/buf.sampleRate;
+        })
+        .mouseUpAction_({|ctrl|
             node.set(\endPos, selend/numframes)
         })
         .value_(endPos),
@@ -92,6 +96,8 @@ Fdef(\buf, {arg node;
     view.layout.add(
         HLayout(nil,
             StaticText().string_(buf.bufnum),
+            StaticText().string_(" | "),
+            StaticText().string_(buf.sampleRate),
             StaticText().string_(" | "),
             StaticText().string_(buf.numFrames),
             StaticText().string_(" | "),

@@ -18,6 +18,8 @@ Fdef(\bufinfo, {arg buf;
         HLayout(nil,
             StaticText().string_(buf.bufnum),
             StaticText().string_(" | "),
+            StaticText().string_(buf.sampleRate),
+            StaticText().string_(" | "),
             StaticText().string_(buf.numFrames),
             StaticText().string_(" | "),
             StaticText().string_(buf.duration)

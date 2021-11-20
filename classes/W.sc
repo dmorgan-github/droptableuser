@@ -2,7 +2,7 @@
 Tracks : Order {
 
     var <>daw;
-    
+
     var <matrix;
 
     *new {|size=8|
@@ -141,6 +141,10 @@ W : EnvironmentRedirect {
 
     mixer {
         ^matrix;
+    }
+
+    *view {
+        ^U(\wview)
     }
 
     *transport {|clock|

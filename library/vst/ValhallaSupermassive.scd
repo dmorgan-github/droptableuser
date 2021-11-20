@@ -8,7 +8,7 @@ synth: {|in|
             'Density', 'valhallasupermassive_density'.kr(0),
             'LowCut', 'valhallasupermassive_lowcut'.kr(0),
             'ModRate', 'valhallasupermassive_modrate'.kr(0.46900001168251),
-            'Mix', 'valhallasupermassive_mix'.kr(1.0),
+            'Mix', 'valhallasupermassive_mix'.kr(0.5),
             'Mode', 'valhallasupermassive_mode'.kr(0.16666667163372),
             'DelayWarp', 'valhallasupermassive_delaywarp'.kr(0.25299999117851),
             'DelaySync', 'valhallasupermassive_delaysync'.kr(0),

@@ -10,6 +10,10 @@ D : Ndef {
 
     var <vstctrls, <>color;
 
+    var <fxchain;
+
+    var <cmdperiodfunc;
+
     *new {|key|
 
         var res;
@@ -26,6 +30,7 @@ D : Ndef {
             res.mold(2, \audio);
             res.wakeUp;
             res.vol = 1;
+            //res.quant = 4.0;
             res.postInit;
 
             res.filter(1000, {|in|
@@ -61,9 +66,33 @@ D : Ndef {
     }
 
     prInit {|argKey|
+
         vstctrls = Order.new;
         color = Color.rand;
-        ^this.deviceInit
+        fxchain = Order.new;
+
+        cmdperiodfunc = {
+            {
+                this.send;
+                {
+                    this.objects.doRange({|obj, index, i|
+                        var hasvst = obj.synthDef.children.select({|ctrl| ctrl.isKindOf(VSTPlugin) }).size > 0;
+                        if (hasvst) {
+                            var synthdef = obj.synthDef;
+                            var nodeId = obj.nodeID;
+                            var synth = Synth.basicNew(synthdef.name, Server.default, nodeId);
+                            var ctrl = VSTPluginController(synth, synthDef:synthdef);
+                            ctrl.open(ctrl.info.key, verbose: true, editor:true);
+                            fxchain[index]['ctrl'] = ctrl;
+                        }
+                    })
+                }.defer(2)
+            }.defer(1)
+        };
+
+        CmdPeriod.add(cmdperiodfunc);
+
+        ^this.deviceInit;
     }
 
 	*doesNotUnderstand {|selector|
@@ -126,14 +155,17 @@ D : Ndef {
 
         if (fx.isNil) {
             this.removeAt(index);
+            this.fxchain.removeAt(index);
         }{
             if (fx.isFunction) {
                 this.filter(index, fx);
+                this.fxchain.put(index, (name:"func_%".format(UniqueID.next), type:'func'));
             }{
                 if (fx.asString.beginsWith("vst/")) {
                     var vst = fx.asString.split($/)[1..].join("/").asSymbol;
                     this.vst(index, vst, cb:{|ctrl|
                         vstctrls.put(index, ctrl);
+                        this.fxchain.put(index, (name:vst, type:'vst', 'ctrl':ctrl));
                     });
                 }{
                     var obj = N.loadFx(fx);
@@ -142,6 +174,7 @@ D : Ndef {
                     var customui = obj[\ui];
                     this.filter(index, func);
                     this.addSpec(*specs);
+                    this.fxchain.put(index, (name:fx, type:'func', 'ctrl':obj));
                 };
             };
             this.addSpec("wet%".format(index).asSymbol, [0, 1, \lin, 0, 1].asSpec);
@@ -155,7 +188,7 @@ D : Ndef {
         var node = this;
 
         if (vst.isNil) {
-            node[index] = nil;
+            node.removeAt(index);
         }{
             var mykey = node.key ?? "n%".format(node.identityHash.abs);
             var vstkey = vst.asString.select({|val| val.isAlphaNum});
@@ -164,56 +197,67 @@ D : Ndef {
             var server = Server.default;
             var nodeId, ctrl;
 
-            Routine({
+            var func = {
 
-                if (node.objects[index].isNil) {
+                Routine({
 
-                    var path = App.librarydir ++ "vst/" ++ vst.asString ++ ".scd";
-                    var pathname = PathName(path.standardizePath);
-                    var fullpath = pathname.fullPath;
+                    //node.wakeUp;
+                    //node.send;
 
-                    if (File.exists(fullpath)) {
-                        var name = pathname.fileNameWithoutExtension;
-                        var obj = File.open(fullpath, "r").readAllString.interpret;
-                        node.filter(index, obj[\synth]);
-                    } {
-                        node.filter(index, {|in|
-                            if (id.isNil.not) {
-                                VSTPlugin.ar(in, 2, id:id);
-                            }{
-                                VSTPlugin.ar(in, 2);
-                            }
-                        });
+                    if (node.objects[index].isNil) {
+
+                        var path = App.librarydir ++ "vst/" ++ vst.asString ++ ".scd";
+                        var pathname = PathName(path.standardizePath);
+                        var fullpath = pathname.fullPath;
+
+                        if (File.exists(fullpath)) {
+                            var name = pathname.fileNameWithoutExtension;
+                            var obj = File.open(fullpath, "r").readAllString.interpret;
+                            node.filter(index, obj[\synth]);
+                        } {
+                            node.filter(index, {|in|
+                                if (id.isNil.not) {
+                                    VSTPlugin.ar(in, 2, id:id, info:vst.asSymbol);
+                                }{
+                                    VSTPlugin.ar(in, 2, info:vst.asSymbol);
+                                }
+                            });
+                        };
+                        1.wait;
                     };
-                    1.wait;
-                };
 
-                nodeId = node.objects[index].nodeID;
-                ctrl = if (node.objects[index].class == SynthDefControl) {
-                    var synthdef = node.objects[index].synthDef;
-                    var synth = Synth.basicNew(synthdef.name, server, nodeId);
-                    if (id.isNil.not) {
-                        VSTPluginController(synth, id:id, synthDef:synthdef);
-                    }{
-                        VSTPluginController(synth, synthDef:synthdef);
-                    }
-                }{
-                    var synth = Synth.basicNew(vst, server, nodeId);
-                    if (id.isNil.not) {
-                        VSTPluginController(synth, id:id);
-                    }{
-                        VSTPluginController(synth);
-                    }
-                };
-                ctrl.open(vst, verbose: true, editor:true);
-                "loaded %".format(key).postln;
-                if (cb.isNil.not) {
-                    cb.value(ctrl);
-                }{
-                    currentEnvironment[key] = ctrl;
-                }
+                    //}.();
 
-            }).play;
+                    nodeId = node.objects[index].nodeID;
+                    ctrl = if (node.objects[index].class == SynthDefControl) {
+                        var synthdef = node.objects[index].synthDef;
+                        var synth = Synth.basicNew(synthdef.name, server, nodeId);
+                        if (id.isNil.not) {
+                            VSTPluginController(synth, id:id, synthDef:synthdef);
+                        }{
+                            VSTPluginController(synth, synthDef:synthdef);
+                        }
+                    }{
+                        var synth = Synth.basicNew(vst, server, nodeId);
+                        if (id.isNil.not) {
+                            VSTPluginController(synth, id:id);
+                        }{
+                            VSTPluginController(synth);
+                        }
+                    };
+                    ctrl.open(vst, verbose: true, editor:true);
+                    "loaded %".format(key).postln;
+                    if (cb.isNil.not) {
+                        cb.value(ctrl);
+                    }{
+                        currentEnvironment[key] = ctrl;
+                    }
+
+                }).play;
+            };
+
+            func.();
+            //ServerTree.add(func);
         }
     }
 

@@ -47,15 +47,20 @@ SynthLib.def(\fm7_mono, func, \mono);
         var freq = \freq.kr(220);
         var gate = \gate.kr(1);
         var fb = \fb.kr(0);
+        var matk = \matk.kr(1);
+        var mdec = \mdec.kr(1);
+        var mrel = \mrel.kr(1);
+        var msuslevel = \msuslevel.kr(1);
+        var mpeak = \mpeak.kr(1);
         var algo = i;
         var ops = 6.collect({|i|
             var num = i + 1;
             var ratio = ('op' ++ num ++ 'ratio').asSymbol.kr(1);
-            var atk = ('op' ++ num ++ 'atk').asSymbol.kr(1);
-            var dec = ('op' ++ num ++ 'dec').asSymbol.kr(1);
-            var rel = ('op' ++ num ++ 'rel').asSymbol.kr(1);
-            var suslevel = ('op' ++ num ++ 'suslevel').asSymbol.kr(1);
-            var peak = ('op' ++ num ++ 'peak').asSymbol.kr(1);
+            var atk = ('op' ++ num ++ 'atk').asSymbol.kr(1) * matk;
+            var dec = ('op' ++ num ++ 'dec').asSymbol.kr(1) * mdec;
+            var rel = ('op' ++ num ++ 'rel').asSymbol.kr(1) * mrel;
+            var suslevel = ('op' ++ num ++ 'suslevel').asSymbol.kr(1) * msuslevel;
+            var peak = ('op' ++ num ++ 'peak').asSymbol.kr(1) * mpeak;
             var atkcurve = ('op' ++ num ++ 'atkcurve').asSymbol.kr(-4);
             var deccurve = ('op' ++ num ++ 'deccurve').asSymbol.kr(-4);
             var relcurve = ('op' ++ num ++ 'relcurve').asSymbol.kr(-4);
@@ -85,6 +90,12 @@ SynthLib.def(\fm7_mono, func, \mono);
             ('op' ++ num ++ 'atkcurve').asSymbol, ControlSpec(-8, 8, \lin, 0, -4, units: units),
             ('op' ++ num ++ 'deccurve').asSymbol, ControlSpec(-8, 8, \lin, 0, -4, units: units),
             ('op' ++ num ++ 'relcurve').asSymbol, ControlSpec(-8, 8, \lin, 0, -4, units: units)
+        ] ++ [
+            ('matk').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv"),
+            ('mdec').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv"),
+            ('mrel').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv"),
+            ('msuslevel').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv"),
+            ('mpeak').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv")
         ]
     }).flatten
     );

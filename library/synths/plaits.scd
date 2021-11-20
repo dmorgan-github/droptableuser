@@ -35,17 +35,17 @@ synth: {|freq, gate, aeg|
 
 },
 specs: [
-    engine: ControlSpec(0, 15, \lin, 1, 0, "timbre"),
-    harm: ControlSpec(0, 1, \lin, 0, 0.5, "timbre"),
-    timbre: ControlSpec(0, 1, \lin, 0, 0.5, "timbre"),
-    morph: ControlSpec(0, 1, \lin, 0, 0.5, "timbre"),
-    fm_mod: ControlSpec(-1, 1, \lin, 0, 0, "fm"),
-    timb_mod: ControlSpec(-1, 1, \lin, 0, 0, "timbre"),
-    morph_mod: ControlSpec(-1, 1, \lin, 0, 0, "timbre"),
-    which: ControlSpec(0, 1, \lin, 1, 0, "timbre"),
-    focus: ControlSpec(0, 1, \lin, 0, 1, "timbre"),
-    decay: ControlSpec(0, 1, \lin, 0, 0.5, "env"),
-    lpg: ControlSpec(0, 1, \lin, 0, 0.5, "filter"),
+    engine: ControlSpec(0, 15, \lin, 1, 0, "plaits"),
+    harm: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"),
+    timbre: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"),
+    morph: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"),
+    fm_mod: ControlSpec(-1, 1, \lin, 0, 0, "plaits"),
+    timb_mod: ControlSpec(-1, 1, \lin, 0, 0, "plaits"),
+    morph_mod: ControlSpec(-1, 1, \lin, 0, 0, "plaits"),
+    which: ControlSpec(0, 1, \lin, 1, 0, "plaits"),
+    focus: ControlSpec(0, 1, \lin, 0, 1, "plaits"),
+    decay: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"),
+    lpg: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"),
     spread: ControlSpec(0, 1, \lin, 0, 0, "stereo")
 ]
 )

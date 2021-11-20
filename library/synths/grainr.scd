@@ -1,12 +1,20 @@
 (
+
+/*
+winenv = Env([0, 1, 0], [0.5, 0.5], [8, -8]);
+z = Buffer.sendCollection(s, winenv.discretize, 1);
+*/
 synth: {
     var updateFreq = 15;
     var replyid = \bufposreplyid.kr(-1);
     var buf = \buf.kr(0);
     var start = \startPos.kr(0);
     var end = \endPos.kr(1);
+    var envbuf = \envbuf.kr(-1);
     var bufFrames = BufFrames.ir(buf);
-    var seconds = ((end * bufFrames) - (start * bufFrames)) / BufSampleRate.ir(buf);
+    var samplerate = BufSampleRate.ir(buf);
+    var ratescale = BufRateScale.kr(buf);
+    var seconds = ((end * bufFrames) - (start * bufFrames)) / samplerate;
     var prob = \prob.kr(1);
     var grainrate = \grainrate.ar(20);
     var trig = {
@@ -14,27 +22,28 @@ synth: {
         CoinGate.ar(prob, trig)
     }.();
     var dur = [\graindurL.kr(0.1), \graindurR.kr(0.1)]; //SinOsc.kr(0.15).range(0.1, 1);
-    var rate = [\playbackrateL.kr(1), \playbackrateR.kr(1)];
-    var speed = [\phaserateL.kr(1), \phaserateR.kr(1)];
+    var rate = [\playbackrateL.kr(1), \playbackrateR.kr(1)] * ratescale;
+    var speed = [\phaserateL.kr(1), \phaserateR.kr(1)] * ratescale;
     var dir = [Select.kr(\revL.kr(0), [1, -1]), Select.kr(\revR.kr(0), [1, -1])];
-    var phase = LFSaw.ar(seconds.reciprocal * speed, -1).linlin(-1, 1, start, end) ;
+    //var phase = LFSaw.ar(seconds.reciprocal * speed, -1).linlin(-1, 1, start, end) ;
+    var phase = Phasor.ar(0, speed, start * bufFrames, end * bufFrames);
     var sig = GrainBuf.ar(
         numChannels: 2,
         trigger: trig,
         dur: dur,
         sndbuf: buf,
         rate: rate * dir,
-        pos: phase,
+        pos: phase/bufFrames,
         interp: 2,
         pan: 0,
-        envbufnum: -1,
+        envbufnum: envbuf,
         maxGrains: 512,
     );
 
     sig = LeakDC.ar(sig);
     sig = sig * \amp.kr(-6.dbamp);
-    sig = Splay.ar(sig.flatten);
-    SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase.asArray.wrapAt(0) * bufFrames ], replyid);
+    sig = Splay.ar(sig.flatten, spread:\spread.kr(1), center:\pan.kr(0));
+    SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase.asArray.wrapAt(0) ], replyid);
     //sig = Rotate2.ar(sig[0], sig[1], LFSaw.kr(\rotaterate.kr(1/8)));
     sig
 },

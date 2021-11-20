@@ -60,8 +60,16 @@ S : Pdef {
         this.node.fx(index, fx, wet);
     }
 
-    vstctrls {
-        ^this.node.vstctrls
+    fxchain {
+        ^this.node.fxchain
+    }
+
+    controlKeys {|except|
+        var keys = envir.keys(Array).sort;
+        except = except ++ [];
+        ^keys.reject({|key|
+            except.includes(key)
+        })
     }
 
     view {
@@ -126,7 +134,7 @@ S : Pdef {
                 isMonitoring = obj.isMonitoring
             }
         };
-        node = D(this.key);
+        node = D("%_chain".format(this.key).asSymbol);
         node.addDependant(nodewatcherfunc);
 
         node.play;
@@ -187,6 +195,8 @@ S : Pdef {
         });
 
         this.set(\instrument, synth);
+        this.set(\root, 0, \mtranspose, 0, \ctranspose, 0, \legato, 0.7, \stretch, 1);
+
     }
 
     *initClass {
