@@ -52,8 +52,8 @@ specs: [
     clouds_mode: ControlSpec(0, 3, \lin, 1, 2, units:"timbre"),
     clouds_lofi: ControlSpec(0, 1, \lin, 1, 0, units:"timbre"),
     clouds_lag: ControlSpec(0, 1, \lin, 1, 0.1, units:"pitch"),
-    clouds_input: ControlSpec(0, 2, \lin, 0, 1, "fb delay"),
-    clouds_output: ControlSpec(0, 2, \lin, 0, 1, "fb delay"),
-    clouds_mix: ControlSpec(0, 1, \lin, 0, 0.4, "fb delay")
+    clouds_input: ControlSpec(0, 2, \lin, 0, 1, "vol"),
+    clouds_output: ControlSpec(0, 2, \lin, 0, 1, "vol"),
+    clouds_mix: ControlSpec(0, 1, \lin, 0, 0.4, "vol")
 ]
 )

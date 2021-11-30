@@ -18,6 +18,7 @@ synth: {|in|
         DelayC.ar(input, 0.2, modulators).sum;
     });
 
-    sig
+    sig = in.blend(sig, \chorus_mix.kr(0.5));
+    sig * \chorus_output.kr(1);
 }
 )

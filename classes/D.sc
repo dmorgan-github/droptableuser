@@ -10,7 +10,7 @@ D : Ndef {
 
     var <vstctrls, <>color;
 
-    var <fxchain;
+    var <fxchain, <metadata;
 
     var <cmdperiodfunc;
 
@@ -70,6 +70,7 @@ D : Ndef {
         vstctrls = Order.new;
         color = Color.rand;
         fxchain = Order.new;
+        metadata = ();
 
         cmdperiodfunc = {
             {

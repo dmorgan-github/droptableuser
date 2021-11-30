@@ -12,6 +12,11 @@ Fdef(\sgui, {|node, index|
     var path = App.librarydir ++ "fx/";
     var fxnode = if (node.respondsTo(\node)) { node.node }{ node };
     var watcher, fxwatcher;
+    var windowname = if (index.notNil) {
+        "%/%".format(node.key, fxnode.fxchain[index].name);
+    }{
+        node.key
+    };
 
     var getSpec = {|key|
         var specs = node.getSpec;
@@ -120,8 +125,65 @@ Fdef(\sgui, {|node, index|
 
     var prevcolor, prevunit;
 
+    var getEnv = {|type|
+
+        switch(type,
+            \adsr, {
+                Env.adsr(
+                    attackTime: node.get(\atk),
+                    decayTime: node.get(\dec),
+                    sustainLevel: node.get(\suslevel),
+                    releaseTime: node.get(\rel),
+                    curve: [node.get(\atkcurve), node.get(\deccurve), node.get(\relcurve)]
+                )
+            },
+            \perc, {
+                Env.perc(
+                    attackTime: node.get(\atk),
+                    releaseTime: node.get(\rel),
+                    curve: [node.get(\atkcurve), node.get(\relcurve)]
+                )
+            },
+            {Env.perc}
+        );
+    };
+
+    var envView = {
+
+        var view = nil;
+
+        if (node.metadata.notNil) {
+            var type = node.metadata[\env];
+
+            if (type.notNil) {
+                view = EnvelopeView()
+                .maxHeight_(100)
+                .drawLines_(true)
+                .selectionColor_(Color.blue)
+                .action_({})
+                .thumbSize_(10)
+                .editable_(false);
+
+                view.setEnv(getEnv.(type));
+            }
+        };
+
+        view
+
+    }.();
+
+    var updateEnv = {
+        if (envView.notNil) {
+            var type = node.metadata[\env];
+            {
+                envView.setEnv(getEnv.(type));
+            }.defer
+        }
+    };
+
     var getView = {
 
+        var getEnv;
         var controls, sliders, numbers, ctrls, view;
         keys = getKeys.();
 
@@ -141,7 +203,7 @@ Fdef(\sgui, {|node, index|
         });
 
         sliders = keys.collect({|key, i|
-            Slider()
+            Slider(bounds:Rect(height:height))
             .maxHeight_(height)
             .value_(controls[i].input)
             .orientation_(\horizontal)
@@ -162,7 +224,7 @@ Fdef(\sgui, {|node, index|
         numbers = keys.collect({|key, i|
             var hi = controls[i].spec.maxval;
             var lo = controls[i].spec.minval;
-            NumberBox()
+            NumberBox(bounds:Rect(height:height))
             .clipHi_(hi)
             .clipLo_(lo)
             .decimals_(3)
@@ -237,7 +299,7 @@ Fdef(\sgui, {|node, index|
         });
 
         view = View()
-        .layout_(VLayout(*ctrls).margins_(5).spacing_(2))
+        .layout_(VLayout(envView, *ctrls).margins_(5).spacing_(2))
         .background_(color.alpha_(0.4));
 
         connections = ConnectionList.make {
@@ -296,7 +358,9 @@ Fdef(\sgui, {|node, index|
         view;
     };
 
-    var view = View(bounds:275@200).layout_(VLayout().margins_(2).spacing_(2)).name_(node.key);
+    var view = View(bounds:275@200)
+    .layout_(VLayout().margins_(2).spacing_(2))
+    .name_(windowname);
 
     var buttons = 14.collect({|i|
         var color_active = Color.white.alpha_(0.9);
@@ -305,7 +369,6 @@ Fdef(\sgui, {|node, index|
         var issaved = P.getPreset(node, i).notNil;
         var color_init = if (issaved) {color_saved}{color_empty};
         Button()
-        .fixedSize_(10)
         .action_({|ctrl|
             buttons.do({|btn, j|
                 if (i != j) {
@@ -353,6 +416,58 @@ Fdef(\sgui, {|node, index|
     var fxbuttonsview = View().layout_(VLayout());
     var updateButtons;
 
+    var swap = {|node, index2, index1|
+
+        var fx1 = node.fxchain[index1];
+        var fx2 = node.fxchain[index2];
+
+        var obj1 = node.objects[index1];
+        var obj2 = node.objects[index2];
+
+        var synth1 = Synth.basicNew(obj1.synthDef.name, Server.default, obj1.nodeID);
+        var synth2 = Synth.basicNew(obj2.synthDef.name, Server.default, obj2.nodeID);
+
+        synth2.moveBefore(synth1);
+
+        node.objects[index1] = obj2;
+        node.objects[index2] = obj1;
+
+        node.fxchain[index1] = fx2;
+        node.fxchain[index2] = fx1;
+
+        node.changed(\reorder)
+    };
+
+    //~swap.(~modal.node, 140, 110)
+    //~idx1 = ~modal.node.objects.indices.indexOf(90)
+    //~idx2 = ~modal.node.objects.indices[~idx1-1]
+    //~idx3 = ~modal.node.objects.indices[~idx1+1]
+    //~swap.(~modal.node, 140, 150)
+
+
+    var moveUp = {|index|
+
+        var num = fxnode.objects.indices.indexOf(index);
+        var index2 = fxnode.objects.indices[num-1];
+
+        if (index2.notNil) {
+            swap.(fxnode, index, index2);
+        } {
+            "can't move node".warn;
+        }
+    };
+    var moveDown = {|index|
+
+        var num = fxnode.objects.indices.indexOf(index);
+        var index2 = fxnode.objects.indices[num+1];
+
+        if (index2.notNil) {
+            swap.(fxnode, index2, index);
+        } {
+            "can't move node".warn;
+        }
+    };
+
     updateButtons = {
 
         if (index.isNil) {
@@ -369,18 +484,37 @@ Fdef(\sgui, {|node, index|
 
                     fxbuttonsview.layout.add(
                         HLayout(
-                            Button().states_([  ["↓"]  ]),
-                            Button().states_([  ["↑"]  ]),
+                            Button().states_([  ["↓"]  ]).action_({
+                                moveDown.(index);
+                            })
+                            .maxWidth_(50),
+                            Button().states_([  ["↑"]  ]).action_({
+                                moveUp.(index);
+                            })
+                            .maxWidth_(50),
                             Button().states_( [ [obj.name] ] ).action_({|ctrl|
                                 if (obj.type == 'vst') {
                                     obj['ctrl'].editor
                                 }{
                                     U(\sgui, fxnode, index).front
                                 }
+                            })
+                            .mouseDownAction_({|ctrl, x, y, mod, num, count|
+                                if (obj.type == 'vst') {
+                                    // ctrl key
+                                    if (mod == 262144) {
+                                        U(\sgui, fxnode, index).front
+                                    };
+                                    // alt key
+                                    if (mod == 524288) {
+                                        obj['ctrl'].gui
+                                    }
+                                }
                             }),
                             Button().states_([  ["x"]  ]).action_({
                                 node.fx(index, nil)
-                            }),
+                            })
+                            .maxWidth_(50),
                         )
                     );
                 });
@@ -412,8 +546,8 @@ Fdef(\sgui, {|node, index|
                 .value_(morphbeats),
 
                 GridLayout.rows(
-                    buttons[0..6],
-                    buttons[7..13]
+                    buttons[0..6].collect(_.fixedSize_(10)),
+                    buttons[7..13].collect(_.fixedSize_(10))
                 ).margins_(0).spacing_(0),
             )
         );
@@ -425,13 +559,14 @@ Fdef(\sgui, {|node, index|
     view.layout.add(status);
 
     watcher = {|obj, what|
-        if (what == \stop) {
-            {
-                playbutton.value = 0;
-            }.defer
-        }
+        //if (what == \stop) {
+        //    {
+        //        playbutton.value = 0;
+        //    }.defer
+        //}
     };
     node.addDependant(watcher);
+    node.addDependant(updateEnv);
 
     if (index.isNil) {
         updateButtons.();
@@ -460,6 +595,7 @@ Fdef(\sgui, {|node, index|
     view.onClose_({
         connections.free;
         node.removeDependant(watcher);
+        node.removeDependant(updateEnv);
         fxnode.removeDependant(fxwatcher);
         SkipJack.stop(skipId)
         //Tdef(skipId).stop;

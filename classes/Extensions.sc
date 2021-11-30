@@ -7,39 +7,37 @@
     loopr {
         var buffer = this;
         var numchannels = buffer.numChannels;
-        var bufname = PathName(buffer.path).fileNameWithoutExtension;
-        var node = D(bufname.asSymbol).put(0, {
-            var buf = \buf.kr(buffer.bufnum);
-            var bufFrames = BufFrames.ir(buf);
-            var bufdur = BufDur.ir(buf);
-            var samplerate = BufSampleRate.ir(buf);
-            var rate = \rate.kr(1);
-            var startPos = \startPos.kr(0) * bufFrames;
-            var endPos = \endPos.kr(1) * bufFrames;
-            var start = startPos / samplerate;
-            var dur = (endPos - startPos) / samplerate;
-            var loopdur = Select.kr(dur < bufdur, [-1, dur]);
-            var loop = \loop.kr(1);
-            var ft = \cf.kr(0.001);
-            var trig = Changed.kr(start) + Changed.kr(loopdur);
-            var sig = XPlayBuf.ar(numchannels, buf, rate, trig, start, loopdur, loop:loop, fadeTime:ft);
-            sig = Splay.ar(sig, \spread.kr(1), center:\pan.kr(0));
-            sig * \amp.kr(-6.dbamp)
+        var bufname = if (buffer.path.notNil) {
+            PathName(buffer.path).fileNameWithoutExtension;
+        }{
+            "buffer_%".format(buffer.bufnum);
+        };
+
+        var func = SynthLib('synths/loopr').func;
+        var node = D(bufname.asSymbol).put(0,
+            {
+                ~numchannels = numchannels;
+                ~bufnum = buffer.bufnum;
+                func
+            }.()
+        );
+
+        node.set(\buf, buffer.bufnum);
+        node.specs
+        .keysValuesDo({|key, value|
+            node.addSpec(key, value)
         });
-        //node.addSpec(\loopdur, ControlSpec(-1, buf.duration, \lin, 0, -1, "loop"));
-        node.addSpec(\startPos, ControlSpec(0, 1, \lin, 0, 0, "loop"));
-        node.addSpec(\endPos, ControlSpec(0, 1, \lin, 0, 1, "loop"));
-        node.addSpec(\rate, ControlSpec(1/16, 4, \lin, 0, 1, "loop"));
-        node.addSpec(\loop, ControlSpec(0, 1, \lin, 1, 1, "loop"));
-        node.addSpec(\cf, ControlSpec(0.001, 0.1, \lin, 0, 0.001, "loop"));
-        node.addSpec(\spread, ControlSpec(0, 1, \lin, 0, 1, "stereo"));
-        node.addSpec(\pan, ControlSpec(-1, 1, \lin, 0, 0, "stereo"));
+
         ^node
     }
 
     grainr {
         var buffer = this;
-        var bufname = PathName(buffer.path).fileNameWithoutExtension;
+        var bufname = if (buffer.path.notNil) {
+            PathName(buffer.path).fileNameWithoutExtension;
+        }{
+            "buffer_%".format(buffer.bufnum);
+        };
         var synth = SynthLib('synths/grainr');
         var node = D("%_grainr".format(bufname).asSymbol).put(0, synth.func);
         node.set(\buf, buffer.bufnum);
@@ -210,14 +208,14 @@
     degree {|val| ^Pset(\degree, val, this)}
     strum {|val| ^Pset(\strum, val, this)}
 
-    /*
-    cycle {|dur=8, len|
+    cycle {|dur=8, len, repeats=inf|
+        var iteration = -1;
         if (len.isNil) {len = dur};
         ^Plazy({
-            Psync(this.finDur(len), dur, dur)
-        }).repeat
+            iteration = iteration + 1;
+            Psync(this.finDur(len), dur, dur) <> (cycle:iteration);
+        }).repeat(repeats)
     }
-    */
 
     loop {|dur=8, len, repeats=inf|
         var iteration = -1;
@@ -527,7 +525,9 @@
             .asPairs();
 
             if (hasGate) {
-                synths[note] = Synth(instrument, args, target:target, addAction:\addToHead);
+                if (synths[note].isNil) {
+                    synths[note] = Synth(instrument, args, target:target, addAction:\addToHead);
+                }
             } {
                 Synth(instrument, args, target:target);
             }
@@ -540,7 +540,9 @@
                 #note, vel = filter.(note, vel);
             };
             if (hasGate) {
-                synths[note].set(\gate, 0);
+                var synth = synths[note];
+                synths.removeAt(note);
+                synth.set(\gate, 0);
             }
         }, noteNum:note, chan:noteChan)
         .fix;

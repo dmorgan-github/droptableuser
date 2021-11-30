@@ -1,26 +1,46 @@
 (
-var func = {|freq, gate, aeg|
+synth: {|freq, gate, aeg|
 
-	var menv = Select.ar(\menv.ar(0), [
-		aeg,
-		Env.perc(\matk.kr(0.01), \mrel.kr(0.1), curve:\mcurve.kr(-4)).ar(gate:gate)
-	]);
-	var op2 = SinOscFB.ar(freq * \op2ratio.kr(1), \fb.kr(0));
-	var op1 = SinOsc.ar(freq, (op2 * \op1_m2.kr(0) * menv).mod(2pi));
-	var sig = [op1 * \op1.kr(1), op2 * \op2.kr(0)].sum;
-	var gain = \gain.kr(1).max(1);
+    var mod = {
+        var ratio = \modratio.kr(1);
+        var fb = \modfb.kr(0);
+        var sig = SinOscFB.ar(freq * ratio, fb);
+        var atk = \matk.kr(0.01);
+        var dec = \mdec.kr(0.3);
+        var rel = \mrel.kr(0.2);
+        var suslevel = \msuslevel.kr(1);
+        var peak = \mpeak.kr(1);
+        var atkcurve = \matkcurve.kr(-4);
+        var deccurve = \mdeccurve.kr(-4);
+        var relcurve = \mrelcurve.kr(-4);
+        var meg = Env.adsr(
+            atk,
+            dec,
+            suslevel,
+            rel,
+            peak,
+            curve:[atkcurve, deccurve, relcurve]
+        ).ar(gate:gate);
+        var index = \mindex.kr(0);
 
-	sig = SinOsc.ar(0, (sig * gain).mod(2pi)) * gain.reciprocal.sqrt;
-	sig = [
-		SinOsc.ar(freq/2) * \sub.kr(0),
-		sig
-	].sum;
-	sig = LPF.ar(sig, \lpf.kr(20000));
-	sig = HPF.ar(sig, \hpf.kr(20));
-	sig
-};
+        sig = sig * meg * index;
+        sig;
+    };
+    var sig = SinOsc.ar(freq * \carratio.kr(1), mod.().mod(2pi));
+    sig// * \mindex.kr.sqrt.reciprocal
 
-S.def(\pm2op, func);
-S.def(\pm2op_mono, func, \mono);
-S.def(\pm2op_perc, func, \perc);
+}, specs: [
+    carratio: ControlSpec(0.5, 20, \lin, 0, 1, units:"car"),
+    modratio: ControlSpec(0.5, 20, \lin, 0, 1, units:"mod"),
+    modfb: ControlSpec(0, 1, \lin, 0, 0, units:"mod"),
+    matk: ControlSpec(0, 1, \lin, 0, 0.01, units:"mod"),
+    mdec: ControlSpec(0, 1, \lin, 0, 0.3, units:"mod"),
+    mrel: ControlSpec(0, 8, \lin, 0, 0.2, units:"mod"),
+    msuslevel: ControlSpec(0, 1, \lin, 0, 0.7, units:"mod"),
+    mpeak: ControlSpec(0, 1, \lin, 0, 0.7, units:"mod"),
+    matkcurve: ControlSpec(-8, 8, \lin, 0, -4, units:"mod"),
+    mdeccurve: ControlSpec(-8, 8, \lin, 0, -4, units:"mod"),
+    mrelcurve: ControlSpec(-8, 8, \lin, 0, -4, units:"mod"),
+    mindex: ControlSpec(0, 20, \lin, 0, 0, units:"mod")
+]
 )

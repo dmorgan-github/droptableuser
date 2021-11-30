@@ -147,6 +147,10 @@ W : EnvironmentRedirect {
         ^U(\wview)
     }
 
+    *kb {
+        ^U(\kb)
+    }
+
     *transport {|clock|
         U(\transport, clock);
     }

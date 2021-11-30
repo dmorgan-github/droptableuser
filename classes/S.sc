@@ -7,7 +7,7 @@ S : Pdef {
     var <node, <cmdperiodfunc, <>color;
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
-    var <ptrnproxy;
+    var <ptrnproxy, <metadata;
 
     *new {|key, synth|
         var res = Pdef.all[key];
@@ -76,6 +76,12 @@ S : Pdef {
         ^U(\sgui, this)
     }
 
+    kill {|ids|
+        ids.asArray.do({|id|
+            Synth.basicNew(this.synth, Server.default, id).free
+        });
+    }
+
     out {
         ^this.node.monitor.out
     }
@@ -115,6 +121,9 @@ S : Pdef {
 
         super.source = PfsetC({ { this.changed(\stop) } },
             Plazy({
+
+                synth = synth ?? {\default};
+
                 if (isMono) {
                     Pmono(synth, \trig, 1) <> chain
                 }{
@@ -157,7 +166,7 @@ S : Pdef {
     }
 
     prInitSynth {|argSynth|
-        var meta, synthdef;
+        var synthdef;
         synth = argSynth;
 
         synthdef = SynthDescLib.global.at(synth);
@@ -182,9 +191,9 @@ S : Pdef {
             }
         });
 
-        meta = synthdef.metadata;
-        if (meta.notNil and: {meta[\specs].notNil} ) {
-            meta[\specs].keysValuesDo({|k, v|
+        metadata = synthdef.metadata;
+        if (metadata.notNil and: {metadata[\specs].notNil} ) {
+            metadata[\specs].keysValuesDo({|k, v|
                 this.addSpec(k, v);
             })
         };

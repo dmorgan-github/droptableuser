@@ -51,10 +51,35 @@ V : D {
         ^result;
     }
 
+    /*
+    (
+Routine({
+
+    ~vst.do({|key|
+
+        var str, file;
+        var path = "~/projects/droptableuser/library/vst/%.scd".format(key.asString).standardizePath.postln;
+        var vst = V('a').load(key.asSymbol);
+        2.wait;
+        str = V.printSynthParams(key.asSymbol, vst.fx);
+        file = File.new(path, "w");
+        file.write(str);
+        file.close;
+
+    });
+
+}).play;
+)
+    */
     *printSynthParams {|vst, ctrl|
         var params = ctrl.info.parameters;
         var cache = ctrl.parameterCache;
         var vals = List.new;
+        var string = "(
+synth: {|in|
+    VSTPlugin.ar(in, 2,
+        params: [\n";
+
         params.do({|p, i|
             vals.add(p['name'].asSymbol -> cache[i][0]);
         });
@@ -65,8 +90,16 @@ V : D {
             var vstkey = vst.asString.select({|val| val.isAlphaNum}).toLower;
             var param = k.asString.select({|val| val.isAlphaNum}).toLower;
             var named = "%_%".format(vstkey, param)[0..30];
-            ("'" ++ k ++ "'" ++ ", " ++ "'%".format(named) ++ "'.kr(%)".format(v) ++ ",").postln;
-        })
+            string = string ++ ("\t\t\t'" ++ k ++ "'" ++ ", " ++ "'%".format(named) ++ "'.kr(%)".format(v) ++ ",").postln;
+            string = string ++ "\n";
+        });
+        string = string ++ "\t\t],
+\t\tinfo:'%'
+    )
+}
+)".format(ctrl.info.name);
+
+        ^string;
     }
 
     *printPatternParams {|vst, ctrl|

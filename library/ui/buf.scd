@@ -18,7 +18,11 @@ Fdef(\buf, {arg node;
     var id = UniqueID.next;
     var osckey = 'bufpos';
     var numframes = buf.numFrames;
-    var bufname = PathName(buf.path).fileName;
+    var bufname = if (buf.path.notNil) {
+        PathName(buf.path).fileName
+    }{
+        "buffer %".format(buf.bufnum)
+    };
     var selstart = startPos * numframes;
     var selend = endPos * numframes;
     var selsize = selend - selstart;

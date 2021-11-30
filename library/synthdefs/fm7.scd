@@ -94,8 +94,8 @@ SynthLib.def(\fm7_mono, func, \mono);
             ('matk').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv"),
             ('mdec').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv"),
             ('mrel').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv"),
-            ('msuslevel').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv"),
-            ('mpeak').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv")
+            ('msuslevel').asSymbol, ControlSpec(0, 1, \lin, 0, 1, units: "menv"),
+            ('mpeak').asSymbol, ControlSpec(0, 1, \lin, 0, 1, units: "menv")
         ]
     }).flatten
     );

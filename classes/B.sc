@@ -18,29 +18,34 @@ B {
         ^res;
     }
 
-    *read {arg key, path, channels=nil;
+    *read {arg key, path, channels=nil, cb;
         if (channels.isNil) {
             Buffer.read(Server.default, path, action:{|buf|
-                all.put(key, buf.normalize);
+                var normalized = buf.normalize;
+                all.put(key, normalized);
                 "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
+                cb.(normalized);
+
             });
         }{
             channels = channels.asArray;
             Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
-                all.put(key, buf.normalize);
+                var normalized = buf.normalize;
+                all.put(key, normalized);
                 "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
+                cb.(normalized)
             });
         };
     }
 
-    *mono {|key, path|
-        B.read(key, path, 0);
+    *mono {|key, path, cb|
+        B.read(key, path, 0, cb:cb);
     }
 
-    *stereo {|key, path|
+    *stereo {|key, path, cb|
         var file = SoundFile.openRead(path);
         var channels = if (file.numChannels.debug('numchannels') < 2) { [0,0] }{ [0, 1] };
-        B.read(key, path, channels);
+        B.read(key, path, channels, cb:cb);
     }
 
     *alloc {|key, numFrames, numChannels=1|

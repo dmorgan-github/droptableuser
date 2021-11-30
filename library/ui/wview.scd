@@ -15,7 +15,9 @@ var getObjs = {
 };
 
 var button = {|k, v|
-    Button().states_([ [k], [k, nil, Color.green.alpha_(0.5)] ]).action_({|ctrl|
+
+    var name = k.asString[..19];
+    Button().states_([ [name], [name, nil, Color.green.alpha_(0.5)] ]).action_({|ctrl|
         if (ctrl.value == 1) {
             var children = buttonview.children;
             children.do({|child|
@@ -39,7 +41,8 @@ var button = {|k, v|
                 view.resizeToHint(size);
             }.defer(0.1)
         }
-    });
+    })
+    .toolTip_(k);
 };
 
 var objs = getObjs.value;
@@ -53,9 +56,42 @@ objs.keysValuesDo({|k, v|
 
 buttonview.layout.add(buttons);
 buttonview.layout.add(nil);
-
 layout.add(buttonview);
 layout.add(editor);
+
+
+view.layout.add(HLayout(
+    Button().states_( [ ["kb"] ] ).action_({
+        W.kb
+    }),
+    Button().states_([ ["loopr"] ]).action_({
+
+        FileDialog({|paths|
+            var selected = paths[0];
+            var name = PathName(selected).fileNameWithoutExtension;
+            B.read(name.asSymbol, selected, cb:{|buf|
+                buf.loopr
+            });
+        }, {
+            postln("Dialog was cancelled. Try again.");
+        }, path:"~/Documents/supercollider/media".standardizePath);
+
+    }),
+    Button().states_([ ["grainr"] ]).action_({
+
+        FileDialog({|paths|
+            var selected = paths[0];
+            var name = PathName(selected).fileNameWithoutExtension;
+            B.mono(name.asSymbol, selected, cb:{|buf|
+                buf.grainr
+            });
+        }, {
+            postln("Dialog was cancelled. Try again.");
+        }, path:"~/Documents/supercollider/media".standardizePath);
+
+    })
+));
+
 view.layout.add(layout);
 
 update = {

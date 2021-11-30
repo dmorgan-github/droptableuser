@@ -40,7 +40,7 @@ The level of delayed sound mixed into the output.
 (
 synth: {arg sig_in;
 
-    var in = sig_in * \input.ar(1);
+    var in = sig_in * \delayorama_input.ar(1);
     var sig = LADSPA.ar(1, 1402,
         RandSeed.kr(1000.rand),
         \inputgain.ar(0).lag(0.001),
@@ -57,10 +57,9 @@ synth: {arg sig_in;
     );
 
     sig = LeakDC.ar(sig);
-    Splay.ar(sig,
-        spread:\spread.ar(1),
-        center:\pan.ar(0)
-    ) * \output.ar(1);
+    sig = in.blend(sig, \delayorama_mix.kr(0.5));
+    sig = sig * \delayorama_output.ar(1);
+    sig;
 },
 specs: [
     inputgain: ControlSpec(-96, 24, \lin, 0, 0, units:"fx"),
@@ -72,9 +71,8 @@ specs: [
     delayrandom: ControlSpec(0, 100, \lin, 0, 30, units:"fx"),
     ampchange: ControlSpec(0.2, 5, \lin, 0, 0.5, units:"fx"),
     amprand: ControlSpec(0, 100, \lin, 0, 50, units:"fx"),
-    spread: ControlSpec(0,1,\lin,0, 1, units:"stereo"),
-    pan: ControlSpec(-1,1,\lin,0,0, units:"stereo"),
-    input: ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
-    output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
+    delayorama_input: ControlSpec(0, 2, \lin, 0, 1, units:"vol"),
+    delayoram_output: ControlSpec(0, 2, \lin, 0, 1, units: "vol"),
+    delayoram_mix: ControlSpec(0, 1, \lin, 0, 0.5, units: "vol")
 ]
 )

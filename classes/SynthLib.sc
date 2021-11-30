@@ -1,25 +1,30 @@
 
 SynthLib {
 
-    var <func, <specs, <name;
+    var <>func, <>specs, <>name, <>presets;
 
     *new {|key|
         ^super.new.prInit(key);
     }
 
     prInit {|key|
-        var path = App.librarydir ++ key.asString ++ ".scd";
-        var pathname = PathName(path.standardizePath);
-        var fullpath = pathname.fullPath;
-        name = pathname.fileNameWithoutExtension.asSymbol;
 
-        if (File.exists(fullpath)) {
-            var name = pathname.fileNameWithoutExtension;
-            var obj = File.open(fullpath, "r").readAllString.interpret;
-            func = obj[\synth];
-            specs = obj[\specs];
+        if (key.isNil) {
+            // no op
         } {
-            Error("node not found").throw;
+            var path = App.librarydir ++ key.asString ++ ".scd";
+            var pathname = PathName(path.standardizePath);
+            var fullpath = pathname.fullPath;
+            name = pathname.fileNameWithoutExtension.asSymbol;
+
+            if (File.exists(fullpath)) {
+                var obj = File.open(fullpath, "r").readAllString.interpret;
+                func = obj[\synth];
+                specs = obj[\specs];
+                presets = obj[\presets].asDict
+            } {
+                Error("node not found").throw;
+            }
         }
         ^this;
     }

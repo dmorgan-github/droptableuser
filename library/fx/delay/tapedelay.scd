@@ -23,7 +23,7 @@ synth: {arg sig_in;
         input
     );
 
-    sig = in.blend(sig, \tapedelay_wet.kr(0.5));
+    sig = in.blend(sig, \tapedelay_mix.kr(0.5));
     sig * \tapedelay_output.kr(1);
 },
 specs: [
@@ -38,6 +38,6 @@ specs: [
     tap4_level: ControlSpec(0,1,\lin,0,0, units:"tapedelay"),
     tapedelay_input: ControlSpec(0, 2, \lin, 0, 1, units:"tapedelay;"),
     tapedelay_output: ControlSpec(0, 2, \lin, 0, 1, units: "tapedelay"),
-    tapedelay_wet: ControlSpec(0, 1, \lin, 0, 0.5, units: "tapedelay")
+    tapedelay_mix: ControlSpec(0, 1, \lin, 0, 0.5, units: "tapedelay")
 ]
 )

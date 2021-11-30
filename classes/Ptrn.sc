@@ -1,3 +1,4 @@
+/*
 Pmatrix : Pattern {
 
     var <>key, <>src, <>matrix, <>fx, <>pattern;
@@ -48,7 +49,9 @@ Pmatrix : Pattern {
         ^this.pattern.embedInStream(inval);
     }
 }
+*/
 
+/*
 Pnodeset : Pattern {
 
     var <>key, <>pattern;
@@ -86,7 +89,9 @@ Pnodeset : Pattern {
         ^this.pattern.embedInStream(inval);
     }
 }
+*/
 
+/*
 Pfilter : Pattern {
 
     var <>key, <>pattern, <>fx, <>vol;
@@ -126,7 +131,9 @@ Pfilter : Pattern {
         ^this.pattern.embedInStream(inval);
     }
 }
+*/
 
+/*
 Pchannel {
     *new {|key, vol=1|
         var node = Ndef(key);
@@ -139,6 +146,7 @@ Pchannel {
         });
     }
 }
+*/
 
 Ppub : EventPatternProxy {
 
@@ -380,6 +388,7 @@ Pwnrand : ListPattern {
     storeArgs { ^[ list, weights, repeats ] }
 }
 
+/*
 // Pdurval
 Pdv : Pbind {
 
@@ -442,6 +451,7 @@ Pdv : Pbind {
         );
     }
 }
+*/
 
 
 /*

@@ -1,7 +1,7 @@
 (
 synth: {arg in_sig;
 
-    var in = in_sig.asArray.sum;
+    var in = in_sig.asArray.sum * \grainin_input.kr(1);
     var sig, rate, dur;
 
     var buf = LocalBuf(44100 * 5, 1).clear;
@@ -13,6 +13,7 @@ synth: {arg in_sig;
     dur = LFNoise1.kr(1/3).range(0.05, 1);
     rate = TChoose.kr(Dust.kr(1), [
         -7.midiratio, 7.midiratio, 0.midiratio, 12.midiratio, -12.midiratio]) * TChoose.kr(Dust.kr(0.5), [-1, 1]);
+
     sig = GrainBuf.ar(1,
         Dust.ar(LFNoise1.kr([1/13, 1/21, 1/3]).range(5, 12)),
         dur,
@@ -24,7 +25,15 @@ synth: {arg in_sig;
         -1
     );
 
-    Splay.ar(sig);
+    sig = Splay.ar(sig);
+    sig = in.blend(sig, \grainin_mix.kr(0.5));
+    sig * \grainin_output.kr(1);
 },
-specs: []
+specs: [
+
+    grainin_input: ControlSpec(0, 2, \lin, 0, 1, "vol"),
+    grainin_output: ControlSpec(0, 2, \lin, 0, 1, "vol"),
+    grainin_mix: ControlSpec(0, 1, \lin, 0, 0.4, "vol")
+
+]
 )
