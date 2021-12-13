@@ -1,5 +1,4 @@
 (
-
 synth: {
     var numchannels = ~numchannels.debug("numchannels") ?? 1;
     var buf = \buf.kr(0);

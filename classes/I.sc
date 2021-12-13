@@ -4,7 +4,7 @@ I : D {
         this.put(0, {
             var l = \left.kr(0);
             var r = \right.kr(1);
-            SoundIn.ar([l, r]);
+            SoundIn.ar([l, r]) * \amp.kr(0.dbamp)
         });
     }
 

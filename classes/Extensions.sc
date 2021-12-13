@@ -1,3 +1,26 @@
++ Symbol {
+
+    kr { | val, lag, fixedLag = false, spec |
+        var name = "%%".format(this, ~num ?? {""});
+		^NamedControl.kr(name, val, lag, fixedLag, spec)
+	}
+
+	ir { | val, spec |
+        var name = "%%".format(this, ~num ?? {""});
+		^NamedControl.ir(name, val, spec:spec)
+	}
+
+	tr { | val, spec |
+        var name = "%%".format(this, ~num ?? {""});
+		^NamedControl.tr(name, val, spec:spec)
+	}
+
+	ar { | val, lag, spec |
+        var name = "%%".format(this, ~num ?? {""});
+		^NamedControl.ar(name, val, lag, spec)
+	}
+}
+
 + Buffer {
 
     view {
@@ -499,9 +522,11 @@
         var synths = Order.new;
         Halo.put(this.key, \synths, synths);
 
+        /*
         if (MIDIClient.initialized.not) {
             MidiCtrl.connect;
         };
+        */
 
         if (note.isNil) {
             note = (0..110);

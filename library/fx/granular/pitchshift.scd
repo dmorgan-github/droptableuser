@@ -1,18 +1,20 @@
 (
 synth: {arg sig_in;
 
-    var in = sig_in * \ps_input.ar(1);
-    var size = ~pswindowsize.debug("pswindowsize") ?? { 2 };
-    var sig = PitchShift.ar(in, size, \ps_ratio.kr(2), 0.01, 0.01);
+    var input = \ps_input.ar(1, spec:ControlSpec(0, 2.dbamp, \lin, 0, 1, "pitchshift"));
+    var output = \ps_output.kr(1, spec: ControlSpec(0, 2.dbamp, \lin, 0, 1, "pitchshift"));
+    var mix = \ps_mix.kr(0.3, spec:ControlSpec(0, 1, \lin, 0, 0.3, "pitchshift"));
+    var ratio = \ps_ratio.kr(2, spec:ControlSpec(1/8, 4, \lin, 0, 2, "pitchshift"));
 
-    sig = in.blend(sig, \ps_mix.kr(0.3));
-    sig * \ps_output.kr(1);
-},
-specs: [
+    var in = sig_in * input;
+    var size = ~pswindowsize ?? { 2 };
+    var sig = PitchShift.ar(in,
+        size.debug("pswindowsize"),
+        ratio,
+        0.01, 0.01
+    );
 
-    ps_ratio: ControlSpec(1/8, 4, \lin, 0, 2, "pitchshift"),
-    ps_input: ControlSpec(0, 2, \lin, 0, 1, "pitchshift"),
-    ps_output: ControlSpec(0, 2, \lin, 0, 1, "pitchshift"),
-    ps_mix: ControlSpec(0, 1, \lin, 0, 0.3, "pitchshift")
-]
+    sig = in.blend(sig, mix);
+    sig * output;
+}
 )

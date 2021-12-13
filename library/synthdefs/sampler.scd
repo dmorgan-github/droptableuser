@@ -1,3 +1,27 @@
+/*
+p = NodeProxy.audio(s, 2);
+
+(p.prime({ arg rate = 1, amp = 0.3, bufnum = 0, t_trig = 1, phafps = 4, interp = 2;
+	var framidx = Phasor.ar(t_trig, rate * BufRateScale.kr(bufnum), 0, inf);
+	var playgen = BufRd.ar(2, bufnum, framidx, 0, interp);
+	var done = framidx >= BufFrames.kr(bufnum);
+	var env = 1 - done; // could add nicer fade out
+	SendTrig.ar(env * Impulse.ar(phafps, 0.5), 66, framidx);
+	SendTrig.ar(done, 77);
+	env * playgen * amp}))
+
+(o = OSCdef(\track, { arg msg, time;
+	switch (msg[2])
+	{66} {
+		{ ("OSC now playing frame" + msg[3]).postln;}.defer }
+	{77} {
+		{ ("OSC buffer play ended.").postln }.defer;
+		{ p.set(\t_trig, 1); ("OSC buffer play restarted").postln }.defer(3) }
+}, '/tr', s.addr))
+
+p.play.edit
+*/
+
 (
 /////////////////////////////////////////////
 //
@@ -91,12 +115,23 @@ SynthDef(\sampler, {
     var dir = \dir.kr(1);
     var phase = dir * Phasor.ar(rate: rate, start:numframes * start, end:numframes * end);
 
-    var aeg = Env.asr(
-        \atk.kr(0.01),
-        \suslevel.kr(1),
-        \rel.kr(0.1),
-        curve:\curve.kr(0)
-    ).ar(gate:gate, doneAction:Done.freeSelf);
+    var adsr = {
+        var atk = \atk.kr(0.01);
+        var dec = \dec.kr(0.1);
+        var rel = \rel.kr(0.1);
+        var suslevel = \suslevel.kr(0.7);
+        var ts = \ts.kr(1);
+        var curve = [\atkcurve.kr(-4), \deccurve.kr(-4), \relcurve.kr(-4)];//\curve.kr(-4);
+        var env = Env.adsr(
+            attackTime:atk,
+            decayTime:dec,
+            sustainLevel:suslevel,
+            releaseTime:rel,
+            curve:curve
+        );
+        var aeg = env.ar(doneAction:Done.freeSelf, gate:gate, timeScale:ts);
+        aeg;
+    };
 
 	var sig = BufRd.ar(
 		numChannels: 1,
@@ -106,7 +141,7 @@ SynthDef(\sampler, {
 	);
 
 	sig = LeakDC.ar(sig);
-    sig = sig * aeg * \amp.kr(-10.dbamp) * \vel.kr(1);
+    sig = sig * adsr.() * \amp.kr(-10.dbamp) * \vel.kr(1);
     sig = Splay.ar(sig, spread:\spread.kr(1), center:\pan.kr(0));
     SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase], replyid);
     Out.ar(\out.kr(0), sig);
@@ -116,7 +151,8 @@ SynthDef(\sampler, {
         rel: [0, 1, \lin, 0, 0.1].asSpec,
         atk: [0, 1, \lin, 0, 0.01].asSpec,
         curve: [-4, 4, \lin, 0, 0].asSpec
-    )
+    ),
+    env: \adsr
 )).add;
 
 )

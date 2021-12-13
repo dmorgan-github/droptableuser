@@ -1,7 +1,7 @@
 
 SynthLib {
 
-    var <>func, <>specs, <>name, <>presets;
+    var <>func, <>specs, <>name, <>presets, <>notes;
 
     *new {|key|
         ^super.new.prInit(key);
@@ -21,7 +21,10 @@ SynthLib {
                 var obj = File.open(fullpath, "r").readAllString.interpret;
                 func = obj[\synth];
                 specs = obj[\specs];
-                presets = obj[\presets].asDict
+                notes = obj[\notes];
+                if (obj[\presets].notNil) {
+                    presets = obj[\presets].asDict
+                }
             } {
                 Error("node not found").throw;
             }

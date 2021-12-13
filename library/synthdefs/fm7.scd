@@ -64,9 +64,12 @@ SynthLib.def(\fm7_mono, func, \mono);
             var atkcurve = ('op' ++ num ++ 'atkcurve').asSymbol.kr(-4);
             var deccurve = ('op' ++ num ++ 'deccurve').asSymbol.kr(-4);
             var relcurve = ('op' ++ num ++ 'relcurve').asSymbol.kr(-4);
+            var bias = ('op' ++ num ++ 'bias').asSymbol.kr(0);
 
             var env = Env.adsr(atk, dec, suslevel, rel, peakLevel: peak,
-                curve:[atkcurve, deccurve, relcurve]).ar(gate:gate);
+                curve:[atkcurve, deccurve, relcurve],
+                bias: bias
+            ).ar(gate:gate);
             [freq * ratio, 0, env];
         });
 
@@ -89,7 +92,8 @@ SynthLib.def(\fm7_mono, func, \mono);
             ('op' ++ num ++ 'peak').asSymbol, ControlSpec(0, 1, \lin, 0, 1, units: units),
             ('op' ++ num ++ 'atkcurve').asSymbol, ControlSpec(-8, 8, \lin, 0, -4, units: units),
             ('op' ++ num ++ 'deccurve').asSymbol, ControlSpec(-8, 8, \lin, 0, -4, units: units),
-            ('op' ++ num ++ 'relcurve').asSymbol, ControlSpec(-8, 8, \lin, 0, -4, units: units)
+            ('op' ++ num ++ 'relcurve').asSymbol, ControlSpec(-8, 8, \lin, 0, -4, units: units),
+            ('op' ++ num ++ 'bias').asSymbol, ControlSpec(0, 4, \lin, 0, 0, units: units)
         ] ++ [
             ('matk').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv"),
             ('mdec').asSymbol, ControlSpec(0, 2, \lin, 0, 1, units: "menv"),

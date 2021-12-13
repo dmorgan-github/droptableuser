@@ -13,13 +13,15 @@ synth: {|freq, gate, aeg|
         var atkcurve = \matkcurve.kr(-4);
         var deccurve = \mdeccurve.kr(-4);
         var relcurve = \mrelcurve.kr(-4);
+        var bias = \mbias.kr(0);
         var meg = Env.adsr(
             atk,
             dec,
             suslevel,
             rel,
             peak,
-            curve:[atkcurve, deccurve, relcurve]
+            curve:[atkcurve, deccurve, relcurve],
+            bias: bias
         ).ar(gate:gate);
         var index = \mindex.kr(0);
 
@@ -38,6 +40,7 @@ synth: {|freq, gate, aeg|
     mrel: ControlSpec(0, 8, \lin, 0, 0.2, units:"mod"),
     msuslevel: ControlSpec(0, 1, \lin, 0, 0.7, units:"mod"),
     mpeak: ControlSpec(0, 1, \lin, 0, 0.7, units:"mod"),
+    mbias: ControlSpec(0, 4, \lin, 0, 0, units:"mod"),
     matkcurve: ControlSpec(-8, 8, \lin, 0, -4, units:"mod"),
     mdeccurve: ControlSpec(-8, 8, \lin, 0, -4, units:"mod"),
     mrelcurve: ControlSpec(-8, 8, \lin, 0, -4, units:"mod"),

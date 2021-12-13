@@ -48,6 +48,7 @@ Pdef(\variseq, {
                 Rest(1)
             }
         }),
+        /*
         \durval, Pbinop(
             \wrapAt,
             Pfunc({|evt|
@@ -67,6 +68,7 @@ Pdef(\variseq, {
                 evt[\dur]
             };
         })
+        */
     ];
 
     Pbind(*vals)

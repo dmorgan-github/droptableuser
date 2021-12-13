@@ -127,7 +127,7 @@ S : Pdef {
                 if (isMono) {
                     Pmono(synth, \trig, 1) <> chain
                 }{
-                    Pbind(\instrument, synth) <> chain
+                    Pbind() <> chain
                 }
             })
         );
@@ -144,6 +144,7 @@ S : Pdef {
             }
         };
         node = D("%_chain".format(this.key).asSymbol);
+        node.color = color;
         node.addDependant(nodewatcherfunc);
 
         node.play;
@@ -204,7 +205,7 @@ S : Pdef {
         });
 
         this.set(\instrument, synth);
-        this.set(\root, 0, \mtranspose, 0, \ctranspose, 0, \legato, 0.7, \stretch, 1);
+        this.set(\root, 0, \mtranspose, 0, \legato, 0.7);
 
     }
 

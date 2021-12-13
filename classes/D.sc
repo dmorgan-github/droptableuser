@@ -152,7 +152,7 @@ D : Ndef {
         this.monitor.out = bus;
     }
 
-    fx {|index, fx, wet=1|
+    fx {|index, fx, wet=1, env|
 
         if (fx.isNil) {
             this.removeAt(index);
@@ -162,6 +162,15 @@ D : Ndef {
                 this.filter(index, fx);
                 this.fxchain.put(index, (name:"func_%".format(UniqueID.next), type:'func'));
             }{
+                var context = {
+                    var num = this.fxchain.select({|obj| obj.name == fx }).size;
+                    if (num > 0) {
+                        env = env ?? { () };
+                        env[\num] = num+1;
+                    };
+                    env;
+                };
+
                 if (fx.asString.beginsWith("vst/")) {
                     var vst = fx.asString.split($/)[1..].join("/").asSymbol;
                     this.vst(index, vst, cb:{|ctrl|
@@ -169,12 +178,21 @@ D : Ndef {
                         this.fxchain.put(index, (name:vst, type:'vst', 'ctrl':ctrl));
                     });
                 }{
-                    var obj = N.loadFx(fx);
-                    var func = obj[\synth];
-                    var specs = obj[\specs];
-                    var customui = obj[\ui];
+                    var obj = SynthLib("fx/%".format(fx).asSymbol);
+                    var func = obj.func.inEnvir(context.value);
+                    var specs = obj.specs;
                     this.filter(index, func);
-                    this.addSpec(*specs);
+                    if (specs.isNil or: {specs.isEmpty}) {
+                        {
+                            specs = this.objects[index].specs;
+                            if (specs.isNil.not) {
+                                this.addSpec(*specs.getPairs);
+                            };
+                        }.defer(1)
+                    } {
+                        this.addSpec(*specs);
+                    };
+
                     this.fxchain.put(index, (name:fx, type:'func', 'ctrl':obj));
                 };
             };
@@ -227,8 +245,6 @@ D : Ndef {
                         1.wait;
                     };
 
-                    //}.();
-
                     nodeId = node.objects[index].nodeID;
                     ctrl = if (node.objects[index].class == SynthDefControl) {
                         var synthdef = node.objects[index].synthDef;
@@ -271,7 +287,8 @@ D : Ndef {
         // how to coordinate clocks?
         var clock = TempoClock.default;
         var seconds = clock.beatDur * beats;
-        var buf = B.alloc("%_%".format(this.key, UniqueID.next).asSymbol, seconds * Server.default.sampleRate, 1);
+        var id = "%_%".format(this.key, UniqueID.next).asSymbol;
+        var buf = B.alloc(id, seconds * Server.default.sampleRate, 1);
         var bus = this.bus;
         var group = this.group;
 
@@ -280,7 +297,7 @@ D : Ndef {
             var synth = Synth(\rec, [\buf, buf, \in, bus, \preLevel, preLevel, \run, 1], target:group, addAction:\addToTail);
             synth.onFree({
                 {
-                    "buffer saved to %".format(this.key).postln;
+                    "buffer saved to %".format(id).postln;
                     cb.(buf);
                 }.defer
             });

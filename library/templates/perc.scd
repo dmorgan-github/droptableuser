@@ -15,9 +15,9 @@
 
 		var ar = {
 			var atk = \atk.kr(0.01);
-			var rel = \rel.kr(0.1);
+			var rel = \rel.kr(1);
 			var ts = \ts.kr(1);
-			var curve = \curve.kr(-4);
+            var curve = [\atkcurve.kr(-4), \relcurve.kr(-4)];
 			var env = Env.perc(
 				attackTime:atk,
 				releaseTime:rel,

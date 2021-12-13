@@ -30,7 +30,7 @@ synth: {|freq, gate, aeg|
 	var pri = sig[0];
 	var aux = sig[1];
 
-	sig = XFade2.ar([pri, aux], \which.kr(0));
+    sig = pri.blend(aux, \sigmix.kr(0));
 	sig
 
 },
@@ -42,7 +42,7 @@ specs: [
     fm_mod: ControlSpec(-1, 1, \lin, 0, 0, "plaits"),
     timb_mod: ControlSpec(-1, 1, \lin, 0, 0, "plaits"),
     morph_mod: ControlSpec(-1, 1, \lin, 0, 0, "plaits"),
-    which: ControlSpec(0, 1, \lin, 1, 0, "plaits"),
+    sigmix: ControlSpec(0, 1, \lin, 0, 0, "plaits"),
     decay: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"),
     lpg: ControlSpec(0, 1, \lin, 0, 0.5, "plaits")
 ],
@@ -80,7 +80,25 @@ presets: [
         'timbre': 0.96402877697842,
         'morph_mod': 0.0
     ]
-]
+],
+notes:"
+0:virtual_analog_engine,
+1:waveshaping_engine,
+2:fm_engine,
+3:grain_engine,
+4:additive_engine,
+5:wavetable_engine,
+6:chord_engine,
+7:speech_engine,
+8:swarm_engine,
+9:noise_engine,
+10:particle_engine,
+11:string_engine,
+12:modal_engine,
+13:bass_drum_engine,
+14:snare_drum_engine,
+15:hi_hat_engine
+"
 )
 
 

@@ -452,7 +452,8 @@ Y {
     // in lexicographic order
     //------------------------------------------------------------------------
     /*
-    ~permi.(1, 2, 3).do{|x| x.postln};
+    Y.permi(1, 2, 3).do{|x| x.postln};
+    Y.permi(0, 1, 2).do{|x| x.postln};
     */
     *permi {|...a|
         var res= List.new;
@@ -532,7 +533,7 @@ Y {
     // reads binary strings and converts them to interval notation
     //------------------------------------------------------------------------
     /*
-     ~b2int.("1010010001001000");
+     Y.b2int("1010010001001000");
     */
     *b2int {|line|
         var res= List.new;

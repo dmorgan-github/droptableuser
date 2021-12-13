@@ -123,7 +123,7 @@ Fdef(\sgui, {|node, index|
         status.string = msg;
     };
 
-    var prevcolor, prevunit;
+    var prevcolor = color.complementary, prevunit;
 
     var getEnv = {|type|
 
@@ -203,24 +203,26 @@ Fdef(\sgui, {|node, index|
         });
 
         sliders = keys.collect({|key, i|
-            Slider(bounds:Rect(height:height))
-            .maxHeight_(height)
+            //Slider(bounds:Rect(height:height))
+            NiceSlider(key, spec:controls[i].spec, color:color).maxHeight_(25)
+            //.maxHeight_(height)
             .value_(controls[i].input)
-            .orientation_(\horizontal)
-            .thumbSize_(10)
-            .mouseDownAction_({arg ctrl, x, y, mod, num, count;
-                var spec = controls[i].spec;
-                var val = spec.default;
-                if (count == 2) {
-                    controls[i].value = val;
-                    false;
-                }
-            })
-            .mouseWheelAction_({
-                false
-            })
+            //.orientation_(\horizontal)
+            //.thumbSize_(10)
+            //.mouseDownAction_({arg ctrl, x, y, mod, num, count;
+            //    var spec = controls[i].spec;
+            //    var val = spec.default;
+            //    if (count == 2) {
+            //        controls[i].value = val;
+            //        false;
+            //    }
+            //})
+            //.mouseWheelAction_({
+            //    false
+            //})
         });
 
+        /*
         numbers = keys.collect({|key, i|
             var hi = controls[i].spec.maxval;
             var lo = controls[i].spec.minval;
@@ -234,14 +236,15 @@ Fdef(\sgui, {|node, index|
                 false
             })
         });
+        */
 
         ctrls = keys.collect({|key, i|
 
             var new;
             var spec = getSpec.(key);
             var unit = if (spec.notNil) { spec.units } {""};
-            var color = if (unit != prevunit) {
-                prevcolor = Color.rand.alpha_(0.35);
+            if (unit != prevunit) {
+                prevcolor = color;//.alpha_(1);//Color.rand.alpha_(0.35);
                 prevunit = unit;
                 new = true;
                 prevcolor;
@@ -253,6 +256,7 @@ Fdef(\sgui, {|node, index|
             View().layout_(
                 VLayout(
                     if (new) {
+
                         var st = StaticText().string_(prevunit).stringColor_(Color.black);
                         if (prevunit == "aeg") {
                             var func = {
@@ -283,30 +287,32 @@ Fdef(\sgui, {|node, index|
                     },
                     HLayout(
 
-                        StackLayout(
-                            sliders[i].background_(Color.clear),
-                            StaticText()
-                            .string_(" " ++ key)
-                            .toolTip_(key)
-                        )
-                        .mode_(\stackAll),
 
-                        numbers[i],
+                        //StackLayout(
+                            sliders[i]//.background_(Color.clear),
+                        //    StaticText()
+                        //    .string_(" " ++ key)
+                        //    .toolTip_(key)
+                        //)
+                        //.mode_(\stackAll),
+
+                        //numbers[i],
 
                     ).margins_(0).spacing_(2)
                 ).margins_(0).spacing_(0)
-            ).background_(color);//.margins_(0).spacing_(0);
+            );//.background_(color);//.margins_(0).spacing_(0);
         });
 
         view = View()
-        .layout_(VLayout(envView, *ctrls).margins_(5).spacing_(2))
-        .background_(color.alpha_(0.4));
+        .layout_(VLayout(envView, *ctrls).margins_(2).spacing_(2))
+        //.background_(color.alpha_(0.4))
+        ;
 
         connections = ConnectionList.make {
             controls.connectEach(\input, sliders, _.valueSlot);
-            controls.connectEach(\value, numbers, _.valueSlot);
+            //controls.connectEach(\value, numbers, _.valueSlot);
             sliders.connectEach(\value, controls, _.inputSlot);
-            numbers.connectEach(\value, controls, _.valueSlot);
+            //numbers.connectEach(\value, controls, _.valueSlot);
 
             controls.do({|ctrl, i|
                 ctrl.connectTo({|ctrl, slot, mapped, val|

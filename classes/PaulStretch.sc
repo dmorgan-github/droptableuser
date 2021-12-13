@@ -1,3 +1,4 @@
+//http://sccode.org/1-5d6
 PaulStretch {
     // Paulstretch for SuperCollider
     // Based on the Paul's Extreme Sound Stretch algorithm by Nasca Octavian PAUL
