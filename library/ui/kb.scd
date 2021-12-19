@@ -46,7 +46,7 @@ Fdef(\kb, {
             num = buttons - num;
             label = map[num];
             if (hilight.().includes(num.mod(12))) {
-                color = Color.blue.alpha_(0.5);
+                color = QtGUI.palette.highlight.alpha_(0.5);
             };
             Button()
             .states_([[label, nil, color], [label, nil, Color.white]])

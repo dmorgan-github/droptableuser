@@ -50,7 +50,13 @@ Fdef(\sgui, {|node, index|
             node.get(key).isNumber
         })
         .reject({|key|
-            [\gate, \trig, \out, \in, \bufposreplyid, \wet1000, \fadeTime, \envbuf].includes(key)
+            [\gate, \trig,
+                \out, \in,
+                \bufposreplyid, \wet1000,
+                \wet1010,
+                \fadeTime, \envbuf,
+                \legato, \stretch
+            ].includes(key)
         }).asArray
         .sort({|a, b|
 
@@ -203,40 +209,9 @@ Fdef(\sgui, {|node, index|
         });
 
         sliders = keys.collect({|key, i|
-            //Slider(bounds:Rect(height:height))
-            NiceSlider(key, spec:controls[i].spec, color:color).maxHeight_(25)
-            //.maxHeight_(height)
+            LevelSlider(key, spec:controls[i].spec, color:color).maxHeight_(25)
             .value_(controls[i].input)
-            //.orientation_(\horizontal)
-            //.thumbSize_(10)
-            //.mouseDownAction_({arg ctrl, x, y, mod, num, count;
-            //    var spec = controls[i].spec;
-            //    var val = spec.default;
-            //    if (count == 2) {
-            //        controls[i].value = val;
-            //        false;
-            //    }
-            //})
-            //.mouseWheelAction_({
-            //    false
-            //})
         });
-
-        /*
-        numbers = keys.collect({|key, i|
-            var hi = controls[i].spec.maxval;
-            var lo = controls[i].spec.minval;
-            NumberBox(bounds:Rect(height:height))
-            .clipHi_(hi)
-            .clipLo_(lo)
-            .decimals_(3)
-            .maxHeight_(height)
-            .maxWidth_(80)
-            .mouseWheelAction_({
-                false
-            })
-        });
-        */
 
         ctrls = keys.collect({|key, i|
 
@@ -286,33 +261,18 @@ Fdef(\sgui, {|node, index|
                         nil
                     },
                     HLayout(
-
-
-                        //StackLayout(
-                            sliders[i]//.background_(Color.clear),
-                        //    StaticText()
-                        //    .string_(" " ++ key)
-                        //    .toolTip_(key)
-                        //)
-                        //.mode_(\stackAll),
-
-                        //numbers[i],
-
+                        sliders[i]
                     ).margins_(0).spacing_(2)
                 ).margins_(0).spacing_(0)
-            );//.background_(color);//.margins_(0).spacing_(0);
+            );
         });
 
         view = View()
-        .layout_(VLayout(envView, *ctrls).margins_(2).spacing_(2))
-        //.background_(color.alpha_(0.4))
-        ;
+        .layout_(VLayout(envView, *ctrls).margins_(2).spacing_(2));
 
         connections = ConnectionList.make {
-            controls.connectEach(\input, sliders, _.valueSlot);
-            //controls.connectEach(\value, numbers, _.valueSlot);
-            sliders.connectEach(\value, controls, _.inputSlot);
-            //numbers.connectEach(\value, controls, _.valueSlot);
+            controls.connectEach(\value, sliders, _.valueSlot);
+            sliders.connectEach(\value, controls, _.valueSlot);
 
             controls.do({|ctrl, i|
                 ctrl.connectTo({|ctrl, slot, mapped, val|
@@ -341,22 +301,22 @@ Fdef(\sgui, {|node, index|
 
         var node = fxnode;
 
-        var view = View().layout_(VLayout().margins_(0).spacing_(0))
-        .maxHeight_(10);
+        var view = View().layout_(VLayout().margins_(0).spacing_(0));
+        //.maxHeight_(10);
 
         var scope = Stethoscope.new(s, view:view).style_(1)
         .index_(node.bus.index)
-        .numChannels_(2).yZoom_(2).xZoom_(2);
+        .numChannels_(2).yZoom_(10).xZoom_(10);
         //win.onClose = { scope.free;  };
         4.do({
             view.children[0].children[0].remove
         });
-        view.children[0].children[0].waveColors_([Color.rand, Color.rand]);
+        view.children[0].children[0].waveColors_([color, color.complementary]);
         view.children[0].children[2].remove;
         view.children[0].children[1].remove;
-        view.maxHeight = 20;
-        view.children[0].children[0].background = Color.new255(77, 77, 77);
-        view.maxWidth = 80;
+        //view.maxHeight = 20;
+        view.children[0].children[0].background = QtGUI.palette.window;
+        //view.maxWidth = 80;
         view.onClose = { scope.free };
         view.mouseUpAction = {
             node.scope
@@ -412,14 +372,13 @@ Fdef(\sgui, {|node, index|
                 log.("% preset %".format(\overwrite, i));
                 P.addCurrent(node, i);
             };
-            //[mod, num].postln;
         })
         .states_([ [nil, nil, color_init ], [nil, nil, color_active ] ])
     });
 
     var scroll = ScrollView();
     var playbutton = Button();
-    var fxbuttonsview = View().layout_(VLayout());
+    var fxbuttonsview = View().layout_(VLayout().margins_(1).spacing_(1));
     var updateButtons;
 
     var swap = {|node, index2, index1|
@@ -443,13 +402,6 @@ Fdef(\sgui, {|node, index|
 
         node.changed(\reorder)
     };
-
-    //~swap.(~modal.node, 140, 110)
-    //~idx1 = ~modal.node.objects.indices.indexOf(90)
-    //~idx2 = ~modal.node.objects.indices[~idx1-1]
-    //~idx3 = ~modal.node.objects.indices[~idx1+1]
-    //~swap.(~modal.node, 140, 150)
-
 
     var moveUp = {|index|
 
@@ -522,6 +474,8 @@ Fdef(\sgui, {|node, index|
                             })
                             .maxWidth_(50),
                         )
+                        //.margins_(1)
+                        //.spacing_(1)
                     );
                 });
             };
@@ -533,32 +487,68 @@ Fdef(\sgui, {|node, index|
     if (index.isNil){
 
         view.layout.add(
-            HLayout(
-                playbutton.states_([ [">"], [ "[]" ] ]).action_({|ctrl|
-                    if (ctrl.value == 1) {
-                        node.play
-                    }{
-                        node.stop
-                    }
-                })
-                .maxWidth_(20)
-                .value_(node.isPlaying),
+            VLayout(
+                HLayout(
 
-                scope.(),
+                    st.(),
 
-                NumberBox().maxWidth_(25).action_({|ctrl|
-                    morphbeats = ctrl.value;
-                })
-                .value_(morphbeats),
+                    playbutton
+                    .states_([ [">"], [ "[]" ] ])
+                    .action_({|ctrl|
+                        if (ctrl.value == 1) {
+                            node.play
+                        }{
+                            node.stop
+                        }
+                    })
+                    .maxWidth_(20)
+                    .value_(node.isPlaying),
 
-                GridLayout.rows(
-                    buttons[0..6].collect(_.fixedSize_(10)),
-                    buttons[7..13].collect(_.fixedSize_(10))
-                ).margins_(0).spacing_(0),
+                    Button()
+                    .states_([ ["M", ], ["M", nil, QtGUI.palette.highlight] ])
+                    .action_({|ctrl|
+                        if (ctrl.value == 1) {
+                            fxnode.stop
+                        }{
+                            fxnode.play
+                        }
+                    })
+                    .maxWidth_(20),
+
+                    Knob().maxSize_(Size(20, 20))
+                    .action_({|ctrl|
+                        var val = ctrl.value.linlin(0, 1, 0, 2);
+                        fxnode.vol = val.debug("vol")
+                    })
+                    .value_(fxnode.vol.linlin(0, 2, 0, 1)),
+
+                    NumberBox()
+                    .maxWidth_(25)
+                    .action_({|ctrl|
+                        fxnode.monitor.out = ctrl.value;
+                    })
+                    .value_(fxnode.monitor.out),
+
+                     GridLayout.rows(
+                        buttons[0..6].collect(_.fixedSize_(10)),
+                        buttons[7..13].collect(_.fixedSize_(10))
+                    ).margins_(0).spacing_(0),
+
+                    NumberBox()
+                    .maxWidth_(25)
+                    .action_({|ctrl|
+                        morphbeats = ctrl.value;
+                    })
+                    .value_(morphbeats),
+
+                    nil
+                ),
+
+                scope.().maxHeight_(50),
+
+
             )
         );
-
-        view.layout.add(st.());
     };
     view.layout.add(scroll);
     view.layout.add(fxbuttonsview);

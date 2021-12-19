@@ -204,9 +204,7 @@ S : Pdef {
             this.set(key, spec.default);
         });
 
-        this.set(\instrument, synth);
-        this.set(\root, 0, \mtranspose, 0, \legato, 0.7);
-
+        this.set(\instrument, synth, \spread, 1, \pan, 0);
     }
 
     *initClass {

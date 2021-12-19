@@ -20,7 +20,7 @@ B {
 
     *read {arg key, path, channels=nil, cb;
         if (channels.isNil) {
-            Buffer.read(Server.default, path, action:{|buf|
+            ^Buffer.read(Server.default, path, action:{|buf|
                 var normalized = buf.normalize;
                 all.put(key, normalized);
                 "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
@@ -29,7 +29,7 @@ B {
             });
         }{
             channels = channels.asArray;
-            Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
+            ^Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
                 var normalized = buf.normalize;
                 all.put(key, normalized);
                 "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
@@ -53,6 +53,32 @@ B {
         all.put(key, buf);
         "allocated buffer with key: %".format(key).inform;
         ^buf;
+    }
+
+    // load random n seconds from sound file
+    *randN {|key, path, n=5, cb|
+
+        var file = SoundFile.openRead(path);
+        var numframes = file.numFrames;
+        var sr = file.sampleRate;
+
+        var secs = n * sr;
+        var twoseconds = 2 * sr;
+        var start = 0, end = -1;
+
+        if (numframes > secs) {
+            var max = numframes - secs;
+            var min = twoseconds;
+            start = (min..max).choose;
+            end = secs
+        };
+
+        ^Buffer.readChannel(Server.default, path, start, end, channels:[0], action: {|buf|
+            var normalized = buf.normalize;
+            all.put(key, normalized);
+            "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
+            cb.(normalized)
+        })
     }
 
     *loadWavetables {|key, path|

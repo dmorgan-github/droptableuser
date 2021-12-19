@@ -17,7 +17,7 @@ var getObjs = {
 var button = {|k, v|
 
     var name = k.asString[..19];
-    Button().states_([ [name], [name, nil, Color.green.alpha_(0.5)] ]).action_({|ctrl|
+    Button().states_([ [name], [name, nil, QtGUI.palette.highlight.alpha_(0.5)] ]).action_({|ctrl|
         if (ctrl.value == 1) {
             var children = buttonview.children;
             children.do({|child|
@@ -47,9 +47,27 @@ var button = {|k, v|
 
 var objs = getObjs.value;
 
+var buttonlayout = {|k, v|
+
+    \here12.postln;
+    HLayout(
+        Button()
+        .states_([ [">"], ["[]"] ])
+        .action_({|ctrl|
+            if (ctrl.value == 1) {
+                v.play
+            }{
+                v.stop
+            }
+        })
+        .value_(v.isPlaying),
+        button.(k, v)
+    )
+};
+
 objs.keysValuesDo({|k, v|
     buttons.add(
-        button.(k, v)
+        buttonlayout.(k, v)
     )
 });
 
@@ -101,9 +119,8 @@ update = {
     objs.keys.difference(oldObjs.keys).do({|k|
         var v = objs[k];
         hasNew = true;
-        buttons.add(
-            button.(k, v)
-        )
+        \here.postln;
+        buttonlayout.(k, v)
     });
     if (hasNew) {
         buttons.add(nil);

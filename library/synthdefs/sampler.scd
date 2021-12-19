@@ -142,16 +142,11 @@ SynthDef(\sampler, {
 
 	sig = LeakDC.ar(sig);
     sig = sig * adsr.() * \amp.kr(-10.dbamp) * \vel.kr(1);
-    sig = Splay.ar(sig, spread:\spread.kr(1), center:\pan.kr(0));
+    sig = Splay.ar(sig);
     SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase], replyid);
     Out.ar(\out.kr(0), sig);
 
 }, metadata: (
-    specs: (
-        rel: [0, 1, \lin, 0, 0.1].asSpec,
-        atk: [0, 1, \lin, 0, 0.01].asSpec,
-        curve: [-4, 4, \lin, 0, 0].asSpec
-    ),
     env: \adsr
 )).add;
 

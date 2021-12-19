@@ -30,13 +30,16 @@ D : Ndef {
             res.mold(2, \audio);
             res.wakeUp;
             res.vol = 1;
-            //res.quant = 4.0;
             res.postInit;
 
             res.filter(1000, {|in|
-                var sig = in;//Select.ar(CheckBadValues.ar(in, 0, 0), [in, DC.ar(0), DC.ar(0), in]);
+                var sig = in;
                 sig = Sanitize.ar(sig);
                 SafetyLimiter.ar(LeakDC.ar(sig));
+            });
+
+            res.filter(1010, {|in|
+                Splay.ar(in, \spread.kr(1), center:\pan.kr(0));
             });
 
             // if we're using a synthdef as a source

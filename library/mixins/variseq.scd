@@ -30,45 +30,25 @@ Pdef(\variseq, {
     }).flatten;
 
     vals = vals ++ [
-        \prob, Pbinop(
+        \hits, Pbinop(
             \wrapAt,
             Pfunc({|evt|
-                var val = evt[\prob].value;
+                var val = evt[\hits].value;
                 if (val.isNil) {
-                    val = [1]
+                    val = [1];
+                } {
+                    if (val.isString) {
+                        val = CollStream(val).all.collect({|char|
+                            if (char.isDecDigit) { char.digit/9 }{0}
+                        })
+                    }
                 };
                 val.asArray;
             }),
             Pkey(\count)
-        ),
-        \hit, Pfunc({|evt|
-            if (evt[\prob].coin) {
-                1
-            }{
-                Rest(1)
-            }
-        }),
-        /*
-        \durval, Pbinop(
-            \wrapAt,
-            Pfunc({|evt|
-                var val = evt[\durs].value;
-                if (val.isNil) {
-                    val = [1]
-                };
-                val.asArray;
-            }),
-            Pkey(\count)
-        ),
-        \dur, Pfunc({|evt|
-            var dur = evt[\durval].value;
-            if (dur.isNumber) {
-                dur
-            }{
-                evt[\dur]
-            };
+        ).collect({|val|
+            if (val.coin) {1} {Rest(1)}
         })
-        */
     ];
 
     Pbind(*vals)

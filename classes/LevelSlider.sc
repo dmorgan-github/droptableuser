@@ -1,6 +1,6 @@
-NiceSlider : View {
+LevelSlider : View {
 
-    var myval;
+    var currentval;
     var li, nb, valueView, nbView, labelView, slider, stack;
     var spec, precision = 0.001;
 
@@ -9,15 +9,20 @@ NiceSlider : View {
     }
 
     value_ {|val|
-        myval = val;
-        valueView.string = myval.trunc(precision);
-        li.value = spec.unmap(myval);
-        nb.value = myval;
+        currentval = val;
+        valueView.string = val.trunc(precision);
+        li.value = spec.unmap(currentval);
+        nb.value = currentval;
     }
 
     value {
-        ^myval
+        ^currentval
     }
+
+    valueAction_ {|anInt|
+		this.value_(anInt);
+		action.value(this);
+	}
 
     style_ {|val|
         li.style = val
@@ -39,7 +44,6 @@ NiceSlider : View {
         nb = NumberBox();
         valueView = StaticText();
 
-
         nbView = View().layout_(
             HLayout(
                 nb
@@ -50,7 +54,8 @@ NiceSlider : View {
                     var val = ctrl.value;
                     li.value = spec.unmap(val);
                     valueView.string_(val);
-                    myval = val;
+                    currentval = val;
+                    action.value(this);
                     stack.index = 0;
                 })
             )
@@ -72,13 +77,15 @@ NiceSlider : View {
             sliderView
             .layout_(slider)
             .mouseMoveAction_({|ctrl, x, y, mod|
-                var val = x.linlin(0, ctrl.bounds.width, 0, 1);
+                //var val = x.linlin(0, ctrl.bounds.width, 0, 1);
+                var val = x.linlin(0, li.bounds.width, 0, 1);
                 var mappedVal = spec.map(val);
                 if (mod == 0) {
                     li.value = val;
                     valueView.string_(mappedVal.trunc(precision));
                     nb.value = mappedVal;
-                    myval = mappedVal;
+                    currentval = mappedVal;
+                    action.value(this);
                 };
                 true;
             })
@@ -88,15 +95,18 @@ NiceSlider : View {
                     li.value = spec.unmap(val);
                     valueView.string_(val.trunc(precision));
                     nb.value = val;
-                    myval = val;
+                    currentval = val;
+                    action.value(this);
                 } {
                     if (mod == 0) {
-                        var val = x.linlin(0, ctrl.bounds.width, 0, 1);
+                        //var val = x.linlin(0, ctrl.bounds.width, 0, 1);
+                        var val = x.linlin(0, li.bounds.width, 0, 1);
                         var mappedVal = spec.map(val);
                         li.value = val;
                         valueView.string_(mappedVal.trunc(precision));
                         nb.value = mappedVal;
-                        myval = mappedVal;
+                        currentval = mappedVal;
+                        action.value(this);
                         true;
                     };
                 };
