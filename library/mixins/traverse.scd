@@ -14,6 +14,7 @@ Pdef(\test).play
 Pdef(\test).stop
 */
 
+
 (
 Pdef(\traverse, Pbind(
     'val', Prout({|evt|
@@ -37,6 +38,30 @@ Pdef(\traverse, Pbind(
         })
     })
 ));
+
+
+/*
+(
+var degrees = Scale.major.degrees;
+var root = 'C1'.namemidi;
+var step = 7;
+~data = degrees.collect({|degree|
+    var val = root + degree + (step * (0..7));
+    val.nearestInScale(degrees);
+});
+)
+
+[
+    [ C1, G1, D2, A2, E3, B3, G4, D5 ],
+    [ D1, A1, E2, B2, G3, D4, A4, E5 ],
+    [ E1, B1, G2, D3, A3, E4, B4, F5 ],
+    [ F1, C2, G2, D3, A3, E4, B4, G5 ],
+    [ G1, D2, A2, E3, B3, G4, D5, A5 ],
+    [ A1, E2, B2, G3, D4, A4, E5, B5 ],
+    [ B1, G2, D3, A3, E4, B4, F5, C6 ]
+]
+
+*/
 
 /*
 Pdef('\traverseXY').set(\data, ~data, \x, [0, 1, 1, 2, 3, 3, 3], \y, [0, 1, 3].mirror)

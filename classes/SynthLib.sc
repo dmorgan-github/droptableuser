@@ -1,14 +1,32 @@
 
 SynthLib {
 
-    var <>func, <>specs, <>name, <>presets, <>notes;
+    var <synthfunc, <>specs, <>name, <>presets, <>notes, <>envir;
 
     *new {|key|
         ^super.new.prInit(key);
     }
 
+    func {
+        // NOTE: func.inEnvir won't work with Ndef sources
+        // unless you wrap it in another function or create a synthdef first
+        // there must be some kind of conflict with environments
+        // it works ok with filters but just not with sources
+        ^synthfunc.inEnvir(envir)
+    }
+
+    func_ {|val|
+        synthfunc = val
+    }
+
+    put {|key, val|
+        envir.put(key, val);
+        ^this
+    }
+
     prInit {|key|
 
+        envir = ();
         if (key.isNil) {
             // no op
         } {
@@ -19,7 +37,7 @@ SynthLib {
 
             if (File.exists(fullpath)) {
                 var obj = File.open(fullpath, "r").readAllString.interpret;
-                func = obj[\synth];
+                synthfunc = obj[\synth];
                 specs = obj[\specs];
                 notes = obj[\notes];
                 if (obj[\presets].notNil) {
@@ -32,8 +50,9 @@ SynthLib {
         ^this;
     }
 
-    addSynthDef {|template=\adsr|
-        SynthLib.def(key:this.name, func:this.func, template:template, specs:this.specs)
+    addSynthDef {|template=\adsr, name|
+        name = name ?? {this.name};
+        SynthLib.def(key:name, func:this.func, template:template, specs:this.specs)
     }
 
     *def {|key, func, template=\adsr, specs|
@@ -43,14 +62,26 @@ SynthLib {
 
         if (File.exists(fullpath)) {
             var template = File.open(fullpath, "r").readAllString.interpret;
-            template.(key, func, specs);
+            template.(key.asSymbol, func, specs);
             "synth created".debug(key);
         } {
             Error("synth template not found").throw;
         };
     }
 
-    *ls {
+    *ls {|path|
+
+        var fullpath = App.librarydir ++ (path ?? {"synths"});
+        var pn = PathName(fullpath);
+        pn.entries.do({|obj|
+            if ( obj.isFolder ) {
+                "%/".format(obj.folderName).postln
+            }{
+                obj.fileName.postln;
+            }
+        })
+
+        /*
         SynthDescLib.all[\global].synthDescs
         .keys
         .reject({|key|
@@ -59,6 +90,12 @@ SynthLib {
         .asArray
         .sort
         .do({|val| val.postln})
+        */
+    }
+
+    *open {|path|
+        var fullpath = App.librarydir ++ path;
+        Document.open(fullpath)
     }
 
     *printSynthControls {|synth|

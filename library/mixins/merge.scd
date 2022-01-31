@@ -2,6 +2,7 @@
 var toMerge = List();
 var mergeFunc = {arg events;
 		//events.detect({arg e; e[\foo] == 1})
+    /*
 	var event = events.detect({arg e; e[\foo] == 1});
 	if (event.isNil.not) {
 		event;
@@ -13,6 +14,15 @@ var mergeFunc = {arg events;
 			events.choose;
 		}
 	}
+    */
+
+    var nonrest = events.detect({|e| e.isRest.not });
+    if (nonrest.isNil.not) {
+        nonrest
+    } {
+        events.choose
+    }
+
 };
 
 Pdef(\t1_filter, Pfunc({arg event;

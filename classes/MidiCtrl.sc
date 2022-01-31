@@ -31,30 +31,31 @@ MidiCtrl {
     *update {
 
         // adapted from here: https://github.com/scztt/MIDIWatcher.quark/blob/master/MIDIWatcher.sc
-		var oldSources, oldDestinations;
+        var oldSources, oldDestinations;
         oldSources = sources ?? { () };
         oldDestinations = destinations ?? { () };
 
-		MIDIClient.list;
+        MIDIClient.list;
 
         sources = MIDIClient.sources.collectAs({ |e| e.asSymbol -> e }, IdentityDictionary);
-		destinations = MIDIClient.destinations.collectAs({ |e| e.asSymbol -> e}, IdentityDictionary);
+        destinations = MIDIClient.destinations.collectAs({ |e| e.asSymbol -> e}, IdentityDictionary);
 
-		oldSources.keys.difference(sources.keys).do {|removed|
+        oldSources.keys.difference(sources.keys).do {|removed|
             [\sourceRemoved, oldSources[removed]].postln;
             MIDIIn.disconnect(device:oldSources[removed])
-		};
-		oldDestinations.keys.difference(destinations.keys).do {|removed|
+        };
+        oldDestinations.keys.difference(destinations.keys).do {|removed|
             [ \destinationRemoved, oldDestinations[removed] ].postln;
-		};
+        };
 
-		sources.keys.difference(oldSources.keys).do {|added|
+        sources.keys.difference(oldSources.keys).do {|added|
             [ \sourceAdded, sources[added] ].postln;
             MIDIIn.connect(device:sources[added]);
-		};
-		destinations.keys.difference(oldDestinations.keys).do {|added|
+        };
+        destinations.keys.difference(oldDestinations.keys).do {|added|
             [ \destinationAdded, destinations[added] ].postln;
-		};
+        };
+
 	}
 
     *initClass {

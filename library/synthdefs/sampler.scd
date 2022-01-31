@@ -104,22 +104,31 @@ SynthDef(\loopr2, {
 
 SynthDef(\sampler, {
 
+    var freq = \freq.kr(60.midicps);
+    var gate = \gate.kr(1);
     var updateFreq = 15;
+    var root = \rootfreq.kr(60.0.midicps,
+        spec:ControlSpec(20, 20000, \exp, 0, 60.0.midicps)
+    ).clip(20, 20000);
     var replyid = \bufposreplyid.kr(-1);
     var buf = \buf.kr(0);
-    var gate = \gate.kr(1);
     var numframes = BufFrames.kr(buf);
     var start = \startPos.kr(0);
     var end = \endPos.kr(1).max(start);
-    var rate = \rate.kr(1) * BufRateScale.kr(buf);
-    var dir = \dir.kr(1);
-    var phase = dir * Phasor.ar(rate: rate, start:numframes * start, end:numframes * end);
+    var pitched = \pitched.kr(0, spec:ControlSpec(0, 1, \lin, 1, 0));
+    var rate = Select.kr(pitched, [
+        \rate.kr(1),
+        freq/root
+    ]);
+
+    var dir = Select.kr(\dir.kr < 0.5, [1, -1]);
+    var phase = dir * Phasor.ar(rate: rate * BufRateScale.kr(buf), start:numframes * start, end:numframes * end);
 
     var adsr = {
         var atk = \atk.kr(0.01);
         var dec = \dec.kr(0.1);
         var rel = \rel.kr(0.1);
-        var suslevel = \suslevel.kr(0.7);
+        var suslevel = \suslevel.kr(1);
         var ts = \ts.kr(1);
         var curve = [\atkcurve.kr(-4), \deccurve.kr(-4), \relcurve.kr(-4)];//\curve.kr(-4);
         var env = Env.adsr(

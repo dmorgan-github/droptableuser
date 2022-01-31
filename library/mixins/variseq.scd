@@ -18,13 +18,23 @@ Pdef(\variseq, {
                 var val = evt[key].value(cycle);
                 if (val.isNil) {
                     val = [1]
+                } {
+                    if (val.isString) {
+                        val = CollStream(val).all.collect({|char|
+                            if (char.isDecDigit) { char.digit }{ Rest(1) }
+                        })
+                    }
                 };
                 val.asArray;
             }),
             Pkey(\count)
         ).collect({|val, evt|
             var cnt = evt[\count];
-            val.value(cnt, evt)
+            if (val.isRest) {
+                val
+            }{
+                val.value(cnt, evt)
+            }
         })
         ];
     }).flatten;

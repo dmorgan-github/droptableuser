@@ -782,7 +782,7 @@ Y {
     https://scsynth.org/t/rhythmic-algorithms/3648/5
     Y.polybjorklund([3, 2, 2], 24, [4, 0, 3]).asStream.nextN(25);
     */
-    *polybjorklund  {|k = 4, n = 12, offset = 0, weight = 1|
+    *polybjorklund {|k = 4, n = 12, offset = 0, weight = 1|
         // k: number of "hits" per phrase (use an array for polyrhythms, integer for monorhythm)
         // n: number of beats in a phrase (use an array for polymeters, integer for monometer)
         // offset: rotate the rhythms by some integer (use an array to get different offsets for each sub-rhythm)
@@ -801,6 +801,27 @@ Y {
         ^output.clip(0, 1);
     }
 
+    *vowelmap {|str|
+        ^str
+        .stripWhiteSpace
+        .replace($\ , "")
+        .toLower
+        .ascii
+        .reject({|val| (val < 97 or: {val > 122} ) })
+        .collect({|val|
+            switch(val)
+            {97} {1}  // a
+            {101} {1} // e
+            {105} {1} // i
+            {111} {1} // o
+            {117} {1} // u
+            {0};
+        })
+    }
+
+    *binary {|int, numDigits=8|
+        ^int.asBinaryDigits(numDigits)
+    }
 
     // this will clip the last value to make it fit to target
     /*

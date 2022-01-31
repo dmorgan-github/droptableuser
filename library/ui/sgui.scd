@@ -1,4 +1,55 @@
 (
+var vsts = {
+    if (~vstlist.isNil) {
+        ~vstlist = V
+        .ls
+        .reject({arg val;
+            val.asString.endsWith(".vst3") or: val.asString.contains("/");
+        });
+        ~vstlist = ~vstlist.sort;
+    };
+    ~vstlist
+};
+
+var browse = {arg path, files=List.new;
+    var folder = PathName.new(path);
+    if (folder.isFolder) {
+        var folders = folder.folders;
+        files = files.addAll(folder.files);
+        folders.do({arg folder;
+            browse.(folder.fullPath, files);
+        });
+    };
+    files;
+};
+
+var scope = {|node|
+
+    //var node = fxnode;
+
+    var view = View().layout_(VLayout().margins_(0).spacing_(0));
+    //.maxHeight_(10);
+
+    var scope = Stethoscope.new(s, view:view).style_(1)
+    .index_(node.bus.index)
+    .numChannels_(2).yZoom_(10).xZoom_(10);
+    //win.onClose = { scope.free;  };
+    4.do({
+        view.children[0].children[0].remove
+    });
+    //view.children[0].children[0].waveColors_([color, color.complementary]);
+    view.children[0].children[2].remove;
+    view.children[0].children[1].remove;
+    //view.maxHeight = 20;
+    view.children[0].children[0].background = QtGUI.palette.window;
+    //view.maxWidth = 80;
+    view.onClose = { scope.free };
+    view.mouseUpAction = {
+        node.scope
+    };
+    view;
+};
+
 Require(App.librarydir ++ "ui/common.scd");
 Fdef(\sgui, {|node, index|
 
@@ -50,49 +101,31 @@ Fdef(\sgui, {|node, index|
             node.get(key).isNumber
         })
         .reject({|key|
-            [\gate, \trig,
-                \out, \in,
-                \bufposreplyid, \wet1000,
+            [\gate,
+                \trig,
+                \out,
+                \in,
+                \bufposreplyid,
+                \wet1000,
                 \wet1010,
-                \fadeTime, \envbuf,
-                \legato, \stretch
+                \fadeTime,
+                \envbuf,
+                \buf,
+                \pan,
+                \amp,
+                \spread,
+                \vol
             ].includes(key)
         }).asArray
         .sort({|a, b|
-
             var specA = getSpec.(a);
             var specB = getSpec.(b);
             "%%".format(specA.units, a) < "%%".format(specB.units, b)
         })
     };
 
-    var vsts = {
-        if (~vstlist.isNil) {
-            ~vstlist = V
-            .ls
-            .reject({arg val;
-                val.asString.endsWith(".vst3") or: val.asString.contains("/");
-            });
-            ~vstlist = ~vstlist.sort;
-        };
-        ~vstlist
-    };
-
-    var browse = {arg path, files=List.new;
-        var folder = PathName.new(path);
-        if (folder.isFolder) {
-            var folders = folder.folders;
-            files = files.addAll(folder.files);
-            folders.do({arg folder;
-                browse.(folder.fullPath, files);
-            });
-        };
-        files;
-    };
-
-    var paths = browse.(path);
-
-    var st = {
+    var fxmenu = {
+        var paths = browse.(path);
         StaticText().string_("...")
         .setContextMenuActions(
             *(
@@ -209,11 +242,17 @@ Fdef(\sgui, {|node, index|
         });
 
         sliders = keys.collect({|key, i|
-            LevelSlider(key, spec:controls[i].spec, color:color).maxHeight_(25)
+            LevelSlider(key, spec:controls[i].spec, color:color).maxHeight_(20)
             .value_(controls[i].input)
         });
 
-        ctrls = keys.collect({|key, i|
+        ctrls = [];
+
+        if (node.get(\buf).notNil and: {index.isNil}) {
+            ctrls.add( U(\buf, node).maxHeight_(100))
+        };
+
+        ctrls = ctrls ++ keys.collect({|key, i|
 
             var new;
             var spec = getSpec.(key);
@@ -249,13 +288,6 @@ Fdef(\sgui, {|node, index|
                                 func.()
                             })
                         };
-                        if (prevunit == "buf") {
-                            st.mouseUpAction_({
-                                if (key == \buf) {
-                                    U(\buf, node)
-                                }
-                            })
-                        };
                         st;
                     }{
                         nil
@@ -266,6 +298,49 @@ Fdef(\sgui, {|node, index|
                 ).margins_(0).spacing_(0)
             );
         });
+
+        if (index.isNil) {
+
+            ctrls = ctrls ++ [
+                HLayout(
+                    nil,
+                    VLayout(
+                        Knob().action_({|ctrl|
+                            var val = ctrl.value.linlin(0, 1, 0, 2);
+                            node.set(\amp, val);
+                            log.("amp: %".format(val));
+                        })
+                        .maxSize_(Size(30,30))
+                        .value_(node.get(\amp).linlin(0, 2, 0, 1)),
+                        StaticText().string_("amp").align_(\center)
+                    ),
+                    nil,
+                    VLayout(
+                        Knob().action_({|ctrl|
+                            node.set(\spread, ctrl.value);
+                            log.("width: %".format(ctrl.value));
+                        })
+                        .maxSize_(Size(30,30))
+                        .value_(node.get(\spread)),
+                        StaticText().string_("width").align_(\center)
+                    ),
+                    nil,
+                    VLayout(
+                        Knob().action_({|ctrl|
+                            var val = ctrl.value.linlin(0, 1, -1, 1);
+                            node.set(\pan, val);
+                            log.("pan: %".format(val));
+                        })
+                        .maxSize_(Size(30,30))
+                        .value_(node.get(\pan).linlin(-1, 1, 0, 1)),
+                        StaticText().string_("pan").align_(\center)
+                    ),
+                    nil
+                )
+
+            ];
+
+        };
 
         view = View()
         .layout_(VLayout(envView, *ctrls).margins_(2).spacing_(2));
@@ -297,34 +372,7 @@ Fdef(\sgui, {|node, index|
         view
     };
 
-    var scope = {
-
-        var node = fxnode;
-
-        var view = View().layout_(VLayout().margins_(0).spacing_(0));
-        //.maxHeight_(10);
-
-        var scope = Stethoscope.new(s, view:view).style_(1)
-        .index_(node.bus.index)
-        .numChannels_(2).yZoom_(10).xZoom_(10);
-        //win.onClose = { scope.free;  };
-        4.do({
-            view.children[0].children[0].remove
-        });
-        view.children[0].children[0].waveColors_([color, color.complementary]);
-        view.children[0].children[2].remove;
-        view.children[0].children[1].remove;
-        //view.maxHeight = 20;
-        view.children[0].children[0].background = QtGUI.palette.window;
-        //view.maxWidth = 80;
-        view.onClose = { scope.free };
-        view.mouseUpAction = {
-            node.scope
-        };
-        view;
-    };
-
-    var view = View(bounds:275@200)
+    var view = View(bounds:275@350)
     .layout_(VLayout().margins_(2).spacing_(2))
     .name_(windowname);
 
@@ -490,20 +538,30 @@ Fdef(\sgui, {|node, index|
             VLayout(
                 HLayout(
 
-                    st.(),
+                    fxmenu.(),
 
                     playbutton
                     .states_([ [">"], [ "[]" ] ])
                     .action_({|ctrl|
                         if (ctrl.value == 1) {
-                            node.play
+                            node.play(fadeTime:node.fadeTime)
                         }{
-                            node.stop
+                            node.stop(fadeTime:node.fadeTime)
                         }
                     })
+                    .toolTip_("play")
                     .maxWidth_(20)
                     .value_(node.isPlaying),
 
+                    Button()
+                    .states_( [ ["0"] ] )
+                    .toolTip_("record")
+                    .maxWidth_(35)
+                    .action_({|ctrl|
+                        fxnode.rec(5)
+                    }),
+
+                    /*
                     Button()
                     .states_([ ["M", ], ["M", nil, QtGUI.palette.highlight] ])
                     .action_({|ctrl|
@@ -513,40 +571,41 @@ Fdef(\sgui, {|node, index|
                             fxnode.play
                         }
                     })
+                    .toolTip_("mute")
                     .maxWidth_(20),
-
-                    Knob().maxSize_(Size(20, 20))
-                    .action_({|ctrl|
-                        var val = ctrl.value.linlin(0, 1, 0, 2);
-                        fxnode.vol = val.debug("vol")
-                    })
-                    .value_(fxnode.vol.linlin(0, 2, 0, 1)),
+                    */
 
                     NumberBox()
-                    .maxWidth_(25)
+                    .action_({|ctrl|
+                        fxnode.fadeTime = ctrl.value;
+                    })
+                    //.minWidth_(15)
+                    .toolTip_("fade time")
+                    .value_(fxnode.fadeTime),
+
+                    NumberBox()
+                    //.maxWidth_(35)
                     .action_({|ctrl|
                         fxnode.monitor.out = ctrl.value;
                     })
+                    .toolTip_("out bus")
                     .value_(fxnode.monitor.out),
 
-                     GridLayout.rows(
+                    GridLayout.rows(
                         buttons[0..6].collect(_.fixedSize_(10)),
                         buttons[7..13].collect(_.fixedSize_(10))
                     ).margins_(0).spacing_(0),
 
                     NumberBox()
-                    .maxWidth_(25)
+                    //.maxWidth_(25)
                     .action_({|ctrl|
                         morphbeats = ctrl.value;
                     })
-                    .value_(morphbeats),
-
-                    nil
+                    .toolTip_("morph time")
+                    .value_(morphbeats)
                 ),
 
-                scope.().maxHeight_(50),
-
-
+                //scope.().maxHeight_(50),
             )
         );
     };

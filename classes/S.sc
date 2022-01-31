@@ -2,6 +2,10 @@
 Synth
 */
 
+/*
+nice colors:
+Color(0.60549101829529, 0.63466150760651, 0.86493694782257, 0.2)
+*/
 S : Pdef {
 
     var <node, <cmdperiodfunc, <>color;
@@ -14,7 +18,10 @@ S : Pdef {
         if (res.isNil) {
             res = super.new(key).prInit
         };
-
+        if (synth.notNil) {
+            res.synth = synth;
+        };
+        currentEnvironment[key] = res;
         ^res;
     }
 
@@ -88,6 +95,12 @@ S : Pdef {
 
     out_ {|bus|
         this.node.monitor.out = bus
+    }
+
+    print {
+        this.envir.copy.parent_(nil).getPairs.asCode.postln;
+        "------------------".postln;
+        this.node.print;
     }
 
     source_ {|pattern|
@@ -204,7 +217,7 @@ S : Pdef {
             this.set(key, spec.default);
         });
 
-        this.set(\instrument, synth, \spread, 1, \pan, 0);
+        this.set(\instrument, synth, \spread, 1, \pan, 0, \stretch, 1, \legato, 0.7);
     }
 
     *initClass {

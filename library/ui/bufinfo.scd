@@ -1,7 +1,8 @@
 (
 Require(App.librarydir ++ "ui/common.scd");
 Fdef(\bufinfo, {arg buf;
-    var bufname = PathName(buf.path).fileName;
+
+    var bufname = if (buf.path.notNil) { PathName(buf.path).fileName } { "buf" };
     var view = View().layout_(VLayout().margins_(0).spacing_(0)).minSize_(Size(300, 150));
     var sfv = SoundFileView()
     .gridResolution_(0.0)

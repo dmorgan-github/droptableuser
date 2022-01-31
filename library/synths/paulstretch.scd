@@ -1,25 +1,32 @@
 (
-SynthDef(\paulstretchMono, {arg out = 0, bufnum, envBufnum, pan = 0, stretch = 50, window = 0.25, amp = 1;
-	// Paulstretch for SuperCollider
-	// Based on the Paul's Extreme Sound Stretch algorithm by Nasca Octavian PAUL
-	// https://github.com/paulnasca/paulstretch_python/blob/master/paulstretch_steps.png
-	//
-	// By Jean-Philippe Drecourt
-	// http://drecourt.com
-	// April 2020
-	//
-	// Arguments:
-	// out: output bus (stereo output)
-	// bufnum: the sound buffer. Must be Mono. (Use 2 instances with Buffer.readChannel for stereo)
-	// envBufnum: The grain envelope buffer created as follows:
-	//// envBuf = Buffer.alloc(s, s.sampleRate, 1);
-	//// envSignal = Signal.newClear(s.sampleRate).waveFill({|x| (1 - x.pow(2)).pow(1.25)}, -1.0, 1.0);
-	//// envBuf.loadCollection(envSignal);
-	// pan: Equal power panning, useful for stereo use.
-	// stretch: stretch factor (modulatable)
-	// window: the suggested grain size, will be resized to closest fft window size
-	// amp: amplification
-	var trigPeriod, sig, chain, trig, pos, fftSize;
+// http://sccode.org/1-5d6
+// Based on the Paul's Extreme Sound Stretch algorithm by Nasca Octavian PAUL
+// https://github.com/paulnasca/paulstretch_python/blob/master/paulstretch_steps.png
+//
+// By Jean-Philippe Drecourt
+// http://drecourt.com
+// April 2020
+synth: {
+
+    var bufnum = \buf.kr(0);
+    var envBufnum = {
+        if (~psenvbuf.isNil) {
+            var server = Server.default;
+            var envBuf = Buffer.alloc(server, server.sampleRate, 1);
+            var envSignal = Signal.newClear(server.sampleRate).waveFill({|x| (1 - x.pow(2)).pow(1.25)}, -1.0, 1.0);
+            envBuf.loadCollection(envSignal);
+            ~psenvbuf = envBuf;
+        };
+        ~psenvbuf.debug("paulstretch envbuf");
+    }.();
+
+    //var pan = \pan.kr(0);
+    var stretch = \stretchamt.kr(50, spec: ControlSpec(1, 100, \lin, 0, 50, "stretch"));
+    var window = \window.kr(0.25);
+    var amp = \amp.kr(0.dbamp);
+
+    var trigPeriod, sig, chain, trig, pos, fftSize;
+
 	// Calculating fft buffer size according to suggested window size
 	fftSize = 2**floor(log2(window*SampleRate.ir));
 	// Grain parameters
@@ -44,6 +51,8 @@ SynthDef(\paulstretchMono, {arg out = 0, bufnum, envBufnum, pan = 0, stretch = 5
 	// Delay second grain by half a grain length for superposition
 	sig[1] = DelayC.ar(sig[1], trigPeriod/2, trigPeriod/2);
 	// Panned output
-	Out.ar(out, Pan2.ar(Mix.new(sig), pan));
-}).add;
+	//Out.ar(out, Pan2.ar(Mix.new(sig), pan));
+    //Mix.new(sig)
+    sig.sum!2 * amp
+}
 )

@@ -4,7 +4,11 @@ SynthDef(\frame_drum, {
 	// Standard values
 	out = 0, pan = 0, freq = 170, amp = 0.5, atk = 0.0025, dec = 0.0025, rel = 5, curve = 0,
 	// Other controls (position goes from 0 to 1, blend from -1 to 1)
-	decCoef = 0.225, position = 0.8, thumpAmp = 0.5, thumpDec = 0.2, exBlend = 0;
+	decCoef = 0.225, thumpAmp = 0.5, thumpDec = 0.2;
+
+
+    var position = \position.kr(0.8, spec: ControlSpec(0, 1, \lin, 0, 0.8));
+    var exBlend = \exBlend.kr(0, spec: ControlSpec(-1, 1, \lin, 0, 0));
 
 	var exciter, freqArray, ampRowArray, ampArray, decArray, snd;
 

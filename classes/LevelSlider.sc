@@ -5,7 +5,7 @@ LevelSlider : View {
     var spec, precision = 0.001;
 
     *new {|label, spec, color|
-        ^super.new().initNiceSlider(label, spec, color);
+        ^super.new().initLevelSlider(label, spec, color);
     }
 
     value_ {|val|
@@ -28,7 +28,7 @@ LevelSlider : View {
         li.style = val
     }
 
-    initNiceSlider {|argLabel, argSpec, argColor|
+    initLevelSlider {|argLabel, argSpec, argColor|
 
         var color = argColor ?? {Color.rand};
         var sliderView = View();
@@ -62,10 +62,10 @@ LevelSlider : View {
             .margins_(3).spacing_(0)
         );
 
-        labelView = StaticText().string_("%: ".format(argLabel));
+        labelView = StaticText().string_("% ".format(argLabel));
 
         slider = StackLayout(
-            View().layout_(HLayout(labelView, valueView, nil).margins_(3).spacing_(0)),
+            View().layout_(HLayout(labelView, nil, valueView).margins_(3).spacing_(0)),
             li,
             nil
         )

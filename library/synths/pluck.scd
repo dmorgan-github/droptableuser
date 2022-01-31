@@ -1,9 +1,9 @@
 (
 synth: {|freq, gate, aeg|
-	var trig = Impulse.ar(0);
+    var trig = Impulse.ar(0);
     var decay = \pluckdecay.kr(0.9);
     var coef = \coef.kr(0.5);
-	var sig = Pluck.ar(
+    var sig = Pluck.ar(
         Hasher.ar(Sweep.ar(trig)),
         trig,
         freq.reciprocal,
@@ -11,8 +11,8 @@ synth: {|freq, gate, aeg|
         decaytime:decay,
         coef:coef
     );
-	sig = LeakDC.ar(sig);
-	sig;
+    sig = LeakDC.ar(sig);
+    sig;
 },
 specs: [
     pluckdecay: ControlSpec(0.01, 1.0, \lin, 0, 0.9, units:"pluck"),

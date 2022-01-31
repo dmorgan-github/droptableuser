@@ -2,22 +2,39 @@
 
     kr { | val, lag, fixedLag = false, spec |
         var name = "%%".format(this, ~num ?? {""});
-		^NamedControl.kr(name, val, lag, fixedLag, spec)
+        if (currentEnvironment[this].notNil ) {
+            ^currentEnvironment[this]
+        } {
+            ^NamedControl.kr(name, val, lag, fixedLag, spec)
+        }
 	}
 
 	ir { | val, spec |
         var name = "%%".format(this, ~num ?? {""});
-		^NamedControl.ir(name, val, spec:spec)
+		if (currentEnvironment[this].notNil ) {
+            ^currentEnvironment[this]
+        } {
+            ^NamedControl.ir(name, val, spec:spec)
+        }
 	}
 
 	tr { | val, spec |
         var name = "%%".format(this, ~num ?? {""});
-		^NamedControl.tr(name, val, spec:spec)
+		if (currentEnvironment[this].notNil ) {
+            ^currentEnvironment[this]
+        } {
+            ^NamedControl.tr(name, val, spec:spec)
+        }
 	}
 
-	ar { | val, lag, spec |
+	ar {| val, lag, spec |
         var name = "%%".format(this, ~num ?? {""});
-		^NamedControl.ar(name, val, lag, spec)
+		if (currentEnvironment[this].notNil ) {
+            \fuckoffa.postln;
+            ^currentEnvironment[this]
+        } {
+            ^NamedControl.ar(name, val, lags:lag, spec:spec)
+        }
 	}
 }
 
@@ -62,7 +79,7 @@
             "buffer_%".format(buffer.bufnum);
         };
         var synth = SynthLib('synths/grainr');
-        var node = D("%_grainr".format(bufname).asSymbol).put(0, synth.func);
+        var node = D("%_grainr".format(bufname.replace(" ", "_").toLower).asSymbol).put(0, synth.func);
         node.set(\buf, buffer.bufnum);
         node.addSpec(*synth.specs);
         ^node
@@ -78,6 +95,10 @@
     plazy { ^Plazy(this) }
 
     s {|key| ^S(key).source_(this.plazy) }
+
+    addSynthDef {|key, template='adsr'|
+        SynthLib.def(key, this, template)
+    }
 }
 
 + SequenceableCollection {

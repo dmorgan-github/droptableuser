@@ -32,16 +32,6 @@ D : Ndef {
             res.vol = 1;
             res.postInit;
 
-            res.filter(1000, {|in|
-                var sig = in;
-                sig = Sanitize.ar(sig);
-                SafetyLimiter.ar(LeakDC.ar(sig));
-            });
-
-            res.filter(1010, {|in|
-                Splay.ar(in, \spread.kr(1), center:\pan.kr(0));
-            });
-
             // if we're using a synthdef as a source
             // copy the specs if they are defined
             res.addDependant({|node, what, args|
@@ -65,7 +55,39 @@ D : Ndef {
             res.monitor.out = defaultout;
         };
 
+        // initialize or re-initialize
+        res.filter(1000, {|in|
+            var sig = in;
+            sig = Sanitize.ar(sig);
+            SafetyLimiter.ar(LeakDC.ar(sig));
+        });
+
+        res.filter(1010, {|in|
+            Splay.ar(
+                in * \vol.kr(-6.dbamp, spec:ControlSpec(0, 2, \lin, 0, -6.dbamp, "vol")),
+                spread: \spread.kr(1),
+                center: \pan.kr(0)
+            );
+        });
+
         ^res;
+    }
+
+    node {
+        ^this
+    }
+
+    print {
+        this.fxchain.asCode.postln;
+        "------------------".postln;
+        this.nodeMap.getPairs.asCode.postln;
+        "------------------".postln;
+        this.fxchain.do({|fx|
+            if (fx.type == \vst) {
+                V.printPatternParams(fx.name, fx.ctrl);
+                "------------------".postln;
+            }
+        })
     }
 
     prInit {|argKey|
@@ -102,6 +124,16 @@ D : Ndef {
 	*doesNotUnderstand {|selector|
 		^this.new(selector);
 	}
+
+    put {|index, obj, channelOffset = 0, extraArgs, now = true|
+        super.put(index, obj, channelOffset, extraArgs, now);
+        {
+            this.specs
+            .keysValuesDo({|key, value|
+                this.addSpec(key, value)
+            })
+        }.defer(0.5)
+    }
 
     // syntactic sugar
     @ {|val, adverb|
@@ -161,18 +193,19 @@ D : Ndef {
             this.removeAt(index);
             this.fxchain.removeAt(index);
         }{
+            var specs;
             if (fx.isFunction) {
                 this.filter(index, fx);
                 this.fxchain.put(index, (name:"func_%".format(UniqueID.next), type:'func'));
             }{
-                var context = {
-                    var num = this.fxchain.select({|obj| obj.name == fx }).size;
-                    if (num > 0) {
-                        env = env ?? { () };
-                        env[\num] = num+1;
+                var num = {
+                    var num;
+                    var size = this.fxchain.select({|obj| obj.name == fx }).size;
+                    if (size > 0) {
+                        num = size+1;
                     };
-                    env;
-                };
+                    num;
+                }.();
 
                 if (fx.asString.beginsWith("vst/")) {
                     var vst = fx.asString.split($/)[1..].join("/").asSymbol;
@@ -182,23 +215,24 @@ D : Ndef {
                     });
                 }{
                     var obj = SynthLib("fx/%".format(fx).asSymbol);
-                    var func = obj.func.inEnvir(context.value);
-                    var specs = obj.specs;
+                    var func = obj.put('num', num).func;//.inEnvir(context.value);
+                    specs = obj.specs;
                     this.filter(index, func);
-                    if (specs.isNil or: {specs.isEmpty}) {
-                        {
-                            specs = this.objects[index].specs;
-                            if (specs.isNil.not) {
-                                this.addSpec(*specs.getPairs);
-                            };
-                        }.defer(1)
-                    } {
-                        this.addSpec(*specs);
-                    };
-
                     this.fxchain.put(index, (name:fx, type:'func', 'ctrl':obj));
                 };
             };
+
+            if (specs.isNil or: {specs.isEmpty}) {
+                {
+                    specs = this.objects[index].specs;
+                    if (specs.isNil.not) {
+                        this.addSpec(*specs.getPairs);
+                    };
+                }.defer(1)
+            } {
+                this.addSpec(*specs);
+            };
+
             this.addSpec("wet%".format(index).asSymbol, [0, 1, \lin, 0, 1].asSpec);
             this.set("wet%".format(index).asSymbol, wet);
         }
@@ -300,6 +334,7 @@ D : Ndef {
             var synth = Synth(\rec, [\buf, buf, \in, bus, \preLevel, preLevel, \run, 1], target:group, addAction:\addToTail);
             synth.onFree({
                 {
+                    buf = B.all[id] = buf.normalize;
                     "buffer saved to %".format(id).postln;
                     cb.(buf);
                 }.defer

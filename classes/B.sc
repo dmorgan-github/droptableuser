@@ -21,20 +21,63 @@ B {
     *read {arg key, path, channels=nil, cb;
         if (channels.isNil) {
             ^Buffer.read(Server.default, path, action:{|buf|
-                var normalized = buf.normalize;
-                all.put(key, normalized);
+                buf.normalize;
+                all.put(key, buf);
                 "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
-                cb.(normalized);
+                cb.(buf);
 
             });
         }{
             channels = channels.asArray;
             ^Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
-                var normalized = buf.normalize;
-                all.put(key, normalized);
+                buf.normalize;
+                all.put(key, buf);
                 "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
-                cb.(normalized)
+                cb.(buf)
             });
+        };
+    }
+
+    *toMono {|key, path, cb|
+
+        /*
+        (
+b = Buffer.read(s, Platform.resourceDir +/+ "sounds/SinedPink.aiff");
+c = Buffer(s);
+FluidBufCompose.processBlocking(s,b,numChans:1,destination:c,gain:-6.dbamp);
+FluidBufCompose.processBlocking(s,b,startChan:1,numChans:1,destination:c,gain:-6.dbamp,destGain:1);
+)
+
+b.numChannels; // 2
+c.numChannels; // 1
+
+b.play;
+c.play;
+
+b.plot
+c.plot
+        */
+
+        var file = SoundFile.openRead(path);
+        if (file.numChannels == 2) {
+            file.close;
+            Buffer.read(Server.default, path, action:{|buf|
+                buf.loadToFloatArray(action:{|array|
+                    /*
+                    https://scsynth.org/t/load-stereo-file-to-mono-buffer/5043/2
+                    Replace the 0.5 constant with -3.dbamp (≈ 1/sqrt(2) ≈ 0.707) for uncorrelated signals.
+                    */
+                    Buffer.loadCollection(Server.default, array.unlace(2).sum * 0.5, action:{|mono|
+                        mono.normalize;
+                        all.put(key, mono);
+                        "key: %; dur: %; channels: %".format(key, mono.duration, mono.numChannels).inform;
+                        buf.free;
+                        cb.(mono);
+                    })
+                })
+            });
+        } {
+            B.read(key, path, cb:cb);
         };
     }
 
@@ -45,6 +88,7 @@ B {
     *stereo {|key, path, cb|
         var file = SoundFile.openRead(path);
         var channels = if (file.numChannels.debug('numchannels') < 2) { [0,0] }{ [0, 1] };
+        file.close;
         B.read(key, path, channels, cb:cb);
     }
 
@@ -73,11 +117,13 @@ B {
             end = secs
         };
 
+        file.close;
+
         ^Buffer.readChannel(Server.default, path, start, end, channels:[0], action: {|buf|
-            var normalized = buf.normalize;
-            all.put(key, normalized);
+            buf.normalize;
+            all.put(key, buf);
             "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
-            cb.(normalized)
+            cb.(buf)
         })
     }
 
@@ -103,7 +149,7 @@ B {
 
         var read = {|path|
             var buffer;
-            var file = SoundFile.openRead(path);
+            //var file = SoundFile.openRead(path);
             var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });
             buffer = Buffer.readChannel(Server.default, path, channels: channels, action:{|buf|
                 condition.unhang;
@@ -137,7 +183,7 @@ B {
 
         var read = {|path|
             var buffer;
-            var file = SoundFile.openRead(path);
+            //var file = SoundFile.openRead(path);
             var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });
             buffer = Buffer.readChannel(Server.default, path, channels: channels, action:{|buf|
                 condition.unhang;
