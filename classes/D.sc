@@ -244,9 +244,8 @@ D : Ndef {
                         this.fxchain.put(index, (name:vst, type:'vst', 'ctrl':ctrl));
                     });
                 }{
-                    var obj = SynthLib("fx/%".format(fx).asSymbol);
-                    var func = obj.put('num', num).func;//.inEnvir(context.value);
-                    specs = obj.specs;
+                    var obj = M("fx/%".format(fx).asSymbol);
+                    var func = obj.put('num', num).func;
                     this.filter(index, func);
                     this.fxchain.put(index, (name:fx, type:'func', 'ctrl':obj));
                 };

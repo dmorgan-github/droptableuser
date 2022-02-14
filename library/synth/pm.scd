@@ -1,5 +1,5 @@
 (
-synth: {|freq, gate, aeg|
+synth: {|freq, gate|
 
     var mod = {
         var ratio = \modratio.kr(1, spec:ControlSpec(0.5, 20, \lin, 0, 1, units:"mod"));

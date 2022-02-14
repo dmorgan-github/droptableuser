@@ -28,6 +28,6 @@ synth: {
         loop:loop,
         fadeTime:ft
     );
-    sig!2 * \amp.kr(-6.dbamp)
+    sig!2
 }
 )
