@@ -1,21 +1,30 @@
 {|inKey, inFunc, specs|
 
+    /*
+    var metadata = ('env': 'adsr');
+    if (specs.notNil;) {
+        metadata['specs'] = specs.asDict
+    };
+    */
+
+
 	SynthDef(inKey, {
 
-        var gate = \gate.kr(1);
+		var gate = \gate.kr(1);
         var glis = \glis.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, units:"pitch"));
 		var in_freq = \freq.ar(261).lag(glis);
 		var detune = \detunehz.kr(0,
             spec: ControlSpec(0, 10, \lin, 0, 0, units:"pitch")) * PinkNoise.ar(0.007).range(0.9, 1.1);
 
-        var bend = \bend.ar(0, spec: ControlSpec(-12, 12, \lin, 0, 0, units:"pitch")).midiratio;
+		// bend by semitones...
+		var bend = \bend.ar(0, spec: ControlSpec(-12, 12, \lin, 0, 0, units:"pitch")).midiratio;
 		var freqbend = in_freq * bend;
 		var freq = Vibrato.ar([freqbend + detune.neg, freqbend + detune],
             \vrate.ar(6, spec: ControlSpec(0, 440, \lin, 0, 6, units:"pitch")),
             \vdepth.ar(0.0, spec: ControlSpec(0, 1, \lin, 0, 0, units:"pitch"))
         );
 
-        var adsr = {
+		var adsr = {
 			var atk = \atk.kr(0.01);
 			var dec = \dec.kr(0.1);
 			var rel = \rel.kr(0.1);
@@ -33,14 +42,35 @@
 			aeg;
 		};
 
-        var aeg = adsr.();
+        var foo = { \here2.debug('adsr'); }.();
+
+		var aeg = adsr.();
+
+        var foo2 = { \here3.debug('adsr'); }.();
+
 		var sig = SynthDef.wrap(inFunc, prependArgs:[freq, gate, aeg]);
-        sig = LeakDC.ar(sig);
-        sig = sig * aeg * AmpCompA.ar(freq, 0) * \vel.kr(1);
-        sig = Splay.ar(sig);
-        sig = sig * \amp.kr(-6.dbamp);
+
+        var foo3 = { \here4.debug('adsr'); }.();
+
+		sig = LeakDC.ar(sig);
+
+        { \here5.debug('adsr'); }.();
+
+		sig = sig * aeg * AmpCompA.ar(freq, 0) * \vel.kr(1);
+
+        { \here6.debug('adsr'); }.();
+
+		sig = Splay.ar(sig);
+
+        { \here7.debug('adsr'); }.();
+
+		sig = sig * \amp.kr(-6.dbamp);
+
+        { \here8.debug('adsr'); }.();
 
 		Out.ar(\out.kr(0), sig);
 
-	}).add;
+	}
+    //metadata: metadata
+).add;
 }

@@ -96,6 +96,7 @@ var buttonlayout = {|k, v|
                 .value_(isMute)
                 .maxWidth_(20),
 
+                /*
                 Button()
                 .states_([ [">"], ["[]"] ])
                 .action_({|ctrl|
@@ -107,6 +108,7 @@ var buttonlayout = {|k, v|
                 })
                 .maxWidth_(20)
                 .value_(v.isPlaying),
+                */
 
                 NumberBox()
                 .maxWidth_(20)

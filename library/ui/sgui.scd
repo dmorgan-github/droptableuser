@@ -110,11 +110,12 @@ Fdef(\sgui, {|node, index|
                 \wet1010,
                 \fadeTime,
                 \envbuf,
-                \buf,
+                //\buf,
                 \pan,
                 \amp,
                 \spread,
-                \vol
+                \vol,
+                \bend
             ].includes(key)
         }).asArray
         .sort({|a, b|
@@ -301,6 +302,10 @@ Fdef(\sgui, {|node, index|
 
         if (index.isNil) {
 
+            var amp = (node.get(\amp) ?? {-6.dbamp}).linlin(0, 2, 0, 1);
+            var spread = (node.get(\spread) ?? {1});
+            var pan = (node.get(\pan) ?? {0}).linlin(-1, 1, 0, 1);
+
             ctrls = ctrls ++ [
                 HLayout(
                     nil,
@@ -311,7 +316,7 @@ Fdef(\sgui, {|node, index|
                             log.("amp: %".format(val));
                         })
                         .maxSize_(Size(30,30))
-                        .value_(node.get(\amp).linlin(0, 2, 0, 1)),
+                        .value_(amp),
                         StaticText().string_("amp").align_(\center)
                     ),
                     nil,
@@ -321,7 +326,7 @@ Fdef(\sgui, {|node, index|
                             log.("width: %".format(ctrl.value));
                         })
                         .maxSize_(Size(30,30))
-                        .value_(node.get(\spread)),
+                        .value_(spread),
                         StaticText().string_("width").align_(\center)
                     ),
                     nil,
@@ -332,14 +337,12 @@ Fdef(\sgui, {|node, index|
                             log.("pan: %".format(val));
                         })
                         .maxSize_(Size(30,30))
-                        .value_(node.get(\pan).linlin(-1, 1, 0, 1)),
+                        .value_(pan),
                         StaticText().string_("pan").align_(\center)
                     ),
                     nil
                 )
-
             ];
-
         };
 
         view = View()
@@ -530,7 +533,11 @@ Fdef(\sgui, {|node, index|
         };
     };
 
-    scroll.canvas = getView.();
+    try({
+        scroll.canvas = getView.();
+    }, {|err|
+        "% getView".format(err).error;
+    });
 
     if (index.isNil){
 
@@ -540,6 +547,7 @@ Fdef(\sgui, {|node, index|
 
                     fxmenu.(),
 
+                    /*
                     playbutton
                     .states_([ [">"], [ "[]" ] ])
                     .action_({|ctrl|
@@ -552,6 +560,7 @@ Fdef(\sgui, {|node, index|
                     .toolTip_("play")
                     .maxWidth_(20)
                     .value_(node.isPlaying),
+                    */
 
                     Button()
                     .states_( [ ["0"] ] )
@@ -602,32 +611,32 @@ Fdef(\sgui, {|node, index|
                         morphbeats = ctrl.value;
                     })
                     .toolTip_("morph time")
-                    .value_(morphbeats)
+                    .value_(morphbeats),
+
+                    Button()
+                    .maxWidth_(35)
+                    .states_( [ ["s"] ] )
+                    .toolTip_("save")
+                    .action_({
+                        node.print
+                    })
                 ),
 
                 //scope.().maxHeight_(50),
             )
         );
     };
+
     view.layout.add(scroll);
     view.layout.add(fxbuttonsview);
     view.layout.add(status);
-
-    watcher = {|obj, what|
-        //if (what == \stop) {
-        //    {
-        //        playbutton.value = 0;
-        //    }.defer
-        //}
-    };
-    node.addDependant(watcher);
     node.addDependant(updateEnv);
 
     if (index.isNil) {
         updateButtons.();
         fxwatcher = {|obj, what|
             if (what == \source or: {what == \reorder}) {
-                var wait = if (what == \reorder) {0.1}{1};
+                var wait = if (what == \reorder) {0.1}{2};
                 {
                     updateButtons.();
                 }.defer(wait)

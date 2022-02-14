@@ -83,11 +83,13 @@ Fdef(\launch, {|patterns|
                 NumberBox().fixedSize_(25).action_({|ctrl|
                     Pdef(key).fadeTime = ctrl.value;
                 })
+                .toolTip_("fadetime")
                 .value_(Pdef(key).fadeTime.ifnil(2)),
 
                 NumberBox().fixedSize_(25).action_({|ctrl|
                     Pdef(key).quant = ctrl.value;
                 })
+                .toolTip_("quant")
                 .value_(Pdef(key).quant.ifnil(1)),
             )
             .spacing_(2)

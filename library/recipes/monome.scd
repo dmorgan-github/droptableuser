@@ -9,6 +9,54 @@ ProxyMeter.addMixer(m)
 MIDIdef.all.do(_.free)
 OSCdef.all.do(_.free)
 ~m.ledall(0);
+~m.levset(0, 0, 15);
+
+
+
+
+(
+var degrees = Scale.minor.degrees ++ [12];
+var root = 'C1'.namemidi;
+var step = 7;
+~data = degrees.collect({|degree|
+    var val = root + degree + (step * (0..7));
+    val.nearestInScale(degrees);
+})
+)
+
+(
+var buttons = Array.fill(128, {0});
+var synths = Order.new;
+OSCdef(\testosc, {|msg|
+
+    var x = msg[1];
+    var y = msg[2];
+    var val = msg[3];
+
+    if (val == 1) {
+        var num = 128 - ((16-x) + (16 * y));
+        var state;
+        var note;
+        buttons[num] = (1-buttons[num]);
+        ~m.levset(x, y, buttons[num] * 15);//~buttons[num].debug(\here);
+        note = ~data.wrapAt(7-y).wrapAt(x);
+
+        if (buttons[num] > 0) {
+            if (synths[note].isNil) {
+                synths[note] = Synth(\squine, [\freq, note.midicps, \gate, 1, \amp, 0.1, \rel, 2]);
+            }
+        }{
+            synths[note].set(\gate, 0);
+            synths.removeAt(note);
+        };
+
+        [x, 7-y, note].postln;
+    };
+
+}, '/monome/grid/key')
+.permanent_(true);
+)
+
 
 
 (

@@ -5,13 +5,18 @@ Synth
 /*
 nice colors:
 Color(0.60549101829529, 0.63466150760651, 0.86493694782257, 0.2)
+Color(0.55233793258667, 0.65434362888336, 0.71119487285614, 0.2)
+Color(0.77472245693207, 0.82329275608063, 0.75887560844421, 0.2)
+Color(0.67403962612152, 0.74898204803467, 0.83484077453613, 0.2)
+Color(0.43814084529877, 0.35949912071228, 0.8521347284317, 0.2)
+Color(0.60353236198425, 0.85716576576233, 0.54857833385468, 0.2)
 */
 S : Pdef {
 
     var <node, <cmdperiodfunc, <>color;
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
-    var <ptrnproxy, <metadata;
+    var /*<ptrnproxy,*/ <metadata, <controlNames;
 
     *new {|key, synth|
         var res = Pdef.all[key];
@@ -45,19 +50,30 @@ S : Pdef {
     set {|...args|
 
         var controlKeys = this.node.controlKeys;
+
         Server.default.makeBundle(Server.default.latency, {
             var dict = args.asDict;
-            var val = dict.select({|v, k| controlKeys.includes(k)  });
-            node.set(*val.getPairs)
+            var val = dict.select({|v, k| controlKeys.includes(k) });
+            node.set(*val.getPairs);
+
+            // this will update the settings on already playing
+            // synths, otherwise you have to wait until the next
+            // event
+            if (controlNames.notNil) {
+                val = dict.select({|v, k| controlNames.includes(k) });
+                node.group.set(*val.getPairs);
+            }
         });
 
         super.set(*args);
         ^this;
     }
 
+    /*
     pset {|...args|
         this.ptrnproxy.set(*args);
     }
+    */
 
     synth_ {|synthname|
         this.prInitSynth(synthname);
@@ -79,6 +95,14 @@ S : Pdef {
         })
     }
 
+    drone {
+        var drone = this.envir.copy;
+        drone['out'] = this.node.bus.index;
+        drone['group'] = this.node.group;
+        drone['sustain'] = inf;
+        ^drone
+    }
+
     view {
         ^U(\sgui, this)
     }
@@ -98,8 +122,19 @@ S : Pdef {
     }
 
     print {
-        this.envir.copy.parent_(nil).getPairs.asCode.postln;
-        "------------------".postln;
+        //this.envir.copy.parent_(nil).getPairs.asCode.postln;
+        "(\nS('%').set(".format(this.key).postln;
+        this.envir.copy.parent_(nil)
+        .getPairs
+        .pairsDo({|k, v|
+            "\t".post;
+            k.asCode.post;
+            ", ".post;
+            v.asCode.post;
+            ",".postln;
+        });
+        ")\n)".postln;
+
         this.node.print;
     }
 
@@ -118,13 +153,13 @@ S : Pdef {
                     })
                 }),
                 // enable some aliases
-                \degree, Pfunc({|evt| if (evt[\deg].notNil) {evt[\deg]} {evt[\degree]} }),
-                \octave, Pfunc({|evt| if (evt[\oct].notNil) {evt[\oct]} {evt[\octave]} }),
-                \legato, Pfunc({|evt| if (evt[\leg].notNil) {evt[\leg]} {evt[\legato]} }),
-                \mtranspose, Pfunc({|evt| if (evt[\mtrans].notNil) {evt[\mtrans]} {evt[\mtranspose]} }),
-                \sustain, Pfunc({|evt| if (evt[\sus].notNil) {evt[\sus]} {evt[\sustain]} })
+                //\degree, Pfunc({|evt| if (evt[\deg].notNil) {evt[\deg]} {evt[\degree]} }),
+                //\octave, Pfunc({|evt| if (evt[\oct].notNil) {evt[\oct]} {evt[\octave]} }),
+                //\legato, Pfunc({|evt| if (evt[\leg].notNil) {evt[\leg]} {evt[\legato]} }),
+                //\mtranspose, Pfunc({|evt| if (evt[\mtrans].notNil) {evt[\mtrans]} {evt[\mtranspose]} }),
+                //\sustain, Pfunc({|evt| if (evt[\sus].notNil) {evt[\sus]} {evt[\sustain]} })
             ),
-            ptrnproxy,
+            //ptrnproxy,
             pattern,
             Pbind(
                 \out, Pfunc({node.bus.index}),
@@ -161,7 +196,7 @@ S : Pdef {
         node.addDependant(nodewatcherfunc);
 
         node.play;
-        ptrnproxy = PbindProxy();
+        //ptrnproxy = PbindProxy();
         super.source = Pbind();
         this.set(\amp, -12.dbamp);
         this.quant = 4.0;
@@ -198,11 +233,11 @@ S : Pdef {
             var spec = Spec.specs[key];
             if (spec.notNil) {
                 this.addSpec(key, spec);
-            } {
+            }/* {
                 var default = cn.defaultValue;
                 var spec = [0, default*2, \lin, 0, default].asSpec;
                 this.addSpec(key, spec);
-            }
+            }*/
         });
 
         metadata = synthdef.metadata;
@@ -212,12 +247,16 @@ S : Pdef {
             })
         };
 
-        this.getSpec.keys.do({|key|
-            var spec = this.getSpec[key];
-            this.set(key, spec.default);
-        });
+        if (this.getSpec.notNil) {
+            this.getSpec.keys.do({|key|
+                var spec = this.getSpec[key];
+                this.set(key, spec.default);
+            });
+        };
 
-        this.set(\instrument, synth, \spread, 1, \pan, 0, \stretch, 1, \legato, 0.7);
+        controlNames = SynthDescLib.global.at(synth).controlNames;
+
+        this.set(\instrument, synth, \spread, 1, \pan, 0);
     }
 
     *initClass {

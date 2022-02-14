@@ -1,7 +1,7 @@
 /*
 Matrix
 */
-M : D {
+Mtrx : D {
 
     var <map;
 

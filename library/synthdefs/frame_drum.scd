@@ -1,14 +1,13 @@
 (
-SynthDef(\frame_drum, {
-	arg
+SynthDef(\frame_drum, {arg
 	// Standard values
-	out = 0, pan = 0, freq = 170, amp = 0.5, atk = 0.0025, dec = 0.0025, rel = 5, curve = 0,
-	// Other controls (position goes from 0 to 1, blend from -1 to 1)
-	decCoef = 0.225, thumpAmp = 0.5, thumpDec = 0.2;
+	pan = 0, freq = 170, atk = 0.0025, dec = 0.0025, rel = 5, curve = 0;
 
-
-    var position = \position.kr(0.8, spec: ControlSpec(0, 1, \lin, 0, 0.8));
-    var exBlend = \exBlend.kr(0, spec: ControlSpec(-1, 1, \lin, 0, 0));
+    var position = \position.kr(0.8, spec: ControlSpec(0, 1, \lin, 0, 0.8, "drum"));
+    var exBlend = \exBlend.kr(0, spec: ControlSpec(-1, 1, \lin, 0, 0, "drum"));
+    var decCoef = \decCoef.kr(0.225, spec: ControlSpec(0, 1, \lin, 0, 0.225, "drum") );
+    var thumpAmp = \thumpAmp.kr(0.5, spec: ControlSpec(0, 1, \lin, 0, 0.5, "drum") );
+    var thumpDec = \thumpDec.kr(0.2, spec: ControlSpec(0, 1, \lin, 0, 0.2, "drum") );
 
 	var exciter, freqArray, ampRowArray, ampArray, decArray, snd;
 
@@ -122,12 +121,12 @@ SynthDef(\frame_drum, {
 	});
 
 	// Output stuff
-	snd = Mix.ar(snd) * amp;
-	snd = Limiter.ar(snd);
+    snd = Mix.ar(snd) * \amp.kr(-6.dbamp);
+	//snd = Limiter.ar(snd);
 
 	DetectSilence.ar(in: snd, amp: 0.00025, doneAction: 2);
 
-	Out.ar(out, Pan2.ar(snd, pan));
+    Out.ar(\out.kr(0), Pan2.ar(snd, pan));
 },
 metadata: (
 	credit: "by Josh Mitchell",

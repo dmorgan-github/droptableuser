@@ -1,7 +1,7 @@
 (
-synth: {|sig, aeg|
+synth: {|in, gate, freq, aeg|
 
-    var lpg = LPG.ar(LeakDC.ar(sig),
+    var lpg = LPG.ar(LeakDC.ar(in),
         controlinput: aeg,
         controloffset: \controloffset.kr(0.1, spec: ControlSpec(0, 1, \lin, 0, 0, units:"lpg")),
         controlscale: \controlscale.kr(0.2, spec: ControlSpec(0, 1, \lin, 0, 1, units:"lpg")),

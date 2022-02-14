@@ -1,5 +1,5 @@
 (
-synth: {|doneAction=(Done.freeSelf)|
+synth: {|gate, doneAction=(Done.freeSelf)|
     var atk = \atk.kr(0.01);
     var rel = \rel.kr;
     var ts = \ts.kr(1);

@@ -1,5 +1,37 @@
 LevelSlider : View {
 
+    /*
+    didn't know about multisliderview
+    can potentially remove some of the mouse stuff
+    which simplifies this a bit
+    (
+var color = Color.rand;
+var view = View().layout_(VLayout(
+    MultiSliderView()
+    .valueThumbSize_(0.5)
+    .strokeColor_(color)
+    .fillColor_(color)
+    //.elasticMode_(1)
+    .indexIsHorizontal_(false)
+    .isFilled_(true)
+    .drawRects_(true)
+    .showIndex_(true)
+    .gap_(0)
+    .indexThumbSize_(50)
+    //.valueThumbSize_(50)
+    .value_([0.5])
+    .action_({|ctrl|
+        ctrl.value.postln;
+    })
+    //.minSize_(Size(100, 100))
+)
+.margins_(0)
+.spacing_(0)
+);
+view.front
+)
+    */
+
     var currentval;
     var li, nb, valueView, nbView, labelView, slider, stack;
     var spec, precision = 0.001;

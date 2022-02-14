@@ -10,7 +10,7 @@
 		sig = LeakDC.ar(sig);
 		sig = sig * \vel.kr(1);
 		sig = Splay.ar(sig);
-		sig = sig * \amp.kr(-6.dbamp);
+		sig = sig * \amp.kr(-10.dbamp);
 		Out.ar(\out.kr(0), sig);
 	},
     metadata: metadata

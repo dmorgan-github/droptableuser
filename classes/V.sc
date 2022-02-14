@@ -71,18 +71,17 @@ Routine({
 }).play;
 )
     */
-    *printSynthParams {|vst, ctrl|
+    *getSynthParams {|vst, ctrl, cb|
+
         var params = ctrl.info.parameters;
-        var cache = ctrl.parameterCache;
         var vals = List.new;
-        var string = "(
+
+        var mycb = {|vals|
+
+            var string = "(
 synth: {|in|
     VSTPlugin.ar(in, 2,
         params: [\n";
-
-        params.do({|p, i|
-            vals.add(p['name'].asSymbol -> cache[i][0]);
-        });
 
         vals.sort({|a, b| a.key.asString < b.key.asString }).do({|assoc|
             var k = assoc.key;
@@ -90,7 +89,7 @@ synth: {|in|
             var vstkey = vst.asString.select({|val| val.isAlphaNum}).toLower;
             var param = k.asString.select({|val| val.isAlphaNum}).toLower;
             var named = "%_%".format(vstkey, param)[0..30];
-            string = string ++ ("\t\t\t'" ++ k ++ "'" ++ ", " ++ "'%".format(named) ++ "'.kr(%)".format(v) ++ ",").postln;
+            string = string ++ ("\t\t\t'" ++ k ++ "'" ++ ", " ++ "'%".format(named) ++ "'.kr(%)".format(v) ++ ",");//.postln;
             string = string ++ "\n";
         });
         string = string ++ "\t\t],
@@ -99,7 +98,16 @@ synth: {|in|
 }
 )".format(ctrl.info.name);
 
-        ^string;
+            cb.(string);
+        };
+
+        ctrl.getn(action: {arg v;
+            v.do({|val, i|
+                var name = params[i][\name];
+                vals.add( name ->  val);
+            });
+            mycb.(vals);
+        });
     }
 
     *printPatternParams {|vst, ctrl|
@@ -120,6 +128,32 @@ synth: {|in|
         })
     }
 
+    *getPatternParams {|vst, ctrl, cb|
+        var returnVal = List.new;
+        var mycb = {|vals|
+            vals.sort({|a, b| a.key.asString < b.key.asString }).do({|assoc|
+                var k = assoc.key;
+                var v = assoc.value;
+                var vstkey = vst.asString.select({|val| val.isAlphaNum}).toLower;
+                var param = k.asString.select({|val| val.isAlphaNum}).toLower;
+                var named = "%_%".format(vstkey, param)[0..30];
+                //("'" ++ named ++ "', %".format(v) ++ ",").postln;
+                returnVal.add( named.asSymbol -> v);
+            });
+            cb.(returnVal);
+        };
+        var vals = List.new;
+        var parms = ctrl.info.parameters;
+
+        ctrl.getn(action: {arg v;
+            v.do({|val, i|
+                var name = parms[i][\name];
+                vals.add( name ->  val);
+            });
+            mycb.(vals);
+        });
+    }
+
     *printParamVals {|ctrl|
         var cb = {|vals| vals.asCompileString.postln;};
         var vals = ();
@@ -133,6 +167,8 @@ synth: {|in|
             cb.(vals);
         });
     }
+
+
 
     set {|key, val|
 

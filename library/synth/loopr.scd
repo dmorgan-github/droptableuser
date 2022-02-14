@@ -1,7 +1,7 @@
 (
 synth: {
 
-    var numchannels = 1;//~numchannels ?? 1;
+    var numchannels = ~numchannels ?? 1;
     var buf = \buf.kr(0);
     var bufFrames = BufFrames.ir(buf);
     var bufdur = BufDur.ir(buf);

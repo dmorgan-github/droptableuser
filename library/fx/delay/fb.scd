@@ -21,7 +21,7 @@ synth: {arg sig_in;
 
     sig = HPF.ar(in, hpf);
     sig = FbC({arg fb;
-        var fx = fb.reverse * fblevel + sig;
+        var fx = fb * fblevel + sig;
         fx
     }, 4, delayunit * [delL, delR]);
 

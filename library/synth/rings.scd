@@ -23,8 +23,9 @@ synth: {|freq, gate, aeg|
 
     var even = sig[0];
     var odd = sig[1];
+    var evenodd = \evenodd.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "rings"));
 
-    sig = even.blend(odd, \evenodd.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "rings")));
+    sig = SelectX.ar(evenodd, [even, odd]);
     sig
 },
 notes: "

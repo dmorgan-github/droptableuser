@@ -1,12 +1,15 @@
 (
-synth: {|atk=0.01, suslevel=0.7, doneAction=(Done.freeSelf)|
-    var gate = \gate.kr;
+synth: {|gate, doneAction=(Done.freeSelf)|
+    var atk = \atk.kr(0.01);
+    var dec = \dec.kr(0.1);
     var rel = \rel.kr(0.1);
+    var suslevel = \suslevel.kr(0.7);
     var ts = \ts.kr(1);
     var curve = [\atkcurve.kr(-4), \deccurve.kr(-4), \relcurve.kr(-4)];
-    var env = Env.asr(
-        attackTime: \atk.kr(atk),
-        sustainLevel: \suslevel.kr(suslevel),
+    var env = Env.adsr(
+        attackTime:atk,
+        decayTime:dec,
+        sustainLevel:suslevel,
         releaseTime:rel,
         curve:curve
     );

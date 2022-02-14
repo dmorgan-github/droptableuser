@@ -78,16 +78,46 @@ D : Ndef {
     }
 
     print {
-        this.fxchain.asCode.postln;
-        "------------------".postln;
-        this.nodeMap.getPairs.asCode.postln;
-        "------------------".postln;
+
+        //this.fxchain.asCode.postln;
+        this.fxchain.do({|v, i|
+            var name = v.name;
+            if (v.type == 'vst') {
+                name = "vst/%".format(name);
+            };
+            "D('%').fx(%, '%')".format(this.key, i, name).postln;
+        });
+
+        "(\nD('%').set(".format(this.key).postln;
+        this.nodeMap.getPairs.pairsDo({|k, v|
+            if (this.internalKeys.includes(k).not) {
+                "\t".post;
+                k.asCode.post;
+                ", ".post;
+                v.asCode.post;
+                ",".postln;
+            }
+        });
+        ")\n)".postln;
+
+        //"(\nD('%').set(".format(this.key).postln;
         this.fxchain.do({|fx|
             if (fx.type == \vst) {
-                V.printPatternParams(fx.name, fx.ctrl);
-                "------------------".postln;
+                V.getPatternParams(fx.name, fx.ctrl, {|vals|
+                    "(\nD('%').set(".format(this.key).postln;
+                    vals.do({|val|
+                        "\t".post;
+                        val.key.asCode.post;
+                        ", ".post;
+                        val.value.asCode.post;
+                        ",".postln;
+                    });
+                    ")\n)".postln;
+                });
+                //"".postln;
             }
-        })
+        });
+        //")\n)".postln;
     }
 
     prInit {|argKey|
@@ -238,7 +268,6 @@ D : Ndef {
         }
     }
 
-    // TODO: add specs
     vst {|index, vst, id, cb|
 
         var node = this;
@@ -253,65 +282,58 @@ D : Ndef {
             var server = Server.default;
             var nodeId, ctrl;
 
-            var func = {
+            {
+                if (node.objects[index].isNil) {
 
-                Routine({
+                    var path = App.librarydir ++ "vst/" ++ vst.asString ++ ".scd";
+                    var pathname = PathName(path.standardizePath);
+                    var fullpath = pathname.fullPath;
 
-                    //node.wakeUp;
-                    //node.send;
-
-                    if (node.objects[index].isNil) {
-
-                        var path = App.librarydir ++ "vst/" ++ vst.asString ++ ".scd";
-                        var pathname = PathName(path.standardizePath);
-                        var fullpath = pathname.fullPath;
-
-                        if (File.exists(fullpath)) {
-                            var name = pathname.fileNameWithoutExtension;
-                            var obj = File.open(fullpath, "r").readAllString.interpret;
-                            node.filter(index, obj[\synth]);
-                        } {
-                            node.filter(index, {|in|
-                                if (id.isNil.not) {
-                                    VSTPlugin.ar(in, 2, id:id, info:vst.asSymbol);
-                                }{
-                                    VSTPlugin.ar(in, 2, info:vst.asSymbol);
-                                }
-                            });
-                        };
-                        1.wait;
+                    if (File.exists(fullpath)) {
+                        var name = pathname.fileNameWithoutExtension;
+                        var obj = File.open(fullpath, "r").readAllString.interpret;
+                        node.filter(index, obj[\synth]);
+                    } {
+                        node.filter(index, {|in|
+                            if (id.isNil.not) {
+                                VSTPlugin.ar(in, 2, id:id, info:vst.asSymbol);
+                            }{
+                                VSTPlugin.ar(in, 2, info:vst.asSymbol);
+                            }
+                        });
                     };
 
-                    nodeId = node.objects[index].nodeID;
-                    ctrl = if (node.objects[index].class == SynthDefControl) {
-                        var synthdef = node.objects[index].synthDef;
-                        var synth = Synth.basicNew(synthdef.name, server, nodeId);
-                        if (id.isNil.not) {
-                            VSTPluginController(synth, id:id, synthDef:synthdef);
-                        }{
-                            VSTPluginController(synth, synthDef:synthdef);
-                        }
+                    // there is latency for the synth to get initialized
+                    // i can't figure out a better way than to wait
+                    1.wait;
+                };
+
+                nodeId = node.objects[index].nodeID;
+                ctrl = if (node.objects[index].class == SynthDefControl) {
+                    var synthdef = node.objects[index].synthDef;
+                    var synth = Synth.basicNew(synthdef.name, server, nodeId);
+                    if (id.isNil.not) {
+                        VSTPluginController(synth, id:id, synthDef:synthdef);
                     }{
-                        var synth = Synth.basicNew(vst, server, nodeId);
-                        if (id.isNil.not) {
-                            VSTPluginController(synth, id:id);
-                        }{
-                            VSTPluginController(synth);
-                        }
-                    };
-                    ctrl.open(vst, verbose: true, editor:true);
+                        VSTPluginController(synth, synthDef:synthdef);
+                    }
+                }{
+                    var synth = Synth.basicNew(vst, server, nodeId);
+                    if (id.isNil.not) {
+                        VSTPluginController(synth, id:id);
+                    }{
+                        VSTPluginController(synth);
+                    }
+                };
+
+                ctrl.open(vst, editor:true, verbose: true, action:{
                     "loaded %".format(key).postln;
                     if (cb.isNil.not) {
                         cb.value(ctrl);
-                    }{
-                        currentEnvironment[key] = ctrl;
                     }
+                });
 
-                }).play;
-            };
-
-            func.();
-            //ServerTree.add(func);
+            }.fork
         }
     }
 

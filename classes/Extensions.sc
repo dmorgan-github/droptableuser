@@ -3,7 +3,8 @@
     kr { | val, lag, fixedLag = false, spec |
         var name = "%%".format(this, ~num ?? {""});
         if (currentEnvironment[this].notNil ) {
-            ^currentEnvironment[this]
+            "replacing namedcontrol".debug(this);
+            ^currentEnvironment[this].value
         } {
             ^NamedControl.kr(name, val, lag, fixedLag, spec)
         }
@@ -12,7 +13,8 @@
 	ir { | val, spec |
         var name = "%%".format(this, ~num ?? {""});
 		if (currentEnvironment[this].notNil ) {
-            ^currentEnvironment[this]
+            "replacing namedcontrol".debug(this);
+            ^currentEnvironment[this].value
         } {
             ^NamedControl.ir(name, val, spec:spec)
         }
@@ -21,7 +23,8 @@
 	tr { | val, spec |
         var name = "%%".format(this, ~num ?? {""});
 		if (currentEnvironment[this].notNil ) {
-            ^currentEnvironment[this]
+            "replacing namedcontrol".debug(this);
+            ^currentEnvironment[this].value
         } {
             ^NamedControl.tr(name, val, spec:spec)
         }
@@ -30,8 +33,8 @@
 	ar {| val, lag, spec |
         var name = "%%".format(this, ~num ?? {""});
 		if (currentEnvironment[this].notNil ) {
-            \fuckoffa.postln;
-            ^currentEnvironment[this]
+            "replacing namedcontrol".debug(this);
+            ^currentEnvironment[this].value
         } {
             ^NamedControl.ar(name, val, lags:lag, spec:spec)
         }
@@ -497,6 +500,7 @@
               mapped;
             };
             this.set(ctrl, mapped);
+            //this.node.group.set(ctrl, mapped);
         }, ccNum:ccNum, chan:ccChan)
         .fix;
 
@@ -542,12 +546,6 @@
         var hasGate = synthdef.hasGate;
         var synths = Order.new;
         Halo.put(this.key, \synths, synths);
-
-        /*
-        if (MIDIClient.initialized.not) {
-            MidiCtrl.connect;
-        };
-        */
 
         if (note.isNil) {
             note = (0..110);

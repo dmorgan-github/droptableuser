@@ -1,6 +1,5 @@
 (
-synth:{|in|
-    var gate = \gate.kr;
+synth:{|in, gate, freq, aeg|
     var fenv = 1-\snappy.kr(0.5, spec:ControlSpec(0, 1, \lin, 0, 0.5, "filter"));
     var fatkcurve = \fatkcurve.kr(-4);
     var fdeccurve = \fdeccurve.kr(-4);
