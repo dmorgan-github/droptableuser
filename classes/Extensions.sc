@@ -231,29 +231,17 @@
 }
 
 + Pattern {
+
     limit {arg num; ^Pfin(num, this.iter) }
     step {arg dur, repeats=inf; ^Pstep(this, dur, repeats)}
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
-    //latch {arg func; ^Pclutch(this, Pfunc(func)) }
+
     // don't advance pattern on rests
     norest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
+
     pfilter {|...args| ^Pbindf(this, *args)}
 
     pchain {|...args| ^Pchain(this, *args) }
-    octave {|val| ^Pset(\octave, val, this)}
-    atk {|val| ^Pset(\atk, val, this)}
-    dec {|val| ^Pset(\dec, val, this)}
-    rel {|val| ^Pset(\rel, val, this)}
-    suslevel {|val| ^Pset(\suslevel, val, this)}
-    curve {|val| ^Pset(\curve, val, this)}
-    harmonic {|val| ^Pset(\harmonic, val, this)}
-    amp {|val| ^Pset(\amp, val, this)}
-    vel {|val| ^Pset(\vel, val, this)}
-    detunehz {|val| ^Pset(\detunehz, val, this)}
-    mtranspose {|val| ^Pset(\mtranspose, val, this)}
-    legato {|val| ^Pset(\legato, val, this)}
-    degree {|val| ^Pset(\degree, val, this)}
-    strum {|val| ^Pset(\strum, val, this)}
 
     cycle {|dur=8, len, repeats=inf|
         var iteration = -1;
@@ -264,22 +252,13 @@
         }).repeat(repeats)
     }
 
-    loop {|dur=8, len, repeats=inf|
-        var iteration = -1;
-        if (len.isNil) {len = dur};
-        ^Plazy({
-            iteration = iteration + 1;
-            Psync(this.finDur(len), dur, dur) <> (iter:iteration);
-        }).repeat(repeats)
-    }
-
     clutch {|connected| ^Pclutch(this, connected) }
-    add {|name, val| ^Paddp(name, val, this)}
-    mul {|name, val| ^Pmulp(name, val, this)}
+
     node {|node|
         var current = node.value;
         ^Pbindf(this, \out, Pfunc({current.bus}), \group, Pfunc({current.group}) )
     }
+
     skipsame {
         ^Plazy({
             var prev;
@@ -329,18 +308,8 @@
         })
     }
 
-    m {|name, value| ^Pmul(name, value, this)}
-    a {|name, value| ^Padd(name, value, this)}
-    //s {|name, value| ^Pset(name, value, this)}
-    pdef {|key| ^Pdef(key, this)}
-
     seed {|val| ^Pseed(val, this)}
 
-    s {|key|
-        var obj = S(key);
-        obj.source = this;
-        ^obj;
-    }
 }
 
 + Array {

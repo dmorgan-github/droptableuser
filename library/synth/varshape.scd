@@ -16,6 +16,9 @@ synth: {|freq|
         spec: ControlSpec(20, 20000, \exp, 0, 105, "wave")
     );
 
+    // there is a weird interation between this and rings
+    // something getting corrupted between the two
+    // resulting in low frequency clicks
     syncfreq = Select.ar(sync > 0.5, [freq, syncfreq]);
 
     sig = VarShapeOsc.ar(freq, pw, waveshape, sync, syncfreq);

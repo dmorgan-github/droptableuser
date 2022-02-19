@@ -23,7 +23,7 @@ synth: {
     //var pan = \pan.kr(0);
     var stretch = \stretchamt.kr(50, spec: ControlSpec(1, 100, \lin, 0, 50, "stretch"));
     var window = \window.kr(0.25);
-    var amp = \amp.kr(0.dbamp);
+    var amp = 1;
 
     var trigPeriod, sig, chain, trig, pos, fftSize;
 
@@ -37,7 +37,7 @@ synth: {
 	// Extraction of 2 consecutive grains
 	// Both grains need to be treated together for superposition afterwards
 	sig = [GrainBuf.ar(1, trig, trigPeriod, bufnum, 1, pos, envbufnum: envBufnum),
-		GrainBuf.ar(1, trig, trigPeriod, bufnum, 1, pos + (trigPeriod/(2*stretch)), envbufnum: envBufnum)]*amp;
+		GrainBuf.ar(1, trig, trigPeriod, bufnum, 1, pos + (trigPeriod/(2*stretch)), envbufnum: envBufnum)] * amp;
 	// FFT magic
 	sig = sig.collect({ |item, i|
 		chain = FFT(LocalBuf(fftSize), item, hop: 1.0, wintype: -1);
@@ -53,6 +53,6 @@ synth: {
 	// Panned output
 	//Out.ar(out, Pan2.ar(Mix.new(sig), pan));
     //Mix.new(sig)
-    sig.sum!2 * amp
+    sig.sum!2
 }
 )
