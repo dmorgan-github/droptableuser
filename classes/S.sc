@@ -19,7 +19,216 @@ Color(0.68937842845917, 0.80199530124664, 0.8592972278595, 0.2)
 Color(0.74614992141724, 0.8588672876358, 0.77721869945526, 0.2)
 Color(0.67358100414276, 0.74493434429169, 0.40996670722961, 0.2)
 */
-S : Pdef {
+
+S : Synthy {
+
+    classvar <all;
+
+    *new {|key, synth|
+        var res = all[key];
+        if (res.isNil) {
+            res = super.new(key).sprInit(key);
+        };
+        currentEnvironment[key] = res;
+        ^res;
+    }
+
+    sprInit {|argKey|
+        key = argKey;
+    }
+
+    *initClass {
+        all = Dictionary.new;
+    }
+}
+
+Synthy : Event {
+
+    var <node, <cmdperiodfunc, <>color;
+    var <synth;
+    var <isMonitoring, <nodewatcherfunc;
+    var <metadata, <controlNames;
+    var <>key;
+
+    *new {|synth|
+        var res = super.new.prInit;
+        if (synth.notNil) {
+            res.synth = synth;
+        };
+        ^res;
+    }
+
+    @ {|val, adverb|
+
+        if (adverb.isNil and: val.isKindOf(Array)) {
+            this.set(*val);
+        } {
+            this.set(adverb, val);
+        }
+    }
+
+    set {|...args|
+
+        var controlKeys = this.node.controlKeys;
+
+        Server.default.makeBundle(Server.default.latency, {
+            var dict = args.asDict;
+            var val = dict.select({|v, k| controlKeys.includes(k) });
+            node.set(*val.getPairs);
+
+            // this will update the settings on already playing
+            // synths, otherwise you have to wait until the next
+            // event
+            if (controlNames.notNil) {
+                val = dict.select({|v, k| controlNames.includes(k) });
+                node.group.set(*val.getPairs);
+            }
+        });
+
+        args.pairsDo {|key, val|
+            this.put(key, val)
+        };
+
+        this.changed(\set, args);
+
+        ^this;
+    }
+
+    get {|key|
+		^this[key];
+	}
+
+    synth_ {|synthname|
+        this.prInitSynth(synthname);
+    }
+
+    fx {|index, fx, wet=1|
+        this.node.fx(index, fx, wet);
+    }
+
+    fxchain {
+        ^this.node.fxchain
+    }
+
+    controlKeys {|except|
+        var keys = this.keys(Array).sort;
+        except = except ++ [];
+        ^keys.reject({|key|
+            except.includes(key)
+        })
+    }
+
+    view {
+        ^U(\sgui, this)
+    }
+
+    kill {|ids|
+        ids.asArray.do({|id|
+            Synth.basicNew(this.synth, Server.default, id).free
+        });
+    }
+
+    out {
+        ^this.node.monitor.out
+    }
+
+    out_ {|bus|
+        this.node.monitor.out = bus
+    }
+
+    print {
+        //this.envir.copy.parent_(nil).getPairs.asCode.postln;
+        "(\nSynthy.new('%').set(".format(this.synth).postln;
+        this.getPairs
+        .pairsDo({|k, v|
+            "\t".post;
+            k.asCode.post;
+            ", ".post;
+            v.asCode.post;
+            ",".postln;
+        });
+        ")\n)".postln;
+
+        this.node.print;
+    }
+
+    prInit {
+
+        color = Color.rand;
+        key = "synthy_%".format(UniqueID.next).asSymbol;
+
+        nodewatcherfunc = {|obj, what|
+            if ((what == \play) or: (what == \stop)) {
+                isMonitoring = obj.isMonitoring
+            }
+        };
+        node = D("%_chain".format(key).asSymbol);
+        node.color = color;
+        node.addDependant(nodewatcherfunc);
+
+        node.play;
+
+        cmdperiodfunc = {
+            {
+                node.wakeUp;
+                if (isMonitoring) {
+                    \cmdperiod.debug(node.key);
+                    node.play
+                };
+            }.defer(0.5)
+        };
+        ServerTree.add(cmdperiodfunc);
+        ^this
+    }
+
+    prInitSynth {|argSynth|
+
+        var synthdef;
+        synth = argSynth;
+
+        synthdef = SynthDescLib.global.at(synth);
+        if (synthdef.isNil) {
+            synth = \default;
+            synthdef = SynthDescLib.global.at(synth);
+        };
+
+        synthdef
+        .controls.reject({|cn|
+            [\freq, \pitch, \trigger, \trig,
+                \in, \buf, \gate, \glis, \bend, \out].includes(cn.name.asSymbol)
+        }).do({|cn|
+            var key = cn.name.asSymbol;
+            var spec = Spec.specs[key];
+            if (spec.notNil) {
+                this.addSpec(key, spec);
+            }
+        });
+
+        metadata = synthdef.metadata;
+        if (metadata.notNil and: {metadata[\specs].notNil} ) {
+            metadata[\specs].keysValuesDo({|k, v|
+                this.addSpec(k, v);
+            })
+        };
+
+        if (this.getSpec.notNil) {
+            this.getSpec.keys.do({|key|
+                var spec = this.getSpec[key];
+                this.set(key, spec.default);
+            });
+        };
+
+        controlNames = SynthDescLib.global.at(synth).controlNames;
+
+        this.set(\instrument, synth, \spread, 1, \pan, 0, \amp, -12.dbamp);
+    }
+
+    *initClass {
+    }
+}
+
+
+S1 : Pdef {
 
     var <node, <cmdperiodfunc, <>color;
     var <>isMono=false, <synth;

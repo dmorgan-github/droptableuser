@@ -53,6 +53,8 @@ var scope = {|node|
 Require(App.librarydir ++ "ui/common.scd");
 Fdef(\sgui, {|node, index|
 
+    var foo1 = {\here1.postln}.();
+
     var height = 19;
     var skipId = UniqueID.next.asSymbol;
     var keys;
@@ -69,6 +71,8 @@ Fdef(\sgui, {|node, index|
         node.key
     };
 
+    var foo2 = {\here2.postln}.();
+
     var getSpec = {|key|
         var specs = node.getSpec;
         var spec = if (specs.isNil) {nil} { specs[key] };
@@ -77,6 +81,8 @@ Fdef(\sgui, {|node, index|
         };
         spec
     };
+
+    var foo3 = {\here3.postln}.();
 
     var getKeys = {
 
@@ -125,6 +131,8 @@ Fdef(\sgui, {|node, index|
         })
     };
 
+    var foo4 = {\here4.postln}.();
+
     var fxmenu = {
         var paths = browse.(path);
         StaticText().string_("...")
@@ -158,6 +166,9 @@ Fdef(\sgui, {|node, index|
             )
         );
     };
+
+
+    var foo5 = {\here5.postln}.();
 
     var log = {|msg|
         status.string = msg;
@@ -375,10 +386,18 @@ Fdef(\sgui, {|node, index|
         view
     };
 
+
+    var foo9 = {\here9.postln}.();
+
     var view = View(bounds:275@350)
     .layout_(VLayout().margins_(2).spacing_(2))
     .name_(windowname);
 
+    var foo10 = {\here10.postln}.();
+
+    var buttons = [];
+
+    /*
     var buttons = 14.collect({|i|
         var color_active = Color.white.alpha_(0.9);
         var color_saved = Color.green.alpha_(0.9);
@@ -426,6 +445,9 @@ Fdef(\sgui, {|node, index|
         })
         .states_([ [nil, nil, color_init ], [nil, nil, color_active ] ])
     });
+    */
+
+    var foo8 = {\here8.postln}.();
 
     var scroll = ScrollView();
     var playbutton = Button();
@@ -454,6 +476,8 @@ Fdef(\sgui, {|node, index|
         node.changed(\reorder)
     };
 
+    var foo7 = {\here7.postln}.();
+
     var moveUp = {|index|
 
         var num = fxnode.objects.indices.indexOf(index);
@@ -476,6 +500,8 @@ Fdef(\sgui, {|node, index|
             "can't move node".warn;
         }
     };
+
+    var foo6 = {\here6.postln}.();
 
     updateButtons = {
 
