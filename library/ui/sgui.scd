@@ -115,7 +115,8 @@ Fdef(\sgui, {|node, index|
                 \amp,
                 \spread,
                 \vol,
-                \bend
+                \bend,
+                \vel
             ].includes(key)
         }).asArray
         .sort({|a, b|

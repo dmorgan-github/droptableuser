@@ -64,7 +64,7 @@ D : Ndef {
 
         res.filter(1010, {|in|
             Splay.ar(
-                in * \vol.kr(-6.dbamp, spec:ControlSpec(0, 2, \lin, 0, -6.dbamp, "vol")),
+                in * \vol.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol")),
                 spread: \spread.kr(1),
                 center: \pan.kr(0)
             );

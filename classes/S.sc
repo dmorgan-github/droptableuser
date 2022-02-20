@@ -18,6 +18,7 @@ Color(0.61446368694305, 0.50829205513, 0.49966106414795, 0.2)
 Color(0.68937842845917, 0.80199530124664, 0.8592972278595, 0.2)
 Color(0.74614992141724, 0.8588672876358, 0.77721869945526, 0.2)
 Color(0.67358100414276, 0.74493434429169, 0.40996670722961, 0.2)
+Color(0.66662492752075, 0.72109272480011, 0.70863604545593, 0.2)
 */
 S : Pdef {
 
@@ -235,7 +236,8 @@ S : Pdef {
         synthdef
         .controls.reject({|cn|
             [\freq, \pitch, \trigger, \trig,
-                \in, \buf, \gate, \glis, \bend, \out].includes(cn.name.asSymbol)
+                \in, \buf, \gate, \glis,
+                \bend, \out, \vel].includes(cn.name.asSymbol)
         }).do({|cn|
             var key = cn.name.asSymbol;
             var spec = Spec.specs[key];

@@ -95,14 +95,24 @@ M {
             // we assume we are building a synth
             libfunc = {
 
-                var gate = \gate.kr(1);
-                var vel = \vel.kr(1);
-                var sig, filt, out;
-                var freq = if (pitchModule.notNil) {pitchModule.func}{ M('pitch/freq').func };
-                var env = if (envModule.notNil) {envModule.func}{ M('env/adsr').func };
+                var gatemode = ~gatemode;
+                var gate, vel, sig, filt, out, freq, env, doneaction;
+
+                gate = \gate.kr(1);
+                if (gatemode == \retrig) {
+                    Env.asr(0, 1, \rel.kr(1)).kr(doneAction:Done.freeSelf, gate:gate);
+                    doneaction = Done.none;
+                    gate = \trig.tr(1);
+                }{
+                    doneaction = Done.freeSelf;
+                };
+
+                vel = \vel.kr(0);
+                freq = if (pitchModule.notNil) {pitchModule.func}{ M('pitch/freq').func };
+                env = if (envModule.notNil) {envModule.func}{ M('env/adsr').func };
 
                 freq = freq.();
-                env = env.(gate);
+                env = env.(gate, doneaction);
 
                 sig = if (synthModule.notNil) {
                     synthModule
@@ -128,7 +138,7 @@ M {
                 sig = LeakDC.ar(sig);
                 sig = filt.(sig, gate, freq, env);
                 sig = sig * env;
-                sig = sig * AmpCompA.ar(freq, 0) * vel * \amp.kr(-6.dbamp);
+                sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-6.dbamp) * (1+vel);
                 sig = out.(sig);
 
                 sig;
