@@ -32,10 +32,10 @@ Y {
     // generates all compositions of n into m parts
     //------------------------------------------------------------------------
     /*
-    ~compm.(4, 3).do{|x| x.postln};
-    ~compm.(5, 3).do{|x| x.postln};
-    ~compm.(6, 3).do{|x| x.postln};
-    ~compm.(7, 3).do{|x| x.postln};
+    Y.compm(4, 3).do{|x| x.postln};
+    Y.compm(5, 3).do{|x| x.postln};
+    Y.compm(6, 3).do{|x| x.postln};
+    Y.compm(7, 3).do{|x| x.postln};
     */
 
     *compm {|n, m|
@@ -533,7 +533,7 @@ Y {
     // reads binary strings and converts them to interval notation
     //------------------------------------------------------------------------
     /*
-     Y.b2int("1010010001001000");
+    Y.b2int("1010010001001000");
     */
     *b2int {|line|
         var res= List.new;
@@ -555,7 +555,7 @@ Y {
     // reads intervals and converts them to a binary string
     //------------------------------------------------------------------------
     /*
-    ~int2b.([2, 3, 4, 3, 4]);
+    Y.int2b([2, 3, 4, 3, 4]);
     */
     *int2b {|line|
         var res= "";

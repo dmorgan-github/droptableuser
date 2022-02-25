@@ -3,31 +3,55 @@ SynthDef(\vsti, { |out| Out.ar(out, VSTPlugin.ar(Silent.ar(2), 2)) }).add;
 
 ////////////////////////////////////////
 Ndef(\vst).play
-Ndef(\vst).filter(100, {|in| FbC({|fb| fb * 0.3 + in}, 1, [3/4, 5/8]) })
-Ndef(\vst).set(\wet100, 0.3)
 
 ~synth = Synth(\vsti, args: [\out, Ndef(\vst).bus.index], target: Ndef(\vst).group.nodeID)
 ~vstplugin = VSTPluginController(~synth, synthDef:~synthdef)
 ~vstplugin.open("Surge XT.vst3", editor: true);
+~vstplugin.open("Kaivo", editor: true);
 ~vstplugin.editor
 ~vstplugin.gui
 // friendly 2
 // piano remains 1
 
+Kaivo
+V.ls
+VSTPlugin.clear
+VSTPlugin.search
+
+
+
+MIDIClient.init;
+m = MIDIOut(0);
+m.connect
+MIDIOut
+
 (
+var val;
+val = [
+    Y.compm(5, 3).choose,
+    Y.compm(7, 4).choose
+];
+
+// [ [ 1, 3, 1 ], [ 1, 1, 4, 1 ] ]
+val = [ [ 3, 1, 1 ], [ 1, 2, 2, 2 ] ];
 Pdef(\vstmidi,
-    Pbind(
+
+    Pdef('pdv')
+    <>
+    [
         \type, \vst_midi,
         \vst, ~vstplugin, // the VSTPluginController instance
-        \degree, [0, 1, 2, 3, -1].pseq,
-        \scale, Scale.zhi,
-        \octave, Pmap(3, 8, 4, 5),
-        \mtranspose, [0, 0, 0, 1, 2, 0].pseq,
-        //\harmonic, [1, 1.5],
-        \dur, 0.25,
-        \amp, Pexprand(0.5, 1.0, inf)
-    )
-    .cycle(8)
+        //'degree': [ [0, 2, 4], [1, 3, 5, 6] ],
+        'degree': val.postln,
+        'stretch': 1,
+        //'octave': Y.chsequl(\upper, 4, 7).linlin(0, 1, 5, 6).pseq -1,
+        'octave': Pmap(3, 7, 5, 6), // + [0, 1] - 1,
+        'mtranspose': Pstep([0, 2].pseq, [4, 4].pseq),
+        'legato': 2,
+        'rel': 1,
+        //'harmonic': [1, 1.5],
+        'scale': Scale.yu
+    ].p
 )
 )
 

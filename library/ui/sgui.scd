@@ -1,4 +1,6 @@
 (
+var log;
+
 var vsts = {
     if (~vstlist.isNil) {
         ~vstlist = V
@@ -25,8 +27,6 @@ var browse = {arg path, files=List.new;
 
 var scope = {|node|
 
-    //var node = fxnode;
-
     var view = View().layout_(VLayout().margins_(0).spacing_(0));
     //.maxHeight_(10);
 
@@ -50,335 +50,9 @@ var scope = {|node|
     view;
 };
 
-Require(App.librarydir ++ "ui/common.scd");
-Fdef(\sgui, {|node, index|
+var getPresetsView = {|node|
 
-    var height = 19;
-    var skipId = UniqueID.next.asSymbol;
-    var keys;
-    var connections;
     var morphbeats = 20;
-    var status = StaticText().font_(Font("Courier New", 9)).background_(Color.black.alpha_(0.3));
-    var color = node.color ? Color.rand;
-    var path = App.librarydir ++ "fx/";
-    var fxnode = if (node.respondsTo(\node)) { node.node }{ node };
-    var watcher, fxwatcher;
-    var windowname = if (index.notNil) {
-        "%/%".format(node.key, fxnode.fxchain[index].name);
-    }{
-        node.key
-    };
-
-    var getSpec = {|key|
-        var specs = node.getSpec;
-        var spec = if (specs.isNil) {nil} { specs[key] };
-        if (spec.isNil) {
-            spec = [0, 1, \lin, 0, 0].asSpec;
-        };
-        spec
-    };
-
-    var getKeys = {
-
-        var keys = {
-            if (index.notNil) {
-                node.objects[index].controlNames.collect({|cn| cn.name})
-            } {
-                var except = List.new;
-                var controlKeys;
-                fxnode.objects.doRange({|obj, index, i|
-                    if (index >= 100 and: {index < 1000}) {
-                        var names = obj.controlNames.collect({|cn| cn.name});
-                        except.addAll(names);
-                    }
-                });
-                node.controlKeys(except:except);
-            };
-        }.value;
-
-        keys
-        .select({|key|
-            node.get(key).isNumber
-        })
-        .reject({|key|
-            [\gate,
-                \trig,
-                \out,
-                \in,
-                \bufposreplyid,
-                \wet1000,
-                \wet1010,
-                \fadeTime,
-                \envbuf,
-                //\buf,
-                \pan,
-                \amp,
-                \spread,
-                \vol,
-                \bend,
-                \vel
-            ].includes(key)
-        }).asArray
-        .sort({|a, b|
-            var specA = getSpec.(a);
-            var specB = getSpec.(b);
-            "%%".format(specA.units, a) < "%%".format(specB.units, b)
-        })
-    };
-
-    var fxmenu = {
-        var paths = browse.(path);
-        StaticText().string_("...")
-        .setContextMenuActions(
-            *(
-                paths.collect({arg path;
-                    var name = path.folderName ++ '/' ++ path.fileNameWithoutExtension;
-                    MenuAction( name, {arg action, what, value;
-
-                        var id = action.string.asSymbol;
-                        var maxindex;
-
-                        maxindex = fxnode.objects.indices
-                        .reject({|val| val < 100 or: {val >= 1000} }).maxItem ?? {100};
-
-                        fxnode.fx(maxindex + 10, id);
-                    });
-                })
-                ++ vsts.().collect({arg vst;
-                    MenuAction(vst, {arg action;
-
-                        var id = "vst/%".format(action.string).asSymbol;
-                        var maxindex;
-
-                        maxindex = fxnode.objects.indices
-                        .reject({|val| val < 100 or: {val >= 1000} }).maxItem ?? {100};
-
-                        fxnode.fx(maxindex + 10, id);
-                    })
-                })
-            )
-        );
-    };
-
-    var log = {|msg|
-        status.string = msg;
-    };
-
-    var prevcolor = color.complementary, prevunit;
-
-    var getEnv = {|type|
-
-        switch(type,
-            \adsr, {
-                Env.adsr(
-                    attackTime: node.get(\atk),
-                    decayTime: node.get(\dec),
-                    sustainLevel: node.get(\suslevel),
-                    releaseTime: node.get(\rel),
-                    curve: [node.get(\atkcurve), node.get(\deccurve), node.get(\relcurve)]
-                )
-            },
-            \perc, {
-                Env.perc(
-                    attackTime: node.get(\atk),
-                    releaseTime: node.get(\rel),
-                    curve: [node.get(\atkcurve), node.get(\relcurve)]
-                )
-            },
-            {Env.perc}
-        );
-    };
-
-    var envView = {
-
-        var view = nil;
-
-        if (node.metadata.notNil) {
-            var type = node.metadata[\env];
-
-            if (type.notNil) {
-                view = EnvelopeView()
-                .maxHeight_(100)
-                .drawLines_(true)
-                .selectionColor_(Color.blue)
-                .action_({})
-                .thumbSize_(10)
-                .editable_(false);
-
-                view.setEnv(getEnv.(type));
-            }
-        };
-
-        view
-
-    }.();
-
-    var updateEnv = {
-        if (envView.notNil) {
-            var type = node.metadata[\env];
-            {
-                envView.setEnv(getEnv.(type));
-            }.defer
-        }
-    };
-
-    var getView = {
-
-        var getEnv;
-        var controls, sliders, numbers, ctrls, view;
-        keys = getKeys.();
-
-        controls = keys.collect({|key|
-
-            try({
-                var val = node.get(key);
-                var spec = getSpec.(key);
-                if (val.isNil) {
-                    val = spec.default;
-                };
-                NumericControlValue(val, spec:spec)
-            }, {|error|
-                error.postln;
-                error.throw;
-            })
-        });
-
-        sliders = keys.collect({|key, i|
-            LevelSlider(key, spec:controls[i].spec, color:color).maxHeight_(20)
-            .value_(controls[i].input)
-        });
-
-        ctrls = [];
-
-        if (node.get(\buf).notNil and: {index.isNil}) {
-            ctrls.add( U(\buf, node).maxHeight_(100))
-        };
-
-        ctrls = ctrls ++ keys.collect({|key, i|
-
-            var new;
-            var spec = getSpec.(key);
-            var unit = if (spec.notNil) { spec.units } {""};
-            if (unit != prevunit) {
-                prevcolor = color;//.alpha_(1);//Color.rand.alpha_(0.35);
-                prevunit = unit;
-                new = true;
-                prevcolor;
-            }{
-                new = false;
-                prevcolor;
-            };
-
-            View().layout_(
-                VLayout(
-                    if (new) {
-
-                        var st = StaticText().string_(prevunit).stringColor_(Color.black);
-                        if (prevunit == "aeg") {
-                            var func = {
-                                var atk = node.get(\atk);
-                                var atkcurve = node.get(\atkcurve);
-                                var dec = node.get(\dec);
-                                var deccurve = node.get(\deccurve);
-                                var rel = node.get(\rel);
-                                var relcurve = node.get(\relcurve);
-                                var suslevel = node.get(\suslevel);
-                                Env.adsr(atk, dec, suslevel, rel,
-                                        curve:[atkcurve, deccurve, relcurve]).plot
-                            };
-                            st.mouseUpAction_({|ctrl|
-                                func.()
-                            })
-                        };
-                        st;
-                    }{
-                        nil
-                    },
-                    HLayout(
-                        sliders[i]
-                    ).margins_(0).spacing_(2)
-                ).margins_(0).spacing_(0)
-            );
-        });
-
-        if (index.isNil) {
-
-            var amp = (node.get(\amp) ?? {-6.dbamp}).linlin(0, 2, 0, 1);
-            var spread = (node.get(\spread) ?? {1});
-            var pan = (node.get(\pan) ?? {0}).linlin(-1, 1, 0, 1);
-
-            ctrls = ctrls ++ [
-                HLayout(
-                    nil,
-                    VLayout(
-                        Knob().action_({|ctrl|
-                            var val = ctrl.value.linlin(0, 1, 0, 2);
-                            node.set(\amp, val);
-                            log.("amp: %".format(val));
-                        })
-                        .maxSize_(Size(30,30))
-                        .value_(amp),
-                        StaticText().string_("amp").align_(\center)
-                    ),
-                    nil,
-                    VLayout(
-                        Knob().action_({|ctrl|
-                            node.set(\spread, ctrl.value);
-                            log.("width: %".format(ctrl.value));
-                        })
-                        .maxSize_(Size(30,30))
-                        .value_(spread),
-                        StaticText().string_("width").align_(\center)
-                    ),
-                    nil,
-                    VLayout(
-                        Knob().action_({|ctrl|
-                            var val = ctrl.value.linlin(0, 1, -1, 1);
-                            node.set(\pan, val);
-                            log.("pan: %".format(val));
-                        })
-                        .maxSize_(Size(30,30))
-                        .value_(pan),
-                        StaticText().string_("pan").align_(\center)
-                    ),
-                    nil
-                )
-            ];
-        };
-
-        view = View()
-        .layout_(VLayout(envView, *ctrls).margins_(2).spacing_(2));
-
-        connections = ConnectionList.make {
-            controls.connectEach(\value, sliders, _.valueSlot);
-            sliders.connectEach(\value, controls, _.valueSlot);
-
-            controls.do({|ctrl, i|
-                ctrl.connectTo({|ctrl, slot, mapped, val|
-                    var key = keys[i];
-                    node.set(key, mapped);
-                })
-            });
-
-            node.signal(\set).connectTo({|obj, operation, val|
-                val.pairsDo({|k, v|
-                    var index = keys.indexOf(k);
-                    if (index.notNil) {
-                        if (v.isNumber) {
-                            controls[index].value = v;
-                        }
-                    }
-                })
-            });
-        };
-
-        view.layout.add(nil);
-        view
-    };
-
-    var view = View(bounds:275@350)
-    .layout_(VLayout().margins_(2).spacing_(2))
-    .name_(windowname);
 
     var buttons = 14.collect({|i|
         var color_active = Color.white.alpha_(0.9);
@@ -428,12 +102,265 @@ Fdef(\sgui, {|node, index|
         .states_([ [nil, nil, color_init ], [nil, nil, color_active ] ])
     });
 
-    var scroll = ScrollView();
-    var playbutton = Button();
-    var fxbuttonsview = View().layout_(VLayout().margins_(1).spacing_(1));
-    var updateButtons;
+    HLayout(
+        GridLayout.rows(
+            buttons[0..6].collect(_.fixedSize_(10)),
+            buttons[7..13].collect(_.fixedSize_(10))
+        ).margins_(0).spacing_(0),
 
-    var swap = {|node, index2, index1|
+        NumberBox()
+        .action_({|ctrl|
+            morphbeats = ctrl.value;
+        })
+        .toolTip_("morph time")
+        .value_(morphbeats)
+    ).margins_(0).spacing_(0)
+};
+
+Require(App.librarydir ++ "ui/common.scd");
+Fdef(\sgui, {|node, index|
+
+    var height = 19;
+    var skipId = UniqueID.next.asSymbol;
+    var keys;
+    var connections;
+    var status = StaticText().font_(Font("Courier New", 9)).background_(Color.black.alpha_(0.3));
+    var color = node.color ? Color.rand;
+    var path = App.librarydir ++ "fx/";
+    var fxnode = if (node.respondsTo(\node)) { node.node }{ node };
+    var watcher, fxwatcher;
+    var windowname = if (index.notNil) {
+        "%/%".format(node.key, fxnode.fxchain[index].name);
+    }{
+        node.key
+    };
+    var getGroups;
+    var getKeys;
+    var getSpec;
+    var fxmenu;
+    var getView;
+    var scroll = ScrollView();
+    var fxbuttonsview = View().layout_(VLayout().margins_(1).spacing_(1));
+    var updateButtons, moveDown, moveUp, swap;
+    var view = View(bounds:275@350)
+    .layout_(VLayout().margins_(2).spacing_(2))
+    .name_(windowname);
+
+    getSpec = {|key|
+        var specs = node.getSpec;
+        var spec = if (specs.isNil) {nil} { specs[key] };
+        if (spec.isNil) {
+            spec = [0, 1, \lin, 0, 0].asSpec;
+        };
+        spec
+    };
+
+    getKeys = {
+
+        var keys = {
+            if (index.notNil) {
+                node.objects[index].controlNames.collect({|cn| cn.name})
+            } {
+                var except = List.new;
+                var controlKeys;
+                fxnode.objects.doRange({|obj, index, i|
+                    if (index >= 100 and: {index < 1000}) {
+                        var names = obj.controlNames.collect({|cn| cn.name});
+                        except.addAll(names);
+                    }
+                });
+                node.controlKeys(except:except);
+            };
+        }.value;
+
+        keys
+        .select({|key|
+            node.get(key).isNumber
+        })
+        .reject({|key|
+            [\gate,
+                \trig,
+                \out,
+                \in,
+                \bufposreplyid,
+                \wet1000,
+                \wet1010,
+                \fadeTime,
+                \envbuf,
+                //\buf,
+                \pan,
+                \amp,
+                \spread,
+                \vol,
+                \bend,
+                \vel
+            ].includes(key)
+            or: {
+                key.asString.beginsWith("wet")
+            }
+        }).asArray
+    };
+
+    getGroups = {
+        var returnVal = List.new;
+        var dict = ();
+        var keys = getKeys.();
+        keys.do({|key|
+            var spec = getSpec.(key);
+            var unit = spec.units.asSymbol;
+            var list = dict[unit];
+            if (list.isNil) {
+                list = List.new;
+                dict.put(unit, list);
+            };
+            list.add(key);
+        });
+        dict.keysDo({|key|
+            dict[key] = dict[key].sort({|a, b|
+                var specA = getSpec.(a);
+                var specB = getSpec.(b);
+                var sorta = if (specA.respondsTo('sort')) {
+                    specA.sort
+                }{
+                    a
+                };
+                var sortb = if (specB.respondsTo('sort')) {
+                    specB.sort
+                }{
+                    b
+                };
+
+                sorta < sortb;
+            })
+        });
+        dict.keys.asArray.sort.do({|key|
+            returnVal.add(key -> dict[key]);
+        });
+        returnVal;
+    };
+
+    fxmenu = {
+        var paths = browse.(path);
+        StaticText().string_("...")
+        .setContextMenuActions(
+            *(
+                paths.collect({arg path;
+                    var name = path.folderName ++ '/' ++ path.fileNameWithoutExtension;
+                    MenuAction( name, {arg action, what, value;
+
+                        var id = action.string.asSymbol;
+                        var maxindex;
+
+                        maxindex = fxnode.objects.indices
+                        .reject({|val| val < 100 or: {val >= 1000} }).maxItem ?? {100};
+
+                        fxnode.fx(maxindex + 10, id);
+                    });
+                })
+                ++ vsts.().collect({arg vst;
+                    MenuAction(vst, {arg action;
+
+                        var id = "vst/%".format(action.string).asSymbol;
+                        var maxindex;
+
+                        maxindex = fxnode.objects.indices
+                        .reject({|val| val < 100 or: {val >= 1000} }).maxItem ?? {100};
+
+                        fxnode.fx(maxindex + 10, id);
+                    })
+                })
+            )
+        );
+    };
+
+    getView = {
+
+        var view, groups;
+        groups = getGroups.();
+        view = View().layout_(VLayout().margins_(2).spacing_(2));
+
+        if (node.get(\buf).notNil and: {index.isNil}) {
+            view.layout.add( U(\buf, node).maxHeight_(100))
+        };
+
+        groups.do({|assoc|
+
+            var mysliders, mycontrols;
+            var group = assoc.key;
+            var mykeys = assoc.value;
+
+            view.layout.add(
+                StaticText().string_(group).stringColor_(Color.black)
+            );
+
+            mysliders = mykeys.collect({|key, i|
+                var spec = getSpec.(key);
+                var val = node.get(key);
+                if (val.isNil) {
+                    val = spec.default;
+                };
+                LevelSlider(key, spec:spec, color:color).maxHeight_(20)
+                .action_({|ctrl|
+                    node.set(key, ctrl.value);
+                })
+                .value_(val)
+            });
+
+            mysliders.do({|slider|
+                view.layout.add(slider);
+            });
+        });
+
+        if (index.isNil) {
+
+            var amp = (node.get(\amp) ?? {-6.dbamp}).linlin(0, 2, 0, 1);
+            var spread = (node.get(\spread) ?? {1});
+            var pan = (node.get(\pan) ?? {0}).linlin(-1, 1, 0, 1);
+
+            view.layout.add(
+                HLayout(
+                    nil,
+                    VLayout(
+                        Knob().action_({|ctrl|
+                            var val = ctrl.value.linlin(0, 1, 0, 2);
+                            node.set(\amp, val);
+                            log.("amp: %".format(val));
+                        })
+                        .maxSize_(Size(30,30))
+                        .value_(amp),
+                        StaticText().string_("amp").align_(\center)
+                    ),
+                    nil,
+                    VLayout(
+                        Knob().action_({|ctrl|
+                            node.set(\spread, ctrl.value);
+                            log.("width: %".format(ctrl.value));
+                        })
+                        .maxSize_(Size(30,30))
+                        .value_(spread),
+                        StaticText().string_("width").align_(\center)
+                    ),
+                    nil,
+                    VLayout(
+                        Knob().action_({|ctrl|
+                            var val = ctrl.value.linlin(0, 1, -1, 1);
+                            node.set(\pan, val);
+                            log.("pan: %".format(val));
+                        })
+                        .maxSize_(Size(30,30))
+                        .value_(pan),
+                        StaticText().string_("pan").align_(\center)
+                    ),
+                    nil
+                )
+            );
+        };
+
+        view.layout.add(nil);
+        view
+    };
+
+    swap = {|node, index2, index1|
 
         var fx1 = node.fxchain[index1];
         var fx2 = node.fxchain[index2];
@@ -455,7 +382,7 @@ Fdef(\sgui, {|node, index|
         node.changed(\reorder)
     };
 
-    var moveUp = {|index|
+    moveUp = {|index|
 
         var num = fxnode.objects.indices.indexOf(index);
         var index2 = fxnode.objects.indices[num-1];
@@ -466,7 +393,7 @@ Fdef(\sgui, {|node, index|
             "can't move node".warn;
         }
     };
-    var moveDown = {|index|
+    moveDown = {|index|
 
         var num = fxnode.objects.indices.indexOf(index);
         var index2 = fxnode.objects.indices[num+1];
@@ -548,21 +475,6 @@ Fdef(\sgui, {|node, index|
 
                     fxmenu.(),
 
-                    /*
-                    playbutton
-                    .states_([ [">"], [ "[]" ] ])
-                    .action_({|ctrl|
-                        if (ctrl.value == 1) {
-                            node.play(fadeTime:node.fadeTime)
-                        }{
-                            node.stop(fadeTime:node.fadeTime)
-                        }
-                    })
-                    .toolTip_("play")
-                    .maxWidth_(20)
-                    .value_(node.isPlaying),
-                    */
-
                     Button()
                     .states_( [ ["0"] ] )
                     .toolTip_("record")
@@ -571,48 +483,21 @@ Fdef(\sgui, {|node, index|
                         fxnode.rec(5)
                     }),
 
-                    /*
-                    Button()
-                    .states_([ ["M", ], ["M", nil, QtGUI.palette.highlight] ])
-                    .action_({|ctrl|
-                        if (ctrl.value == 1) {
-                            fxnode.stop
-                        }{
-                            fxnode.play
-                        }
-                    })
-                    .toolTip_("mute")
-                    .maxWidth_(20),
-                    */
-
                     NumberBox()
                     .action_({|ctrl|
                         fxnode.fadeTime = ctrl.value;
                     })
-                    //.minWidth_(15)
                     .toolTip_("fade time")
                     .value_(fxnode.fadeTime),
 
                     NumberBox()
-                    //.maxWidth_(35)
                     .action_({|ctrl|
                         fxnode.monitor.out = ctrl.value;
                     })
                     .toolTip_("out bus")
                     .value_(fxnode.monitor.out),
 
-                    GridLayout.rows(
-                        buttons[0..6].collect(_.fixedSize_(10)),
-                        buttons[7..13].collect(_.fixedSize_(10))
-                    ).margins_(0).spacing_(0),
-
-                    NumberBox()
-                    //.maxWidth_(25)
-                    .action_({|ctrl|
-                        morphbeats = ctrl.value;
-                    })
-                    .toolTip_("morph time")
-                    .value_(morphbeats),
+                    getPresetsView.(node),
 
                     Button()
                     .maxWidth_(35)
@@ -623,7 +508,7 @@ Fdef(\sgui, {|node, index|
                     })
                 ),
 
-                //scope.().maxHeight_(50),
+                //scope.(fxnode).maxHeight_(50),
             )
         );
     };
@@ -631,7 +516,6 @@ Fdef(\sgui, {|node, index|
     view.layout.add(scroll);
     view.layout.add(fxbuttonsview);
     view.layout.add(status);
-    node.addDependant(updateEnv);
 
     if (index.isNil) {
         updateButtons.();
@@ -646,6 +530,7 @@ Fdef(\sgui, {|node, index|
         fxnode.addDependant(fxwatcher);
     };
 
+    /*
     SkipJack({
         var prev = keys.size;
         var new = getKeys.().size;
@@ -656,16 +541,17 @@ Fdef(\sgui, {|node, index|
             }.defer
         }
     }, name: skipId);
+    */
+
+    log = {|msg|
+        status.string = msg;
+    };
 
     view.onClose_({
         connections.free;
         node.removeDependant(watcher);
-        node.removeDependant(updateEnv);
         fxnode.removeDependant(fxwatcher);
-        SkipJack.stop(skipId)
-        //Tdef(skipId).stop;
-        //Tdef(skipId).clear
+        //SkipJack.stop(skipId)
     });
-
 });
 )
