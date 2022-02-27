@@ -162,8 +162,8 @@ Fdef(\playview, {arg node;
 
     var onrec = {|buf|
         var key = "%_%_%".format(node.key, "loopr", UniqueID.next).asSymbol;
-        O(key).set(\buf, buf);
-        currentEnvironment.put(key, O(key))
+        //O(key).set(\buf, buf);
+        //currentEnvironment.put(key, O(key))
     };
 
     view = View().layout_(
@@ -225,6 +225,7 @@ Fdef(\playview, {arg node;
             .value_(node.monitor.out)
             .toolTip_("channel"),
 
+            /*
             Button()
             .action_({
                 node.rec(cb:onrec)
@@ -232,7 +233,6 @@ Fdef(\playview, {arg node;
             .fixedSize_(Size(height, height))
             .icon_(Image.new(App.librarydir ++ "images/noun_Record_1939983.png"))
             .toolTip_("record")
-            /*
             .setContextMenuActions(
                 MenuAction("loopr", {|action|
                     onrec = {|buf|
@@ -245,8 +245,9 @@ Fdef(\playview, {arg node;
                         G( (node.key ++ '_grainr').asSymbol ).set(\buf, buf).view;
                     };
                 })
-            )*/
+            )
             ,
+            */
 
             NumberBox()
             .minWidth_(20)

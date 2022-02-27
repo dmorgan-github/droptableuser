@@ -46,47 +46,6 @@
     view {
         U(\bufinfo, this)
     }
-
-    loopr {
-        var buffer = this;
-        var numchannels = buffer.numChannels;
-        var bufname = if (buffer.path.notNil) {
-            PathName(buffer.path).fileNameWithoutExtension;
-        }{
-            "buffer_%".format(buffer.bufnum);
-        };
-
-        var func = SynthLib('synths/loopr').func;
-        var node = D(bufname.asSymbol).put(0,
-            {
-                ~numchannels = numchannels;
-                ~bufnum = buffer.bufnum;
-                func
-            }.()
-        );
-
-        node.set(\buf, buffer.bufnum);
-        node.specs
-        .keysValuesDo({|key, value|
-            node.addSpec(key, value)
-        });
-
-        ^node
-    }
-
-    grainr {
-        var buffer = this;
-        var bufname = if (buffer.path.notNil) {
-            PathName(buffer.path).fileNameWithoutExtension;
-        }{
-            "buffer_%".format(buffer.bufnum);
-        };
-        var synth = SynthLib('synths/grainr');
-        var node = D("%_grainr".format(bufname.replace(" ", "_").toLower).asSymbol).put(0, synth.func);
-        node.set(\buf, buffer.bufnum);
-        node.addSpec(*synth.specs);
-        ^node
-    }
 }
 
 + AbstractFunction {
@@ -96,22 +55,16 @@
     pfunc { ^Pfunc(this) }
 
     plazy { ^Plazy(this) }
-
-    s {|key| ^S(key).source_(this.plazy) }
-
-    addSynthDef {|key, template='adsr'|
-        SynthLib.def(key, this, template)
-    }
 }
 
 + SequenceableCollection {
+
     pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
     prand {arg repeats=inf; ^Prand(this, repeats) }
     pxrand {arg repeats=inf; ^Pxrand(this, repeats) }
     pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
     pshuf {arg repeats=inf; ^Pshuf(this, repeats) }
-    step {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
-    pdv {|repeats=inf, key=\val| ^Pdv(this, key).repeat(repeats) }
+    pstep {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
 
     pa {
         var a;
@@ -123,12 +76,6 @@
     }
 
     p { ^Pbind(*this.pa)}
-    pm { |sym| ^Pmono(sym, *this.pa)}
-    pma { |sym| ^PmonoArtic(sym, *this.pa)}
-    pbf { |sym| ^Pbindef(sym, *this.pa)}
-    pdef {|key| ^Pdef(key, *this.p)}
-    ppar {|repeats=inf| ^Ppar(this, repeats)}
-    ptpar {|repeats=inf| ^Ptpar(this, repeats)}
 
     playTimeline {|clock=(TempoClock.default)|
         this.collect({|assoc|
@@ -138,13 +85,8 @@
         });
     }
 
-    loop {|dur=8, len|
-        var iteration = -1;
-        if (len.isNil) {len = dur};
-        ^Plazy({
-            iteration = iteration + 1;
-            Psync(this.p.finDur(len), dur, dur) <> (iter:iteration);
-        }).repeat
+    cycle {|dur=8, len, repeats=inf|
+        ^this.p.cycle(dur, len, repeats);
     }
 }
 
@@ -158,76 +100,6 @@
             ^this
         }
     }
-
-    // pattern filtering at event level
-    every {|func|
-
-        ^Prout({|inval|
-            var stream = this.asStream;
-            var next = stream.next(inval.copy);
-            var iteration = 0;
-            while({next.notNil},{
-                var val = func.(next, iteration, inval);
-                inval = val.embedInStream(inval);
-                iteration = iteration + 1;
-                next = stream.next(inval);
-            });
-        })
-    }
-
-    sometimes {|val, prob=0.5|
-        ^Prout({|inval|
-            var stream = this.asStream;
-            var next = stream.next(inval.copy);
-            var valstream = val.asStream;
-            var probstream = prob.asStream;
-            var iteration = 0;
-            while({next.notNil},{
-                var new = if (probstream.next(inval).coin) {valstream.next(inval)}{next};
-                inval = new.embedInStream(inval);
-                iteration = iteration + 1;
-                next = stream.next(inval);
-            });
-        })
-    }
-
-    arp {|algo=0|
-        ^Prout({|inval|
-            var lastchord = nil;
-            var stream = this.asStream;
-            var chord = stream.next(inval);
-            var arpstream;
-            while({chord.notNil}, {
-                var val;
-                if (chord != lastchord) {
-                    arpstream = Pseq(chord, inf).asStream;
-                    lastchord = chord;
-                };
-                val = arpstream.next(inval);
-                inval = val.embedInStream(inval);
-                chord = stream.next(inval);
-            });
-        })
-    }
-
-    then {|val|
-        ^Prout({|inval|
-
-            var stream = this.asStream;
-            var valstream = val.asStream;
-
-            var first = stream.next(inval);
-            var second = valstream.next(inval);
-
-            while({first.notNil and: {second.notNil} },{
-                inval = first.embedInStream(inval);
-                inval = second.embedInStream(inval);
-                first = stream.next(inval);
-                second = valstream.next(inval);
-            });
-            inval;
-        })
-    }
 }
 
 + Pattern {
@@ -235,13 +107,15 @@
     limit {arg num; ^Pfin(num, this.iter) }
     step {arg dur, repeats=inf; ^Pstep(this, dur, repeats)}
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
+    clutch {|connected| ^Pclutch(this, connected) }
 
     // don't advance pattern on rests
     norest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
 
-    pfilter {|...args| ^Pbindf(this, *args)}
-
-    pchain {|...args| ^Pchain(this, *args) }
+    //pfilter {|...args| ^Pbindf(this, *args)}
+    // we want to chain the arguments before the current pattern
+    // so that they override the current pattern
+    pfilter {|...args| ^Pchain(*(args ++ [this]) ) }
 
     cycle {|dur=8, len, repeats=inf|
         var iteration = -1;
@@ -250,13 +124,6 @@
             iteration = iteration + 1;
             Psync(this.finDur(len), dur, dur) <> (cycle:iteration);
         }).repeat(repeats)
-    }
-
-    clutch {|connected| ^Pclutch(this, connected) }
-
-    node {|node|
-        var current = node.value;
-        ^Pbindf(this, \out, Pfunc({current.bus}), \group, Pfunc({current.group}) )
     }
 
     skipsame {
@@ -275,18 +142,6 @@
                     next = pattern.next(inval)
                 })
             }
-        })
-    }
-
-    // filtering at cycle level
-    each {|func|
-        var cycle = 0;
-        ^Plazy({|evt|
-            var return;
-            //[\filt, cycle].postln;
-            return = func.(this, cycle, evt);
-            cycle = cycle + 1;
-            return;
         })
     }
 
@@ -352,13 +207,6 @@
 
     nscope {
         ^U(\scope, this);
-    }
-
-    forPattern {
-        ^Pbind(
-            \out, Pfunc({this.bus.index}),
-            \group, Pfunc({this.group})
-        )
     }
 
     getSettings {

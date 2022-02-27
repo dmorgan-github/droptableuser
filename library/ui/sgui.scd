@@ -119,7 +119,6 @@ var getPresetsView = {|node|
     ).margins_(0).spacing_(0)
 };
 
-Require(App.librarydir ++ "ui/common.scd");
 Fdef(\sgui, {|node, index|
 
     var height = 19;

@@ -150,7 +150,7 @@ M : Module {
             var gate, vel, sig, filt, out, freq, env, doneaction;
 
             gate = \gate.kr(1);
-            if (gatemode == \retrig) {
+            if (gatemode.debug("gate mode") == \retrig) {
                 Env.asr(0, 1, \rel.kr(1)).kr(doneAction:Done.freeSelf, gate:gate);
                 doneaction = Done.none;
                 gate = \trig.tr(1);
@@ -191,7 +191,7 @@ M : Module {
             sig = sig * env;
             sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-6.dbamp) * (1+vel);
 
-            if (~detectsilence) {
+            if (detectsilence.debug("detect silence")) {
                 DetectSilence.ar(in: sig, amp: 0.00025, doneAction:Done.freeSelf);
             };
 

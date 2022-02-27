@@ -1,7 +1,7 @@
 (
 synth: {|freq|
 
-    var atk = \akt.kr(0.0025, spec:ControlSpec(0, 1, \lin, 0, 0.0025, "drum"));
+    var atk = \atk.kr(0.0025, spec:ControlSpec(0, 1, \lin, 0, 0.0025, "drum"));
     var dec = \dec.kr(0.0025, spec:ControlSpec(0, 1, \lin, 0, 0.0025, "drum"));
     var rel = \rel.kr(5, spec:ControlSpec(0.01, 8, \lin, 0, 5, "drum"));
     var curve = \curve.kr(0, spec: ControlSpec(-8, 8, \lin, 0, 0, "drum"));
