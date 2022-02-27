@@ -6,7 +6,9 @@ var vsts = {
         ~vstlist = V
         .ls
         .reject({arg val;
-            val.asString.endsWith(".vst3") or: val.asString.contains("/");
+            val.asString.endsWith(".vst3")
+            or: { val.asString.contains("/") }
+            or: { VSTPlugin.plugins[val.asSymbol].category == "Synth" }
         });
         ~vstlist = ~vstlist.sort;
     };
@@ -521,7 +523,10 @@ Fdef(\sgui, {|node, index|
         updateButtons.();
         fxwatcher = {|obj, what|
             if (what == \source or: {what == \reorder}) {
-                var wait = if (what == \reorder) {0.1}{2};
+                // there is a lag between when the source
+                // gets added and the node is ready on the
+                // server
+                var wait = if (what == \reorder) {0.1}{1};
                 {
                     updateButtons.();
                 }.defer(wait)

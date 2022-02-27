@@ -1,5 +1,5 @@
-SynthDef(\vsti, { |out| Out.ar(out, VSTPlugin.ar(Silent.ar(2), 2)) }).add;
 ~synthdef = SynthDef(\vsti, { |out| Out.ar(out, VSTPlugin.ar(Silent.ar(2), 2)) });
+~synthdef.add;
 
 ////////////////////////////////////////
 Ndef(\vst).play

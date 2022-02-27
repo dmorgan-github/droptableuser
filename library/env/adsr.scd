@@ -1,5 +1,7 @@
 (
 synth: {|gate, doneAction=(Done.freeSelf)|
+
+    var aeg;
     var atk = \atk.kr(0.01);
     var dec = \dec.kr(0.1);
     var rel = \rel.kr(1);
@@ -13,7 +15,7 @@ synth: {|gate, doneAction=(Done.freeSelf)|
         releaseTime:rel,
         curve:curve
     );
-    var aeg = env.ar(doneAction:doneAction, gate:gate, timeScale:ts);
+    aeg = env.ar(doneAction:doneAction, gate:gate, timeScale:ts);
     aeg;
 }
 )

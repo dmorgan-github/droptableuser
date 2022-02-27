@@ -26,7 +26,7 @@ synth:{|in, gate, freq, aeg|
         spec:ControlSpec(0, 1, \lin, 0, 0, "filter")
     );
 
-    var lforate = \cutofflforate.kr(0, spec: ControlSpec(0, 10, \lin, 0, 0, "filter"));
+    var lforate = \cutofflforate.kr(0, spec: ControlSpec(0, 20, \lin, 0, 0, "filter"));
     var lfodepth = \cutofflfodepth.kr(0, spec: ControlSpec(0, 12, \lin, 0, 0, "filter"));
     var lfo = SinOsc.ar(lforate).unipolar(lfodepth);
 
@@ -45,18 +45,30 @@ synth:{|in, gate, freq, aeg|
     // apply envelope
     cutoff = cutoff * feg;
 
+    cutoff = cutoff.clip(20, 20000);
+
     sig = switch(type,
-        \dfm1, {
+        'dfm1', {
             \dfm1.debug("filter");
             res = res.linlin(0, 1, 0, 1.4);
-            DFM1.ar(in, cutoff.clip(20, 20000), res.clip(0.0, 1.4))
+            DFM1.ar(in, cutoff, res.clip(0.0, 1.4))
         },
-        \moogff, {
+        'moogff', {
             \moogff.debug("filter");
             res = res.linlin(0, 1, 0, 4);
-            MoogFF.ar(in, cutoff.clip(20, 20000), gain:res.clip(0.0, 4.0))
+            MoogFF.ar(in, cutoff, gain:res.clip(0.0, 4.0))
         },
-        \lpf18, {
+        '12db', {
+            '12db'.debug("filter");
+            res = res.linlin(0, 1, 1.4, 0.05);
+            BLowPass.ar(in, cutoff, rq:res.clip(0.05, 1.4));
+        },
+        '24db', {
+            '24db'.debug("filter");
+            res = res.linlin(0, 1, 1.4, 0.05);
+            BLowPass4.ar(in, cutoff, rq:res.clip(0.05, 1.4));
+        },
+        'lpf18', {
 
             var dist;
             \lpf18.debug("filter");
@@ -64,12 +76,12 @@ synth:{|in, gate, freq, aeg|
             dist = \dist.kr(0,
                 spec: ControlSpec(0, 1, \lin, 0, 0.4, "filter")
             );
-            LPF18.ar(in, cutoff.clip(20, 20000), res:res.clip(0.0, 1.0), dist:dist)
+            LPF18.ar(in, cutoff, res:res.clip(0.0, 1.0), dist:dist)
         },
         {
             \rlpf.debug("filter");
             res = res.linlin(0, 1, 1.4, 0.05);
-            RLPF.ar(in, cutoff.clip(20, 20000), res.clip(0.05, 1.4))
+            RLPF.ar(in, cutoff, res.clip(0.05, 1.4))
         }
     );
 

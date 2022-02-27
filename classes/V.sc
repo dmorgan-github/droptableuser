@@ -1,4 +1,4 @@
-V : D {
+V {
 
     var <>fx, <>synth, <vst;
 

@@ -1,16 +1,20 @@
 (
-SynthDef(\frame_drum, {arg
-	// Standard values
-	pan = 0, freq = 170, atk = 0.0025, dec = 0.0025, rel = 5, curve = 0;
+synth: {|freq|
 
+    var atk = \akt.kr(0.0025, spec:ControlSpec(0, 1, \lin, 0, 0.0025, "drum"));
+    var dec = \dec.kr(0.0025, spec:ControlSpec(0, 1, \lin, 0, 0.0025, "drum"));
+    var rel = \rel.kr(5, spec:ControlSpec(0.01, 8, \lin, 0, 5, "drum"));
+    var curve = \curve.kr(0, spec: ControlSpec(-8, 8, \lin, 0, 0, "drum"));
     var position = \position.kr(0.8, spec: ControlSpec(0, 1, \lin, 0, 0.8, "drum"));
     var exBlend = \exBlend.kr(0, spec: ControlSpec(-1, 1, \lin, 0, 0, "drum"));
     var decCoef = \decCoef.kr(0.225, spec: ControlSpec(0, 1, \lin, 0, 0.225, "drum") );
     var thumpAmp = \thumpAmp.kr(0.5, spec: ControlSpec(0, 1, \lin, 0, 0.5, "drum") );
     var thumpDec = \thumpDec.kr(0.2, spec: ControlSpec(0, 1, \lin, 0, 0.2, "drum") );
+    var bright = \bright.kr(0.5,
+        spec: ControlSpec(0.0, 1.0, \lin, 0, 0.5, units:"drum")
+    ).linlin(0, 1, 80, 8000);
 
 	var exciter, freqArray, ampRowArray, ampArray, decArray, snd;
-
     var att = atk;
     var crv = curve;
 
@@ -105,8 +109,10 @@ SynthDef(\frame_drum, {arg
 
 	exciter = XFade2.ar(
 		inA: exciter,
-		inB: BrownNoise.ar(exciter),
+        inB: BrownNoise.ar(exciter),
 		pan: exBlend);
+
+    exciter = LPF.ar(exciter, bright);
 
 	// Bank of resonators
 	snd = Array.fill(16, {
@@ -121,18 +127,23 @@ SynthDef(\frame_drum, {arg
 	});
 
 	// Output stuff
-    snd = Mix.ar(snd) * \amp.kr(-6.dbamp);
-	//snd = Limiter.ar(snd);
-
-	DetectSilence.ar(in: snd, amp: 0.00025, doneAction: 2);
-
-    Out.ar(\out.kr(0), Pan2.ar(snd, pan));
+    snd = Mix.ar(snd);
+	snd;
 },
-metadata: (
-	credit: "by Josh Mitchell",
-	category: \percussion,
-	tags: [\unpitched, \modal]
-)
-).add;
-
+credit: "by Josh Mitchell",
+category: \percussion,
+tags: [\unpitched, \modal],
+presets: [
+    preset1: [
+        position: 0.3811320754717,
+        atk: 0.003,
+        rel: 2.3245283018868,
+        thumpAmp: 0.81132075471698,
+        instrument: 'frame_drum',
+        exBlend: 0.31320754716981,
+        dec: 0.0025,
+        decCoef: 0.48301886792453,
+        thumpDec: 0.3811320754717
+    ]
+]
 )

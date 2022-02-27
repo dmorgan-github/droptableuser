@@ -22,9 +22,13 @@ Color(0.66662492752075, 0.72109272480011, 0.70863604545593, 0.2)
 */
 S : Pdef {
 
+
+    classvar <vstsynthdef;
+
     var <node, <cmdperiodfunc, <>color;
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
+    var <isvst=false, <vstsynth, <vstplugin;
     var /*<ptrnproxy,*/ <metadata, <controlNames;
 
     *new {|key, synth|
@@ -92,6 +96,16 @@ S : Pdef {
         this.node.fx(index, fx, wet);
     }
 
+
+    clear {
+        this.vstplugin.close;
+        this.node.free;
+        this.node.clear;
+        this.vstsynth.free;
+        topEnvironment.removeAt(this.key);
+        super.clear;
+    }
+
     fxchain {
         ^this.node.fxchain
     }
@@ -114,6 +128,14 @@ S : Pdef {
 
     view {
         ^U(\sgui, this)
+    }
+
+    gui {
+        if (isvst) {
+            vstplugin.editor;
+        }{
+            this.view.front
+        }
     }
 
     kill {|ids|
@@ -149,7 +171,13 @@ S : Pdef {
 
     source_ {|pattern|
 
-        var chain = Pchain(
+        var chain;
+
+        if (pattern.isKindOf(Array)) {
+            pattern = pattern.p
+        };
+
+        chain = Pchain(
             Pbind(
                 // not sure of the implications with multichannel expansion
                 \node_set, Pfunc({|evt|
@@ -161,12 +189,13 @@ S : Pdef {
                         node.set(*current.getPairs)
                     })
                 }),
-                // enable some aliases
-                //\degree, Pfunc({|evt| if (evt[\deg].notNil) {evt[\deg]} {evt[\degree]} }),
-                //\octave, Pfunc({|evt| if (evt[\oct].notNil) {evt[\oct]} {evt[\octave]} }),
-                //\legato, Pfunc({|evt| if (evt[\leg].notNil) {evt[\leg]} {evt[\legato]} }),
-                //\mtranspose, Pfunc({|evt| if (evt[\mtrans].notNil) {evt[\mtrans]} {evt[\mtranspose]} }),
-                //\sustain, Pfunc({|evt| if (evt[\sus].notNil) {evt[\sus]} {evt[\sustain]} })
+                \degree, Pfunc({|evt| if (evt[\deg].notNil) {evt[\deg]} {evt[\degree]} }),
+                \stretch, Pfunc({|evt| if (evt[\str].notNil) {evt[\str]} {evt[\stretch]} }),
+                \harmonic, Pfunc({|evt| if (evt[\har].notNil) {evt[\har]} {evt[\harmonic]} }),
+                \octave, Pfunc({|evt| if (evt[\oct].notNil) {evt[\oct]} {evt[\octave]} }),
+                \legato, Pfunc({|evt| if (evt[\leg].notNil) {evt[\leg]} {evt[\legato]} }),
+                \mtranspose, Pfunc({|evt| if (evt[\mtr].notNil) {evt[\mtr]} {evt[\mtranspose]} }),
+                \sustain, Pfunc({|evt| if (evt[\sus].notNil) {evt[\sus]} {evt[\sustain]} })
             ),
             //ptrnproxy,
             pattern,
@@ -224,52 +253,79 @@ S : Pdef {
     }
 
     prInitSynth {|argSynth|
-        var synthdef;
-        synth = argSynth;
 
-        synthdef = SynthDescLib.global.at(synth);
-        if (synthdef.isNil) {
-            synth = \default;
+        if (argSynth.asString.beginsWith("vst/")) {
+
+            {
+                var plugin = argSynth.asString.split($/)[1];
+                vstsynth = Synth(\vsti,
+                    args: [\out, this.node.bus.index],
+                    target: this.node.group.nodeID
+                );
+                1.wait;
+                vstplugin = VSTPluginController(vstsynth, synthDef:vstsynthdef);
+                vstplugin.open(plugin, editor: true, verbose:true);
+                synth = \vsti;
+                isvst = true;
+                this.set('type', 'vst_midi', 'vst', vstplugin, \spread, 1, \pan, 0);
+                argSynth.debug("loaded");
+            }.fork;
+
+        }{
+            var synthdef;
+            synth = argSynth;
+
             synthdef = SynthDescLib.global.at(synth);
-        };
+            if (synthdef.isNil) {
+                synth = \default;
+                synthdef = SynthDescLib.global.at(synth);
+            };
 
-        synthdef
-        .controls.reject({|cn|
-            [\freq, \pitch, \trigger, \trig,
-                \in, \buf, \gate, \glis,
-                \bend, \out, \vel].includes(cn.name.asSymbol)
-        }).do({|cn|
-            var key = cn.name.asSymbol;
-            var spec = Spec.specs[key];
-            if (spec.notNil) {
-                this.addSpec(key, spec);
-            }/* {
+            synthdef
+            .controls.reject({|cn|
+                [\freq, \pitch, \trigger, \trig,
+                    \in, \buf, \gate, \glis,
+                    \bend, \out, \vel].includes(cn.name.asSymbol)
+            }).do({|cn|
+                var key = cn.name.asSymbol;
+                var spec = Spec.specs[key];
+                if (spec.notNil) {
+                    this.addSpec(key, spec);
+                }/* {
                 var default = cn.defaultValue;
                 var spec = [0, default*2, \lin, 0, default].asSpec;
                 this.addSpec(key, spec);
-            }*/
-        });
-
-        metadata = synthdef.metadata;
-        if (metadata.notNil and: {metadata[\specs].notNil} ) {
-            metadata[\specs].keysValuesDo({|k, v|
-                this.addSpec(k, v);
-            })
-        };
-
-        if (this.getSpec.notNil) {
-            this.getSpec.keys.do({|key|
-                var spec = this.getSpec[key];
-                this.set(key, spec.default);
+                }*/
             });
-        };
 
-        controlNames = SynthDescLib.global.at(synth).controlNames;
+            metadata = synthdef.metadata;
+            if (metadata.notNil and: {metadata[\specs].notNil} ) {
+                metadata[\specs].keysValuesDo({|k, v|
+                    this.addSpec(k, v);
+                })
+            };
 
-        this.set(\instrument, synth, \spread, 1, \pan, 0);
+            if (this.getSpec.notNil) {
+                this.getSpec.keys.do({|key|
+                    var spec = this.getSpec[key];
+                    this.set(key, spec.default);
+                });
+            };
+
+            controlNames = SynthDescLib.global.at(synth).controlNames;
+
+            this.set(\instrument, synth, \spread, 1, \pan, 0);
+        }
+
+
     }
 
     *initClass {
+
+        StartUp.add({
+            vstsynthdef = SynthDef(\vsti, { |out| Out.ar(out, VSTPlugin.ar(Silent.ar(2), 2)) });
+            vstsynthdef.add;
+        });
     }
 }
 

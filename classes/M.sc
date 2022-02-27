@@ -1,8 +1,7 @@
 // module
-M {
+Module {
 
-    var <synthModule, <filterModule, <outModule, <pitchModule, <envModule;
-    var <envir, <libfunc, <fullpath, <synthdef;
+    var <envir, <>libfunc, <fullpath;
 
     *new {|key|
         var res;
@@ -27,144 +26,6 @@ M {
         ^this
     }
 
-    osc {|key, cb|
-        if (key.isKindOf(Symbol)) {
-            key = "synth/%".format(key).asSymbol;
-        };
-        synthModule = M(key);
-        cb.(synthModule);
-        ^this;
-    }
-
-    env {|key, cb|
-        if (key.isKindOf(Symbol)) {
-            key = "env/%".format(key).asSymbol;
-        };
-        envModule = M(key);
-        cb.(envModule);
-        ^this;
-    }
-
-    filter {|key, cb|
-        if (key.isKindOf(Symbol)) {
-            key = "filter/%".format(key).asSymbol;
-        };
-        filterModule = M(key);
-        cb.(filterModule);
-        ^this;
-    }
-
-    out {|key, cb|
-        if (key.isKindOf(Symbol)) {
-            key = "out/%".format(key).asSymbol;
-        };
-        outModule = M(key);
-        cb.(outModule);
-        ^this;
-    }
-
-    pitch {|key, cb|
-        if (key.isKindOf(Symbol)) {
-            key = "pitch/%".format(key).asSymbol;
-        };
-        pitchModule = M(key);
-        cb.(pitchModule);
-        ^this;
-    }
-
-    def {|name|
-
-        synthdef = SynthDef(name.asSymbol, {
-            var sig = this.func;
-            sig = sig.();
-            Out.ar(\out.kr(0), sig);
-        }).add;
-
-        "% synth created".format(name).inform;
-
-        ^this;
-    }
-
-    prInit {|key|
-
-        envir = ();
-
-        if (key.isNil) {
-
-            // when no key is specified
-            // we assume we are building a synth
-            libfunc = {
-
-                var gatemode = ~gatemode;
-                var gate, vel, sig, filt, out, freq, env, doneaction;
-
-                gate = \gate.kr(1);
-                if (gatemode == \retrig) {
-                    Env.asr(0, 1, \rel.kr(1)).kr(doneAction:Done.freeSelf, gate:gate);
-                    doneaction = Done.none;
-                    gate = \trig.tr(1);
-                }{
-                    doneaction = Done.freeSelf;
-                };
-
-                vel = \vel.kr(0);
-                freq = if (pitchModule.notNil) {pitchModule.func}{ M('pitch/freq').func };
-                env = if (envModule.notNil) {envModule.func}{ M('env/adsr').func };
-
-                freq = freq.();
-                env = env.(gate, doneaction);
-
-                sig = if (synthModule.notNil) {
-                    synthModule
-                    .put('freq', freq)
-                    .put('gate', gate)
-                    .put('vel', vel)
-                    .func
-                }{ {|freq| SinOsc.ar(freq)} };
-
-                filt = if (filterModule.notNil) {
-                    filterModule
-                    .put('freq', freq)
-                    .put('gate', gate)
-                    .put('vel', vel)
-                    .func
-                } { {|in| in} };
-
-                out = if (outModule.notNil) {
-                    outModule.func
-                }{ M('out/splay').func };
-
-                sig = sig.(freq, gate);
-                sig = LeakDC.ar(sig);
-                sig = filt.(sig, gate, freq, env);
-                sig = sig * env;
-                sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-6.dbamp) * (1+vel);
-                sig = out.(sig);
-
-                sig;
-            };
-
-        } {
-
-            if (key.isKindOf(Function)) {
-                libfunc = key
-            } {
-                var path = App.librarydir ++ key.asString ++ ".scd";
-                var pathname = PathName(path.standardizePath);
-                fullpath = pathname.fullPath.debug("module");
-
-                if (File.exists(fullpath)) {
-                    var obj = File.open(fullpath, "r").readAllString.interpret;
-                    libfunc = obj[\synth];
-                } {
-                    Error("% node not found".format(key)).throw;
-                }
-            }
-        };
-
-        ^this;
-    }
-
     *ls {|path|
 
         var fullpath = App.librarydir ++ (path ?? {"synth"});
@@ -185,117 +46,160 @@ M {
             "module file not loaded".warn
         }
     }
-}
-
-/*
-SynthLib {
-
-    var <synthfunc, <>specs, <>name, <>presets, <>notes, <>envir;
-    var <fullpath;
-
-    *new {|key|
-        ^super.new.prInit(key);
-    }
-
-    func {
-        // NOTE: func.inEnvir won't work with Ndef sources
-        // unless you wrap it in another function or create a synthdef first
-        // there must be some kind of conflict with environments
-        // it works ok with filters but just not with sources
-        ^synthfunc.inEnvir(envir)
-    }
-
-    func_ {|val|
-        synthfunc = val
-    }
-
-    put {|key, val|
-        envir.put(key, val);
-        ^this
-    }
 
     prInit {|key|
 
         envir = ();
-        if (key.isNil) {
-            // no op
-        } {
-            var path = App.librarydir ++ key.asString ++ ".scd";
-            var pathname = PathName(path.standardizePath);
-            fullpath = pathname.fullPath;
-            name = pathname.fileNameWithoutExtension.asSymbol;
 
-            if (File.exists(fullpath)) {
-                var obj = File.open(fullpath, "r").readAllString.interpret;
-                synthfunc = obj[\synth];
-                specs = obj[\specs];
-                notes = obj[\notes];
-                if (obj[\presets].notNil) {
-                    presets = obj[\presets].asDict
+        if (key.isKindOf(Function)) {
+            libfunc = key
+        }{
+            if (key.notNil) {
+                var path = App.librarydir ++ key.asString ++ ".scd";
+                var pathname = PathName(path.standardizePath);
+                fullpath = pathname.fullPath.debug("module");
+
+                if (File.exists(fullpath)) {
+                    var obj = File.open(fullpath, "r").readAllString.interpret;
+                    libfunc = obj[\synth];
+                } {
+                    Error("% node not found".format(key)).throw;
                 }
-            } {
-                Error("node not found").throw;
             }
         }
+
+        ^this;
+    }
+}
+
+M : Module {
+
+    var <synthModule, <filterModule, <outModule, <pitchModule, <envModule;
+    var <synthdef;
+
+    *new {|key|
+        var res;
+        res = super.new(key).prMInit();
+        ^res;
+    }
+
+    osc {|key, cb|
+        if (key.isKindOf(Symbol)) {
+            key = "synth/%".format(key).asSymbol;
+        };
+        synthModule = Module(key);
+        cb.(synthModule);
         ^this;
     }
 
-    addSynthDef {|template=\adsr, name|
-        name = name ?? {this.name};
-        SynthLib.def(key:name, func:this.func, template:template, specs:this.specs)
-    }
-
-    *def {|key, func, template=\adsr, specs|
-        var path = App.librarydir ++  "templates/" ++ template.asString ++ ".scd";
-        var pathname = PathName(path.standardizePath);
-        var fullpath = pathname.fullPath;
-
-        if (File.exists(fullpath)) {
-            var template = File.open(fullpath, "r").readAllString.interpret;
-            template.(key.asSymbol, func, specs);
-            "synth created".debug(key);
-        } {
-            Error("synth template not found").throw;
+    env {|key, cb|
+        if (key.isKindOf(Symbol)) {
+            key = "env/%".format(key).asSymbol;
         };
+        envModule = Module(key);
+        cb.(envModule);
+        ^this;
     }
 
-    *ls {|path|
+    filter {|key, cb|
+        if (key.isKindOf(Symbol)) {
+            key = "filter/%".format(key).asSymbol;
+        };
+        filterModule = Module(key);
+        cb.(filterModule);
+        ^this;
+    }
 
-        var fullpath = App.librarydir ++ (path ?? {"synths"});
-        var pn = PathName(fullpath);
-        pn.entries.do({|obj|
-            if ( obj.isFolder ) {
-                "%/".format(obj.folderName).postln
+    out {|key, cb|
+        if (key.isKindOf(Symbol)) {
+            key = "out/%".format(key).asSymbol;
+        };
+        outModule = Module(key);
+        cb.(outModule);
+        ^this;
+    }
+
+    pitch {|key, cb|
+        if (key.isKindOf(Symbol)) {
+            key = "pitch/%".format(key).asSymbol;
+        };
+        pitchModule = Module(key);
+        cb.(pitchModule);
+        ^this;
+    }
+
+    def {|name|
+
+        synthdef = SynthDef(name.asSymbol, {
+            var sig = this.func;
+            sig = sig.();
+            Out.ar(\out.kr(0), sig);
+        }).add;
+
+        "% synth created".format(name).inform;
+
+        ^this;
+    }
+
+    prMInit {
+
+        this.libfunc = {
+
+            var gatemode = ~gatemode;
+            var detectsilence = ~detectsilence ?? false;
+            var gate, vel, sig, filt, out, freq, env, doneaction;
+
+            gate = \gate.kr(1);
+            if (gatemode == \retrig) {
+                Env.asr(0, 1, \rel.kr(1)).kr(doneAction:Done.freeSelf, gate:gate);
+                doneaction = Done.none;
+                gate = \trig.tr(1);
             }{
-                obj.fileName.postln;
-            }
-        })
-    }
+                doneaction = Done.freeSelf;
+            };
 
-    open {
-        Document.open(fullpath)
-    }
+            vel = \vel.kr(0);
+            freq = if (pitchModule.notNil) {pitchModule.func}{ Module('pitch/freq').func };
+            env = if (envModule.notNil) {envModule.func}{ Module('env/adsr').func };
 
-    *printSynthControls {|synth|
-        SynthDescLib.all[\global]
-        .synthDescs[synth]
-        .controls.do({|cn|
-            [cn.name, cn.defaultValue].postln
-        });
-    }
+            freq = freq.();
+            env = env.(gate, doneaction);
 
-    *getSpecsPairs {|synth|
-        var synthdef = SynthDescLib.global.at(synth.asSymbol);
-        var metadata = synthdef.metadata;
-        var result;
-        if (metadata.notNil) {
-            var specs = metadata[\specs];
-            if (specs.notNil) {
-                result = specs.asPairs
-            }
+            sig = if (synthModule.notNil) {
+                synthModule
+                .put('freq', freq)
+                .put('gate', gate)
+                .put('vel', vel)
+                .func
+            }{ {|freq| SinOsc.ar(freq)} };
+
+            filt = if (filterModule.notNil) {
+                filterModule
+                .put('freq', freq)
+                .put('gate', gate)
+                .put('vel', vel)
+                .func
+            } { {|in| in} };
+
+            out = if (outModule.notNil) {
+                outModule.func
+            }{ Module('out/splay').func };
+
+            sig = sig.(freq, gate);
+            sig = LeakDC.ar(sig);
+            sig = filt.(sig, gate, freq, env);
+            sig = sig * env;
+            sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-6.dbamp) * (1+vel);
+
+            if (~detectsilence) {
+                DetectSilence.ar(in: sig, amp: 0.00025, doneAction:Done.freeSelf);
+            };
+
+            sig = out.(sig);
+            sig;
         };
-        ^result;
+
+        ^this;
     }
 }
-*/
 

@@ -304,7 +304,7 @@ D : Ndef {
 
                     // there is latency for the synth to get initialized
                     // i can't figure out a better way than to wait
-                    1.wait;
+                    0.5.wait;
                 };
 
                 nodeId = node.objects[index].nodeID;
