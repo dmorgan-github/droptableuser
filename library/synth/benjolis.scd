@@ -85,8 +85,7 @@ synth: {
 	]);
 
     output = LeakDC.ar(output);
-    output = output!2 * \amp.kr(-10.dbamp);
-    output
+    output!2;
 },
 
 presets: (

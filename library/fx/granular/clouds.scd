@@ -1,20 +1,20 @@
 (
-synth: {|sig_in|
+synth: {|in|
 
-    var in = sig_in * \clouds_input.ar(1);
-    var pitch = \clouds_pitch.kr(7);
-    var pos = \clouds_pos.kr(0.5);
-    var size = \clouds_size.kr(0.25);
-    var dens = \clouds_dens.kr(0.4);
-    var tex = \clouds_tex.kr(0.5);
-    var stereo = \clouds_stereo.kr(0.5);
-    var rvb = \clouds_rvb.kr(0);
-    var fb = \clouds_fb.kr(0);
-    var freeze = \clouds_freeze.kr(0);
-    var mode = \clouds_mode.kr(2);
-    var lofi = \clouds_lofi.kr(0);
-    var trig = 0;
-    var lag = \clouds_lag.kr(0.1);
+    var gain = \gain.kr(1, spec: ControlSpec(0.125, 8, \lin, 0, 1, units:"clouds") );
+    var pitch = \clouds_pitch.kr(7, spec:ControlSpec(-48, 48, \lin, 0, 0, units:"clouds"));
+    var pos = \clouds_pos.kr(0.5, spec: ControlSpec(0, 1, \lin, 0, 0.5, units:"clouds"));
+    var size = \clouds_size.kr(0.25, spec: ControlSpec(0, 1, \lin, 0, 0.25, units:"clouds"));
+    var dens = \clouds_dens.kr(0.4, spec: ControlSpec(0, 1, \lin, 0, 04, units:"clouds"));
+    var tex = \clouds_tex.kr(0.5, spec: ControlSpec(0, 1, \lin, 0, 0.5, units:"clouds"));
+    var stereo = \clouds_stereo.kr(0.5, spec: ControlSpec(0, 1, \lin, 0, 0.5, units:"clouds"));
+    var rvb = \clouds_rvb.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, units:"clouds"));
+    var fb = \clouds_fb.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, units:"clouds"));
+    var freeze = \clouds_freeze.kr(0, spec: ControlSpec(0, 1, \lin, 1, 0, units:"clouds"));
+    var mode = \clouds_mode.kr(2, spec: ControlSpec(0, 3, \lin, 1, 2, units:"clouds"));
+    var lofi = \clouds_lofi.kr(0, spec: ControlSpec(0, 1, \lin, 1, 0, units:"clouds"));
+    var trig = ~graintrig ?? { 0 };
+    var lag = \clouds_lag.kr(0.1, spec: ControlSpec(0, 1, \lin, 1, 0.1, units:"clouds"));
 
     var sig = MiClouds.ar(in,
         pit: pitch.lag(lag),
@@ -30,30 +30,11 @@ synth: {|sig_in|
         freeze: freeze,
         mode: mode,
         lofi: lofi,
-        trig: trig
+        trig: trig.value
     );
 
     sig = in.blend(sig, \clouds_mix.kr(0.5));
-    sig = sig * \clouds_output.ar(1);
     sig;
 
-},
-
-specs: [
-    clouds_pitch: ControlSpec(-48, 48, \lin, 0, 7, units:"pitch"),
-    clouds_pos: ControlSpec(0, 1, \lin, 0, 0.5, units:"grain"),
-    clouds_size: ControlSpec(0, 1, \lin, 0, 0.25, units:"grain"),
-    clouds_dens: ControlSpec(0, 1, \lin, 0, 04, units:"grain"),
-    clouds_tex: ControlSpec(0, 1, \lin, 0, 0.5, units:"timbre"),
-    clouds_stereo: ControlSpec(0, 1, \lin, 0, 0.5, units:"stereo"),
-    clouds_rvb: ControlSpec(0, 1, \lin, 0, 0, units:"reverb"),
-    clouds_fb: ControlSpec(0, 1, \lin, 0, 0, units:"reverb"),
-    clouds_freeze: ControlSpec(0, 1, \lin, 1, 0, units:"reverb"),
-    clouds_mode: ControlSpec(0, 3, \lin, 1, 2, units:"timbre"),
-    clouds_lofi: ControlSpec(0, 1, \lin, 1, 0, units:"timbre"),
-    clouds_lag: ControlSpec(0, 1, \lin, 1, 0.1, units:"pitch"),
-    clouds_input: ControlSpec(0, 2, \lin, 0, 1, "vol"),
-    clouds_output: ControlSpec(0, 2, \lin, 0, 1, "vol"),
-    clouds_mix: ControlSpec(0, 1, \lin, 0, 0.4, "vol")
-]
+}
 )

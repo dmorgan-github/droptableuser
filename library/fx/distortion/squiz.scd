@@ -1,21 +1,13 @@
 (
 synth: {arg sig_in;
 
-    var in = sig_in * \squiz_input.ar(1);
+    var in = sig_in;
     var sig = Squiz.ar(in,
-        pitchratio: \pitchratio.ar(12).midiratio,
-        zcperchunk: \zcperchunk.ar(1)
+        pitchratio: \pitchratio.ar(12, spec:ControlSpec(1, 24, \lin, 1, 12, "squiz")).midiratio,
+        zcperchunk: \zcperchunk.ar(1, spec:ControlSpec(1, 100, \lin, 0, 1, "squiz")).lag(0.05)
     );
     sig = LeakDC.ar(sig);
-    sig = in.blend(sig, \squiz_mix.kr(0.5));
-    sig = sig * \squiz_output.ar(1);
+    sig = in.blend(sig, \squiz_mix.kr(0.3, spec: ControlSpec(0, 1, \lin, 0, 0.3, "squiz")));
     sig;
-},
-specs: [
-    pitchratio: ControlSpec(1, 24, \lin, 1, 12, "squiz"),
-    zcperchunk: ControlSpec(1, 100, \lin, 0, 1, "squiz"),
-    squiz_mix: ControlSpec(0, 1, \lin, 0, 0.5, "vol"),
-    squiz_input: ControlSpec(0, 2, \lin, 0, 1, "vol"),
-    squiz_output: ControlSpec(0, 2, \lin, 0, 1, units: "vol")
-]
+}
 )

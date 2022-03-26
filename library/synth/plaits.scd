@@ -1,16 +1,16 @@
 (
 synth: {|freq, gate, aeg|
 
-    var harm = \harm.kr(0.5);
-    var timbre = \timbre.kr(0.5);
-    var morph = \morph.kr(0.5);
-    var engine = \engine.kr(0);
+    var harm = \harm.kr(0.5, spec:ControlSpec(0, 1, \lin, 0, 0.5, "plaits"));
+    var timbre = \timbre.kr(0.5, spec:ControlSpec(0, 1, \lin, 0, 0.5, "plaits"));
+    var morph = \morph.kr(0.5, spec: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"));
+    var engine = \engine.kr(0, spec:ControlSpec(0, 15, \lin, 1, 0, "plaits"));
     var trigger = \trig.tr(1);
-    var decay = \decay.kr(0.5);
-    var fmmod = \fm_mod.kr(0);
-    var timbremod = \timb_mod.kr(0);
-    var morphmod = \morph_mod.kr(0);
-    var lpg = \lpg.kr(0.5);
+    var decay = \decay.kr(0.5, spec: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"));
+    var fmmod = \fm_mod.kr(0, spec: ControlSpec(-1, 1, \lin, 0, 0, "plaits"));
+    var timbremod = \timb_mod.kr(0, spec: ControlSpec(-1, 1, \lin, 0, 0, "plaits"));
+    var morphmod = \morph_mod.kr(0, spec: ControlSpec(-1, 1, \lin, 0, 0, "plaits"));
+    var lpg = \lpg.kr(0.5, spec: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"));
     //var level = \level.kr(0.5);
 
     var note = A2K.kr(freq).cpsmidi;
@@ -30,22 +30,10 @@ synth: {|freq, gate, aeg|
     var pri = sig[0];
     var aux = sig[1];
 
-    sig = pri.blend(aux, \sigmix.kr(0));
-    sig
+    sig = pri.blend(aux, \auxmix.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "plaits")));
+    sig.sum
 
 },
-specs: [
-    engine: ControlSpec(0, 15, \lin, 1, 0, "plaits"),
-    harm: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"),
-    timbre: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"),
-    morph: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"),
-    fm_mod: ControlSpec(-1, 1, \lin, 0, 0, "plaits"),
-    timb_mod: ControlSpec(-1, 1, \lin, 0, 0, "plaits"),
-    morph_mod: ControlSpec(-1, 1, \lin, 0, 0, "plaits"),
-    sigmix: ControlSpec(0, 1, \lin, 0, 0, "plaits"),
-    decay: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"),
-    lpg: ControlSpec(0, 1, \lin, 0, 0.5, "plaits")
-],
 presets: [
     bd: [
         'fm_mod': 0.23232323232323,

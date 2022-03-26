@@ -14,7 +14,7 @@ D : Ndef {
 
     var <cmdperiodfunc;
 
-    *new {|key|
+    *new {|key, source|
 
         var res;
 
@@ -53,6 +53,10 @@ D : Ndef {
             });
 
             res.monitor.out = defaultout;
+        };
+
+        if (source.notNil) {
+            res.put(0, source)
         };
 
         // initialize or re-initialize
@@ -244,7 +248,7 @@ D : Ndef {
                         this.fxchain.put(index, (name:vst, type:'vst', 'ctrl':ctrl));
                     });
                 }{
-                    var obj = M("fx/%".format(fx).asSymbol);
+                    var obj = Module("fx/%".format(fx).asSymbol);
                     var func = obj.put('num', num).func;
                     this.filter(index, func);
                     this.fxchain.put(index, (name:fx, type:'func', 'ctrl':obj));
@@ -338,6 +342,10 @@ D : Ndef {
 
     view {|index|
         ^U(\sgui, this);
+    }
+
+    gui {
+        this.view.front
     }
 
     rec {|beats=4, preLevel=0, cb|

@@ -175,13 +175,16 @@ c.plot
     }
 
     /*
-    Loads a directory of sound files into mono bufs
+    Loads a directory and subdirectores of sound files into mono bufs
     */
     *loadLib {|key, path, normalize=true|
 
+        var read;
         var condition = Condition(false);
 
-        var read = {|path|
+        path.debug("loading");
+
+        read = {|path|
             var buffer;
             //var file = SoundFile.openRead(path);
             var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });

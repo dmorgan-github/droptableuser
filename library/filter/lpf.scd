@@ -4,21 +4,22 @@ synth:{|in, gate, freq, aeg|
     var type = ~type ?? \rlpf;
     var velamt = ~velamt ?? 0.55;
     var vel = ~vel;
-    var keyamt = \keyamt.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "filter"));
-    var envamt = 1-\envamt.kr(0.5, spec:ControlSpec(0, 1, \lin, 0, 0.5, "filter"));
+    var keyamt = \keyamt.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, "filter"));
+    var envamt = 1-\envdepth.kr(0.5, spec:ControlSpec(0, 1, \lin, 0, 0.5, "filter"));
     var basefreq = 48.midicps;
     var cutoffratio, sig;
 
-    var fatkcurve = \fatkcurve.kr(-4);
-    var fdeccurve = \fdeccurve.kr(-4);
-    var frelcurve = \frelcurve.kr(-4);
+    var fatkcurve = \fatkcurve.kr(-4, spec: DMControlSpec(-8, 8, \lin, 0, -4, units:"filter", sort:4));
+    var fdeccurve = \fdeccurve.kr(-4, spec: DMControlSpec(-8, 8, \lin, 0, -4, units:"filter", sort:5));
+    var frelcurve = \frelcurve.kr(-4, spec: DMControlSpec(-8, 8, \lin, 0, -4, units:"filter", sort:6));
     var cutoff = \cutoff.kr(2000, spec: ControlSpec(20, 20000, \exp, 0, 1000, "filter"));
 
-    var feg =  Env.adsr(
-        \fatk.kr(0),
-        \fdec.kr(0.2),
-        \fsuslevel.kr(1),
-        \frel.kr(0.2), 1,
+    var feg = Env.adsr(
+        \fatk.kr(0, spec: DMControlSpec(0, 1, \lin, 0, 0.01, units:"filter", sort:0)),
+        \fdec.kr(0.2, spec: DMControlSpec(0, 1, \lin, 0, 0.2, units:"filter", sort:1)),
+        \fsuslevel.kr(1, spec: DMControlSpec(0, 1, \lin, 0, 1, units:"filter", sort:2)),
+        \frel.kr(0.2, spec: DMControlSpec(0, 8, \lin, 0, 0.29, units:"filter", sort:3)),
+        1,
         curve:[fatkcurve, fdeccurve, frelcurve]
     ).ar(gate:gate).linlin(0, 1, envamt, 1);
 
@@ -28,7 +29,11 @@ synth:{|in, gate, freq, aeg|
 
     var lforate = \cutofflforate.kr(0, spec: ControlSpec(0, 20, \lin, 0, 0, "filter"));
     var lfodepth = \cutofflfodepth.kr(0, spec: ControlSpec(0, 12, \lin, 0, 0, "filter"));
-    var lfo = SinOsc.ar(lforate).unipolar(lfodepth);
+    var lfo = ~lfo.(lforate, lfodepth);
+
+    if (lfo.isNil) {
+        lfo = SinOsc.ar(lforate).unipolar(lfodepth);
+    };
 
     cutoffratio = Select.kr(freq < basefreq, [
         basefreq + ((freq - basefreq) * keyamt),
@@ -67,16 +72,6 @@ synth:{|in, gate, freq, aeg|
             '24db'.debug("filter");
             res = res.linlin(0, 1, 1.4, 0.05);
             BLowPass4.ar(in, cutoff, rq:res.clip(0.05, 1.4));
-        },
-        'lpf18', {
-
-            var dist;
-            \lpf18.debug("filter");
-
-            dist = \dist.kr(0,
-                spec: ControlSpec(0, 1, \lin, 0, 0.4, "filter")
-            );
-            LPF18.ar(in, cutoff, res:res.clip(0.0, 1.0), dist:dist)
         },
         {
             \rlpf.debug("filter");

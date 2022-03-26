@@ -58,6 +58,20 @@ MidiCtrl {
 
 	}
 
+    *cc {|ccNum, ccChan=0, func, spec|
+        var cckey = "cc_%_%".format(ccNum, ccChan).asSymbol.debug("mididef");
+        if (spec.notNil) {
+            spec = spec.asSpec;
+        };
+        MIDIdef.cc(cckey, {|val, num, chan|
+            if (spec.notNil) {
+                val = spec.map(val/127);
+            };
+            func.(val, num, chan);
+        }, ccNum:ccNum, chan:ccChan)
+        .fix;
+    }
+
     *initClass {
         MIDIClient.init(verbose:true);
         sources = IdentityDictionary();

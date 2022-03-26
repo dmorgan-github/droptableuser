@@ -179,8 +179,6 @@ Y {
         ^res;
     }
 
-
-
     //------------------------------------------------------------------------
     // neck
     // generates all binary necklaces of length n
@@ -856,6 +854,22 @@ Y {
         };
 
         ^func.(target, divs);
+    }
+
+    *disteuclid {|array, n=16|
+        var size, num;
+        array = array.asArray;
+        size = array.size;
+        num = 0;
+        ^Bjorklund(size, n).collect({|val, i|
+            if (val > 0) {
+                var result = array[num];
+                num = num + 1;
+                result
+            } {
+                Rest(1)
+            }
+        })
     }
 }
 

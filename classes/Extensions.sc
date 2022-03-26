@@ -49,12 +49,41 @@
 }
 
 + AbstractFunction {
+
     pchoose {|iftrue, iffalse|
         ^Pif(Pfunc(this), iftrue, iffalse)
     }
     pfunc { ^Pfunc(this) }
 
     plazy { ^Plazy(this) }
+
+    cc {|ccNum, ccChan=0, spec|
+        var cckey = "cc_%_%".format(ccNum, ccChan).asSymbol.debug("mididef");
+        if (spec.notNil) {
+            spec = spec.asSpec;
+        };
+        MIDIdef.cc(cckey, {|val, num, chan|
+            if (spec.notNil) {
+                val = spec.map(val/127);
+            };
+            this.value(val, num, chan);
+        }, ccNum:ccNum, chan:ccChan)
+        .fix;
+
+        // TODO: fix this
+        if (spec.notNil) {
+            MIDIClient.destinations.do({|dest, i|
+                var val = spec.default;
+                var ccval = val.linlin(spec.minval, spec.maxval, 0, 127);
+                try {
+                    MIDIOut(i).control(ccChan, ccNum, ccval);
+                } {|err|
+                    "midi out: %".format(err).warn;
+                }
+
+            })
+        }
+    }
 }
 
 + SequenceableCollection {
@@ -107,15 +136,46 @@
     limit {arg num; ^Pfin(num, this.iter) }
     step {arg dur, repeats=inf; ^Pstep(this, dur, repeats)}
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
-    clutch {|connected| ^Pclutch(this, connected) }
+
+    // not sure how best to use pfilter vs pchain
+    // or if it really matters
+    // pattern is probably too general of a base class
+    // for this
+    doesNotUnderstand {|selector ... args|
+        if (selector.isSetter) {
+            selector = selector.asGetter;
+        };
+        ^Pbindf(this, selector.asSymbol, args[0])
+    }
+
+    pfilter {|...args| ^Pbindf(this, *args)}
+
+    inval {|...args|
+        if (args[0].isKindOf(Symbol)) {
+            args = Pbind(*args)
+        };
+        ^Pchain(this, *args)
+    }
 
     // don't advance pattern on rests
-    norest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
-
-    //pfilter {|...args| ^Pbindf(this, *args)}
-    // we want to chain the arguments before the current pattern
-    // so that they override the current pattern
-    pfilter {|...args| ^Pchain(*(args ++ [this]) ) }
+    //clutch {|connected| ^Pclutch(this, connected) }
+    //norest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
+    latch {|key|
+        ^Pclutch(
+            this,
+            Pfunc({|evt|
+                var connected = true;
+                if (evt.isRest) {
+                    connected = false
+                }{
+                    if (key.notNil) {
+                        connected = evt[key].asBoolean
+                    }
+                };
+                connected
+            })
+        )
+    }
 
     cycle {|dur=8, len, repeats=inf|
         var iteration = -1;
@@ -274,6 +334,8 @@
         }
     }
 
+    // don't think this is necessary
+    /*
     ccMap {|ctrl, ccNum, ccChan=0|
         var order = Order.newFromIndices(ctrl.asArray, ccNum.asArray);
         var cckey = "%_cc".format(this.key).asSymbol;
@@ -284,11 +346,11 @@
             var node = Ndef(nodekey, { \val.kr(spec.default) });
             this.set(c, node);
         });
-        MIDIdef.cc(cckey, {|val, num|
+        MIDIdef.cc(cckey, {|val, num, chan|
             var mapped;
             var ctrl = order[num];
             var spec = this.getSpec(ctrl).ifnil([0, 1].asSpec);
-            var filter = Fdef("%_ccFilter_%".format(this.key, num).asSymbol);
+            var filter = Fdef("%_ccFilter_%_%".format(this.key, num, chan).asSymbol);
             var nodekey = "%_%".format(cckey, ctrl).asSymbol;
             mapped = spec.map(val/127);
             if (filter.source.notNil) {
@@ -299,15 +361,16 @@
         }, ccNum:ccNum, chan:ccChan)
         .fix;
     }
+    */
 
     cc {|ctrl, ccNum, ccChan=0|
         var order = Order.newFromIndices(ctrl.asArray, ccNum.asArray);
-        var cckey = "%_cc".format(this.key).asSymbol;
-        MIDIdef.cc(cckey, {|val, num|
-            var mapped;
-            var ctrl = order[num];
-            var spec = this.getSpec(ctrl);
-            var filter = Fdef("%_ccFilter_%".format(this.key, num).asSymbol);
+        var cckey = "%_cc_%".format(this.key, ccChan).asSymbol.debug("mididef");
+        MIDIdef.cc(cckey, {|val, num, chan|
+            var mapped, ctrl, spec, filter;
+            ctrl = order[num];
+            spec = this.getSpec(ctrl);
+            filter = Fdef("%_ccFilter_%_%".format(this.key, num, chan).asSymbol);
             if (spec.isNil) {
                 spec = [0, 1].asSpec;
             };
@@ -317,7 +380,6 @@
               mapped;
             };
             this.set(ctrl, mapped);
-            //this.node.group.set(ctrl, mapped);
         }, ccNum:ccNum, chan:ccChan)
         .fix;
 
@@ -335,19 +397,26 @@
                 min = spec.minval;
                 max = spec.maxval;
                 current = this.get(ctrl);
-                ccval = current.linlin(min, max, 0, 127);
-                MIDIOut(i).control(ccChan, num, ccval);
+                if (current.notNil) {
+                    ccval = current.linlin(min, max, 0, 127);
+                    [\curent, current, \cc, ccval].debug(ctrl);
+                    try {
+                        MIDIOut(i).control(ccChan, num, ccval);
+                    } {|err|
+                        "midi out: %".format(err).warn;
+                    }
+                }
             });
         })
     }
 
-    ccFilter {|ccNum, func|
-        var key = "%_ccFilter_%".format(this.key, ccNum).asSymbol;
+    ccFilter {|ccNum, ccChan=0, func|
+        var key = "%_ccFilter_%_%".format(this.key, ccNum, ccChan).asSymbol.debug("cc filter");
         Fdef(key, func)
     }
 
-    noteFilter {|func|
-        var key = "%_noteFilter".format(this.key).asSymbol;
+    noteFilter {|func, noteChan=0|
+        var key = "%_noteFilter_%".format(this.key, noteChan).asSymbol.debug("note filter");
         Fdef(key, func);
     }
 
@@ -409,6 +478,7 @@
         .fix;
     }
 
+    // TODO: refactor
     disconnect {
         MIDIdef.noteOn("%_noteon".format(this.key).asSymbol).permanent_(false).free;
         MIDIdef.noteOff("%_noteoff".format(this.key).asSymbol).permanent_(false).free;

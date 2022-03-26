@@ -10,7 +10,7 @@ synth: {|in|
             'Freeze', 'raum_freeze'.kr(0.0),
             'High Cut', 'raum_highcut'.kr(1.0),
             'Low Cut', 'raum_lowcut'.kr(0.0),
-            'Mix', 'raum_mix'.kr(1.0),
+            'Mix', 'raum_mix'.kr(0.3),
             'MixLock', 'raum_mixlock'.kr(0.0),
             'Mode', 'raum_mode'.kr(0.5),
             'Modulation', 'raum_modulation'.kr(0.25),

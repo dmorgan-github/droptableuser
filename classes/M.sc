@@ -92,11 +92,14 @@ M : Module {
         ^this;
     }
 
-    env {|key, cb|
+    env {|key, hasgate=true, cb|
         if (key.isKindOf(Symbol)) {
             key = "env/%".format(key).asSymbol;
         };
         envModule = Module(key);
+        if (hasgate.not) {
+            this.put('gate', 1);
+        };
         cb.(envModule);
         ^this;
     }
@@ -128,7 +131,7 @@ M : Module {
         ^this;
     }
 
-    def {|name|
+    add {|name|
 
         synthdef = SynthDef(name.asSymbol, {
             var sig = this.func;
@@ -189,9 +192,12 @@ M : Module {
             sig = LeakDC.ar(sig);
             sig = filt.(sig, gate, freq, env);
             sig = sig * env;
-            sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-6.dbamp) * (1+vel);
+            sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-6.dbamp);
+            sig = sig * (1+vel);
+            sig = sig * \gain.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol"));
 
-            if (detectsilence.debug("detect silence")) {
+            if (detectsilence) {
+                "detect silence enabled".postln;
                 DetectSilence.ar(in: sig, amp: 0.00025, doneAction:Done.freeSelf);
             };
 

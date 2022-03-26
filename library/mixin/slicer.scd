@@ -19,6 +19,13 @@ Pdef(\slicer, Pbind(
         };
         numslices
     }),
+    \numbeats, Pfunc({|evt|
+        var numbeats = evt[\numbeats];
+        if (numbeats.isNil) {
+            numbeats = 2;
+        };
+        numbeats;
+    }),
     \start, Pfunc({|evt|
         var start = evt[\startPos];
         if (start.isNil) {
@@ -47,13 +54,16 @@ Pdef(\slicer, Pbind(
     \rate, Pfunc({|evt|
         var rate = evt[\speed];
         if (rate.isNil) {
-            rate = 1
+            var buf = evt['buf'];
+            rate = (buf.duration.roundUp/buf.duration).reciprocal;
+            rate = rate * thisThread.clock.beatDur;
         };
         rate;
     }),
     \slicedur, Pfunc({|evt|
+        var rate = evt['rate'];
         var numslices = evt[\numslices];
-        var bufdur = evt[\bufdur];
+        var bufdur = evt[\bufdur] * rate.reciprocal;
         bufdur/numslices
         //var numbeats = evt[\numbeats];
         //var dur = (thisThread.clock.beatDur * numbeats);
@@ -63,7 +73,11 @@ Pdef(\slicer, Pbind(
         var numslices = evt[\numslices];
         (0..numslices-1)/numslices;
     }),
-    \dur, Pkey(\slicedur),
+    \dur, Pfunc({|evt|
+        var numslices = evt['numslices'];
+        var numbeats = evt['numbeats'];
+        numbeats/numslices;
+    }),
     \startPos, Plazy({|evt|
         var val = evt[\slices];
         var start = evt[\start];
@@ -86,7 +100,7 @@ Pdef(\slicer, Pbind(
         var loopprob = evt[\loopprob];
         var loopdurs = evt[\loopdurs];
         if (loopdurs.isNil) {
-            loopdurs = [1/6, 1/8, 1/16, 1/32];
+            loopdurs = [1/2, 1/4, 1/8, 1/32, 1/64, 1/128];
         };
         if (loopprob.coin) {
             evt[\startPos] + (slicedur * loopdurs.choose)
@@ -96,3 +110,4 @@ Pdef(\slicer, Pbind(
     })
 ));
 )
+

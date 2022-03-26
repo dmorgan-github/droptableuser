@@ -124,7 +124,6 @@ Fdef(\sgui, {|node, index|
     var height = 19;
     var skipId = UniqueID.next.asSymbol;
     var keys;
-    var connections;
     var status = StaticText().font_(Font("Courier New", 9)).background_(Color.black.alpha_(0.3));
     var color = node.color ? Color.rand;
     var path = App.librarydir ++ "fx/";
@@ -135,17 +134,14 @@ Fdef(\sgui, {|node, index|
     }{
         node.key
     };
-    var getGroups;
-    var getKeys;
-    var getSpec;
-    var fxmenu;
-    var getView;
+    var getGroups, getKeys, getSpec, fxmenu, getView;
     var scroll = ScrollView();
     var fxbuttonsview = View().layout_(VLayout().margins_(1).spacing_(1));
     var updateButtons, moveDown, moveUp, swap;
     var view = View(bounds:275@350)
     .layout_(VLayout().margins_(2).spacing_(2))
     .name_(windowname);
+    var sliders = [];
 
     getSpec = {|key|
         var specs = node.getSpec;
@@ -156,21 +152,46 @@ Fdef(\sgui, {|node, index|
         spec
     };
 
+    watcher = {|obj, what, vals|
+        what.postln;
+        if (what == \set) {
+            vals.pairsDo({|k, v|
+                sliders.pairsDo({|k2, v2|
+                    if (k2 == k) {
+                        v2.value = v;
+                    }
+                })
+            })
+        };
+    };
+    node.addDependant(watcher);
+
     getKeys = {
 
-        var keys = {
+        var keys;
+
+        keys = {
+
             if (index.notNil) {
                 node.objects[index].controlNames.collect({|cn| cn.name})
             } {
+                var wtf;
                 var except = List.new;
                 var controlKeys;
+
                 fxnode.objects.doRange({|obj, index, i|
                     if (index >= 100 and: {index < 1000}) {
                         var names = obj.controlNames.collect({|cn| cn.name});
                         except.addAll(names);
                     }
                 });
-                node.controlKeys(except:except);
+
+                try({
+                    node.controlKeys(except:except);
+                }, {|err|
+                    "node.controlKeys (use bufnum): %".format(err).postln;
+                    err.throw;
+                })
             };
         }.value;
 
@@ -196,16 +217,20 @@ Fdef(\sgui, {|node, index|
                 \bend,
                 \vel
             ].includes(key)
-            or: {
-                key.asString.beginsWith("wet")
-            }
+            //or: {
+            //    key.asString.beginsWith("wet")
+            //}
         }).asArray
     };
 
     getGroups = {
+
+        var dict, keys;
         var returnVal = List.new;
-        var dict = ();
-        var keys = getKeys.();
+
+        dict = ();
+        keys = getKeys.();
+
         keys.do({|key|
             var spec = getSpec.(key);
             var unit = spec.units.asSymbol;
@@ -216,6 +241,7 @@ Fdef(\sgui, {|node, index|
             };
             list.add(key);
         });
+
         dict.keysDo({|key|
             dict[key] = dict[key].sort({|a, b|
                 var specA = getSpec.(a);
@@ -234,9 +260,11 @@ Fdef(\sgui, {|node, index|
                 sorta < sortb;
             })
         });
+
         dict.keys.asArray.sort.do({|key|
             returnVal.add(key -> dict[key]);
         });
+
         returnVal;
     };
 
@@ -277,6 +305,7 @@ Fdef(\sgui, {|node, index|
     getView = {
 
         var view, groups;
+        var mysliders;
         groups = getGroups.();
         view = View().layout_(VLayout().margins_(2).spacing_(2));
 
@@ -286,7 +315,6 @@ Fdef(\sgui, {|node, index|
 
         groups.do({|assoc|
 
-            var mysliders, mycontrols;
             var group = assoc.key;
             var mykeys = assoc.value;
 
@@ -300,16 +328,22 @@ Fdef(\sgui, {|node, index|
                 if (val.isNil) {
                     val = spec.default;
                 };
-                LevelSlider(key, spec:spec, color:color).maxHeight_(20)
-                .action_({|ctrl|
-                    node.set(key, ctrl.value);
-                })
-                .value_(val)
-            });
+                [key, LevelSlider(key, spec:spec, color:color).maxHeight_(20)
+                    .action_({|ctrl|
+                        var val = node.get(key);
+                        if (val != ctrl.value) {
+                            node.set(key, ctrl.value);
+                        }
+                    })
+                    .value_(val)
+                ]
+            }).flatten;
 
-            mysliders.do({|slider|
+            mysliders.pairsDo({|key, slider|
                 view.layout.add(slider);
             });
+
+            sliders = sliders ++ mysliders;
         });
 
         if (index.isNil) {
@@ -552,7 +586,6 @@ Fdef(\sgui, {|node, index|
     };
 
     view.onClose_({
-        connections.free;
         node.removeDependant(watcher);
         fxnode.removeDependant(fxwatcher);
         //SkipJack.stop(skipId)

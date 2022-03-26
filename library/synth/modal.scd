@@ -11,11 +11,19 @@ synth: {|freq, gate, aeg|
 
     var bright = \bright.kr(0.5,
         spec: ControlSpec(0.0, 1.0, \lin, 0, 0.5, units:"modal")
-    ).linlin(0, 1, 80, 8000);
+    ).linlin(0, 1, 80, 16000);
 
     var morph, sig;
 
-    var exciter = ~exciter ?? { Impulse.ar(0) };
+    //var exciter = ~exciter ?? { Impulse.ar(0) };
+
+    //var exciter = ~exciter ?? { Hasher.ar(Sweep.ar) * Env.perc(0, 0.01).ar };
+
+    var exciter = ~exciter ?? { WhiteNoise.ar * Env.perc(0, 0.01).ar * 0.7 };
+
+    exciter = exciter * 0.2;
+
+    //var exciter = ~exciter ?? { PinkNoise.ar * Env.perc(0, 0.001).ar };
 
     exciter = LPF.ar(exciter, bright);
 
