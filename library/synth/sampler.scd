@@ -16,7 +16,7 @@ synth: {|freq, gate|
         freq/root
     ]);
 
-    var dir = Select.kr(\dir.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, units:"buf")) < 0.5, [1, -1]);
+    var dir = Select.kr(\dir.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, units:"sampler")) < 0.5, [1, -1]);
     var phase = dir * Phasor.ar(rate: rate * BufRateScale.kr(buf), start:numframes * start, end:numframes * end);
     var numchannels = ~numchannels ?? {1};
 

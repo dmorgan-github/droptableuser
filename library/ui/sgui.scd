@@ -153,18 +153,19 @@ Fdef(\sgui, {|node, index|
     };
 
     watcher = {|obj, what, vals|
-        what.postln;
         if (what == \set) {
             vals.pairsDo({|k, v|
                 sliders.pairsDo({|k2, v2|
                     if (k2 == k) {
-                        v2.value = v;
+                        if (v2.value != v) {
+                            //[v2.value, v].debug(\watcher);
+                            v2.value = v;
+                        }
                     }
                 })
             })
         };
     };
-    node.addDependant(watcher);
 
     getKeys = {
 
@@ -332,6 +333,7 @@ Fdef(\sgui, {|node, index|
                     .action_({|ctrl|
                         var val = node.get(key);
                         if (val != ctrl.value) {
+                            //[val, ctrl.value].debug(\action);
                             node.set(key, ctrl.value);
                         }
                     })
@@ -580,6 +582,8 @@ Fdef(\sgui, {|node, index|
         }
     }, name: skipId);
     */
+
+    node.addDependant(watcher);
 
     log = {|msg|
         status.string = msg;

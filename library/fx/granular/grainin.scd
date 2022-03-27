@@ -1,7 +1,6 @@
 (
-synth: {arg in_sig;
+synth: {arg in;
 
-    var in = in_sig.asArray.sum * \grainin_input.kr(1);
     var sig, rate, dur;
 
     var buf = LocalBuf(44100 * 5, 1).clear;
@@ -25,15 +24,7 @@ synth: {arg in_sig;
         -1
     );
 
-    sig = Splay.ar(sig);
-    sig = in.blend(sig, \grainin_mix.kr(0.5));
-    sig * \grainin_output.kr(1);
-},
-specs: [
-
-    grainin_input: ControlSpec(0, 2, \lin, 0, 1, "vol"),
-    grainin_output: ControlSpec(0, 2, \lin, 0, 1, "vol"),
-    grainin_mix: ControlSpec(0, 1, \lin, 0, 0.4, "vol")
-
-]
+    sig = in.blend(sig, \grainin_mix.kr(0.5, spec: ControlSpec(0, 1, \lin, 0, 0.4, "grainin")));
+    sig;
+}
 )

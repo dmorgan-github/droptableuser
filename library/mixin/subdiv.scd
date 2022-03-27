@@ -48,6 +48,10 @@ Pdef(\xy,
     )
 );
 */
+Spec.add(\k, ControlSpec(1, 8, 'lin', 0, 1, units: "dur"));
+Spec.add(\n, ControlSpec(1/8, 8, 'lin', 1/8, 1, units: "dur"));
+Spec.add(\x, ControlSpec(0, 3, 'lin', 1, 0, units: "xy"));
+Spec.add(\y, ControlSpec(0, 3, 'lin', 1, 0, units: "xy"));
 
 Fdef(\subdiv, {|...args|
 
@@ -59,7 +63,9 @@ Fdef(\subdiv, {|...args|
         'm' -> 'mtranspose',
         'h' -> 'harmonic',
         'l' -> 'legato',
-        'p' -> 'prob'
+        'p' -> 'prob',
+        'v' -> 'vel',
+        'g' -> 'gain'
     ] ++ args;
 
     patterns = args.collect({|val|

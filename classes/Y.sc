@@ -888,7 +888,7 @@ C {
     }
 
     *gbman {|xi = 1.2, yi = 2.1, size = 64|
-        size.collect({ var x; xi = 1 - yi + abs(x = xi); yi = x; xi })
+        ^size.collect({ var x; xi = 1 - yi + abs(x = xi); yi = x; xi })
     }
 
     *latoocarfian {|a = 1, b = 3, c = 0.5, d = 0.5, xi = 0.5, yi = 0.5, size = 64|

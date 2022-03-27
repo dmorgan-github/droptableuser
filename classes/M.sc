@@ -1,7 +1,7 @@
 // module
 Module {
 
-    var <envir, <>libfunc, <fullpath;
+    var <envir, <>libfunc, <fullpath, <props;
 
     *new {|key|
         var res;
@@ -62,6 +62,7 @@ Module {
                 if (File.exists(fullpath)) {
                     var obj = File.open(fullpath, "r").readAllString.interpret;
                     libfunc = obj[\synth];
+                    props = obj['props'];
                 } {
                     Error("% node not found".format(key)).throw;
                 }
@@ -75,40 +76,50 @@ Module {
 M : Module {
 
     var <synthModule, <filterModule, <outModule, <pitchModule, <envModule;
-    var <synthdef;
+    var <synthdef, <synthname;
 
-    *new {|key|
+    *new {
         var res;
-        res = super.new(key).prMInit();
+        res = super.new().prMInit();
         ^res;
     }
 
     osc {|key, cb|
         if (key.isKindOf(Symbol)) {
+            synthname = key;
             key = "synth/%".format(key).asSymbol;
         };
         synthModule = Module(key);
+        if (synthModule.props.notNil) {
+            envir.putAll(synthModule.props);
+        };
         cb.(synthModule);
         ^this;
     }
 
-    env {|key, hasgate=true, cb|
+    env {|key, cb|
         if (key.isKindOf(Symbol)) {
             key = "env/%".format(key).asSymbol;
         };
         envModule = Module(key);
-        if (hasgate.not) {
-            this.put('gate', 1);
+        if (envModule.props.notNil) {
+            envir.putAll(envModule.props);
         };
         cb.(envModule);
         ^this;
     }
 
-    filter {|key, cb|
+    filter {|key, type, cb|
         if (key.isKindOf(Symbol)) {
             key = "filter/%".format(key).asSymbol;
         };
         filterModule = Module(key);
+        if (type.notNil) {
+            filterModule.put('type', type)
+        };
+        if (filterModule.props.notNil) {
+            envir.putAll(filterModule.props);
+        };
         cb.(filterModule);
         ^this;
     }
@@ -118,6 +129,9 @@ M : Module {
             key = "out/%".format(key).asSymbol;
         };
         outModule = Module(key);
+        if (outModule.props.notNil) {
+            envir.putAll(outModule.props);
+        };
         cb.(outModule);
         ^this;
     }
@@ -127,12 +141,15 @@ M : Module {
             key = "pitch/%".format(key).asSymbol;
         };
         pitchModule = Module(key);
+        if (pitchModule.props.notNil) {
+            envir.putAll(pitchModule.props);
+        };
         cb.(pitchModule);
         ^this;
     }
 
     add {|name|
-
+        name = name ?? synthname;
         synthdef = SynthDef(name.asSymbol, {
             var sig = this.func;
             sig = sig.();
@@ -144,15 +161,29 @@ M : Module {
         ^this;
     }
 
+    *synthDesc {|name|
+        ^SynthDescLib.global[name];
+    }
+
     prMInit {
+
+        synthname = "synth_%".format(UniqueID.next).asSymbol;
 
         this.libfunc = {
 
             var gatemode = ~gatemode;
             var detectsilence = ~detectsilence ?? false;
             var gate, vel, sig, filt, out, freq, env, doneaction;
+            var hasgate;
 
-            gate = \gate.kr(1);
+            hasgate = ~hasgate ?? true;
+            hasgate.debug("hasgate");
+            if (hasgate) {
+                gate = \gate.kr(1);
+            } {
+                gate = 1;
+            };
+
             if (gatemode.debug("gate mode") == \retrig) {
                 Env.asr(0, 1, \rel.kr(1)).kr(doneAction:Done.freeSelf, gate:gate);
                 doneaction = Done.none;
@@ -161,7 +192,7 @@ M : Module {
                 doneaction = Done.freeSelf;
             };
 
-            vel = \vel.kr(0);
+            vel = \vel.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "timbre"));
             freq = if (pitchModule.notNil) {pitchModule.func}{ Module('pitch/freq').func };
             env = if (envModule.notNil) {envModule.func}{ Module('env/adsr').func };
 
