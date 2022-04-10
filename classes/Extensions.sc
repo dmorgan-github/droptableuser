@@ -420,7 +420,7 @@
         Fdef(key, func);
     }
 
-    note {|noteChan, note|
+    note {|noteChan, note, debug=false|
 
         var noteonkey = "%_noteon".format(this.key).asSymbol;
         var noteoffkey = "%_noteoff".format(this.key).asSymbol;
@@ -437,7 +437,7 @@
             note = (0..110);
         };
 
-        MIDIdef.noteOn(noteonkey, {|vel, note, chan|
+        MIDIdef.noteOn(noteonkey.debug("noteonkey"), {|vel, note, chan|
 
             var evt = this.envir ?? {()};
             var args;
@@ -454,6 +454,10 @@
             })
             .asPairs();
 
+            if (debug) {
+                args.postln;
+            };
+
             if (hasGate) {
                 if (synths[note].isNil) {
                     synths[note] = Synth(instrument, args, target:target, addAction:\addToHead);
@@ -464,7 +468,7 @@
         }, noteNum:note, chan:noteChan)
         .fix;
 
-        MIDIdef.noteOff(noteoffkey, {|vel, note, chan|
+        MIDIdef.noteOff(noteoffkey.debug("noteoffkey"), {|vel, note, chan|
             var filter = Fdef("%_noteFilter".format(this.key).asSymbol);
             if (filter.source.notNil) {
                 #note, vel = filter.(note, vel);
@@ -480,8 +484,13 @@
 
     // TODO: refactor
     disconnect {
-        MIDIdef.noteOn("%_noteon".format(this.key).asSymbol).permanent_(false).free;
-        MIDIdef.noteOff("%_noteoff".format(this.key).asSymbol).permanent_(false).free;
-        MIDIdef.cc("%_cc".format(this.key).asSymbol).permanent_(false).free;
+        MIDIdef.noteOn("%_noteon".format(this.key).asSymbol.debug("disconnect"))
+        .permanent_(false).free;
+
+        MIDIdef.noteOff("%_noteoff".format(this.key).asSymbol.debug("disconnect"))
+        .permanent_(false).free;
+
+        MIDIdef.cc("%_cc".format(this.key).asSymbol.debug("disconnect"))
+        .permanent_(false).free;
     }
 }

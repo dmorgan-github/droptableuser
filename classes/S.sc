@@ -22,14 +22,13 @@ Color(0.66662492752075, 0.72109272480011, 0.70863604545593, 0.2)
 */
 S : Pdef {
 
-
-    classvar <vstsynthdef;
-
+    var <vstsynthdef=\vsti;
     var <node, <cmdperiodfunc, <>color;
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
     var <isvst=false, <vstsynth, <vstplugin;
     var /*<ptrnproxy,*/ <metadata, <controlNames;
+    var dialects;
 
     *new {|key, synth|
         var res = Pdef.all[key];
@@ -56,7 +55,12 @@ S : Pdef {
         if (adverb.isNil and: val.isKindOf(Array)) {
             this.set(*val);
         } {
-            this.set(adverb, val);
+            var func = Fdef("dialects/%".format(adverb).asSymbol);
+            if (func.source.isNil) {
+                this.set(adverb, val);
+            }{
+                func.(val, this);
+            }
         }
     }
 
@@ -95,7 +99,6 @@ S : Pdef {
     fx {|index, fx, wet=1|
         this.node.fx(index, fx, wet);
     }
-
 
     clear {
         this.vstplugin.close;
@@ -171,7 +174,7 @@ S : Pdef {
 
     source_ {|pattern|
 
-        var chain;
+        var chain, vstcontrols = [];
 
         if (pattern.isKindOf(Array)) {
             pattern = pattern.p
@@ -180,6 +183,19 @@ S : Pdef {
         chain = Pchain(
             Pbind(
                 // not sure of the implications with multichannel expansion
+                \vst_set, Pfunc({|evt|
+                    if (isvst) {
+                        var current = evt;
+                        // TODO: probably should cache this
+                        //var vstcontrols = SynthDescLib.global[vstsynthdef].controlNames;
+                        var args = current['vstparams'] ?? [];//vstcontrols.reject({|n| n == \out});
+                        current = current.select({|v, k| args.includes(k) });
+                        //vstsynth.set(*current.getPairs)
+                        vstplugin.set(*current.getPairs)
+                    };
+                    1
+                }),
+
                 \node_set, Pfunc({|evt|
                     Server.default.makeBundle(Server.default.latency, {
                         var current = evt;
@@ -189,6 +205,8 @@ S : Pdef {
                         node.set(*current.getPairs)
                     })
                 }),
+
+                /*
                 \degree, Pfunc({|evt| if (evt[\deg].notNil) {evt[\deg]} {evt[\degree]} }),
                 \stretch, Pfunc({|evt| if (evt[\str].notNil) {evt[\str]} {evt[\stretch]} }),
                 \harmonic, Pfunc({|evt| if (evt[\har].notNil) {evt[\har]} {evt[\harmonic]} }),
@@ -196,6 +214,7 @@ S : Pdef {
                 \legato, Pfunc({|evt| if (evt[\leg].notNil) {evt[\leg]} {evt[\legato]} }),
                 \mtranspose, Pfunc({|evt| if (evt[\mtr].notNil) {evt[\mtr]} {evt[\mtranspose]} }),
                 \sustain, Pfunc({|evt| if (evt[\sus].notNil) {evt[\sus]} {evt[\sustain]} })
+                */
             ),
             //ptrnproxy,
             pattern,
@@ -257,15 +276,22 @@ S : Pdef {
         if (argSynth.asString.beginsWith("vst/")) {
 
             {
-                var plugin = argSynth.asString.split($/)[1];
-                vstsynth = Synth(\vsti,
+                var synthdef;
+                var args = argSynth.asString.split($/);
+                var plugin = args[1];
+                if (args.size > 2){
+                    vstsynthdef = args[2].asSymbol.debug("vstsynthdef");
+                };
+                synthdef = SynthDescLib.global[vstsynthdef].def;
+
+                vstsynth = Synth(vstsynthdef,
                     args: [\out, this.node.bus.index],
                     target: this.node.group.nodeID
                 );
                 1.wait;
-                vstplugin = VSTPluginController(vstsynth, synthDef:vstsynthdef);
+                vstplugin = VSTPluginController(vstsynth, synthDef:synthdef);
                 vstplugin.open(plugin, editor: true, verbose:true);
-                synth = \vsti;
+                synth = vstsynthdef;
                 isvst = true;
                 this.set('type', 'vst_midi', 'vst', vstplugin, \spread, 1, \pan, 0);
                 argSynth.debug("loaded");
@@ -316,15 +342,12 @@ S : Pdef {
 
             this.set(\instrument, synth, \spread, 1, \pan, 0);
         }
-
-
     }
 
     *initClass {
 
         StartUp.add({
-            vstsynthdef = SynthDef(\vsti, { |out| Out.ar(out, VSTPlugin.ar(Silent.ar(2), 2)) });
-            vstsynthdef.add;
+            SynthDef(\vsti, { |out| Out.ar(out, VSTPlugin.ar(Silent.ar(2), 2)) }).add;
         });
     }
 }

@@ -1,6 +1,6 @@
 (
 synth: {|gate, doneAction=(Done.freeSelf)|
-    1;
+    DC.ar(1);
 },
 props: (
     hasgate: false

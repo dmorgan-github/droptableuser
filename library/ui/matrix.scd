@@ -2,6 +2,56 @@
 Require("~/projects/droptableuser/library/ui/common.scd");
 Fdef(\matrix, {arg matrix;
 
+    var vsts = {
+        if (~vstlist.isNil) {
+            // get the unique list of plugins
+            // prefering vst3 if vst2 version also exists
+            var plugins = ();
+            var list = V
+            .ls
+            .reject({arg val;
+                var plugin = VSTPlugin.plugins[val.asSymbol];
+                plugin.isNil
+                or: {
+                    VSTPlugin.plugins[val.asSymbol].category.contains("Instrument")
+                }
+                or: {
+                    VSTPlugin.plugins[val.asSymbol].category.contains("Synth")
+                }
+            });
+
+            list.do({|name|
+                var noext;
+                name = name.asString;
+                noext = name.split($.)[0].asSymbol;
+                if (plugins[noext].isNil) {
+                    plugins.put(noext, 0);
+                };
+                if (name.endsWith("vst3")) {
+                    plugins[noext] = 1
+                };
+            });
+
+            ~vstlist = plugins.keys
+            .collect({|item| if (plugins[item] == 1) { "%.vst3".format(item).asSymbol }{item} })
+            .asArray
+            .sort;
+        };
+        ~vstlist
+    };
+
+    var browse = {arg path, files=List.new;
+        var folder = PathName.new(path);
+        if (folder.isFolder) {
+            var folders = folder.folders;
+            files = files.addAll(folder.files);
+            folders.do({arg folder;
+                browse.(folder.fullPath, files);
+            });
+        };
+        files;
+    };
+
 	var view = View().layout_(VLayout().margins_(2).spacing_(2));
 	var viewListener = {arg obj, key, val;
 		view.changed(key, val);
@@ -19,6 +69,8 @@ Fdef(\matrix, {arg matrix;
 	var path = App.librarydir ++ "fx/";
 
 	var vstlist;
+
+    /*
 	var browse = {arg path, files=List.new;
 		var folder = PathName.new(path);
 		if (folder.isFolder) {
@@ -42,8 +94,10 @@ Fdef(\matrix, {arg matrix;
 		};
 		~vstlist
 	};
+    */
 
 	var paths = browse.(path);
+
 	var st = {
 		StaticText().string_("...")
 		.setContextMenuActions(
@@ -53,7 +107,7 @@ Fdef(\matrix, {arg matrix;
 					MenuAction( name, {arg action, what, value;
 						var id = action.string;
 						var nodeid = path.fileNameWithoutExtension;
-						var node = N((nodeid ++ '_' ++ UniqueID.next).asSymbol).fx_(id.asSymbol);
+						var node = Send((nodeid ++ '_' ++ UniqueID.next).asSymbol).fx(id.asSymbol);
 						matrix.addSrc(node);
 					});
 				})
@@ -61,7 +115,7 @@ Fdef(\matrix, {arg matrix;
 					MenuAction(vst, {arg action;
 						var id = action.string;
 						var unique = (id ++ '_' ++ UniqueID.next).asSymbol;
-						var node = V(unique).load(id.asSymbol);
+                        var node = Send(unique).fx("vst/%".format(id.asSymbol).asSymbol);
 						matrix.addSrc(node);
 					})
 				})
@@ -107,7 +161,7 @@ Fdef(\matrix, {arg matrix;
                     view.maxHeight = 20;
                     view.children[0].children[0].background = Color.new255(77, 77, 77);
                     view.maxWidth = 80;
-                    view.onClose = { \freescope.postln; scope.free };
+                    view.onClose = { scope.free };
                     view.mouseUpAction = {
                         node.nscope
                     };
@@ -116,6 +170,7 @@ Fdef(\matrix, {arg matrix;
 
                 StaticText().string_(srcNode.key).toolTip_(srcNode.key)
 				.mouseUpAction_({|ctrl, x, y, mod, num, click|
+                    /*
                     if (srcNode.respondsTo(\editor)) {
                         srcNode.editor;
                     } {
@@ -123,6 +178,8 @@ Fdef(\matrix, {arg matrix;
                             srcNode.view;
                         }
                     }
+                    */
+                    srcNode.gui;
                 }),
 
                 nil

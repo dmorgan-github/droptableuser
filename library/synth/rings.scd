@@ -11,8 +11,8 @@ synth: {|freq, gate, aeg|
     var exciter = ~exciter ?? {0};
 
     var sig = MiRings.ar(
-        in: exciter.value,
-        trig: Impulse.ar(0),
+        in: exciter.value.postln,
+        trig: gate,
         pit: pitch,
         struct: struct,
         bright: bright,
@@ -26,7 +26,7 @@ synth: {|freq, gate, aeg|
     var odd = sig[1];
     var evenodd = \evenodd.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "rings"));
 
-    sig = even.blend(odd, evenodd);
+    sig = even.blend(odd, evenodd).asArray.sum;
     sig
 },
 notes: "

@@ -5,7 +5,7 @@ synth:{|in, gate, freq, aeg|
     var velamt = ~velamt ?? 0.55;
     var vel = ~vel;
     var keyamt = \keyamt.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, "filter"));
-    var envamt = 1-\envdepth.kr(0.5, spec:ControlSpec(0, 1, \lin, 0, 0.5, "filter"));
+    //var envamt = 1-\envdepth.kr(0.5, spec:ControlSpec(0, 1, \lin, 0, 0.5, "filter"));
     var basefreq = 48.midicps;
     var cutoffratio, sig;
 
@@ -21,7 +21,7 @@ synth:{|in, gate, freq, aeg|
         \frel.kr(0.2, spec: DMControlSpec(0, 8, \lin, 0, 0.29, units:"filter", sort:3)),
         1,
         curve:[fatkcurve, fdeccurve, frelcurve]
-    ).ar(gate:gate).linlin(0, 1, envamt, 1);
+    ).ar(gate:gate);
 
     var res = \res.kr(0,
         spec:ControlSpec(0, 1, \lin, 0, 0, "filter")

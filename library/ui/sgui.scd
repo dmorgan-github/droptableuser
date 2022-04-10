@@ -1,16 +1,39 @@
 (
 var log;
-
 var vsts = {
     if (~vstlist.isNil) {
-        ~vstlist = V
+        // get the unique list of plugins
+        // prefering vst3 if vst2 version also exists
+        var plugins = ();
+        var list = V
         .ls
         .reject({arg val;
-            val.asString.endsWith(".vst3")
-            or: { val.asString.contains("/") }
-            or: { VSTPlugin.plugins[val.asSymbol].category == "Synth" }
+            var plugin = VSTPlugin.plugins[val.asSymbol];
+            plugin.isNil
+            or: {
+                VSTPlugin.plugins[val.asSymbol].category.contains("Instrument")
+            }
+            or: {
+                VSTPlugin.plugins[val.asSymbol].category.contains("Synth")
+            }
         });
-        ~vstlist = ~vstlist.sort;
+
+        list.do({|name|
+            var noext;
+            name = name.asString;
+            noext = name.split($.)[0].asSymbol;
+            if (plugins[noext].isNil) {
+                plugins.put(noext, 0);
+            };
+            if (name.endsWith("vst3")) {
+                plugins[noext] = 1
+            };
+        });
+
+        ~vstlist = plugins.keys
+        .collect({|item| if (plugins[item] == 1) { "%.vst3".format(item).asSymbol }{item} })
+        .asArray
+        .sort;
     };
     ~vstlist
 };
@@ -350,7 +373,7 @@ Fdef(\sgui, {|node, index|
 
         if (index.isNil) {
 
-            var amp = (node.get(\amp) ?? {-6.dbamp}).linlin(0, 2, 0, 1);
+            var vol = (node.get(\vol) ?? {1}).linlin(0, 2, 0, 1);
             var spread = (node.get(\spread) ?? {1});
             var pan = (node.get(\pan) ?? {0}).linlin(-1, 1, 0, 1);
 
@@ -360,12 +383,12 @@ Fdef(\sgui, {|node, index|
                     VLayout(
                         Knob().action_({|ctrl|
                             var val = ctrl.value.linlin(0, 1, 0, 2);
-                            node.set(\amp, val);
-                            log.("amp: %".format(val));
+                            node.set(\vol, val);
+                            log.("vol: %".format(val));
                         })
                         .maxSize_(Size(30,30))
-                        .value_(amp),
-                        StaticText().string_("amp").align_(\center)
+                        .value_(vol),
+                        StaticText().string_("vol").align_(\center)
                     ),
                     nil,
                     VLayout(
@@ -520,19 +543,23 @@ Fdef(\sgui, {|node, index|
                         fxnode.rec(5)
                     }),
 
+                    /*
                     NumberBox()
                     .action_({|ctrl|
                         fxnode.fadeTime = ctrl.value;
                     })
                     .toolTip_("fade time")
                     .value_(fxnode.fadeTime),
+                    */
 
+                    /*
                     NumberBox()
                     .action_({|ctrl|
                         fxnode.monitor.out = ctrl.value;
                     })
                     .toolTip_("out bus")
                     .value_(fxnode.monitor.out),
+                    */
 
                     getPresetsView.(node),
 

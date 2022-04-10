@@ -1,9 +1,9 @@
 (
 synth: {|gate, doneAction=(Done.freeSelf)|
 
-    var atk = \atk.kr(0.0, spec:DMControlSpec(0, 8, \lin, 0, 0, units:"aeg", sort:0));
-    var sus = \sus.kr(1, spec: DMControlSpec(0, 8, \lin, 0, 1, units:"aeg", sort:1));
-    var rel = \rel.kr(1, spec: DMControlSpec(0, 8, \lin, 0, 1, units:"aeg", sort:3));
+    var atk = \atk.kr(0.01, spec:DMControlSpec(0, 8, \lin, 0, 0.01, units:"aeg", sort:0));
+    var sus = \sustain.kr(1, spec: DMControlSpec(0, 8, \lin, 0, 1, units:"aeg", sort:1));
+    var rel = \rel.kr(0.1, spec: DMControlSpec(0, 8, \lin, 0, 0.1, units:"aeg", sort:3));
 
     var ts = \ts.kr(1);
     var curve = [
@@ -16,7 +16,7 @@ synth: {|gate, doneAction=(Done.freeSelf)|
         releaseTime:rel,
         curve:curve
     );
-    var aeg = env.ar(doneAction:doneAction, timeScale:ts);
+    var aeg = env.ar(gate: gate, doneAction:doneAction, timeScale:ts);
     aeg;
 },
 props: (

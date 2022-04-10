@@ -1,7 +1,24 @@
+Send : D {
+
+    classvar <fxslot = 100;
+
+    gui {
+        if (this.vstctrls.notNil and: {this.vstctrls[fxslot].notNil}) {
+            this.vstctrls[fxslot].editor
+        }{
+            U(\sgui, this, fxslot).front
+        }
+    }
+
+    fx {|fx, wet=1, env|
+        super.fx(fxslot, fx, wet=1, env)
+    }
+}
+
 /*
-Matrix
+FxBay
 */
-Mtrx : D {
+FxBay : D {
 
     var <map;
 

@@ -52,6 +52,7 @@ Module {
         envir = ();
 
         if (key.isKindOf(Function)) {
+            key.asCode.debug("module");
             libfunc = key
         }{
             if (key.notNil) {
@@ -149,12 +150,13 @@ M : Module {
     }
 
     add {|name|
+
         name = name ?? synthname;
         synthdef = SynthDef(name.asSymbol, {
             var sig = this.func;
             sig = sig.();
             Out.ar(\out.kr(0), sig);
-        }).add;
+        }, metadata: envir).add;
 
         "% synth created".format(name).inform;
 
@@ -173,28 +175,28 @@ M : Module {
 
             var gatemode = ~gatemode;
             var detectsilence = ~detectsilence ?? false;
-            var gate, vel, sig, filt, out, freq, env, doneaction;
+            var gate = DC.kr(1), vel, sig, filt, out, freq, env, doneaction;
             var hasgate;
 
-            hasgate = ~hasgate ?? true;
-            hasgate.debug("hasgate");
-            if (hasgate) {
-                gate = \gate.kr(1);
-            } {
-                gate = 1;
-            };
-
             if (gatemode.debug("gate mode") == \retrig) {
-                Env.asr(0, 1, \rel.kr(1)).kr(doneAction:Done.freeSelf, gate:gate);
+                var mygate = \gate.kr(1);
+                Env.asr(0.01, 1, \rel.kr(1)).kr(doneAction:Done.freeSelf, gate:mygate);
                 doneaction = Done.none;
-                gate = \trig.tr(1);
+                gate = \trig.tr(0);
             }{
+                hasgate = ~hasgate ?? true;
+                hasgate.debug("hasgate");
+                if (hasgate) {
+                    gate = \gate.kr(1);
+                } {
+                    gate = DC.kr(1);
+                };
                 doneaction = Done.freeSelf;
             };
 
             vel = \vel.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "timbre"));
             freq = if (pitchModule.notNil) {pitchModule.func}{ Module('pitch/freq').func };
-            env = if (envModule.notNil) {envModule.func}{ Module('env/adsr').func };
+            env = if (envModule.notNil) { envModule.func }{ Module('env/adsr').func };
 
             freq = freq.();
             env = env.(gate, doneaction);
@@ -206,6 +208,7 @@ M : Module {
                 .put('vel', vel)
                 .func
             }{ {|freq| SinOsc.ar(freq)} };
+
 
             filt = if (filterModule.notNil) {
                 filterModule
@@ -220,9 +223,9 @@ M : Module {
             }{ Module('out/splay').func };
 
             sig = sig.(freq, gate);
+            sig = sig * env;
             sig = LeakDC.ar(sig);
             sig = filt.(sig, gate, freq, env);
-            sig = sig * env;
             sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-6.dbamp);
             sig = sig * (1+vel);
             sig = sig * \gain.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol"));

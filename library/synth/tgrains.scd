@@ -1,7 +1,7 @@
 (
 synth: {|freq|
 
-    var buf = \buf.kr(0);
+    var buf = \buf.kr;
 
     var root = \rootfreq.kr(60.0.midicps,
         spec:ControlSpec(20, 20000, \exp, 0, 60.0.midicps, units:"tgrains")
@@ -13,7 +13,7 @@ synth: {|freq|
 
     var rate = Select.kr(pitched, [
         pitch,
-        freq/root
+        (freq ?? root)/root
     ]);
 
     var trig = {

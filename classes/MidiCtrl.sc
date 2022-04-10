@@ -42,9 +42,9 @@ MidiCtrl {
 
         oldSources.keys.difference(sources.keys).do {|removed|
             [\sourceRemoved, oldSources[removed]].postln;
-            MIDIIn.disconnect(device:oldSources[removed])
         };
         oldDestinations.keys.difference(destinations.keys).do {|removed|
+            // MacOS does not need to connect
             [ \destinationRemoved, oldDestinations[removed] ].postln;
         };
 
@@ -53,6 +53,7 @@ MidiCtrl {
             MIDIIn.connect(device:sources[added]);
         };
         destinations.keys.difference(oldDestinations.keys).do {|added|
+            // MacOS does not need to connect
             [ \destinationAdded, destinations[added] ].postln;
         };
 

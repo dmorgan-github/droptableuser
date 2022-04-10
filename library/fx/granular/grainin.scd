@@ -5,7 +5,7 @@ synth: {arg in;
 
     var buf = LocalBuf(44100 * 5, 1).clear;
     var phase = Phasor.ar(0, BufRateScale.kr(buf), 0, BufFrames.kr(buf));
-    BufWr.ar(in, buf, phase);
+    BufWr.ar(in.asArray.sum, buf, phase);
 
     // ensure we don't jump ahead of the write head
     phase = phase - [20000, 44100 * 1, 44100 * 2];

@@ -5,6 +5,10 @@
 Spec.add(\numslices, ControlSpec(1, 256, \lin, 1, 8));
 Spec.add(\numbeats, ControlSpec(1, 64, \lin, 1, 4));
 Pdef(\slicer, Pbind(
+    \legato, 1,
+    \atk, 0.01,
+    \rel, 0.1,
+    \suslevel, 1,
     \buf, Pfunc({|evt|
         var buf = evt[\buf];
         if (buf.isNumber) {
@@ -54,20 +58,13 @@ Pdef(\slicer, Pbind(
     \rate, Pfunc({|evt|
         var rate = evt[\speed];
         if (rate.isNil) {
-            var buf = evt['buf'];
-            rate = (buf.duration.roundUp/buf.duration).reciprocal;
-            rate = rate * thisThread.clock.beatDur;
+            //var buf = evt['buf'];
+            var bufdur = evt['bufdur'];
+            var dur = evt['numbeats'] * thisThread.clock.beatDur;
+            rate = (bufdur/dur);
+            rate;// = rate * thisThread.clock.beatDur;
         };
         rate;
-    }),
-    \slicedur, Pfunc({|evt|
-        var rate = evt['rate'];
-        var numslices = evt[\numslices];
-        var bufdur = evt[\bufdur] * rate.reciprocal;
-        bufdur/numslices
-        //var numbeats = evt[\numbeats];
-        //var dur = (thisThread.clock.beatDur * numbeats);
-        //numslices.reciprocal * dur * thisThread.clock.tempo;
     }),
     \slices, Pfunc({|evt|
         var numslices = evt[\numslices];
@@ -96,17 +93,20 @@ Pdef(\slicer, Pbind(
         val
     }),
     \endPos, Pfunc({|evt|
-        var slicedur = evt[\slicedur];
-        var loopprob = evt[\loopprob];
+        var slicedur = evt[\dur];
+        var loopprob = evt[\loopprob] ?? 0;
         var loopdurs = evt[\loopdurs];
         if (loopdurs.isNil) {
-            loopdurs = [1/2, 1/4, 1/8, 1/32, 1/64, 1/128];
+            loopdurs = [1/2, 1/4, 1/8, 1/32];
         };
-        if (loopprob.coin) {
-            evt[\startPos] + (slicedur * loopdurs.choose)
-        }{
-            1
-        }
+
+        loopprob.asArray.collect({|val|
+            if (val.coin) {
+                evt[\startPos] + (slicedur * loopdurs.choose)
+            }{
+                1
+            }
+        });
     })
 ));
 )

@@ -10,7 +10,7 @@ synth: {|gate, doneAction=(Done.freeSelf)|
     var ts = \ts.kr(1);
     var curve = [
         \atkcurve.kr(-4, spec: DMControlSpec(-8, 8, \lin, 0, -4, units:"aeg", sort:4)),
-        \deccurve.kr(-4, spec: DMControlSpec(-8, 8, \lin, 0, -4, units:"aeg", sort:5)),
+        \deccurve.kr(4, spec: DMControlSpec(-8, 8, \lin, 0, 4, units:"aeg", sort:5)),
         \relcurve.kr(-4, spec: DMControlSpec(-8, 8, \lin, 0, -4, units:"aeg", sort:6))
     ];
     var env = Env.adsr(
