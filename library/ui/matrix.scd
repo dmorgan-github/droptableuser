@@ -267,7 +267,8 @@ Fdef(\matrix, {arg matrix;
 	outergrid.layout.add(gridview);
 	view.layout.add(outergrid);
 
-    view.setBackgroundImage(Image.new(SCDoc.helpSourceDir +/+ "images/Swamp.png"), 11, 0.3);
+    //view.setBackgroundImage(Image.new(SCDoc.helpSourceDir +/+ "images/Swamp.png"), 11, 0.3);
+    //view.background_(Color.black);
 	view.onClose_({
 		\onclose.debug(\matrix);
 		matrix.removeDependant(listener);

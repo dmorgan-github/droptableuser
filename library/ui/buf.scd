@@ -36,6 +36,7 @@ Fdef(\buf, {arg node;
     var cursorcolor = Color(0.84076716899872, 0.8562139749527, 0.69819803237915);
     var selectioncolor = Color(0.38695478439331, 0.68618059158325, 0.31084091663361, 0.3);
 
+    var watcher;
     var nb = NumberBox();
     var end = Slider();
     var view = View().layout_(VLayout().margins_(0).spacing_(0));//.minSize_(Size(300, 150));
@@ -49,6 +50,25 @@ Fdef(\buf, {arg node;
     .background_(backgroundcolor.alpha_(0.3))
     .gridColor_(gridcolor)
     .timeCursorColor_(cursorcolor);
+
+    watcher = {|obj, what, vals|
+        if (what == \set) {
+            vals.pairsDo({|k, v|
+                if (k == \buf) {
+                    var buf = v;
+                    if (buf.isNumber) {
+                        buf = Buffer.cachedBufferAt(Server.default, buf.asInteger)
+                    };
+                    buf.loadToFloatArray(action:{|a|
+                        {
+                            sfv.setData(a, channels: buf.numChannels);
+                        }.defer
+                    });
+
+                }
+            })
+        };
+    };
 
     sfv.setSelectionColor(0, selectioncolor);
     sfv.setSelectionStart(0, selstart);
@@ -129,3 +149,5 @@ Fdef(\buf, {arg node;
     });//.front;
 });
 )
+
+

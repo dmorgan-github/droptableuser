@@ -11,7 +11,7 @@ synth: {|freq, gate, aeg|
     var exciter = ~exciter ?? {0};
 
     var sig = MiRings.ar(
-        in: exciter.value.postln,
+        in: exciter.value,
         trig: gate,
         pit: pitch,
         struct: struct,

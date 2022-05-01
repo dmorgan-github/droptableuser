@@ -1,59 +1,10 @@
-(
-/*
-Pdef(\xy,
-    Pbind(
-        \xpos, Pbinop(
-            \wrapAt,
-            Pfunc({|evt|
-                var x = evt['x'] ?? { [0] };
-                x;
-            }),
-            Pswitch1(
-                [
-                    Pkey('subcount'),
-                    Pkey('durcount')
-                ],
-                Pfunc({|evt|
-                    var val = evt['x_seq'];
-                    if (val.notNil) {val} {0};
-                }),
-            )
-        ),
-        \ypos, Pbinop(
-            \wrapAt,
-            Pfunc({|evt|
-                var y = evt['y'] ?? { [0] };
-                y;
-            }),
-            Pswitch1(
-                [
-                    Pkey('subcount'),
-                    Pkey('durcount')
-                ],
-                Pfunc({|evt|
-                    var val = evt['y_seq'];
-                    if (val.notNil) {val} {0};
-                }),
-            )
-        ),
-        \xy, Pfunc({|evt|
-            var x, y, lenx, leny, num;
-            lenx = evt['lenx'] ?? {4};
-            leny = evt['leny'] ?? {4};
-            x = evt['xpos'].mod(lenx);
-            y = evt['ypos'].mod(leny);
-            num = (leny * y) + (x);
-            num;
-        })
-    )
-);
-*/
 Spec.add(\k, ControlSpec(1, 8, 'lin', 0, 1, units: "dur"));
 Spec.add(\n, ControlSpec(1/8, 8, 'lin', 1/8, 1, units: "dur"));
 Spec.add(\x, ControlSpec(0, 3, 'lin', 1, 0, units: "xy"));
 Spec.add(\y, ControlSpec(0, 3, 'lin', 1, 0, units: "xy"));
 
-Fdef(\subdiv, {|...args|
+(
+func: {|...args|
 
     var seq, patterns;
 
@@ -210,5 +161,5 @@ Fdef(\subdiv, {|...args|
     .pfilter(\prob, Pfunc({|evt|
         if (evt['prob'].coin) {1}{Rest(1)}
     }))
-});
+}
 )

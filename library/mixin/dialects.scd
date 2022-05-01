@@ -33,4 +33,29 @@ Fdef('dialects/feg', {|val, obj|
     "feg".debug("dialects");
 });
 
+{
+    var map = [
+        'A Osc 1 Sub Mix' -> \morph,  // decay time
+        'A Osc 1 Width 1' -> \harm,  // inharmonicity
+        'A Osc 1 Width 2' -> \bright,  // brightness
+        'A Osc 1 Unison Detune' -> \lpg, // lpg response
+        'A Osc 1 Unison Voices' -> \lpg_decay
+    ];
+    Fdef('vstmap/surge_plaits', {
+
+        Pbind (
+            'vstparams', map.collect(_.key),
+            *map.collect({|assoc|
+                [assoc.key, Pfunc({|evt|
+                    if (evt[assoc.value].notNil) {
+                        evt[assoc.value]
+                    }{
+                        -1
+                    }
+                })]
+            }).flatten
+        )
+    })
+}.()
+
 )

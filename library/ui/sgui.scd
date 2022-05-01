@@ -313,7 +313,7 @@ Fdef(\sgui, {|node, index|
                 ++ vsts.().collect({arg vst;
                     MenuAction(vst, {arg action;
 
-                        var id = "vst/%".format(action.string).asSymbol;
+                        var id = "vst:%".format(action.string).asSymbol;
                         var maxindex;
 
                         maxindex = fxnode.objects.indices

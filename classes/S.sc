@@ -26,7 +26,8 @@ S : Pdef {
     var <node, <cmdperiodfunc, <>color;
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
-    var <isvst=false, <vstsynth, <vstplugin;
+    var <isvst=false, <vstsynth, <vstplugin, <vstpreset;
+    var <ismidi=false, <notechan=0, <returnbus=0, <midiout;
     var /*<ptrnproxy,*/ <metadata, <controlNames;
     var dialects;
 
@@ -36,19 +37,12 @@ S : Pdef {
             res = super.new(key).prInit
         };
         if (synth.notNil) {
+            synth = synth.asSymbol;
             res.synth = synth;
         };
         currentEnvironment[key] = res;
         ^res;
     }
-
-    *doesNotUnderstand {|key|
-		var res = Pdef.all[key];
-		if (res.isNil){
-			res = S(key);
-		};
-		^res;
-	}
 
     @ {|val, adverb|
 
@@ -68,6 +62,7 @@ S : Pdef {
 
         var controlKeys = this.node.controlKeys;
 
+        // TODO server.bind
         Server.default.makeBundle(Server.default.latency, {
             var dict = args.asDict;
             var val = dict.select({|v, k| controlKeys.includes(k) });
@@ -85,12 +80,6 @@ S : Pdef {
         super.set(*args);
         ^this;
     }
-
-    /*
-    pset {|...args|
-        this.ptrnproxy.set(*args);
-    }
-    */
 
     synth_ {|synthname|
         this.prInitSynth(synthname);
@@ -121,6 +110,7 @@ S : Pdef {
         })
     }
 
+    /*
     drone {
         var drone = this.envir.copy;
         drone['out'] = this.node.bus.index;
@@ -128,6 +118,7 @@ S : Pdef {
         drone['sustain'] = inf;
         ^drone
     }
+    */
 
     view {
         ^U(\sgui, this)
@@ -185,43 +176,50 @@ S : Pdef {
                 // not sure of the implications with multichannel expansion
                 \vst_set, Pfunc({|evt|
                     if (isvst) {
-                        var current = evt;
-                        // TODO: probably should cache this
-                        //var vstcontrols = SynthDescLib.global[vstsynthdef].controlNames;
-                        var args = current['vstparams'] ?? [];//vstcontrols.reject({|n| n == \out});
-                        current = current.select({|v, k| args.includes(k) });
-                        //vstsynth.set(*current.getPairs)
-                        vstplugin.set(*current.getPairs)
+                        // TODO server.bind
+                        Server.default.makeBundle(Server.default.latency, {
+                            var current = evt;
+                            //var vstcontrols = SynthDescLib.global[vstsynthdef].controlNames;
+                            var args = current['vstparams'] ?? [];//vstcontrols.reject({|n| n == \out});
+                            current = current.select({|v, k| args.includes(k) and: {v > 0} });
+                            //current.postln;
+                            if (current.size > 0) {
+                                vstplugin.set(*current.getPairs)
+                            }
+                        })
                     };
                     1
                 }),
 
                 \node_set, Pfunc({|evt|
+                    // TODO server.bind
                     Server.default.makeBundle(Server.default.latency, {
                         var current = evt;
                         var exceptArgs = current[\exceptArgs];
                         var args = node.controlKeys(except: exceptArgs);
                         current = current.select({|v, k| args.includes(k) });
                         node.set(*current.getPairs)
-                    })
-                }),
-
-                /*
-                \degree, Pfunc({|evt| if (evt[\deg].notNil) {evt[\deg]} {evt[\degree]} }),
-                \stretch, Pfunc({|evt| if (evt[\str].notNil) {evt[\str]} {evt[\stretch]} }),
-                \harmonic, Pfunc({|evt| if (evt[\har].notNil) {evt[\har]} {evt[\harmonic]} }),
-                \octave, Pfunc({|evt| if (evt[\oct].notNil) {evt[\oct]} {evt[\octave]} }),
-                \legato, Pfunc({|evt| if (evt[\leg].notNil) {evt[\leg]} {evt[\legato]} }),
-                \mtranspose, Pfunc({|evt| if (evt[\mtr].notNil) {evt[\mtr]} {evt[\mtranspose]} }),
-                \sustain, Pfunc({|evt| if (evt[\sus].notNil) {evt[\sus]} {evt[\sustain]} })
-                */
+                    });
+                    1
+                })
             ),
-            //ptrnproxy,
             pattern,
-            Pbind(
-                \out, Pfunc({node.bus.index}),
-                \group, Pfunc({node.group}),
-            )
+            Plazy({
+
+                if (ismidi) {
+                    Pbind(
+                        \type, \midi,
+                        \midicmd, \noteOn,
+                        \midiout, midiout,
+                        \chan, notechan
+                    )
+                }{
+                    Pbind(
+                        \out, Pfunc({node.bus.index}),
+                        \group, Pfunc({node.group}),
+                    )
+                }
+            })
         );
 
         super.source = PfsetC({ { this.changed(\stop) } },
@@ -248,14 +246,14 @@ S : Pdef {
                 isMonitoring = obj.isMonitoring
             }
         };
-        node = D("%_chain".format(this.key).asSymbol);
+        node = D("%_out".format(this.key).asSymbol);
         node.color = color;
         node.addDependant(nodewatcherfunc);
 
         node.play;
         //ptrnproxy = PbindProxy();
         super.source = Pbind();
-        this.set(\amp, -12.dbamp);
+        this.set(\amp, -6.dbamp);
         this.quant = 4.0;
 
         cmdperiodfunc = {
@@ -273,14 +271,16 @@ S : Pdef {
 
     prInitSynth {|argSynth|
 
-        if (argSynth.asString.beginsWith("vst/")) {
+        if (argSynth.asString.beginsWith("vst:")) {
 
             {
-                var synthdef;
-                var args = argSynth.asString.split($/);
-                var plugin = args[1];
-                if (args.size > 2){
-                    vstsynthdef = args[2].asSymbol.debug("vstsynthdef");
+                var synthdef, plugin;
+                var args = argSynth.asString.split($:);
+                args = args[1].split($/);
+                plugin = args[0];
+                if (args.size > 1){
+                    vstpreset = args[1];
+                    vstpreset = App.librarydir +/+ "vstpreset" +/+ vstpreset;
                 };
                 synthdef = SynthDescLib.global[vstsynthdef].def;
 
@@ -290,7 +290,12 @@ S : Pdef {
                 );
                 1.wait;
                 vstplugin = VSTPluginController(vstsynth, synthDef:synthdef);
-                vstplugin.open(plugin, editor: true, verbose:true);
+                vstplugin.open(plugin, editor: true, verbose:true, action:{|ctrl|
+                    if (vstpreset.notNil) {
+                        vstpreset.debug("preset");
+                        ctrl.readProgram(vstpreset)
+                    }
+                });
                 synth = vstsynthdef;
                 isvst = true;
                 this.set('type', 'vst_midi', 'vst', vstplugin, \spread, 1, \pan, 0);
@@ -298,49 +303,73 @@ S : Pdef {
             }.fork;
 
         }{
-            var synthdef;
-            synth = argSynth;
+            if (argSynth.asString.beginsWith("midi:")) {
+                var args = argSynth.asString.split($:);
 
-            synthdef = SynthDescLib.global.at(synth);
-            if (synthdef.isNil) {
-                synth = \default;
-                synthdef = SynthDescLib.global.at(synth);
-            };
+                // TODO: refactor
+                midiout = MIDIOut.newByName("IAC Driver", "Bus 1");
+                midiout.connect;
 
-            synthdef
-            .controls.reject({|cn|
-                [\freq, \pitch, \trigger, \trig,
-                    \in, \buf, \gate, \glis,
-                    \bend, \out, \vel].includes(cn.name.asSymbol)
-            }).do({|cn|
-                var key = cn.name.asSymbol;
-                var spec = Spec.specs[key];
-                if (spec.notNil) {
-                    this.addSpec(key, spec);
-                }/* {
-                var default = cn.defaultValue;
-                var spec = [0, default*2, \lin, 0, default].asSpec;
-                this.addSpec(key, spec);
-                }*/
-            });
-
-            metadata = synthdef.metadata;
-            if (metadata.notNil and: {metadata[\specs].notNil} ) {
-                metadata[\specs].keysValuesDo({|k, v|
-                    this.addSpec(k, v);
-                })
-            };
-
-            if (this.getSpec.notNil) {
-                this.getSpec.keys.do({|key|
-                    var spec = this.getSpec[key];
-                    this.set(key, spec.default);
+                args = args[1].split($,);
+                notechan = args[0].asInteger;
+                returnbus = args[1].asInteger;
+                ismidi = true;
+                node.put(0, {
+                    var l = returnbus;
+                    var r = returnbus+1;
+                    SoundIn.ar([l, r])
                 });
-            };
+                this.out = Server.default.options.numInputBusChannels + returnbus;
+            }{
 
-            controlNames = SynthDescLib.global.at(synth).controlNames;
+                var synthdef;
+                synth = argSynth;
 
-            this.set(\instrument, synth, \spread, 1, \pan, 0);
+                synthdef = SynthDescLib.global.at(synth);
+                if (synthdef.isNil) {
+                    synth = \default;
+                    synthdef = SynthDescLib.global.at(synth);
+                };
+
+                synthdef
+                .controls.reject({|cn|
+                    [\freq, \pitch, \trigger, \trig,
+                        \in, \buf, \gate, \glis,
+                        \bend, \out, \vel].includes(cn.name.asSymbol)
+                }).do({|cn|
+                    var key = cn.name.asSymbol;
+                    var spec = Spec.specs[key];
+                    if (spec.notNil) {
+                        this.addSpec(key, spec);
+                    }/* {
+                    var default = cn.defaultValue;
+                    var spec = [0, default*2, \lin, 0, default].asSpec;
+                    this.addSpec(key, spec);
+                    }*/
+                });
+
+                metadata = synthdef.metadata ?? ();
+                if (metadata[\specs].notNil) {
+                    metadata[\specs].keysValuesDo({|k, v|
+                        this.addSpec(k, v);
+                    })
+                };
+
+                if (metadata['gatemode'] == \retrig) {
+                    this.isMono = true;
+                };
+                this.isMono.debug("mono");
+
+                if (this.getSpec.notNil) {
+                    this.getSpec.keys.do({|key|
+                        var spec = this.getSpec[key];
+                        this.set(key, spec.default);
+                    });
+                };
+
+                controlNames = SynthDescLib.global.at(synth).controlNames;
+                this.set(\instrument, synth.debug("synth"), \spread, 1, \pan, 0);
+            }
         }
     }
 

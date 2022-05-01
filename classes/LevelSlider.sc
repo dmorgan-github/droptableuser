@@ -80,6 +80,7 @@ view.front
             HLayout(
                 nb
                 .minDecimals_(3)
+                .maxDecimals_(4)
                 .clipLo_(spec.minval)
                 .clipHi_(spec.maxval)
                 .action_({|ctrl|

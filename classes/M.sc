@@ -9,6 +9,10 @@ Module {
         ^res;
     }
 
+    value {
+        ^this.func.value
+    }
+
     func {
         // NOTE: func.inEnvir won't work with Ndef sources
         // unless you wrap it in another function or create a synthdef first
@@ -25,6 +29,14 @@ Module {
         envir.put(key, val);
         ^this
     }
+
+    putAll {|... dictionaries|
+		dictionaries.do {|dict|
+			dict.keysValuesDo {|key, value|
+				this.put(key, value)
+			}
+		}
+	}
 
     *ls {|path|
 
@@ -61,9 +73,11 @@ Module {
                 fullpath = pathname.fullPath.debug("module");
 
                 if (File.exists(fullpath)) {
-                    var obj = File.open(fullpath, "r").readAllString.interpret;
-                    libfunc = obj[\synth];
+                    var file = File.open(fullpath, "r");
+                    var obj = file.readAllString.interpret;
+                    libfunc = obj[\synth] ?? {obj[\func]};
                     props = obj['props'];
+                    file.close;
                 } {
                     Error("% node not found".format(key)).throw;
                 }
@@ -179,8 +193,8 @@ M : Module {
             var hasgate;
 
             if (gatemode.debug("gate mode") == \retrig) {
-                var mygate = \gate.kr(1);
-                Env.asr(0.01, 1, \rel.kr(1)).kr(doneAction:Done.freeSelf, gate:mygate);
+                var killgate = \gate.kr(1);
+                Env.asr(0.0, 1, \rel.kr(1)).kr(doneAction:Done.freeSelf, gate:killgate);
                 doneaction = Done.none;
                 gate = \trig.tr(0);
             }{
@@ -196,25 +210,45 @@ M : Module {
 
             vel = \vel.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "timbre"));
             freq = if (pitchModule.notNil) {pitchModule.func}{ Module('pitch/freq').func };
-            env = if (envModule.notNil) { envModule.func }{ Module('env/adsr').func };
+            env = if (envModule.notNil) {
+                var env = envir ++ ('gatemode': gatemode);
+                envModule
+                .putAll(env)
+                .func
+            }{
+                var env = envir ++ ('gatemode': gatemode);
+                Module('env/adsr')
+                .putAll(env)
+                .func
+            };
 
             freq = freq.();
             env = env.(gate, doneaction);
 
             sig = if (synthModule.notNil) {
+                var env = envir ++ (
+                    'freq': freq,
+                    'gate': gate,
+                    'vel': vel
+                );
+
                 synthModule
-                .put('freq', freq)
-                .put('gate', gate)
-                .put('vel', vel)
+                .putAll( env )
                 .func
-            }{ {|freq| SinOsc.ar(freq)} };
+            }{
+                {|freq| SinOsc.ar(freq)}
+            };
 
 
             filt = if (filterModule.notNil) {
+                var env = envir ++ (
+                    'freq': freq,
+                    'gate': gate,
+                    'vel': vel
+                );
+
                 filterModule
-                .put('freq', freq)
-                .put('gate', gate)
-                .put('vel', vel)
+                .putAll(env)
                 .func
             } { {|in| in} };
 

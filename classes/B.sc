@@ -186,11 +186,23 @@ c.plot
 
         read = {|path|
             var buffer;
-            //var file = SoundFile.openRead(path);
             var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });
-            buffer = Buffer.readChannel(Server.default, path, channels: channels, action:{|buf|
-                condition.unhang;
-            });
+
+            // can't figure out a better way to handle this error
+            // File '/Users/david/Documents/supercollider/patches/patches/recordings/Audio 1-119.wav' could not be opened: Format not recognised.
+            var sf = SoundFile.openRead(path).close;
+            if (sf.isNil) {
+                //sf.close;
+                path.debug("unable to read file");
+                { condition.unhang }.defer
+            }{
+                //sf.close;
+                buffer = Buffer.readChannel(Server.default, path, channels: channels, action:{|buf|
+                    path.debug("loaded");
+                    condition.unhang;
+                });
+            };
+
             buffer;
         };
 
@@ -217,11 +229,13 @@ c.plot
                         .do({|file, i|
                             var buf = read.(file.fullPath);
                             condition.hang;
-                            if (normalize) {
-                                all[mykey].put(buf.bufnum, buf.normalize);
-                            }{
-                                all[mykey].put(buf.bufnum, buf);
-                            };
+                            if (buf.notNil) {
+                                if (normalize) {
+                                    all[mykey].put(buf.bufnum, buf.normalize);
+                                }{
+                                    all[mykey].put(buf.bufnum, buf);
+                                };
+                            }
                         });
                         all[mykey].addSpec(\bufnums,
                           [all[mykey].indices.minItem, all[mykey].indices.maxItem, \lin, 1, all[mykey].indices.minItem].asSpec);

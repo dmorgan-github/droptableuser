@@ -320,7 +320,7 @@
     }
 }
 
-+ Pdef {
++ EventPatternProxy {
 
     << {|pattern|
         this.source = pattern;

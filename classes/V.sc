@@ -1,5 +1,9 @@
 V {
 
+    classvar <surge="vst/Surge XT.vst3";
+    classvar <vital="vst/Vital.vst3";
+    classvar <reaktor="vst/Reaktor 6";
+
     var <>fx, <>synth, <vst;
 
     var <onload;

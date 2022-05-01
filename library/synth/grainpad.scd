@@ -1,6 +1,8 @@
 (
 synth: {|freq|
 
+    var numvoices = ~numvoices ?? 3;
+
     var updateFreq = 15;
 
     var replyid = \bufposreplyid.kr(-1);
@@ -20,7 +22,14 @@ synth: {|freq|
         (freq ?? root)/root
     ]);
 
-    var trig = {
+    var dur = \graindur.kr(0.1, spec: ControlSpec(1/128, 1, \lin, 0, 0.1, units:"tgrains"));
+
+    var bufdur = BufDur.kr(buf);
+    var numframes = BufFrames.kr(buf);
+    var samplerate = BufSampleRate.kr(buf);// * SampleRate.ir.poll;
+    var phase, trig, pan, grainamp, sig, pos;
+
+    trig = {
         var grainrate = \grainrate.ar(20, spec: ControlSpec(1/16, 80, \lin, 0, 20, units:"tgrains"));
         var prob = \prob.kr(1, spec: ControlSpec(0, 1, \lin, 0, 1, units:"tgrains"));
         var async = \async.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, units:"tgrains"));
@@ -29,27 +38,42 @@ synth: {|freq|
             [Impulse.ar(grainrate), Dust.ar(grainrate)]
         );
         CoinGate.ar(prob, trig)
-    };
+    }.();
 
-    var dur = \graindur.kr(0.1, spec: ControlSpec(1/128, 1, \lin, 0, 0.1, units:"tgrains"));
 
-    var bufdur = BufDur.kr(buf);
-    var numframes = BufFrames.kr(buf);
-    var samplerate = BufSampleRate.kr(buf);// * SampleRate.ir.poll;
-
-    var phase = {
+    phase = {
         //var pos = \center.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, "grain"));
+        var stretch = \pbstretch.kr(1, spec:ControlSpec(-100, 100, \lin, 0, 1, units:"tgrains"));
         var start = \startPos.kr(0, spec: ControlSpec(0, 1-0.9999, \lin, 0, 0, units:"tgrains"));
         var end = \endPos.kr(1, spec: ControlSpec(0, 1, \lin, 0, 1, units:"tgrains"));
-        var startPos = bufdur * start;
         var endPos = bufdur * end;
+        var startPos = bufdur * start;// + LFNoise2.ar(1!2).range(0, 0.2);
         var dur = endPos - startPos;
-        var stretch = \pbstretch.kr(1, spec:ControlSpec(-100, 100, \lin, 0, 1, units:"tgrains"));
+        var changed = Changed.kr(startPos);
         stretch = stretch + ControlDur.ir; // avoid divide by zero
-        LFSaw.ar((dur * stretch).reciprocal).range(startPos, endPos);
+
+        //LFSaw.ar((dur * stretch).reciprocal, -1).range(startPos, endPos);
+
+        /*
+        Phasor.ar(
+        changed + Impulse.ar(0),
+        (BufRateScale.kr(buf)/SampleRate.ir) * stretch.reciprocal,
+        startPos,
+        endPos,
+        { TRand.ar(startPos, endPos, changed + Impulse.ar(0)) }.dup(3)
+        )
+        */
+
+        Phasor.ar(
+            Impulse.ar(0),
+            (BufRateScale.kr(buf)/BufSampleRate.kr(buf)) * stretch.reciprocal,
+            startPos,
+            endPos
+        ) + { (LFNoise1.ar(1).bipolar(0.01) * dur).mod(dur) }.dup(numvoices.debug("numvoices"))
+
     };
 
-    var pan = {
+    pan = {
         var pan = 0;//\grainpan.kr(0, spec: ControlSpec(-1, 1, \lin, 0, 0, "grain"));
         var panHz = \grainpanLfoHz.kr(0.1, spec: ControlSpec(0, 1, \lin, 0, 0.1, units:"tgrains"));
         var panRand = \grainpanLfoDepth.kr(0.5, spec: ControlSpec(0, 1, \lin, 0, 0.5, units:"tgrains"));
@@ -57,7 +81,7 @@ synth: {|freq|
         pan.clip(-1, 1);
     };
 
-    var grainamp = {
+    grainamp = {
         var amp = 1;//\grainamp.kr(1, spec: ControlSpec(0, 1, \lin, 0, 1, "grain"));
         var ampHz = \grainampLfoHz.kr(0.1, spec: ControlSpec(0, 1, \lin, 0, 0.1, units:"tgrains"));
         var ampRand = \grainampLfoDepth.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, units:"tgrains"));
@@ -65,15 +89,15 @@ synth: {|freq|
         amp.clip(0, 1);
     };
 
-    var sig, pos = phase.();
+    pos = phase.();
 
     sig = TGrains.ar(
-        numChannels:2,
-        trigger:trig.(),
+        numChannels:1,
+        trigger:trig,
         bufnum:buf,
         rate:rate,
-        centerPos:pos,
-        dur:dur,
+        centerPos: pos,
+        dur:dur, //* [0.9, 0.99, 1.01, 1.1].scramble * LFNoise2.ar(1).range(0.99, 1.01),
         pan:pan.(),
         amp:grainamp.(),
         interp:4
@@ -81,7 +105,6 @@ synth: {|freq|
 
     SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, pos * samplerate], replyid);
 
-    sig = sig;// * \amp.kr;//(-6.dbamp);
-    sig;
+    Splay.ar(sig.asArray.flatten);
 }
 )

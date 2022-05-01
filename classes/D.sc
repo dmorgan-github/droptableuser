@@ -169,6 +169,7 @@ D : Ndef {
         }.defer(0.5)
     }
 
+    /*
     // syntactic sugar
     @ {|val, adverb|
 
@@ -208,6 +209,7 @@ D : Ndef {
             }
         }
     }
+    */
 
     deviceInit {
         // override to initialize
@@ -241,8 +243,8 @@ D : Ndef {
                     num;
                 }.();
 
-                if (fx.asString.beginsWith("vst/")) {
-                    var vst = fx.asString.split($/)[1..].join("/").asSymbol;
+                if (fx.asString.beginsWith("vst:")) {
+                    var vst = fx.asString.split($:)[1..].join("/").asSymbol;
                     this.vst(index, vst, cb:{|ctrl|
                         vstctrls.put(index, ctrl);
                         this.fxchain.put(index, (name:vst, type:'vst', 'ctrl':ctrl));
