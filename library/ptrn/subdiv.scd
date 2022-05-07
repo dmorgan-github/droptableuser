@@ -4,11 +4,11 @@ Spec.add(\x, ControlSpec(0, 3, 'lin', 1, 0, units: "xy"));
 Spec.add(\y, ControlSpec(0, 3, 'lin', 1, 0, units: "xy"));
 
 (
-func: {|...args|
+func: {
 
-    var seq, patterns;
+    var seq, pattern;
 
-    args = [
+    var args = [
         'd' -> 'degree',
         'o' -> 'octave',
         'm' -> 'mtranspose',
@@ -17,26 +17,29 @@ func: {|...args|
         'p' -> 'prob',
         'v' -> 'vel',
         'g' -> 'gain'
-    ] ++ args;
+    ];
 
-    patterns = args.collect({|val|
+    pattern = Plazy({|evt|
 
-        var inkey, outkey, switchkey;
+        var ptrns, myargs;
+        myargs = args ++ (evt['keys'].asArray);
+        ptrns = myargs.collect({|val|
 
-        if (val.isKindOf(Association)) {
-            inkey = val.key;
-            outkey = val.value;
-        }{
-            inkey = val;
-            outkey = val;
-        };
+            var inkey, outkey, switchkey;
 
-        switchkey = "%_seq".format(inkey).asSymbol;
+            if (val.isKindOf(Association)) {
+                inkey = val.key;
+                outkey = val.value;
+            }{
+                inkey = val;
+                outkey = val;
+            };
 
-        Pbind(
-            outkey, Pbinop(
+            switchkey = "%_seq".format(inkey).asSymbol;
+
+            [outkey, Pbinop(
                 \wrapAt,
-                Pfunc({|evt|
+                Pfuncn({|evt|
                     var val = evt[inkey];
                     if (val.isNil) {
                         val = Event.default.use({ currentEnvironment[outkey] });
@@ -76,9 +79,12 @@ func: {|...args|
                     }),
                     inf
                 )
-            )
-        )
-    });
+            )]
+        });
+
+        Pbind(*ptrns.flatten)
+
+    }).repeat;
 
     seq = Pbind(
         #[\dur, \durcount, \subcount], Prout({|inval|
@@ -157,7 +163,7 @@ func: {|...args|
         })
     );
 
-    Pchain( *(patterns ++ seq) )
+    Pchain( pattern, seq )
     .pfilter(\prob, Pfunc({|evt|
         if (evt['prob'].coin) {1}{Rest(1)}
     }))

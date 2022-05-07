@@ -9,8 +9,8 @@ Module {
         ^res;
     }
 
-    value {
-        ^this.func.value
+    value {|...args|
+        ^this.func.value(*args)
     }
 
     func {

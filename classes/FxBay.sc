@@ -1,4 +1,4 @@
-Send : D {
+Send : DNodeProxy {
 
     classvar <fxslot = 100;
 
@@ -18,7 +18,7 @@ Send : D {
 /*
 FxBay
 */
-FxBay : D {
+FxBay {
 
     var <map;
 

@@ -96,7 +96,8 @@ synth: {|freq|
         trigger:trig,
         bufnum:buf,
         rate:rate,
-        centerPos: pos,
+        //https://scsynth.org/t/grainbuf-tgrains-timing-accuracy-and-sampling-rate/5793/5?u=droptableuser
+        centerPos: pos, // + (dur * 0.5),
         dur:dur, //* [0.9, 0.99, 1.01, 1.1].scramble * LFNoise2.ar(1).range(0.99, 1.01),
         pan:pan.(),
         amp:grainamp.(),

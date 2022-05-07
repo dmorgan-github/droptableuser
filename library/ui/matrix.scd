@@ -69,33 +69,6 @@ Fdef(\matrix, {arg matrix;
 	var path = App.librarydir ++ "fx/";
 
 	var vstlist;
-
-    /*
-	var browse = {arg path, files=List.new;
-		var folder = PathName.new(path);
-		if (folder.isFolder) {
-			var folders = folder.folders;
-			files = files.addAll(folder.files);
-			folders.do({arg folder;
-				browse.(folder.fullPath, files);
-			});
-		};
-		files;
-	};
-
-	var vsts = {
-		if (~vstlist.isNil) {
-			~vstlist = V
-			.ls
-			.reject({arg val;
-				val.asString.endsWith(".vst3") or: val.asString.contains("/");
-			});
-			~vstlist = ~vstlist.sort;
-		};
-		~vstlist
-	};
-    */
-
 	var paths = browse.(path);
 
 	var st = {
@@ -115,7 +88,7 @@ Fdef(\matrix, {arg matrix;
 					MenuAction(vst, {arg action;
 						var id = action.string;
 						var unique = (id ++ '_' ++ UniqueID.next).asSymbol;
-                        var node = Send(unique).fx("vst/%".format(id.asSymbol).asSymbol);
+                        var node = Send(unique).fx("vst:%".format(id.asSymbol).asSymbol);
 						matrix.addSrc(node);
 					})
 				})
@@ -143,6 +116,7 @@ Fdef(\matrix, {arg matrix;
 
 			var del = HLayout(
 
+                /*
                 {
                     var node = srcNode;
                     var view = View().layout_(VLayout().margins_(0).spacing_(0))
@@ -167,18 +141,10 @@ Fdef(\matrix, {arg matrix;
                     };
                     view;
                 }.(),
+                */
 
                 StaticText().string_(srcNode.key).toolTip_(srcNode.key)
 				.mouseUpAction_({|ctrl, x, y, mod, num, click|
-                    /*
-                    if (srcNode.respondsTo(\editor)) {
-                        srcNode.editor;
-                    } {
-                        if (srcNode.respondsTo(\view)) {
-                            srcNode.view;
-                        }
-                    }
-                    */
                     srcNode.gui;
                 }),
 
@@ -208,14 +174,17 @@ Fdef(\matrix, {arg matrix;
 				data[j].isKindOf(NodeProxy).not
 			})
 			.collect({arg j;
+
 				var ctrlview;
 				var destNode = data[j];
 				var val = 0;
 				var hassrc = false;
+
 				if (destNode[i].notNil) {
 					hassrc = true;
 					val = destNode.get(srcNode.key);
 				};
+
 				ctrlview = ctrlView.("", [0, 1, \lin, 0, 0].asSpec, colors[j], val, {arg key, val;
 					if (destNode[i].isNil/*hassrc.not*/)  {
 						destNode.mix(i, srcNode, val);
@@ -227,6 +196,7 @@ Fdef(\matrix, {arg matrix;
 			});
 
             [[del, columns:2], cols];
+            //[cols];
 		});
 
         var val = [header] ++ rows.flatten;
@@ -256,23 +226,12 @@ Fdef(\matrix, {arg matrix;
 	};
 
 	matrix.addDependant(listener);
-	//matrixPlayView = playView.(matrix);//.addDependant(viewListener);
-
-    //view.layout.add(
-    //    HLayout(
-    //        matrixPlayView,
-    //        //Button().action_({ U(\matrixgraph, matrix) })
-    //    )
-    //);
 	outergrid.layout.add(gridview);
 	view.layout.add(outergrid);
 
-    //view.setBackgroundImage(Image.new(SCDoc.helpSourceDir +/+ "images/Swamp.png"), 11, 0.3);
-    //view.background_(Color.black);
 	view.onClose_({
 		\onclose.debug(\matrix);
 		matrix.removeDependant(listener);
-		//playview.removeDependant(viewListener);
 	});
 
 	baseview = baseViewFunc.(view, matrix.key);

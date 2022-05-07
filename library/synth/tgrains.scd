@@ -72,7 +72,8 @@ synth: {|freq|
         trigger:trig.(),
         bufnum:buf,
         rate:rate,
-        centerPos:pos,
+        // https://scsynth.org/t/grainbuf-tgrains-timing-accuracy-and-sampling-rate/5793/5?u=droptableuser
+        centerPos:pos, // + (dur*0.5),
         dur:dur,
         pan:pan.(),
         amp:grainamp.(),

@@ -20,28 +20,189 @@ Color(0.74614992141724, 0.8588672876358, 0.77721869945526, 0.2)
 Color(0.67358100414276, 0.74493434429169, 0.40996670722961, 0.2)
 Color(0.66662492752075, 0.72109272480011, 0.70863604545593, 0.2)
 */
-S : Pdef {
+S {
+
+    *synth {|key, source|
+
+        var envir = topEnvironment;
+        var res = envir[key];
+
+        if (res.isNil){
+
+            if (source.notNil) {
+                var src = source.asString;
+                res = case
+                {src.beginsWith("vst:")} {
+                    SVstSynth(src.asSymbol).key_(key)
+                }
+                {src.beginsWith("midi:")} {
+                    SMidiSynth(src.asSymbol).key_(key)
+                }
+                {
+                    SSynth(src.asSymbol).key_(key)
+                };
+                envir[key] = res;
+            } {
+                "source not provided".warn
+            }
+        };
+
+        ^res;
+    }
+
+    *initClass {
+    }
+}
+
+SMidiSynth : SSynth {
+
+    var <notechan=0, <returnbus=0, <midiout;
+
+    *new {|synth|
+        ^super.new().prInitSynth(synth)
+    }
+
+    source_ {|pattern|
+
+        var src;
+
+        if (pattern.isKindOf(Array)) {
+            pattern = pattern.p
+        };
+
+        src = Pchain(
+            Pbind(
+                \type, \midi,
+                \midicmd, \noteOn,
+                \midiout, Pfunc({midiout}),
+                \chan, Pfunc({notechan})
+            ),
+            pattern
+        );
+
+        super.source = src;
+    }
+
+    prInitSynth {|argSynth|
+
+        var args = argSynth.asString.split($:);
+
+        // TODO: refactor
+        midiout = MIDIOut.newByName("IAC Driver", "Bus 1");
+        midiout.connect;
+
+        args = args[1].split($,);
+        notechan = args[0].asInteger;
+        returnbus = args[1].asInteger;
+        this.node.put(0, {
+            var l = returnbus;
+            var r = returnbus+1;
+            SoundIn.ar([l, r])
+        });
+        this.out = D.defaultout + returnbus;
+    }
+}
+
+SVstSynth : SSynth {
 
     var <vstsynthdef=\vsti;
+    var <vstsynth, <vstplugin, <vstpreset;
+
+    *new {|synth|
+        ^super.new().prInitSynth(synth);
+    }
+
+    source_ {|pattern|
+
+        var src;
+
+        if (pattern.isKindOf(Array)) {
+            pattern = pattern.p
+        };
+
+        src = Pchain(
+            Pbind(
+                \vst_set, Pfunc({|evt|
+                    // TODO server.bind
+                    Server.default.makeBundle(Server.default.latency, {
+                        var current = evt;
+                        //var vstcontrols = SynthDescLib.global[vstsynthdef].controlNames;
+                        var args = current['vstparams'] ?? [];//vstcontrols.reject({|n| n == \out});
+                        current = current.select({|v, k| args.includes(k) and: {v > 0} });
+                        //current.postln;
+                        if (current.size > 0) {
+                            vstplugin.set(*current.getPairs)
+                        }
+                    });
+                    1
+                })
+            ),
+            pattern
+        );
+
+        super.source(src);
+    }
+
+    gui {
+        vstplugin.editor;
+    }
+
+    prInitSynth {|argSynth|
+
+        {
+            var synthdef, plugin;
+            var args = argSynth.asString.split($:);
+            args = args[1].split($/);
+            plugin = args[0];
+            if (args.size > 1){
+                vstpreset = args[1];
+                vstpreset = App.librarydir +/+ "vstpreset" +/+ vstpreset;
+            };
+            synthdef = SynthDescLib.global[vstsynthdef].def;
+
+            vstsynth = Synth(vstsynthdef,
+                args: [\out, this.node.bus.index],
+                target: this.node.group.nodeID
+            );
+            1.wait;
+            vstplugin = VSTPluginController(vstsynth, synthDef:synthdef);
+            vstplugin.open(plugin, editor: true, verbose:true, action:{|ctrl|
+                if (vstpreset.notNil) {
+                    vstpreset.debug("preset");
+                    ctrl.readProgram(vstpreset)
+                }
+            });
+            synth = vstsynthdef;
+            this.set('type', 'vst_midi', 'vst', vstplugin, \spread, 1, \pan, 0);
+
+        }.fork;
+    }
+
+    clear {
+        this.vstplugin.close;
+        this.vstsynth.free;
+        super.clear;
+    }
+
+    *initClass {
+        StartUp.add({
+            SynthDef(\vsti, { |out| Out.ar(out, VSTPlugin.ar(Silent.ar(2), 2)) }).add;
+        });
+    }
+}
+
+SSynth : EventPatternProxy {
+
+    classvar count=0;
+
     var <node, <cmdperiodfunc, <>color;
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
-    var <isvst=false, <vstsynth, <vstplugin, <vstpreset;
-    var <ismidi=false, <notechan=0, <returnbus=0, <midiout;
-    var /*<ptrnproxy,*/ <metadata, <controlNames;
-    var dialects;
+    var <metadata, <controlNames;
+    var keyval;
 
-    *new {|key, synth|
-        var res = Pdef.all[key];
-        if (res.isNil) {
-            res = super.new(key).prInit
-        };
-        if (synth.notNil) {
-            synth = synth.asSymbol;
-            res.synth = synth;
-        };
-        currentEnvironment[key] = res;
-        ^res;
+    *new {|synth|
+        ^super.new.prInit.prInitSynth(synth);
     }
 
     @ {|val, adverb|
@@ -78,6 +239,7 @@ S : Pdef {
         });
 
         super.set(*args);
+
         ^this;
     }
 
@@ -90,11 +252,8 @@ S : Pdef {
     }
 
     clear {
-        this.vstplugin.close;
         this.node.free;
         this.node.clear;
-        this.vstsynth.free;
-        topEnvironment.removeAt(this.key);
         super.clear;
     }
 
@@ -110,26 +269,12 @@ S : Pdef {
         })
     }
 
-    /*
-    drone {
-        var drone = this.envir.copy;
-        drone['out'] = this.node.bus.index;
-        drone['group'] = this.node.group;
-        drone['sustain'] = inf;
-        ^drone
-    }
-    */
-
     view {
         ^U(\sgui, this)
     }
 
     gui {
-        if (isvst) {
-            vstplugin.editor;
-        }{
-            this.view.front
-        }
+        this.view.front
     }
 
     kill {|ids|
@@ -144,6 +289,15 @@ S : Pdef {
 
     out_ {|bus|
         this.node.monitor.out = bus
+    }
+
+    key_ {|val|
+        keyval = val;
+        node.key = "%_out".format(val).asSymbol;
+    }
+
+    key {
+        ^keyval;
     }
 
     print {
@@ -165,7 +319,7 @@ S : Pdef {
 
     source_ {|pattern|
 
-        var chain, vstcontrols = [];
+        var chain;
 
         if (pattern.isKindOf(Array)) {
             pattern = pattern.p
@@ -173,24 +327,6 @@ S : Pdef {
 
         chain = Pchain(
             Pbind(
-                // not sure of the implications with multichannel expansion
-                \vst_set, Pfunc({|evt|
-                    if (isvst) {
-                        // TODO server.bind
-                        Server.default.makeBundle(Server.default.latency, {
-                            var current = evt;
-                            //var vstcontrols = SynthDescLib.global[vstsynthdef].controlNames;
-                            var args = current['vstparams'] ?? [];//vstcontrols.reject({|n| n == \out});
-                            current = current.select({|v, k| args.includes(k) and: {v > 0} });
-                            //current.postln;
-                            if (current.size > 0) {
-                                vstplugin.set(*current.getPairs)
-                            }
-                        })
-                    };
-                    1
-                }),
-
                 \node_set, Pfunc({|evt|
                     // TODO server.bind
                     Server.default.makeBundle(Server.default.latency, {
@@ -205,20 +341,10 @@ S : Pdef {
             ),
             pattern,
             Plazy({
-
-                if (ismidi) {
-                    Pbind(
-                        \type, \midi,
-                        \midicmd, \noteOn,
-                        \midiout, midiout,
-                        \chan, notechan
-                    )
-                }{
-                    Pbind(
-                        \out, Pfunc({node.bus.index}),
-                        \group, Pfunc({node.group}),
-                    )
-                }
+                Pbind(
+                    \out, Pfunc({node.bus.index}),
+                    \group, Pfunc({node.group}),
+                )
             })
         );
 
@@ -239,6 +365,9 @@ S : Pdef {
     }
 
     prInit {
+
+        count = count + 1;
+        keyval = "s%".asSymbol(count);
         clock = W.clock;
         color = Color.rand;
         nodewatcherfunc = {|obj, what|
@@ -246,7 +375,8 @@ S : Pdef {
                 isMonitoring = obj.isMonitoring
             }
         };
-        node = D("%_out".format(this.key).asSymbol);
+        //node = D("%_out".format(this.key).asSymbol);
+        node = DNodeProxy().key_("%_out".format(keyval).asSymbol)
         node.color = color;
         node.addDependant(nodewatcherfunc);
 
@@ -271,113 +401,56 @@ S : Pdef {
 
     prInitSynth {|argSynth|
 
-        if (argSynth.asString.beginsWith("vst:")) {
+        var synthdef;
+        synth = argSynth;
 
-            {
-                var synthdef, plugin;
-                var args = argSynth.asString.split($:);
-                args = args[1].split($/);
-                plugin = args[0];
-                if (args.size > 1){
-                    vstpreset = args[1];
-                    vstpreset = App.librarydir +/+ "vstpreset" +/+ vstpreset;
-                };
-                synthdef = SynthDescLib.global[vstsynthdef].def;
+        synthdef = SynthDescLib.global.at(synth);
+        if (synthdef.isNil) {
+            synth = \default;
+            synthdef = SynthDescLib.global.at(synth);
+        };
 
-                vstsynth = Synth(vstsynthdef,
-                    args: [\out, this.node.bus.index],
-                    target: this.node.group.nodeID
-                );
-                1.wait;
-                vstplugin = VSTPluginController(vstsynth, synthDef:synthdef);
-                vstplugin.open(plugin, editor: true, verbose:true, action:{|ctrl|
-                    if (vstpreset.notNil) {
-                        vstpreset.debug("preset");
-                        ctrl.readProgram(vstpreset)
-                    }
-                });
-                synth = vstsynthdef;
-                isvst = true;
-                this.set('type', 'vst_midi', 'vst', vstplugin, \spread, 1, \pan, 0);
-                argSynth.debug("loaded");
-            }.fork;
+        synthdef
+        .controls.reject({|cn|
+            [\freq, \pitch, \trigger, \trig,
+                \in, \buf, \gate, \glis,
+                \bend, \out, \vel].includes(cn.name.asSymbol)
+        }).do({|cn|
+            var key = cn.name.asSymbol;
+            var spec = Spec.specs[key];
+            if (spec.notNil) {
+                this.addSpec(key, spec);
+            }/* {
+            var default = cn.defaultValue;
+            var spec = [0, default*2, \lin, 0, default].asSpec;
+            this.addSpec(key, spec);
+            }*/
+        });
 
-        }{
-            if (argSynth.asString.beginsWith("midi:")) {
-                var args = argSynth.asString.split($:);
+        metadata = synthdef.metadata ?? ();
+        if (metadata[\specs].notNil) {
+            metadata[\specs].keysValuesDo({|k, v|
+                this.addSpec(k, v);
+            })
+        };
 
-                // TODO: refactor
-                midiout = MIDIOut.newByName("IAC Driver", "Bus 1");
-                midiout.connect;
+        if (metadata['gatemode'] == \retrig) {
+            this.isMono = true;
+        };
+        this.isMono.debug("mono");
 
-                args = args[1].split($,);
-                notechan = args[0].asInteger;
-                returnbus = args[1].asInteger;
-                ismidi = true;
-                node.put(0, {
-                    var l = returnbus;
-                    var r = returnbus+1;
-                    SoundIn.ar([l, r])
-                });
-                this.out = Server.default.options.numInputBusChannels + returnbus;
-            }{
+        if (this.getSpec.notNil) {
+            this.getSpec.keys.do({|key|
+                var spec = this.getSpec[key];
+                this.set(key, spec.default);
+            });
+        };
 
-                var synthdef;
-                synth = argSynth;
-
-                synthdef = SynthDescLib.global.at(synth);
-                if (synthdef.isNil) {
-                    synth = \default;
-                    synthdef = SynthDescLib.global.at(synth);
-                };
-
-                synthdef
-                .controls.reject({|cn|
-                    [\freq, \pitch, \trigger, \trig,
-                        \in, \buf, \gate, \glis,
-                        \bend, \out, \vel].includes(cn.name.asSymbol)
-                }).do({|cn|
-                    var key = cn.name.asSymbol;
-                    var spec = Spec.specs[key];
-                    if (spec.notNil) {
-                        this.addSpec(key, spec);
-                    }/* {
-                    var default = cn.defaultValue;
-                    var spec = [0, default*2, \lin, 0, default].asSpec;
-                    this.addSpec(key, spec);
-                    }*/
-                });
-
-                metadata = synthdef.metadata ?? ();
-                if (metadata[\specs].notNil) {
-                    metadata[\specs].keysValuesDo({|k, v|
-                        this.addSpec(k, v);
-                    })
-                };
-
-                if (metadata['gatemode'] == \retrig) {
-                    this.isMono = true;
-                };
-                this.isMono.debug("mono");
-
-                if (this.getSpec.notNil) {
-                    this.getSpec.keys.do({|key|
-                        var spec = this.getSpec[key];
-                        this.set(key, spec.default);
-                    });
-                };
-
-                controlNames = SynthDescLib.global.at(synth).controlNames;
-                this.set(\instrument, synth.debug("synth"), \spread, 1, \pan, 0);
-            }
-        }
+        controlNames = SynthDescLib.global.at(synth).controlNames;
+        this.set(\instrument, synth.debug("synth"), \spread, 1, \pan, 0);
     }
 
     *initClass {
-
-        StartUp.add({
-            SynthDef(\vsti, { |out| Out.ar(out, VSTPlugin.ar(Silent.ar(2), 2)) }).add;
-        });
     }
 }
 

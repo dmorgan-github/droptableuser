@@ -211,8 +211,10 @@ Fdef(\playview, {arg node;
             .fixedWidth_(35)
             .fixedHeight_(height-2)
             .value_(node.fadeTime)
-            .toolTip_("fade time"),
+            .toolTip_("fade time")
+            ,
 
+            /*
             NumberBox()
             .action_({arg ctrl;
                 var msg = "channel:" + ctrl.value;
@@ -224,6 +226,7 @@ Fdef(\playview, {arg node;
             .fixedHeight_(height-2)
             .value_(node.monitor.out)
             .toolTip_("channel"),
+            */
 
             /*
             Button()
@@ -249,6 +252,7 @@ Fdef(\playview, {arg node;
             ,
             */
 
+            /*
             NumberBox()
             .minWidth_(20)
             .decimals_(0)
@@ -256,6 +260,7 @@ Fdef(\playview, {arg node;
             .fixedHeight_(height-2)
             .value_(4)
             .toolTip_("seconds"),
+            */
 
             /*
             Button()

@@ -1,7 +1,6 @@
 (
 synth: {|freq, gate|
 
-    var blow_in = PinkNoise.ar(0.5);
     var strike_in = 0;//~strike ?? 0;//PinkNoise.ar(0.3);
     var pit = A2K.kr(freq).asArray[0].cpsmidi;
     var strength = \strength.kr(0.5, spec:ControlSpec(0, 1, \lin, 0, 0.5, units:"elements"));
@@ -21,8 +20,13 @@ synth: {|freq, gate|
     var space = \space.kr(0.3, spec:ControlSpec(0, 1, \lin, 0, 0.3, units:"elements"));
     var model = \model.kr(0, spec:ControlSpec(0, 2, \lin, 1, 0, units:"elements"));
 
+    var blow_in = PinkNoise.ar(0.5);
+    if (~blow.notNil) {
+        blow_in = ~blow
+    };
+
     MiElements.ar(
-        blow_in,
+        PinkNoise.ar(0.5),
         0,
         Trig1.kr(gate, \sustain.kr), //A2K.kr(gate),
         pit,
