@@ -19,11 +19,9 @@ synth: {|freq, gate, aeg|
 
     //var exciter = ~exciter ?? { Hasher.ar(Sweep.ar) * Env.perc(0, 0.01).ar };
 
-    var exciter = ~exciter ?? { WhiteNoise.ar * Env.perc(0, 0.01).ar * 0.7 };
+    var exciter = ~exciter ?? { WhiteNoise.ar * Env.perc(0, 0.01).ar(gate:gate) * 0.7 };
 
     exciter = exciter * 0.2;
-
-    //var exciter = ~exciter ?? { PinkNoise.ar * Env.perc(0, 0.001).ar };
 
     exciter = LPF.ar(exciter, bright);
 

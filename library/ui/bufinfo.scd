@@ -1,6 +1,6 @@
-(
 Require(App.librarydir ++ "ui/common.scd");
-Fdef(\bufinfo, {arg buf;
+(
+func: {arg buf;
 
     var bufname = if (buf.path.notNil) { PathName(buf.path).fileName } { "buf" };
     var view = View().layout_(VLayout().margins_(0).spacing_(0)).minSize_(Size(300, 150));
@@ -28,5 +28,5 @@ Fdef(\bufinfo, {arg buf;
     );
     view.name = bufname;
     view.front;
-});
+}
 )

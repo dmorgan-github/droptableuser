@@ -48,41 +48,10 @@
     }
 }
 
-+ AbstractFunction {
++ Float {
 
-    pchoose {|iftrue, iffalse|
-        ^Pif(Pfunc(this), iftrue, iffalse)
-    }
-    pfunc { ^Pfunc(this) }
-
-    plazy { ^Plazy(this) }
-
-    cc {|ccNum, ccChan=0, spec|
-        var cckey = "cc_%_%".format(ccNum, ccChan).asSymbol.debug("mididef");
-        if (spec.notNil) {
-            spec = spec.asSpec;
-        };
-        MIDIdef.cc(cckey, {|val, num, chan|
-            if (spec.notNil) {
-                val = spec.map(val/127);
-            };
-            this.value(val, num, chan);
-        }, ccNum:ccNum, chan:ccChan)
-        .fix;
-
-        // TODO: fix this
-        if (spec.notNil) {
-            MIDIClient.destinations.do({|dest, i|
-                var val = spec.default;
-                var ccval = val.linlin(spec.minval, spec.maxval, 0, 127);
-                try {
-                    MIDIOut(i).control(ccChan, ccNum, ccval);
-                } {|err|
-                    "midi out: %".format(err).warn;
-                }
-
-            })
-        }
+    pchance {
+        ^Pfunc({ if (this.coin) {1}{Rest(1)} })
     }
 }
 

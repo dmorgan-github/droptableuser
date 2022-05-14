@@ -16,18 +16,18 @@ created: "04/11/2021",
 */
 synth: {
 
-    var freq1 = \freq1.kr(40, spec:ControlSpec( 20.0, 14000.0, \exp, 0, 70, "signal"));
-    var freq2 = \freq2.kr(4, spec: ControlSpec( 0.1, 14000.0, \exp, 0, 4, "signal"));
-    var scale = \scale.kr(1, spec: ControlSpec( 0.0, 1.0, \lin, 0, 1, "rungler"));
-    var rungler1 = \rungler1.kr(0.16, spec: ControlSpec( 0.0, 1.0, \lin, 0, 0.16, "rungler"));
-    var rungler2 = \rungler2.kr(0.0, spec: ControlSpec( 0.0, 1.0, \lin, 0, 0, "rungler"));
-    var runglerFilt = \runglerFilt.kr(9, spec: ControlSpec( 0.01, 10, \lin, 0, 9, "rungler"));
-    var loop = \loop.kr(0, spec: ControlSpec( 0.0, 1.0, \lin, 0, 1, "signal"));
-    var filtFreq = \filtFreq.kr(40, spec:ControlSpec( 20.0, 20000.0, \exp, 0, 40, "filter"));
-    var q = \q.kr(0.82, spec: ControlSpec( 0.0, 1.0, \lin, 0, 0.82, "filter"));
-    var gain = \gain.kr(1, spec: ControlSpec( 0.0, 3.0, \lin, 0, 1, "filter"));
-    var filterType = \filterType.kr(0, spec: ControlSpec( 0.0, 3.0, \lin, 1, 0, "filter"));
-    var outSignal = \outSignal.kr(6, spec: ControlSpec( 0.0, 6.0, \lin, 0, 6, "signal"));
+    var freq1 = \freq1.kr(40, spec:ControlSpec( 20.0, 14000.0, \exp, 0, 70, "benjolis"));
+    var freq2 = \freq2.kr(4, spec: ControlSpec( 0.1, 14000.0, \exp, 0, 4, "benjolis"));
+    var scale = \scale.kr(1, spec: ControlSpec( 0.0, 1.0, \lin, 0, 1, "benjolis"));
+    var rungler1 = \rungler1.kr(0.16, spec: ControlSpec( 0.0, 1.0, \lin, 0, 0.16, "benjolis"));
+    var rungler2 = \rungler2.kr(0.0, spec: ControlSpec( 0.0, 1.0, \lin, 0, 0, "benjolis"));
+    var runglerFilt = \runglerFilt.kr(9, spec: ControlSpec( 0.01, 10, \lin, 0, 9, "benjolis"));
+    var loop = \loop.kr(0, spec: ControlSpec( 0.0, 1.0, \lin, 0, 1, "benjolis"));
+    var filtFreq = \filtFreq.kr(40, spec:ControlSpec( 20.0, 20000.0, \exp, 0, 40, "benjolis"));
+    var q = \q.kr(0.82, spec: ControlSpec( 0.0, 1.0, \lin, 0, 0.82, "benjolis"));
+    var gain = \gain.kr(1, spec: ControlSpec( 0.0, 3.0, \lin, 0, 1, "benjolis"));
+    var filterType = \filterType.kr(0, spec: ControlSpec( 0.0, 3.0, \lin, 1, 0, "benjolis"));
+    var outSignal = \outSignal.kr(6, spec: ControlSpec( 0.0, 6.0, \lin, 0, 6, "benjolis"));
 
 	var osc1, osc2, tri1, tri2, sh0, sh1, sh2, sh3, sh4, sh5, sh6, sh7, sh8=1, rungler, pwm, filt, output;
 	var sr;

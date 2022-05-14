@@ -1,6 +1,6 @@
-(
 Require(App.librarydir ++ "ui/common.scd");
-Fdef(\launch, {|patterns|
+(
+func: {|patterns|
 
     var rows, grid;
     var active = if (~launch_active.isNil) { ~launch_active = (); ~launch_active } {~launch_active};
@@ -125,7 +125,7 @@ Fdef(\launch, {|patterns|
         ~view.children.do({|child| child.remove});
         ~view.layout.add(grid);
     };
-})
+}
 )
 
 

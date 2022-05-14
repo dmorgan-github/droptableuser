@@ -1,6 +1,6 @@
-(
 Require("~/projects/droptableuser/library/ui/common.scd");
-Fdef(\matrix, {arg matrix;
+(
+func: {arg matrix;
 
     var vsts = {
         if (~vstlist.isNil) {
@@ -236,5 +236,5 @@ Fdef(\matrix, {arg matrix;
 
 	baseview = baseViewFunc.(view, matrix.key);
 	baseview.front;
-});
+}
 )

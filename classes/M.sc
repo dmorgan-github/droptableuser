@@ -1,7 +1,7 @@
 // module
 Module {
 
-    var <envir, <>libfunc, <fullpath, <props;
+    var <>envir, <>libfunc, <fullpath, <props;
 
     *new {|key|
         var res;
@@ -88,6 +88,25 @@ Module {
     }
 }
 
+Ui : Module {
+
+    *new {|key|
+        var res;
+        key = "ui/%".format(key).asSymbol;
+        res = super.new(key);
+        ^res;
+    }
+
+    view {|...args|
+        ^this.value(*args);
+    }
+
+    gui {|...args|
+        ^this.view(*args).front
+    }
+
+}
+
 M : Module {
 
     var <synthModule, <filterModule, <outModule, <pitchModule, <envModule;
@@ -165,11 +184,16 @@ M : Module {
 
     add {|name|
 
+        var sampleaccurate = envir['sampleaccurate'] ?? false;
         name = name ?? synthname;
         synthdef = SynthDef(name.asSymbol, {
             var sig = this.func;
             sig = sig.();
-            Out.ar(\out.kr(0), sig);
+            if (sampleaccurate.debug("sampleaccurate")) {
+                OffsetOut.ar(\out.kr(0), sig);
+            }{
+                Out.ar(\out.kr(0), sig);
+            };
         }, metadata: envir).add;
 
         "% synth created".format(name).inform;

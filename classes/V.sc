@@ -1,8 +1,10 @@
 V {
 
-    classvar <surge="vst/Surge XT.vst3";
-    classvar <vital="vst/Vital.vst3";
-    classvar <reaktor="vst/Reaktor 6";
+    classvar <surge="vst:Surge XT.vst3";
+    classvar <vital="vst:Vital.vst3";
+    classvar <reaktor="vst:Reaktor 6";
+    classvar <dexed="vst:Dexed.vst3";
+    classvar <pendulate="vst:Pendulate.vst3";
 
     var <>fx, <>synth, <vst;
 

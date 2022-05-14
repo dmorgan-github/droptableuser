@@ -22,15 +22,15 @@ Color(0.66662492752075, 0.72109272480011, 0.70863604545593, 0.2)
 */
 S {
 
-    *synth {|key, source|
+    *synth {|key, synth|
 
-        var envir = topEnvironment;
+        var envir = currentEnvironment;
         var res = envir[key];
 
         if (res.isNil){
 
-            if (source.notNil) {
-                var src = source.asString;
+            if (synth.notNil) {
+                var src = synth.asString;
                 res = case
                 {src.beginsWith("vst:")} {
                     SVstSynth(src.asSymbol).key_(key)
@@ -45,21 +45,35 @@ S {
             } {
                 "source not provided".warn
             }
+        } {
+            if (synth.notNil) {
+                res.synth = synth;
+            }
         };
 
         ^res;
+    }
+
+    *clear {|key|
+        var envir = currentEnvironment;
+        var res = envir[key];
+        if (res.notNil) {
+            envir.removeAt(key);
+            res.clear;
+        }
     }
 
     *initClass {
     }
 }
 
+// TODO: this hasn't been tested
 SMidiSynth : SSynth {
 
     var <notechan=0, <returnbus=0, <midiout;
 
     *new {|synth|
-        ^super.new().prInitSynth(synth)
+        ^super.new(synth);
     }
 
     source_ {|pattern|
@@ -99,7 +113,7 @@ SMidiSynth : SSynth {
             var r = returnbus+1;
             SoundIn.ar([l, r])
         });
-        this.out = D.defaultout + returnbus;
+        this.out = DNodeProxy.defaultout + returnbus;
     }
 }
 
@@ -109,7 +123,7 @@ SVstSynth : SSynth {
     var <vstsynth, <vstplugin, <vstpreset;
 
     *new {|synth|
-        ^super.new().prInitSynth(synth);
+        ^super.new(synth);
     }
 
     source_ {|pattern|
@@ -140,17 +154,25 @@ SVstSynth : SSynth {
             pattern
         );
 
-        super.source(src);
+        super.source = src;
     }
 
     gui {
         vstplugin.editor;
     }
 
+    on {|note, vel=127|
+        vstplugin.midi.noteOn(0, note, vel)
+    }
+
+    off {|note|
+        vstplugin.midi.noteOff(0, note)
+    }
+
     prInitSynth {|argSynth|
 
         {
-            var synthdef, plugin;
+            var plugin;
             var args = argSynth.asString.split($:);
             args = args[1].split($/);
             plugin = args[0];
@@ -172,8 +194,7 @@ SVstSynth : SSynth {
                     ctrl.readProgram(vstpreset)
                 }
             });
-            synth = vstsynthdef;
-            this.set('type', 'vst_midi', 'vst', vstplugin, \spread, 1, \pan, 0);
+            this.set('type', 'vst_midi', 'vst', vstplugin, \spread, 1, \pan, 0, \amp, -6.dbamp);
 
         }.fork;
     }
@@ -199,6 +220,7 @@ SSynth : EventPatternProxy {
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
+    var <synths, <synthdef;
     var keyval;
 
     *new {|synth|
@@ -239,8 +261,25 @@ SSynth : EventPatternProxy {
         });
 
         super.set(*args);
+    }
 
-        ^this;
+    patternAt {|index, pattern|
+
+        var key = "%_%_set".format(this.key, index).asSymbol;
+
+        if (pattern.isNil) {
+            Pdef(key).stop;
+            Pdef(key).clear;
+        }{
+            Pdef(key,
+                pattern
+                <>
+                Pbind(
+                    \type, \set,
+                    \id, synths[index].nodeID
+                )
+            ).play
+        };
     }
 
     synth_ {|synthname|
@@ -248,12 +287,21 @@ SSynth : EventPatternProxy {
     }
 
     fx {|index, fx, wet=1|
-        this.node.fx(index, fx, wet);
+        if (index.isArray) {
+            index.do({|fx, i|
+                var slot = 100 + i;
+                this.node.fx(slot, fx, wet);
+            })
+        }{
+            this.node.fx(index, fx, wet);
+        }
+
     }
 
     clear {
         this.node.free;
         this.node.clear;
+        this.synths.clear;
         super.clear;
     }
 
@@ -270,7 +318,7 @@ SSynth : EventPatternProxy {
     }
 
     view {
-        ^U(\sgui, this)
+        ^Module('ui/sgui').envir_(topEnvironment).(this);
     }
 
     gui {
@@ -298,6 +346,41 @@ SSynth : EventPatternProxy {
 
     key {
         ^keyval;
+    }
+
+    on {|note, vel=127, debug=false|
+
+        var evt = this.envir ?? ();
+        var args;
+        var out = this.node.bus.index;
+        var target = this.node.group;
+
+        args = [\out, out, \gate, 1, \freq, note.midicps, \vel, (vel/127).squared]
+        ++ evt
+        .reject({|v, k|
+            (v.isNumber.not and: v.isArray.not and: {v.isKindOf(BusPlug).not})
+        })
+        .asPairs();
+
+        if (debug) {
+            args.postln;
+        };
+
+        if (synthdef.hasGate) {
+            if (synths[note].isNil) {
+                synths[note] = Synth(synth, args, target:target, addAction:\addToHead);
+            }
+        } {
+            Synth(synth, args, target:target, addAction:\addToHead);
+        }
+    }
+
+    off {|note|
+        if (synthdef.hasGate) {
+            //var synth = synths[note];
+            synths.removeAt(note).set(\gate, 0)
+            //synth.set(\gate, 0);
+        }
     }
 
     print {
@@ -360,8 +443,6 @@ SSynth : EventPatternProxy {
                 }
             })
         );
-
-        ^this;
     }
 
     prInit {
@@ -370,20 +451,20 @@ SSynth : EventPatternProxy {
         keyval = "s%".asSymbol(count);
         clock = W.clock;
         color = Color.rand;
+        synths = Order.new;
         nodewatcherfunc = {|obj, what|
             if ((what == \play) or: (what == \stop)) {
                 isMonitoring = obj.isMonitoring
             }
         };
         //node = D("%_out".format(this.key).asSymbol);
-        node = DNodeProxy().key_("%_out".format(keyval).asSymbol)
+        node = DNodeProxy().key_("%_out".format(keyval).asSymbol);
         node.color = color;
         node.addDependant(nodewatcherfunc);
 
         node.play;
         //ptrnproxy = PbindProxy();
         super.source = Pbind();
-        this.set(\amp, -6.dbamp);
         this.quant = 4.0;
 
         cmdperiodfunc = {
@@ -401,9 +482,7 @@ SSynth : EventPatternProxy {
 
     prInitSynth {|argSynth|
 
-        var synthdef;
         synth = argSynth;
-
         synthdef = SynthDescLib.global.at(synth);
         if (synthdef.isNil) {
             synth = \default;
@@ -439,6 +518,7 @@ SSynth : EventPatternProxy {
         };
         this.isMono.debug("mono");
 
+        "set defaults from spec...".debug("ssynth");
         if (this.getSpec.notNil) {
             this.getSpec.keys.do({|key|
                 var spec = this.getSpec[key];
@@ -447,7 +527,7 @@ SSynth : EventPatternProxy {
         };
 
         controlNames = SynthDescLib.global.at(synth).controlNames;
-        this.set(\instrument, synth.debug("synth"), \spread, 1, \pan, 0);
+        this.set(\instrument, synth.debug("synth"), \spread, 1, \pan, 0, \amp, -6.dbamp);
     }
 
     *initClass {

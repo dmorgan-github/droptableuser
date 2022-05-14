@@ -1,4 +1,3 @@
-(
 var log;
 var vsts = {
     if (~vstlist.isNil) {
@@ -142,7 +141,8 @@ var getPresetsView = {|node|
     ).margins_(0).spacing_(0)
 };
 
-Fdef(\sgui, {|node, index|
+(
+func: {|node, index|
 
     var height = 19;
     var skipId = UniqueID.next.asSymbol;
@@ -334,7 +334,8 @@ Fdef(\sgui, {|node, index|
         view = View().layout_(VLayout().margins_(2).spacing_(2));
 
         if (node.get(\buf).notNil and: {index.isNil}) {
-            view.layout.add( U(\buf, node).maxHeight_(100))
+            var ui = Module('ui/buf').(node);
+            view.layout.add( ui.maxHeight_(100) )
         };
 
         groups.do({|assoc|
@@ -621,5 +622,5 @@ Fdef(\sgui, {|node, index|
         fxnode.removeDependant(fxwatcher);
         //SkipJack.stop(skipId)
     });
-});
+}
 )

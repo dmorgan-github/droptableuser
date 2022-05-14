@@ -1,5 +1,5 @@
 (
-Fdef(\hits, {|node|
+func: {|node|
 
     var key = 'hits';
     var width = 19;
@@ -24,5 +24,5 @@ Fdef(\hits, {|node|
     );
 
     view.name_("% %".format(node.key, key)).front
-})
+}
 )

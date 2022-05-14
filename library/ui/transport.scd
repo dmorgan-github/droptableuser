@@ -1,6 +1,6 @@
-(
 Require(App.librarydir ++ "ui/common.scd");
-Fdef(\transport, {|clock=(TempoClock.default)|
+(
+func: {|clock=(TempoClock.default)|
 
     var baseViewFunc = Fdef(\baseview);
     var baseview;
@@ -99,7 +99,7 @@ Fdef(\transport, {|clock=(TempoClock.default)|
                 })
                 .maxWidth_(35)
                 .toolTip_("record")
-                .icon_(Image.new(App.librarydir ++ "images/noun_Record_1939983.png")), 
+                .icon_(Image.new(App.librarydir ++ "images/noun_Record_1939983.png")),
 
                 Button().action_({
                     MidiCtrl.connect
@@ -130,5 +130,5 @@ Fdef(\transport, {|clock=(TempoClock.default)|
 
     baseview = baseViewFunc.(view, 'transport');
     baseview.front;
-})
+}
 )

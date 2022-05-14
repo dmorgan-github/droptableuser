@@ -34,10 +34,9 @@ Q : Device {
     }
 }
 */
-
-(
 Require("~/projects/droptableuser/library/ui/common.scd");
-Fdef(\eq, {arg node;
+(
+func: {arg node;
 
 	var frdb = [[100,0,1], [250,0,1], [1000,0,1], [3500,0,1], [6000,0,1]];
 
@@ -369,5 +368,5 @@ Fdef(\eq, {arg node;
     };
 
 	init.();
-})
+}
 )

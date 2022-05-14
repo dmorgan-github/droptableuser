@@ -1,12 +1,29 @@
 D {
     *node {|key, source|
-        var envir = topEnvironment;
+        var envir = currentEnvironment;
         var res = envir[key];
         if (res.isNil){
-            res = DNodeProxy(source).key_(key);
-            envir[key] = res;
-        };
+            res = DNodeProxy(source);
+            if (key.notNil) {
+                res.key = key;
+                "adding % to currentEnvironment".format(key).debug("D");
+                envir[key] = res;
+            };
+        } {
+            if (source.notNil) {
+                res.put(0, source);
+            }
+        }
         ^res;
+    }
+
+    *clear {|key|
+        var envir = currentEnvironment;
+        var res = envir[key];
+        if (res.notNil)  {
+            envir.removeAt(key);
+            res.clear;
+        };
     }
 }
 
@@ -14,6 +31,7 @@ D {
 DNodeProxy : NodeProxy {
 
     classvar <>defaultout;
+
     classvar count=0;
 
     var <vstctrls, <>color;
@@ -77,7 +95,16 @@ DNodeProxy : NodeProxy {
         ^res;
     }
 
+    clear {
+        CmdPeriod.remove(cmdperiodfunc);
+        vstctrls.clear;
+        fxchain.clear;
+        metadata.clear;
+        super.clear;
+    }
+
     node {
+        // this is echo the SSynth interface
         ^this
     }
 
@@ -157,9 +184,11 @@ DNodeProxy : NodeProxy {
         ^this.deviceInit;
     }
 
+    /*
 	*doesNotUnderstand {|selector|
 		^this.new(selector);
 	}
+    */
 
     put {|index, obj, channelOffset = 0, extraArgs, now = true|
         super.put(index, obj, channelOffset, extraArgs, now);
@@ -303,7 +332,7 @@ DNodeProxy : NodeProxy {
     }
 
     view {|index|
-        ^U(\sgui, this);
+        ^Module('ui/sgui').(this);
     }
 
     gui {
@@ -316,7 +345,7 @@ DNodeProxy : NodeProxy {
         var clock = TempoClock.default;
         var seconds = clock.beatDur * beats;
         var id = "%_%".format(this.key, UniqueID.next).asSymbol;
-        var buf = B.alloc(id, seconds * Server.default.sampleRate, 1);
+        var buf = B.allocSec(id, seconds, 1);
         var bus = this.bus;
         var group = this.group;
 

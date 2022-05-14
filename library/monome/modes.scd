@@ -14,6 +14,22 @@ var getdata = {|scale='major', interval=7, root=36|
     data;
 };
 
+var connect = {
+
+    var grid;
+    var monome = Halo.at(\monome);
+    if (monome.isNil) {
+        "connecting...".debug("monome");
+        MonoM.connect;
+        {
+            monome = MonoM.new("/monome", 0);
+            monome.useDevice(0);
+            "connected".debug("monome");
+            Halo.put(\monome, monome)
+        }.defer(2)
+    };
+};
+
 (
 func: {
 
@@ -24,6 +40,7 @@ func: {
     var gridcols = 16;
     var numbuttons = gridrows * gridcols;
     var buttons = Array.fill(numbuttons, {0});
+    connect.();
 
     OSCdef(\modes, {|msg|
 
@@ -36,8 +53,9 @@ func: {
                 var num = numbuttons - ((gridcols-x) + (gridcols * y));
                 var state;
                 var note;
+                var monome = Halo.at(\monome);
                 buttons[num] = (1-buttons[num]);
-                ~monome.levset(x, y, buttons[num] * 6);//~buttons[num].debug(\here);
+                monome.levset(x, y, buttons[num] * 6);//~buttons[num].debug(\here);
                 note = data.wrapAt(7-y).wrapAt(x);
 
                 if (buttons[num] > 0) {

@@ -1,6 +1,6 @@
-(
 Require(App.librarydir ++ "ui/common.scd");
-Fdef(\kb, {
+(
+func: {
 
     var noteChan = 0;
     var midiout = MIDIOut(noteChan).latency_(0);
@@ -132,5 +132,5 @@ Fdef(\kb, {
 
     baseview = baseViewFunc.(view, 'kb');
 	baseview.front;
-});
+}
 )

@@ -1,3 +1,4 @@
+/*
 (
 Pdef(\ploopr,
     Pspawner({|sp|
@@ -23,6 +24,45 @@ Pdef(\ploopr,
     })
 )
 )
+*/
+
+(
+func: {
+
+    var obj = (
+        notes: List.new,
+        loopbuf: Order.new;
+    );
+
+    obj[\ptrn] = Pspawner({|sp|
+        inf.do({|i|
+            var note, pattern;
+            var new = obj['notes'].pop;
+            var size = obj['loopbuf'].indices.size;
+            //var div = ~div ?? {0.125};
+            var div = 0.125;
+            while ({new.notNil}) {
+                var num = i.mod(size);
+                obj['loopbuf'][num].add(new);
+                new = obj['notes'].pop;
+            };
+            note = obj['loopbuf'].wrapAt(i);
+            if (note.size > 0) {
+                var notes = note.asArray;
+                pattern = Pbind(\midinote, notes)
+            }{
+                pattern = Pn(Event.silent);
+            };
+            sp.seq(pattern.finDur(div))
+        })
+    });
+
+    obj;
+}
+)
+
+
+
 
 /*
 ~notes1 = List.new

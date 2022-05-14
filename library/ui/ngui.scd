@@ -1,6 +1,6 @@
-(
 Require(App.librarydir ++ "ui/common.scd");
-Fdef(\ngui, {arg node, customview, specs;
+(
+func: {arg node, customview, specs;
 
     var baseview, nodeListener;
     var win;
@@ -109,6 +109,6 @@ Fdef(\ngui, {arg node, customview, specs;
 
     baseview = baseViewFunc.(win, node.key, 150, 170);
     baseview.front;
-});
+}
 )
 

@@ -99,6 +99,10 @@ c.plot
         ^buf;
     }
 
+    *allocSec {|key, seconds=8, numChannels=1|
+        ^B.alloc(key, seconds * Server.default.sampleRate, numChannels);
+    }
+
     // load random n seconds from sound file
     *randN {|key, path, n=5, cb|
 

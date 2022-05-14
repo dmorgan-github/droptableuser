@@ -1,5 +1,5 @@
 (
-Fdef(\seq, {|node, key, spec|
+func: {|node, key, spec|
 
     var width = 20;
     var color = Color.cyan;
@@ -22,5 +22,5 @@ Fdef(\seq, {|node, key, spec|
         })
     );
     view.name_("% %".format(node.key, key)).front
-})
+}
 )

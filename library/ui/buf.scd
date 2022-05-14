@@ -1,6 +1,6 @@
-(
 Require(App.librarydir ++ "ui/common.scd");
-Fdef(\buf, {arg node;
+(
+func: {arg node;
 
     var key = node.key;
 
@@ -147,7 +147,7 @@ Fdef(\buf, {arg node;
     view.onClose_({
         OSCdef(key).free;
     });//.front;
-});
+}
 )
 
 
