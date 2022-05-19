@@ -1,145 +1,4 @@
 var log;
-var vsts = {
-    if (~vstlist.isNil) {
-        // get the unique list of plugins
-        // prefering vst3 if vst2 version also exists
-        var plugins = ();
-        var list = V
-        .ls
-        .reject({arg val;
-            var plugin = VSTPlugin.plugins[val.asSymbol];
-            plugin.isNil
-            or: {
-                VSTPlugin.plugins[val.asSymbol].category.contains("Instrument")
-            }
-            or: {
-                VSTPlugin.plugins[val.asSymbol].category.contains("Synth")
-            }
-        });
-
-        list.do({|name|
-            var noext;
-            name = name.asString;
-            noext = name.split($.)[0].asSymbol;
-            if (plugins[noext].isNil) {
-                plugins.put(noext, 0);
-            };
-            if (name.endsWith("vst3")) {
-                plugins[noext] = 1
-            };
-        });
-
-        ~vstlist = plugins.keys
-        .collect({|item| if (plugins[item] == 1) { "%.vst3".format(item).asSymbol }{item} })
-        .asArray
-        .sort;
-    };
-    ~vstlist
-};
-
-var browse = {arg path, files=List.new;
-    var folder = PathName.new(path);
-    if (folder.isFolder) {
-        var folders = folder.folders;
-        files = files.addAll(folder.files);
-        folders.do({arg folder;
-            browse.(folder.fullPath, files);
-        });
-    };
-    files;
-};
-
-var scope = {|node|
-
-    var view = View().layout_(VLayout().margins_(0).spacing_(0));
-    //.maxHeight_(10);
-
-    var scope = Stethoscope.new(s, view:view).style_(1)
-    .index_(node.bus.index)
-    .numChannels_(2).yZoom_(10).xZoom_(10);
-    //win.onClose = { scope.free;  };
-    4.do({
-        view.children[0].children[0].remove
-    });
-    //view.children[0].children[0].waveColors_([color, color.complementary]);
-    view.children[0].children[2].remove;
-    view.children[0].children[1].remove;
-    //view.maxHeight = 20;
-    view.children[0].children[0].background = QtGUI.palette.window;
-    //view.maxWidth = 80;
-    view.onClose = { scope.free };
-    view.mouseUpAction = {
-        node.scope
-    };
-    view;
-};
-
-var getPresetsView = {|node|
-
-    var morphbeats = 20;
-
-    var buttons = 14.collect({|i|
-        var color_active = Color.white.alpha_(0.9);
-        var color_saved = Color.green.alpha_(0.9);
-        var color_empty = Color.gray;
-        var issaved = P.getPreset(node, i).notNil;
-        var color_init = if (issaved) {color_saved}{color_empty};
-        Button()
-        .action_({|ctrl|
-            buttons.do({|btn, j|
-                if (i != j) {
-                    if (btn.value == 1) {
-                        btn.states = [ [nil, nil, color_saved ], [nil, nil, color_active ] ]
-                    };
-                    btn.value = 0;
-                }
-            });
-
-            if (ctrl.value == 1) {
-                var preset = P.getPreset(node, i);
-                if (preset.isNil) {
-                    log.("% preset %".format(\save, i));
-                    P.addCurrent(node, i);
-                } {
-                    log.("% preset %".format(\morph, i));
-                    P.morph(node, i, beats:morphbeats);
-                };
-            }{
-                // button stays on
-                ctrl.value = 1
-            }
-        })
-        .mouseDownAction_({|ctrl, x, y, mod, num, count|
-            // 262144 ctrl delete
-            // 131072 shift overwrite
-            // 524288 option
-            if (mod == 262144) {
-                log.("% preset %".format(\remove, i));
-                P.remove(node, i);
-                ctrl.states = [ [nil, nil, color_empty ], [nil, nil, color_active ] ];
-            };
-            if (mod == 131072) {
-                log.("% preset %".format(\overwrite, i));
-                P.addCurrent(node, i);
-            };
-        })
-        .states_([ [nil, nil, color_init ], [nil, nil, color_active ] ])
-    });
-
-    HLayout(
-        GridLayout.rows(
-            buttons[0..6].collect(_.fixedSize_(10)),
-            buttons[7..13].collect(_.fixedSize_(10))
-        ).margins_(0).spacing_(0),
-
-        NumberBox()
-        .action_({|ctrl|
-            morphbeats = ctrl.value;
-        })
-        .toolTip_("morph time")
-        .value_(morphbeats)
-    ).margins_(0).spacing_(0)
-};
 
 (
 func: {|node, index|
@@ -149,7 +8,7 @@ func: {|node, index|
     var keys;
     var status = StaticText().font_(Font("Courier New", 9)).background_(Color.black.alpha_(0.3));
     var color = node.color ? Color.rand;
-    var path = App.librarydir ++ "fx/";
+    //var path = App.librarydir ++ "fx/";
     var fxnode = if (node.respondsTo(\node)) { node.node }{ node };
     var watcher, fxwatcher;
     var windowname = if (index.notNil) {
@@ -157,7 +16,7 @@ func: {|node, index|
     }{
         node.key
     };
-    var getGroups, getKeys, getSpec, fxmenu, getView;
+    var getGroups, getKeys, getSpec, getView;
     var scroll = ScrollView();
     var fxbuttonsview = View().layout_(VLayout().margins_(1).spacing_(1));
     var updateButtons, moveDown, moveUp, swap;
@@ -165,6 +24,8 @@ func: {|node, index|
     .layout_(VLayout().margins_(2).spacing_(2))
     .name_(windowname);
     var sliders = [];
+    var fxmenu = Ui('fxmenu');
+    var presets = Ui('presets');
 
     getSpec = {|key|
         var specs = node.getSpec;
@@ -292,40 +153,6 @@ func: {|node, index|
         returnVal;
     };
 
-    fxmenu = {
-        var paths = browse.(path);
-        StaticText().string_("...")
-        .setContextMenuActions(
-            *(
-                paths.collect({arg path;
-                    var name = path.folderName ++ '/' ++ path.fileNameWithoutExtension;
-                    MenuAction( name, {arg action, what, value;
-
-                        var id = action.string.asSymbol;
-                        var maxindex;
-
-                        maxindex = fxnode.objects.indices
-                        .reject({|val| val < 100 or: {val >= 1000} }).maxItem ?? {100};
-
-                        fxnode.fx(maxindex + 10, id);
-                    });
-                })
-                ++ vsts.().collect({arg vst;
-                    MenuAction(vst, {arg action;
-
-                        var id = "vst:%".format(action.string).asSymbol;
-                        var maxindex;
-
-                        maxindex = fxnode.objects.indices
-                        .reject({|val| val < 100 or: {val >= 1000} }).maxItem ?? {100};
-
-                        fxnode.fx(maxindex + 10, id);
-                    })
-                })
-            )
-        );
-    };
-
     getView = {
 
         var view, groups;
@@ -334,7 +161,7 @@ func: {|node, index|
         view = View().layout_(VLayout().margins_(2).spacing_(2));
 
         if (node.get(\buf).notNil and: {index.isNil}) {
-            var ui = Module('ui/buf').(node);
+            var ui = Ui('buf').view(node);
             view.layout.add( ui.maxHeight_(100) )
         };
 
@@ -494,14 +321,14 @@ func: {|node, index|
                                 if (obj.type == 'vst') {
                                     obj['ctrl'].editor
                                 }{
-                                    U(\sgui, fxnode, index).front
+                                    Ui('sgui').gui(fxnode, index)
                                 }
                             })
                             .mouseDownAction_({|ctrl, x, y, mod, num, count|
                                 if (obj.type == 'vst') {
                                     // ctrl key
                                     if (mod == 262144) {
-                                        U(\sgui, fxnode, index).front
+                                        Ui('sgui').gui(fxnode, index)
                                     };
                                     // alt key
                                     if (mod == 524288) {
@@ -534,7 +361,7 @@ func: {|node, index|
             VLayout(
                 HLayout(
 
-                    fxmenu.(),
+                    fxmenu.view(fxnode),
 
                     Button()
                     .states_( [ ["0"] ] )
@@ -562,7 +389,7 @@ func: {|node, index|
                     .value_(fxnode.monitor.out),
                     */
 
-                    getPresetsView.(node),
+                    presets.view(node),
 
                     Button()
                     .maxWidth_(35)
@@ -572,8 +399,6 @@ func: {|node, index|
                         node.print
                     })
                 ),
-
-                //scope.(fxnode).maxHeight_(50),
             )
         );
     };

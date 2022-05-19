@@ -44,8 +44,8 @@ synth: {|freq|
         var startPos = bufdur * start;
         var endPos = bufdur * end;
         var dur = endPos - startPos;
-        var stretch = \pbstretch.kr(1, spec:ControlSpec(-100, 100, \lin, 0, 1, units:"tgrains"));
-        stretch = stretch + ControlDur.ir; // avoid divide by zero
+        var stretch = \pbstretch.kr(1, spec:ControlSpec(1, 100, \lin, 0, 1, units:"tgrains"));
+        //stretch = stretch + ControlDur.ir; // avoid divide by zero
         LFSaw.ar((dur * stretch).reciprocal).range(startPos, endPos);
     };
 

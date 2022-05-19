@@ -6,7 +6,7 @@ synth: {|freq, gate|
     var replyid = \bufposreplyid.kr(-1);
     var buf = \buf.kr(0);
     var numframes = BufFrames.kr(buf);
-    var start = \startPos.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, units:"sampler"));
+    var start = \startPos.kr(0, spec: ControlSpec(0, 0.9999, \lin, 0, 0, units:"sampler"));
     var end = \endPos.kr(1, spec: ControlSpec(0, 1, \lin, 0, 1, units:"sampler") ).max(start);
     var pitched = \pitched.kr(0, spec:ControlSpec(0, 1, \lin, 1, 0, units:"sampler"));
     var rate = Select.kr(pitched, [
