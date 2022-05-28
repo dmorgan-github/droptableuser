@@ -167,35 +167,53 @@ func: {|node, index|
 
             var group = assoc.key;
             var mykeys = assoc.value;
+            var custom;
 
             view.layout.add(
-                StaticText().string_(group).stringColor_(Color.black)
+                StaticText()
+                .string_(group)
+                .stringColor_(Color.black)
+                .mouseUpAction_({|ctrl|
+                    if (group == \aeg) {
+                        Ui(group).view(node).minSize_(Size(400, 200)).front
+                    }
+                })
             );
 
-            mysliders = mykeys.collect({|key, i|
-                var spec = getSpec.(key);
-                var val = node.get(key);
-                if (val.isNil) {
-                    val = spec.default;
-                };
-                [key, LevelSlider(key, spec:spec, color:color)
-                    .maxHeight_(20)
-                    .action_({|ctrl|
-                        var val = node.get(key);
-                        if (val != ctrl.value) {
-                            //[val, ctrl.value].debug(\action);
-                            node.set(key, ctrl.value);
-                        }
-                    })
-                    .value_(val)
-                ]
-            }).flatten;
+            if (group == \aeg) {
+                custom = Ui(group).view(node);
+                view.layout.add(custom.maxHeight_(135));
+            }{
 
-            mysliders.pairsDo({|key, slider|
-                view.layout.add(slider);
-            });
+                mysliders = mykeys.collect({|key, i|
+                    var spec = getSpec.(key);
+                    var val = node.get(key);
+                    if (val.isNil) {
+                        val = spec.default;
+                    };
+                    [key, LevelSlider(key, spec:spec, color:color)
+                        .maxHeight_(20)
+                        .action_({|ctrl|
+                            var val = node.get(key);
+                            if (val != ctrl.value) {
+                                //[val, ctrl.value].debug(\action);
+                                node.set(key, ctrl.value);
+                            }
+                        })
+                        .value_(val)
+                    ]
+                }).flatten;
 
-            sliders = sliders ++ mysliders;
+                mysliders.pairsDo({|key, slider|
+                    view.layout.add(slider);
+                });
+
+                sliders = sliders ++ mysliders;
+
+            }
+
+
+
         });
 
         if (index.isNil) {
@@ -369,22 +387,25 @@ func: {|node, index|
                     fxmenu.view(fxnode),
 
                     Button()
-                    .states_( [ ["0"] ] )
+                    .states_( [ [nil, nil, Color.clear] ] )
                     .toolTip_("record")
                     .maxWidth_(35)
                     .action_({|ctrl|
                         fxnode.rec(5)
-                    }),
+                    })
+                    .icon_( Image.new(App.librarydir ++ "images/noun_Record_1939983.png")  ),
 
                     presets.view(node),
 
                     Button()
                     .maxWidth_(35)
-                    .states_( [ ["s"] ] )
+                    .states_( [ [nil, nil, Color.clear] ] )
                     .toolTip_("save")
                     .action_({
                         node.print
                     })
+                    .icon_(Image.new(App.librarydir ++ "images/noun_print_2120752.png"))
+
                 ),
             )
         );

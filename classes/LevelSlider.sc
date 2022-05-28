@@ -4,6 +4,7 @@ LevelSlider : View {
     var li, nb, valueView, nbView, labelView, stack;
     var spec, <>precision = 0.001, <knobColor, <background;
     var <minDecimals, <maxDecimals, <thumbSize, <stringColor;
+    var step;
 
     *new {|label, spec, color|
         ^super.new().initLevelSlider(label, spec, color);
@@ -42,18 +43,23 @@ LevelSlider : View {
 
     minDecimals_ { |decimals|
         minDecimals = decimals;
-        li.minDecimals = minDecimals
+        nb.minDecimals = minDecimals
     }
 
     maxDecimals_ { |decimals|
         maxDecimals = decimals;
-        li.maxDecimals = maxDecimals
+        nb.maxDecimals = maxDecimals
     }
 
     stringColor_ { |color|
         stringColor = color;
         valueView.stringColor = stringColor;
         labelView.stringColor = stringColor;
+    }
+
+    step_ {|val|
+        step = val;
+        li.step = step;
     }
 
     initLevelSlider {|argLabel, argSpec, argColor|
@@ -67,6 +73,7 @@ LevelSlider : View {
         minDecimals = 3;
         maxDecimals = 4;
         stringColor = nil;
+        step = 0.001;
 
         nb = NumberBox();
         sliderView = View();
@@ -97,6 +104,7 @@ LevelSlider : View {
         .knobColor_(knobColor)
         .background_(background)
         .thumbSize_(thumbSize)
+        .step_(step)
         .action_({|ctrl|
             var val = ctrl.value;
             var mappedVal = spec.map(val);

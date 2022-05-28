@@ -3,7 +3,7 @@ synth: {|gate, doneAction=(Done.freeSelf)|
 
     var env, aeg;
     var atk = \atk.kr(0.01, spec:DMControlSpec(0, 8, \lin, 0, 0.01, units:"aeg", sort:0));
-    var suslevel = \suslevel.kr(0.7, spec:DMControlSpec(0, 1, \lin, 0, 0.7, units:"aeg", sort:2));
+    var suslevel = \suslevel.kr(1, spec:DMControlSpec(0, 1, \lin, 0, 1, units:"aeg", sort:2));
     var rel = \rel.kr(1, spec: DMControlSpec(0, 8, \lin, 0, 1, units:"aeg", sort:3));
 
     var ts = \ts.kr(1);
