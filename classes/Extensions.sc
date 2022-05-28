@@ -43,8 +43,8 @@
 
 + Buffer {
 
-    view {
-        U(\bufinfo, this)
+    gui {
+        Ui('bufinfo').gui(this)
     }
 }
 
@@ -119,7 +119,7 @@
 
     pfilter {|...args| ^Pbindf(this, *args)}
 
-    inval {|...args|
+    pchain {|...args|
         if (args[0].isKindOf(Symbol)) {
             args = Pbind(*args)
         };
@@ -193,7 +193,6 @@
     }
 
     seed {|val| ^Pseed(val, this)}
-
 }
 
 + Array {
@@ -201,10 +200,6 @@
 }
 
 + NodeProxy {
-
-    view {
-        ^U(\ngui, this);
-    }
 
     mix {arg index=0, obj, vol=1;
 
@@ -217,7 +212,7 @@
                 var key = obj.key;
                 // not using \mix role so that we can show
                 // helpful names in gui instead of \mix0, \mix1, etc
-                if (obj.class == S) {
+                if (obj.isKindOf(SSynth)) {
                     //var l = (key ++ 'L').asSymbol;
                     //var r = (key ++ 'R').asSymbol;
                     this.put(index, { obj.node.ar * Control.names([key]).kr(vol) });
@@ -232,10 +227,6 @@
                 this.addSpec(key, [0, 1, \lin, 0, vol]);
             }
         };
-    }
-
-    nscope {
-        ^U(\scope, this);
     }
 
     getSettings {
@@ -389,6 +380,7 @@
         Fdef(key, func);
     }
 
+    /*
     note {|noteChan, note, debug=false|
 
         var noteonkey = "%_noteon".format(this.key).asSymbol;
@@ -450,6 +442,7 @@
         }, noteNum:note, chan:noteChan)
         .fix;
     }
+    */
 
     // TODO: refactor
     disconnect {

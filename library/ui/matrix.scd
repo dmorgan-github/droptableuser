@@ -1,9 +1,13 @@
+var vstlist;
 Require("~/projects/droptableuser/library/ui/common.scd");
 (
 func: {arg matrix;
 
     var vsts = {
-        if (~vstlist.isNil) {
+
+        var vstlist = Halo.at(\matrix_vstlist);
+
+        if (vstlist.isNil) {
             // get the unique list of plugins
             // prefering vst3 if vst2 version also exists
             var plugins = ();
@@ -32,12 +36,14 @@ func: {arg matrix;
                 };
             });
 
-            ~vstlist = plugins.keys
+            vstlist = plugins.keys
             .collect({|item| if (plugins[item] == 1) { "%.vst3".format(item).asSymbol }{item} })
             .asArray
             .sort;
+
+            Halo.put(\matrix_vstlist, vstlist);
         };
-        ~vstlist
+        vstlist
     };
 
     var browse = {arg path, files=List.new;
@@ -52,26 +58,28 @@ func: {arg matrix;
         files;
     };
 
-	var view = View().layout_(VLayout().margins_(2).spacing_(2));
-	var viewListener = {arg obj, key, val;
+    var view, viewListener, baseViewFunc, ctrlView, playView;
+    var matrixPlayView, baseview, outergrid, height, width, colors, path;
+    var grid, gridview, func, listener, paths, st;
+
+	view = View().layout_(VLayout().margins_(2).spacing_(2));
+	viewListener = {arg obj, key, val;
 		view.changed(key, val);
 	};
-	var baseViewFunc = Fdef(\baseview);
-	var ctrlView = Fdef(\ctrlview);
-	var playView = Fdef(\playview);
-	var matrixPlayView;
+	baseViewFunc = Fdef(\baseview);
+	ctrlView = Fdef(\ctrlview);
+	playView = Fdef(\playview);
+	matrixPlayView;
 
-	var baseview;
-	var outergrid = View().layout_(VLayout().margins_(0).spacing_(0));
-	var width = 50;
-	var height = 20;
-	var colors = 30.collect({ Color.rand });
-	var path = App.librarydir ++ "fx/";
+	outergrid = View().layout_(VLayout().margins_(0).spacing_(0));
+	width = 50;
+	height = 20;
+	colors = 30.collect({ Color.rand });
+	path = App.librarydir ++ "fx/";
 
-	var vstlist;
-	var paths = browse.(path);
+	paths = browse.(path);
 
-	var st = {
+	st = {
 		StaticText().string_("...")
 		.setContextMenuActions(
 			*(
@@ -80,7 +88,9 @@ func: {arg matrix;
 					MenuAction( name, {arg action, what, value;
 						var id = action.string;
 						var nodeid = path.fileNameWithoutExtension;
-						var node = Send((nodeid ++ '_' ++ UniqueID.next).asSymbol).fx(id.asSymbol);
+                        var node = Send()
+                        .key_((nodeid ++ '_' ++ UniqueID.next).asSymbol)
+                        .fx(id.asSymbol);
 						matrix.addSrc(node);
 					});
 				})
@@ -88,7 +98,7 @@ func: {arg matrix;
 					MenuAction(vst, {arg action;
 						var id = action.string;
 						var unique = (id ++ '_' ++ UniqueID.next).asSymbol;
-                        var node = Send(unique).fx("vst:%".format(id.asSymbol).asSymbol);
+                        var node = Send().key_(unique).fx("vst:%".format(id.asSymbol).asSymbol);
 						matrix.addSrc(node);
 					})
 				})
@@ -96,11 +106,12 @@ func: {arg matrix;
 		);
 	};
 
-	var grid = {
+	grid = {
 
+        var header, rows, val;
 		var data = matrix.map;
 
-		var header = [st.()] ++ data.indices
+        header = [st.()] ++ data.indices
 		.reject({|j|
 			data[j].isKindOf(NodeProxy).not
 		})
@@ -110,58 +121,47 @@ func: {arg matrix;
 			StaticText().string_(name[0..len]).toolTip_(name).minWidth_(50);
 		});
 
-		var rows = data.indices.collect({arg i;
+		rows = data.indices.collect({arg i;
 
+            var del, srcName, cols;
 			var srcNode = data[i];
 
-			var del = HLayout(
+			del = HLayout(
 
                 /*
-                {
-                    var node = srcNode;
-                    var view = View().layout_(VLayout().margins_(0).spacing_(0))
-                    //.palette_(QPalette.dark)
-                    .maxHeight_(10);
-                    var scope = Stethoscope.new(s, view:view).style_(1)
-                    .index_(node.bus.index)
-                    .numChannels_(2).yZoom_(2).xZoom_(2);
-                    //win.onClose = { scope.free;  };
-                    4.do({
-                        view.children[0].children[0].remove
-                    });
-                    view.children[0].children[0].waveColors_([Color.rand, Color.rand]);
-                    view.children[0].children[2].remove;
-                    view.children[0].children[1].remove;
-                    view.maxHeight = 20;
-                    view.children[0].children[0].background = Color.new255(77, 77, 77);
-                    view.maxWidth = 80;
-                    view.onClose = { scope.free };
-                    view.mouseUpAction = {
-                        node.nscope
-                    };
-                    view;
-                }.(),
-                */
-
                 StaticText().string_(srcNode.key).toolTip_(srcNode.key)
 				.mouseUpAction_({|ctrl, x, y, mod, num, click|
                     srcNode.gui;
                 }),
+                */
 
                 nil
 			);
 
-			var srcName = HLayout(
+			srcName = HLayout(
 
                 Button()
                 .action_({|ctrl|
                     matrix.removeSrc(srcNode.key);
                 })
+                .states_( [ [nil, nil, Color.clear] ] )
                 .fixedSize_(20)
+                .focusColor_(Color.clear)
                 .icon_(Image.new(App.librarydir ++ "images/noun_Delete_1982479.png")),
 
+                Button()
+                .action_({|ctrl|
+                    srcNode.gui;
+                })
+                .states_( [ [nil, nil, Color.clear] ] )
+                .focusColor_(Color.clear)
+                .fixedSize_(20)
+                .toolTip_(srcNode.key)
+                .icon_(Image.new(App.librarydir ++ "images/noun-gear-4855976.png"))
+                ,
+
 				if (srcNode.isKindOf(NodeProxy)) {
-					playView.(srcNode)
+                    playView.(srcNode)
 				} {
 					if (srcNode.respondsTo(\node)) {
 						playView.(srcNode.node);//.background_(Color.red)
@@ -169,7 +169,7 @@ func: {arg matrix;
 				};
 			);
 
-			var cols = [srcName] ++ data.indices
+			cols = [srcName] ++ data.indices
 			.reject({|j|
 				data[j].isKindOf(NodeProxy).not
 			})
@@ -199,16 +199,16 @@ func: {arg matrix;
             //[cols];
 		});
 
-        var val = [header] ++ rows.flatten;
+        val = [header] ++ rows.flatten;
 
 		View().layout_(
             GridLayout.rows(*val).margins_(1).spacing_(2)
 		);
 	};
 
-	var gridview = grid.();
+	gridview = grid.();
 
-	var func = {
+	func = {
 		outergrid.children.do({arg child;
 			child.remove();
 		});
@@ -216,7 +216,7 @@ func: {arg matrix;
 		outergrid.layout.add(nil);
 	};
 
-	var listener = {arg node, event;
+	listener = {arg node, event;
 		if ((event == \add)) {
 			func.();
 		};
@@ -234,7 +234,7 @@ func: {arg matrix;
 		matrix.removeDependant(listener);
 	});
 
-	baseview = baseViewFunc.(view, matrix.key);
+    baseview = baseViewFunc.(view, 'matrix');
 	baseview.front;
 }
 )

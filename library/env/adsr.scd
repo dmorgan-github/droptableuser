@@ -17,6 +17,7 @@ synth: {|gate, doneAction=(Done.freeSelf)|
     if (~gatemode.debug("adsr gate mode") == \retrig) {
         var sus = \sustain.kr(0.1, spec:DMControlSpec(0, 1, \lin, 0, 0.1, units:"aeg", sort:2));
         env = Env([0, 0, 1, suslevel, suslevel, 0], [0, atk, dec, sus, rel], curve:curve);
+        //env = Env([0, 1, suslevel, suslevel, 0], [atk, dec, sus, rel], curve:curve);
     }{
         env = Env.adsr(
             attackTime:atk,

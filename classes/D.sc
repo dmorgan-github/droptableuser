@@ -45,7 +45,7 @@ DNodeProxy : NodeProxy {
     *new {|source|
 
         var res;
-        res = super.new.prDMNodeInit();
+        res = super.new.prDNodeInit();
         res.mold(2, \audio);
         res.wakeUp;
         res.vol = 1;
@@ -86,9 +86,9 @@ DNodeProxy : NodeProxy {
 
         res.filter(1010, {|in|
             Splay.ar(
-                in * \vol.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol")),
+                in * \vol.kr(1, spec:ControlSpec(0, 4, \lin, 0, 1, "vol")),
                 spread: \spread.kr(1),
-                center: \pan.kr(0)
+                center: \center.kr(0)
             );
         });
 
@@ -151,7 +151,7 @@ DNodeProxy : NodeProxy {
         //")\n)".postln;
     }
 
-    prDMNodeInit {
+    prDNodeInit {
 
         count = count+1;
         key = "d%".format(count).asSymbol;

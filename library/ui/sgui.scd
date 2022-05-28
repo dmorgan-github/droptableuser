@@ -8,7 +8,6 @@ func: {|node, index|
     var keys;
     var status = StaticText().font_(Font("Courier New", 9)).background_(Color.black.alpha_(0.3));
     var color = node.color ? Color.rand;
-    //var path = App.librarydir ++ "fx/";
     var fxnode = if (node.respondsTo(\node)) { node.node }{ node };
     var watcher, fxwatcher;
     var windowname = if (index.notNil) {
@@ -95,7 +94,6 @@ func: {|node, index|
                 \fadeTime,
                 \envbuf,
                 //\buf,
-                \pan,
                 \amp,
                 \spread,
                 \vol,
@@ -158,7 +156,7 @@ func: {|node, index|
         var view, groups;
         var mysliders;
         groups = getGroups.();
-        view = View().layout_(VLayout().margins_(2).spacing_(2));
+        view = View().layout_(VLayout().margins_(0).spacing_(0));
 
         if (node.get(\buf).notNil and: {index.isNil}) {
             var ui = Ui('buf').view(node);
@@ -180,7 +178,8 @@ func: {|node, index|
                 if (val.isNil) {
                     val = spec.default;
                 };
-                [key, LevelSlider(key, spec:spec, color:color).maxHeight_(20)
+                [key, LevelSlider(key, spec:spec, color:color)
+                    .maxHeight_(20)
                     .action_({|ctrl|
                         var val = node.get(key);
                         if (val != ctrl.value) {
@@ -203,7 +202,7 @@ func: {|node, index|
 
             var vol = (node.get(\vol) ?? {1}).linlin(0, 2, 0, 1);
             var spread = (node.get(\spread) ?? {1});
-            var pan = (node.get(\pan) ?? {0}).linlin(-1, 1, 0, 1);
+            var pan = (node.get(\center) ?? {0}).linlin(-1, 1, 0, 1);
 
             view.layout.add(
                 HLayout(
@@ -222,22 +221,22 @@ func: {|node, index|
                     VLayout(
                         Knob().action_({|ctrl|
                             node.set(\spread, ctrl.value);
-                            log.("width: %".format(ctrl.value));
+                            log.("spread: %".format(ctrl.value));
                         })
                         .maxSize_(Size(30,30))
                         .value_(spread),
-                        StaticText().string_("width").align_(\center)
+                        StaticText().string_("spread").align_(\center)
                     ),
                     nil,
                     VLayout(
                         Knob().action_({|ctrl|
                             var val = ctrl.value.linlin(0, 1, -1, 1);
-                            node.set(\pan, val);
-                            log.("pan: %".format(val));
+                            node.set(\center, val);
+                            log.("center: %".format(val));
                         })
                         .maxSize_(Size(30,30))
                         .value_(pan),
-                        StaticText().string_("pan").align_(\center)
+                        StaticText().string_("center").align_(\center)
                     ),
                     nil
                 )
@@ -309,15 +308,17 @@ func: {|node, index|
 
                     fxbuttonsview.layout.add(
                         HLayout(
-                            Button().states_([  ["↓"]  ]).action_({
+                            Button().states_([  ["↓", nil, Color.clear]  ]).action_({
                                 moveDown.(index);
                             })
                             .maxWidth_(50),
-                            Button().states_([  ["↑"]  ]).action_({
+                            Button().states_([  ["↑", nil, Color.clear]  ]).action_({
                                 moveUp.(index);
                             })
                             .maxWidth_(50),
-                            Button().states_( [ [obj.name] ] ).action_({|ctrl|
+
+
+                            Button().states_( [ [obj.name, nil, Color.clear] ] ).action_({|ctrl|
                                 if (obj.type == 'vst') {
                                     obj['ctrl'].editor
                                 }{
@@ -335,11 +336,15 @@ func: {|node, index|
                                         obj['ctrl'].gui
                                     }
                                 }
-                            }),
-                            Button().states_([  ["x"]  ]).action_({
+                            })
+                            //.focusColor_(Color.red)
+
+                            ,
+                            Button().states_([  [nil, nil, Color.clear]  ]).action_({
                                 node.fx(index, nil)
                             })
-                            .maxWidth_(50),
+                            .maxWidth_(50)
+                            .icon_(Image.new(App.librarydir ++ "images/noun_Delete_1982479.png")),
                         )
                         //.margins_(1)
                         //.spacing_(1)
@@ -370,24 +375,6 @@ func: {|node, index|
                     .action_({|ctrl|
                         fxnode.rec(5)
                     }),
-
-                    /*
-                    NumberBox()
-                    .action_({|ctrl|
-                        fxnode.fadeTime = ctrl.value;
-                    })
-                    .toolTip_("fade time")
-                    .value_(fxnode.fadeTime),
-                    */
-
-                    /*
-                    NumberBox()
-                    .action_({|ctrl|
-                        fxnode.monitor.out = ctrl.value;
-                    })
-                    .toolTip_("out bus")
-                    .value_(fxnode.monitor.out),
-                    */
 
                     presets.view(node),
 

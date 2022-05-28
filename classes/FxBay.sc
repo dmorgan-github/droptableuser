@@ -6,7 +6,7 @@ Send : DNodeProxy {
         if (this.vstctrls.notNil and: {this.vstctrls[fxslot].notNil}) {
             this.vstctrls[fxslot].editor
         }{
-            U(\sgui, this, fxslot).front
+            Ui(\sgui).gui(this, fxslot);
         }
     }
 
@@ -26,7 +26,11 @@ FxBay {
 
     var <outbus;
 
-    deviceInit {
+    *new {
+        ^super.new.init
+    }
+
+    init {
         map = Order.new;
         slot = 0;
         //outbus = Bus.audio(Server.default, 2);
@@ -37,7 +41,11 @@ FxBay {
     }
 
     view {
-        ^U(\matrix, this)
+        ^Ui(\matrix).view(this)
+    }
+
+    gui {
+        this.view.front;
     }
 
     addSrc {|srcNode|

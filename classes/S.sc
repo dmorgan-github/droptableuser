@@ -161,12 +161,17 @@ SVstSynth : SSynth {
         vstplugin.editor;
     }
 
-    on {|note, vel=127|
+    on {|note, vel=127, debug|
         vstplugin.midi.noteOn(0, note, vel)
     }
 
     off {|note|
         vstplugin.midi.noteOff(0, note)
+    }
+
+    savePreset {|name|
+        var path = App.librarydir +/+ "preset" +/+ name;
+        vstplugin.writeProgram(path);
     }
 
     prInitSynth {|argSynth|
@@ -178,7 +183,7 @@ SVstSynth : SSynth {
             plugin = args[0];
             if (args.size > 1){
                 vstpreset = args[1];
-                vstpreset = App.librarydir +/+ "vstpreset" +/+ vstpreset;
+                vstpreset = App.librarydir +/+ "preset" +/+ vstpreset;
             };
             synthdef = SynthDescLib.global[vstsynthdef].def;
 
@@ -318,11 +323,22 @@ SSynth : EventPatternProxy {
     }
 
     view {
-        ^Module('ui/sgui').envir_(topEnvironment).(this);
+        ^Ui('sgui').envir_(topEnvironment).view(this);
     }
 
     gui {
         this.view.front
+    }
+
+    savePreset {|name|
+        var v, f;
+        var e = this.envir.copy.parent_(nil);
+        e.removeAt('instrument');
+        v = e.getPairs;
+        f = App.librarydir ++ "preset/%".format(name);
+        f = File.open(f, "w");
+        f.write(v.asCode);
+        f.close();
     }
 
     kill {|ids|
@@ -348,12 +364,17 @@ SSynth : EventPatternProxy {
         ^keyval;
     }
 
-    on {|note, vel=127, debug=false|
+    on {|note, vel=127, extra, debug=false|
 
         var evt = this.envir ?? ();
         var args;
         var out = this.node.bus.index;
         var target = this.node.group;
+
+        if (extra.notNil) {
+            extra = extra.asDict;
+            evt = evt ++ extra;
+        };
 
         args = [\out, out, \gate, 1, \freq, note.midicps, \vel, (vel/127).squared]
         ++ evt
@@ -381,6 +402,33 @@ SSynth : EventPatternProxy {
             synths.removeAt(note).set(\gate, 0)
             //synth.set(\gate, 0);
         }
+    }
+
+    note {|noteChan, note, debug=false|
+
+        var noteonkey = "%_noteon".format(this.key).asSymbol;
+        var noteoffkey = "%_noteoff".format(this.key).asSymbol;
+
+        if (note.isNil) {
+            note = (0..110);
+        };
+
+        MIDIdef.noteOn(noteonkey.debug("noteonkey"), {|vel, note, chan|
+            this.on(note, vel, debug:debug);
+        }, noteNum:note, chan:noteChan)
+        .fix;
+
+        MIDIdef.noteOff(noteoffkey.debug("noteoffkey"), {|vel, note, chan|
+            this.off(note);
+        }, noteNum:note, chan:noteChan)
+        .fix;
+    }
+
+    disconnect {
+        "%_noteon".format(this.key).debug("disconnect");
+        MIDIdef.noteOn("%_noteon".format(this.key).asSymbol).permanent_(false).free;
+        "%_noteoff".format(this.key).debug("disconnect");
+        MIDIdef.noteOn("%_noteoff".format(this.key).asSymbol).permanent_(false).free;
     }
 
     print {

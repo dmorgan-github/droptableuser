@@ -2,13 +2,10 @@
 synth: {|freq, gate|
 
     var mod = {
-
-
         var ratio = \mratio.kr(1, spec:DMControlSpec(0.5, 20, \lin, 0, 1, units:"pm", sort:0));
         var fb = \mfb.kr(0, spec:DMControlSpec(0, 1.5, \lin, 0, 0, units:"pm", sort:1));
         var index = \mindex.kr(0, spec:DMControlSpec(0, 20, \lin, 0, 0, units:"pm", sort:2));
         var atk = \matk.kr(0.01, spec:DMControlSpec(0, 2, \lin, 0, 0.01, units:"pm", sort:3));
-        var peak = \mpeak.kr(1, spec:DMControlSpec(0, 1, \lin, 0, 1, units:"pm", sort:4));
         var dec = \mdec.kr(0.3, spec:DMControlSpec(0, 2, \lin, 0, 0.3, units:"pm", sort:5));
         var suslevel = \msuslevel.kr(1, spec:DMControlSpec(0, 1, \lin, 0, 0.7, units:"pm", sort:6));
         var rel = \mrel.kr(0.2, spec:DMControlSpec(0, 8, \lin, 0, 0.2, units:"pm", sort:7));
@@ -22,7 +19,6 @@ synth: {|freq, gate|
             dec,
             suslevel,
             rel,
-            peak,
             curve:[atkcurve, deccurve, relcurve]
         ).ar(gate:gate);
 

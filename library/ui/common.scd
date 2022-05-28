@@ -170,8 +170,8 @@ Fdef(\playview, {arg node;
 
         HLayout(
             Button().states_([
-                [],
-                []
+                [nil, nil, Color.clear],
+                [nil, nil, Color.clear]
             ]).action_({arg ctrl;
                 if (ctrl.value == 1) {
                     node.play(fadeTime:node.fadeTime);
@@ -181,6 +181,7 @@ Fdef(\playview, {arg node;
                     ctrl.icon = Image.new(App.librarydir ++ "images/noun_Volume_1940053.png");
                 }
             })
+            .focusColor_(Color.clear)
             .value_(node.isMonitoring.asInteger)
             .fixedSize_(Size(height, height))
             .icon_(Image.new(App.librarydir ++ "images/noun_no sound_1940059.png")),
@@ -195,11 +196,13 @@ Fdef(\playview, {arg node;
                 view.changed(\prop, (key:\vol, val:msg));
             })
             .value_(volspec.unmap(node.vol))
+            .thumbSize_(0.5)
             .fixedHeight_(height)
             .fixedWidth_(75)
             .toolTip_("vol")
             ,
 
+            /*
             NumberBox()
             .action_({arg ctrl;
                 var msg;
@@ -213,6 +216,7 @@ Fdef(\playview, {arg node;
             .value_(node.fadeTime)
             .toolTip_("fade time")
             ,
+            */
 
             /*
             NumberBox()

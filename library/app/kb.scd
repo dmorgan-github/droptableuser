@@ -9,11 +9,18 @@ func: {
 	var baseViewFunc = Fdef(\baseview);
     var keys = Order.new;
 
-    var octave = 3;
-    var root = 0;
     var scale = Scale.ritusen;
+    var map, rows, cols, buttons, hilight;
+    var keyboard, grid, func, scales;
+    var keyboardview, update;
 
-	var map = [
+    var octave = ~octave ?? 3;
+    var root = ~root ?? 0;
+
+    octave.debug("octave");
+    root.debug("root");
+
+	map = [
 		'z', 'x', 'c', 'v', 'b',
 		'a', 's', 'd', 'f', 'g',
 		'h', 'j', 'k', 'l', ';',
@@ -21,12 +28,12 @@ func: {
 		'y', 'u', 'i', 'o', 'p'
 	];
 
-	var rows = 5;
-	var cols = 5;
+	rows = 5;
+	cols = 5;
 
-	var buttons = rows * cols;
+	buttons = rows * cols;
 
-    var hilight = {
+    hilight = {
         if (scale.isKindOf(Scale)) {
             scale.degrees;
         }{
@@ -34,10 +41,9 @@ func: {
         }
     };
 
-    var keyboard, grid, func, scales;
-    var keyboardview = View();
+    keyboardview = View();
 
-    var update = {
+    update = {
 
         keyboard = buttons.collect({arg i;
             var label;

@@ -246,7 +246,7 @@ M : Module {
                 .func
             };
 
-            freq = freq.();
+            freq = freq.(gate);
             env = env.(gate, doneaction);
 
             sig = if (synthModule.notNil) {
@@ -278,7 +278,7 @@ M : Module {
 
             out = if (outModule.notNil) {
                 outModule.func
-            }{ Module('out/splay').func };
+            }{ Module('out/pan2').func };
 
             sig = sig.(freq, gate);
             sig = sig * env;

@@ -8,6 +8,7 @@ synth: {
     var rate = \rate.kr(1).lag(lag);
     var startPos = \startPos.kr(0).lag(0.01);///.poll(label:\startPos);
     var endPos = \endPos.kr(1).lag(0.01);
+    var rev = Select.kr(\rev.kr(0, spec:ControlSpec(0, 1, \lin, 1, 0, "xloopr")), [1, -1]);
 
     var cuePos = \cuePos.kr(0);
     var trig = \trig.tr(0);
@@ -27,7 +28,7 @@ synth: {
     if (func.isNil) {
         #sig, phase = LoopBufCF.ar(numChannels:1,
             bufnum:buf,
-            rate:rate,
+            rate:rate * rev,
             trigger:trig,
             startPos:startPos,
             endPos:endPos,
