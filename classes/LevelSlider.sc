@@ -1,3 +1,5 @@
+
+// SCViewHolder
 LevelSlider : View {
 
     var currentval;

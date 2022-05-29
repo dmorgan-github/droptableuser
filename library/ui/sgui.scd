@@ -42,7 +42,11 @@ func: {|node, index|
                     if (k2 == k) {
                         if (v2.value != v) {
                             //[v2.value, v].debug(\watcher);
-                            v2.value = v;
+                            if (v.isNumber) {
+                                {v2.value = v}.defer(0);
+                            } {
+                                "sgui not number".debug(v)
+                            }
                         }
                     }
                 })
@@ -211,9 +215,6 @@ func: {|node, index|
                 sliders = sliders ++ mysliders;
 
             }
-
-
-
         });
 
         if (index.isNil) {
@@ -336,11 +337,24 @@ func: {|node, index|
                             .maxWidth_(50),
 
 
+                            // TODO: this is a bit hacky and should be refactored
                             Button().states_( [ [obj.name, nil, Color.clear] ] ).action_({|ctrl|
                                 if (obj.type == 'vst') {
                                     obj['ctrl'].editor
                                 }{
-                                    Ui('sgui').gui(fxnode, index)
+                                    var ctrl = obj['ctrl'];
+                                    if (ctrl.view.notNil) {
+                                        var key = 'ui/' ++ ctrl.view;
+                                        if (Module.exists(key)) {
+                                            Ui(ctrl.view).gui(fxnode, index);
+                                        } {
+                                            "custom view does not exists: %".format(key).warn;
+                                            Ui('sgui').gui(fxnode, index)
+                                        }
+                                    }{
+                                        Ui('sgui').gui(fxnode, index)
+                                    }
+
                                 }
                             })
                             .mouseDownAction_({|ctrl, x, y, mod, num, count|

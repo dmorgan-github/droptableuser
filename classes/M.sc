@@ -1,12 +1,17 @@
 // module
 Module {
 
-    var <>envir, <>libfunc, <fullpath, <props;
+    var <>envir, <>libfunc, <fullpath, <props, <view;
 
     *new {|key|
         var res;
         res = super.new.prInit(key);
         ^res;
+    }
+
+    *exists {|key|
+        var path = App.librarydir ++ key.asString ++ ".scd";
+        ^File.exists(path.standardizePath);
     }
 
     value {|...args|
@@ -77,6 +82,7 @@ Module {
                     var obj = file.readAllString.interpret;
                     libfunc = obj[\synth] ?? {obj[\func]};
                     props = obj['props'];
+                    view = obj['view'];
                     file.close;
                 } {
                     Error("% node not found".format(key)).throw;

@@ -239,8 +239,9 @@ DNodeProxy : NodeProxy {
                         this.fxchain.put(index, (name:vst, type:'vst', 'ctrl':ctrl));
                     });
                 }{
+                    var func;
                     var obj = Module("fx/%".format(fx).asSymbol);
-                    var func = obj.put('num', num).func;
+                    func = obj.put('num', num).func;
                     this.filter(index, func);
                     this.fxchain.put(index, (name:fx, type:'func', 'ctrl':obj));
                 };
