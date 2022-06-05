@@ -40,7 +40,7 @@ The level of delayed sound mixed into the output.
 (
 synth: {arg in;
 
-    var sig = LADSPA.ar(1, 1402,
+    var sig = LADSPA.ar(2, 1402,
         RandSeed.kr(1000.rand),
         \inputgain.ar(0, spec: ControlSpec(-96, 24, \lin, 0, 0, units:"delayoram")).lag(0.001),
         \feedback.ar(30, spec: ControlSpec(0, 100, \lin, 0, 30, units:"delayoram")).lag(0.001),

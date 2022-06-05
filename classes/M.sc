@@ -149,14 +149,11 @@ M : Module {
         ^this;
     }
 
-    filter {|key, type, cb|
+    filter {|key, cb|
         if (key.isKindOf(Symbol)) {
             key = "filter/%".format(key).asSymbol;
         };
         filterModule = Module(key);
-        if (type.notNil) {
-            filterModule.put('type', type)
-        };
         if (filterModule.props.notNil) {
             envir.putAll(filterModule.props);
         };

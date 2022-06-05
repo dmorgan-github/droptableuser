@@ -2,7 +2,7 @@
 synth: {arg in;
 
     var input = in.asArray.sum;
-    var sig = LADSPA.ar(1, 1211,
+    var sig = LADSPA.ar(2, 1211,
 
         \tape_speed.ar(1, spec:ControlSpec(0,10,\lin,0,1, units:"tapedelay")).lag(0.05),
         0.ampdb, //-70

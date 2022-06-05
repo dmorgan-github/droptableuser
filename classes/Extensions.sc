@@ -110,12 +110,12 @@
     // or if it really matters
     // pattern is probably too general of a base class
     // for this
-    doesNotUnderstand {|selector ... args|
-        if (selector.isSetter) {
-            selector = selector.asGetter;
-        };
-        ^Pbindf(this, selector.asSymbol, args[0])
-    }
+    //doesNotUnderstand {|selector ... args|
+    //    if (selector.isSetter) {
+    //        selector = selector.asGetter;
+    //    };
+    //    ^Pbindf(this, selector.asSymbol, args[0])
+    //}
 
     pfilter {|...args| ^Pbindf(this, *args)}
 

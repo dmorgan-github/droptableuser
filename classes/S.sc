@@ -20,6 +20,19 @@ Color(0.74614992141724, 0.8588672876358, 0.77721869945526, 0.2)
 Color(0.67358100414276, 0.74493434429169, 0.40996670722961, 0.2)
 Color(0.66662492752075, 0.72109272480011, 0.70863604545593, 0.2)
 */
+
+/*
+sequencable/modulatable from midi/osc
+sequencable/modulatable from patterns
+composable with patterns
+modulatable from bus
+viewable/modulatable with gui
+savable
+playable with synthdef, vst, midi instruments
+filterable with sc fx
+filterable with vst fx
+*/
+
 S {
 
     *synth {|key, synth|
@@ -225,7 +238,7 @@ SSynth : EventPatternProxy {
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
-    var <synths, <synthdef;
+    var <synths, <synthdef, <pbindproxy;
     var keyval;
 
     *new {|synth|
@@ -246,48 +259,63 @@ SSynth : EventPatternProxy {
         }
     }
 
+    >> {|val|
+        //>> ['delay/fb' -> [\delayfb_mix: 1], 'reverb/miverb' ]
+        val.asArray.do({|v, i|
+            var slot = 100 + i;
+            if (v.isKindOf(Association)) {
+                this.fx(slot, v.key);
+                this.node.set(*v.value);
+            }{
+                this.fx(slot, v);
+            };
+        });
+    }
+
     set {|...args|
 
         var controlKeys = this.node.controlKeys;
-
         // TODO server.bind
         Server.default.makeBundle(Server.default.latency, {
+
+            // set node properties
             var dict = args.asDict;
-            var val = dict.select({|v, k| controlKeys.includes(k) });
+            var val = dict.select({|v, k|
+                controlKeys.includes(k) and: {v.isNumber.or(v.isArray)}
+            });
             node.set(*val.getPairs);
 
             // this will update the settings on already playing
             // synths, otherwise you have to wait until the next
             // event
             if (controlNames.notNil) {
-                val = dict.select({|v, k| controlNames.includes(k) });
+                val = dict.select({|v, k|
+                    controlNames.includes(k) and: {v.isNumber.or(v.isArray)}
+                });
                 node.group.set(*val.getPairs);
             }
         });
 
-        super.set(*args);
-    }
-
-    patternAt {|index, pattern|
-
-        var key = "%_%_set".format(this.key, index).asSymbol;
-
-        if (pattern.isNil) {
-            Pdef(key).stop;
-            Pdef(key).clear;
-        }{
-            Pdef(key,
-                pattern
-                <>
-                Pbind(
-                    \type, \set,
-                    \id, synths[index].nodeID
-                )
-            ).play
-        };
+        args.pairsDo({|k, v|
+            if (v.isKindOf(Pattern)) {
+                pbindproxy.set(k, v);
+            } {
+                // clear value to allow changing
+                // between pattern and number
+                // TODO: rethink this
+                if (pbindproxy.find(k).notNil) {
+                    pbindproxy.set(k, nil);
+                };
+                super.set(k, v);
+            }
+        });
     }
 
     synth_ {|synthname|
+        this.prInitSynth(synthname);
+    }
+
+    instr_ {|synthname|
         this.prInitSynth(synthname);
     }
 
@@ -307,6 +335,7 @@ SSynth : EventPatternProxy {
         this.node.free;
         this.node.clear;
         this.synths.clear;
+        this.pbindproxy.clear;
         super.clear;
     }
 
@@ -330,7 +359,7 @@ SSynth : EventPatternProxy {
         this.view.front
     }
 
-    savePreset {|name|
+    savePresetAs {|name|
         var v, f;
         var e = this.envir.copy.parent_(nil);
         e.removeAt('instrument');
@@ -457,19 +486,27 @@ SSynth : EventPatternProxy {
         };
 
         chain = Pchain(
+            /*
             Pbind(
                 \node_set, Pfunc({|evt|
                     // TODO server.bind
-                    Server.default.makeBundle(Server.default.latency, {
-                        var current = evt;
-                        var exceptArgs = current[\exceptArgs];
-                        var args = node.controlKeys(except: exceptArgs);
-                        current = current.select({|v, k| args.includes(k) });
-                        node.set(*current.getPairs)
-                    });
+                    var pairs;
+                    var current = evt;
+                    var exceptArgs = current[\exceptArgs];
+                    var args = node.controlKeys(except: exceptArgs);
+                    current = current.select({|v, k| args.includes(k) });
+                    pairs = current.getPairs;
+                    // not sure if this is the best way
+                    if (pairs.size > 0) {
+                        Server.default.makeBundle(Server.default.latency, {
+                            node.set(*pairs)
+                        });
+                    };
                     1
                 })
             ),
+            */
+            pbindproxy,
             pattern,
             Plazy({
                 Pbind(
@@ -479,7 +516,7 @@ SSynth : EventPatternProxy {
             })
         );
 
-        super.source = PfsetC({ { this.changed(\stop) } },
+        super.source = // PfsetC({ { this.changed(\stop) } },
             Plazy({
 
                 synth = synth ?? {\default};
@@ -490,7 +527,7 @@ SSynth : EventPatternProxy {
                     Pbind() <> chain
                 }
             })
-        );
+        //);
     }
 
     prInit {
@@ -511,7 +548,7 @@ SSynth : EventPatternProxy {
         node.addDependant(nodewatcherfunc);
 
         node.play;
-        //ptrnproxy = PbindProxy();
+        pbindproxy = PbindProxy();
         super.source = Pbind();
         this.quant = 4.0;
 

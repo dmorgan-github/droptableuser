@@ -37,7 +37,7 @@ func: {|node, props, ccNums, ccChan=0|
                 current = node.get(ctrl);
                 if (current.notNil) {
                     ccval = current.linlin(min, max, 0, 127);
-                    [\curent, current, \cc, ccval].debug(ctrl);
+                    //[\curent, current, \cc, ccval].debug(ctrl);
                     try {
                         MIDIOut(i).control(ccChan, num, ccval);
                     } {|err|

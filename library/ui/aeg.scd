@@ -45,6 +45,10 @@ func: {|node|
             envview.value = [times, levels];
             ctrl.toolTip = mapped;
             node.set('dec', mapped);
+        })
+        .toolTip_(times[2])
+        .mouseEnterAction_({|ctrl|
+            "dec: %".format( times[2] ).inform
         });
 
         xyknobs[2]
@@ -55,6 +59,10 @@ func: {|node|
             envview.value = [times, levels];
             ctrl.toolTip = val;
             node.set('suslevel', val);
+        })
+        .toolTip_(levels[2])
+        .mouseEnterAction_({|ctrl|
+            "suslevel: %".format( levels[2] ).inform
         });
 
         curveknobs[1]
@@ -66,6 +74,10 @@ func: {|node|
             envview.curves = curves;
             ctrl.toolTip = curves[1];
             node.set('deccurve', mapped);
+        })
+        .toolTip_(curves[1])
+        .mouseEnterAction_({|ctrl|
+            "deccurve: %".format(curves[1]).inform
         })
     };
 
@@ -85,6 +97,10 @@ func: {|node|
         envview.value = [times, levels];
         ctrl.toolTip = mapped;
         node.set('atk', mapped);
+    })
+    .toolTip_(times[1])
+    .mouseEnterAction_({|ctrl|
+        "atk: %".format(times[1]).inform
     });
 
     // rel
@@ -97,6 +113,10 @@ func: {|node|
         envview.value = [times, levels];
         ctrl.toolTip = mapped;
         node.set('rel', mapped);
+    })
+    .toolTip_(times[times.size-1])
+    .mouseEnterAction_({|ctrl|
+        "rel: %".format(times[times.size-1]).inform
     });
 
     curveknobs[0]
@@ -108,7 +128,12 @@ func: {|node|
         envview.curves = curves;
         ctrl.toolTip = mapped;
         node.set('atkcurve', mapped);
-    });
+    })
+    .toolTip_(curves[0])
+    .mouseEnterAction_({|ctrl|
+        "atkcurve: %".format(curves[0]).inform
+    })
+    ;
 
     curveknobs[curveknobs.size-1]
     .value_(relcurvespec.unmap(curves[curves.size-1]))
@@ -119,7 +144,12 @@ func: {|node|
         envview.curves = curves;
         ctrl.toolTip = mapped;
         node.set('relcurve', mapped);
-    });
+    })
+    .toolTip_(curves[curves.size-1])
+    .mouseEnterAction_({|ctrl|
+        "relcurve: %".format(curves[curves.size-1]).inform
+    })
+    ;
 
     envview.value = [ times, levels ];
     envview.curves = curves;
