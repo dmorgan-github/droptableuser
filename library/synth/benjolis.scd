@@ -87,7 +87,15 @@ synth: {
     output = LeakDC.ar(output);
     output!2;
 },
-
+doc: "
+outSignal:
+1-triangle osc1,
+2-square osc1,
+3-triangle osc2,
+4-pulse osc2,
+5-XOR output,
+6-Filter output
+",
 presets: (
     preset1: [
         'gain', 1.0,

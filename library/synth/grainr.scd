@@ -1,8 +1,4 @@
 (
-/*
-winenv = Env([0, 1, 0], [0.5, 0.5], [8, -8]);
-z = Buffer.sendCollection(s, winenv.discretize, 1);
-*/
 synth: {
     var updateFreq = 15;
     var replyid = \bufposreplyid.kr(-1);
@@ -73,5 +69,9 @@ synth: {
     sig = sig * \amp.kr(-6.dbamp) * numgrains.reciprocal;
     SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, phase.asArray.wrapAt(0) ], replyid);
     sig
-}
+},
+doc: "
+winenv = Env([0, 1, 0], [0.5, 0.5], [8, -8]);
+z = Buffer.sendCollection(s, winenv.discretize, 1);
+"
 )

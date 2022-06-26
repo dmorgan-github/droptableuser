@@ -15,5 +15,11 @@ func: {|len=16, key|
     node.fx(100, 'delay/bufdelay');
     node.set(\rec, 1, \fb, 1);
     node;
-}
+},
+doc: "
+~rec = Module('device/rec').()
+~rec[0] = ~harm.node
+~rec.set(\rec, 1, \fb, 1)
+~rec.get(\buf)
+"
 )

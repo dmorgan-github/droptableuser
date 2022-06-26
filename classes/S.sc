@@ -35,7 +35,7 @@ filterable with vst fx
 
 S {
 
-    *synth {|key, synth|
+    *create {|key, synth|
 
         var envir = currentEnvironment;
         var res = envir[key];
@@ -46,10 +46,10 @@ S {
                 var src = synth.asString;
                 res = case
                 {src.beginsWith("vst:")} {
-                    SVstSynth(src.asSymbol).key_(key)
+                    VstSSynth(src.asSymbol).key_(key)
                 }
                 {src.beginsWith("midi:")} {
-                    SMidiSynth(src.asSymbol).key_(key)
+                    MidiSSynth(src.asSymbol).key_(key)
                 }
                 {
                     SSynth(src.asSymbol).key_(key)
@@ -81,7 +81,7 @@ S {
 }
 
 // TODO: this hasn't been tested
-SMidiSynth : SSynth {
+MidiSSynth : SSynth {
 
     var <notechan=0, <returnbus=0, <midiout;
 
@@ -98,12 +98,14 @@ SMidiSynth : SSynth {
         };
 
         src = Pchain(
+            /*
             Pbind(
                 \type, \midi,
                 \midicmd, \noteOn,
                 \midiout, Pfunc({midiout}),
                 \chan, Pfunc({notechan})
             ),
+            */
             pattern
         );
 
@@ -112,13 +114,13 @@ SMidiSynth : SSynth {
 
     prInitSynth {|argSynth|
 
-        var args = argSynth.asString.split($:);
+        var args;// = argSynth.asString.split($:);
 
         // TODO: refactor
         midiout = MIDIOut.newByName("IAC Driver", "Bus 1");
         midiout.connect;
 
-        args = args[1].split($,);
+        args = argSynth.asString.split($,);
         notechan = args[0].asInteger;
         returnbus = args[1].asInteger;
         this.node.put(0, {
@@ -126,13 +128,16 @@ SMidiSynth : SSynth {
             var r = returnbus+1;
             SoundIn.ar([l, r])
         });
+
         this.out = DNodeProxy.defaultout + returnbus;
+
+        this.set('types', ['midi'], 'midicmd', 'noteOn', 'midiout', midiout, 'chan', notechan, \amp, -6.dbamp)
     }
 }
 
-SVstSynth : SSynth {
+VstSSynth : SSynth {
 
-    var <vstsynthdef=\vsti;
+    var <>vstsynthdef=\vsti;
     var <vstsynth, <vstplugin, <vstpreset;
 
     *new {|synth|
@@ -148,22 +153,6 @@ SVstSynth : SSynth {
         };
 
         src = Pchain(
-            Pbind(
-                \vst_set, Pfunc({|evt|
-                    // TODO server.bind
-                    Server.default.makeBundle(Server.default.latency, {
-                        var current = evt;
-                        //var vstcontrols = SynthDescLib.global[vstsynthdef].controlNames;
-                        var args = current['vstparams'] ?? [];//vstcontrols.reject({|n| n == \out});
-                        current = current.select({|v, k| args.includes(k) and: {v > 0} });
-                        //current.postln;
-                        if (current.size > 0) {
-                            vstplugin.set(*current.getPairs)
-                        }
-                    });
-                    1
-                })
-            ),
             pattern
         );
 
@@ -182,17 +171,29 @@ SVstSynth : SSynth {
         vstplugin.midi.noteOff(0, note)
     }
 
-    savePreset {|name|
+    savePresetAs {|name|
         var path = App.librarydir +/+ "preset" +/+ name;
         vstplugin.writeProgram(path);
+    }
+
+    writeProgram {|path|
+        var dir = Document.current.dir;
+        path = dir +/+ path;
+        vstplugin.writeProgram(path)
+    }
+
+    readProgram {|path|
+        var dir = Document.current.dir;
+        path = dir +/+ path;
+        vstplugin.readProgram(path)
     }
 
     prInitSynth {|argSynth|
 
         {
             var plugin;
-            var args = argSynth.asString.split($:);
-            args = args[1].split($/);
+            var args;// = argSynth.asString.split($:);
+            args = argSynth.asString.split($/);
             plugin = args[0];
             if (args.size > 1){
                 vstpreset = args[1];
@@ -212,7 +213,8 @@ SVstSynth : SSynth {
                     ctrl.readProgram(vstpreset)
                 }
             });
-            this.set('type', 'vst_midi', 'vst', vstplugin, \spread, 1, \pan, 0, \amp, -6.dbamp);
+
+            this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin, \spread, 1, \pan, 0, \amp, -6.dbamp)
 
         }.fork;
     }
@@ -315,10 +317,6 @@ SSynth : EventPatternProxy {
         this.prInitSynth(synthname);
     }
 
-    instr_ {|synthname|
-        this.prInitSynth(synthname);
-    }
-
     fx {|index, fx, wet=1|
         if (index.isArray) {
             index.do({|fx, i|
@@ -340,8 +338,23 @@ SSynth : EventPatternProxy {
     }
 
     fxchain {
-        ^this.node.fxchain
+        ^this.node.fxchain.array
     }
+
+    /*
+    filters {|index|
+        this.fxchain.array[index].ui;
+        /*
+        var fx = this.fxchain.array[index];
+        if (fx['type'] == \vst) {
+            fx['ctrl'].editor
+        }{
+            var num = this.fxchain.indices[index];
+            Ui('sgui').gui(this.node, num)
+        };
+        */
+    }
+    */
 
     controlKeys {|except|
         var keys = envir.keys(Array).sort;
@@ -357,6 +370,14 @@ SSynth : EventPatternProxy {
 
     gui {
         this.view.front
+    }
+
+    scope {
+        Ui('scope').(this.node).front
+    }
+
+    freqscope {
+        Ui('freqscope').(this.node).front
     }
 
     savePresetAs {|name|
@@ -462,7 +483,7 @@ SSynth : EventPatternProxy {
 
     print {
         //this.envir.copy.parent_(nil).getPairs.asCode.postln;
-        "(\nS('%').set(".format(this.key).postln;
+        "[".format(this.key).postln;
         this.envir.copy.parent_(nil)
         .getPairs
         .pairsDo({|k, v|
@@ -472,7 +493,7 @@ SSynth : EventPatternProxy {
             v.asCode.post;
             ",".postln;
         });
-        ")\n)".postln;
+        "]".postln;
 
         this.node.print;
     }
@@ -516,25 +537,39 @@ SSynth : EventPatternProxy {
             })
         );
 
-        super.source = // PfsetC({ { this.changed(\stop) } },
-            Plazy({
+        super.source = Plazy({
 
-                synth = synth ?? {\default};
+            synth = synth ?? {\default};
 
-                if (isMono) {
-                    Pmono(synth, \trig, 1) <> chain
-                }{
-                    Pbind() <> chain
-                }
-            })
-        //);
+            if (isMono) {
+                // not sure how to make composite event work with pmono
+                Pmono(synth, \trig, 1) <> chain
+            }{
+                // composite event with set allows us to sequence
+                // parameters on the fx chain
+                Pbind(
+                    \type, \composite,
+                    \types, Pfunc({|evt|
+                        var types = evt[\types];
+                        if (types.isNil) {
+                            types = ['note']
+                        };
+
+                        types ++ ['set'];
+                    }),
+                    \id, Pfunc({node.nodeID})
+                ) <> chain
+            }
+        })
+
     }
 
     prInit {
 
         count = count + 1;
-        keyval = "s%".asSymbol(count);
+        keyval = "s%".format(count).asSymbol;
         clock = W.clock;
+        quant = 4.0;
         color = Color.rand;
         synths = Order.new;
         nodewatcherfunc = {|obj, what|

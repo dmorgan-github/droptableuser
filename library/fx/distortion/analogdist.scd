@@ -17,7 +17,8 @@ synth: {|in|
         dist_oversample
     );
 
-    sig = in.blend(sig, \analogdist_mix.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, "analogdist")));
+    sig = LeakDC.ar(sig);
+    sig = in.blend(sig * 0.1, \analogdist_mix.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "analogdist")));
     sig;
 },
 

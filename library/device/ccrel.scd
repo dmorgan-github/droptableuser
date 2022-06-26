@@ -1,23 +1,42 @@
 (
 func: {|node, props, ccNums, ccChan=0|
 
+    var incr = (~incr ?? 0.0005).debug("ccrel incr");
+
     var key = node.key;
-    var cckey = "%_cc_%".format(key, ccChan).asSymbol.debug("mididef");
+    var cckey = "%_ccrel_%".format(key, ccChan).asSymbol.debug("ccrel");
 
     if (props.isNil) {
         cckey.debug("disconnect");
         MIDIdef.cc(cckey).permanent_(false).free;
     }{
         var order = Order.newFromIndices(props.asArray, ccNums.asArray);
+        var vals = Order.newFromIndices(
+            props.asArray.collect({|prop|
+                var spec = node.getSpec(prop);
+                spec.unmap(node.get(prop))
+            }),
+            ccNums.asArray
+        );
+
         MIDIdef.cc(cckey, {|val, num, chan|
-            var mapped, ctrl, spec, filter;
+            var mapped, ctrl, spec, current;
             ctrl = order[num];
+            current = vals[num];
             spec = node.getSpec(ctrl);
             if (spec.isNil) {
                 spec = [0, 1].asSpec;
             };
-            mapped = spec.map(val/127);
+
+            val = val - 64;
+            val = (current + (val * incr)).clip(0, 1);
+            mapped = spec.map(val);
             node.set(ctrl, mapped);
+            vals[num] = val;
+
+            val = val.linlin(0, 1, 0, 127);
+            MIDIOut(1).control(0, num, val)
+
         }, ccNum:ccNums, chan:ccChan)
         .fix;
 
@@ -51,6 +70,6 @@ func: {|node, props, ccNums, ccChan=0|
 doc: "
 MIDIClient.init
 MIDIIn.connectAll
-Module('device/cc').(~harm, 16.collect({|i| \"harm%\".format(i+1).asSymbol }), (0..15))
+Module('device/ccrel').put('incr', 0.0005).(~harm, 16.collect({|i| \"harm%\".format(i+1).asSymbol }), (16..31))
 "
 )

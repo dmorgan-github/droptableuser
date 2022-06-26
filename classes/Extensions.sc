@@ -106,17 +106,6 @@
     step {arg dur, repeats=inf; ^Pstep(this, dur, repeats)}
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
 
-    // not sure how best to use pfilter vs pchain
-    // or if it really matters
-    // pattern is probably too general of a base class
-    // for this
-    //doesNotUnderstand {|selector ... args|
-    //    if (selector.isSetter) {
-    //        selector = selector.asGetter;
-    //    };
-    //    ^Pbindf(this, selector.asSymbol, args[0])
-    //}
-
     pfilter {|...args| ^Pbindf(this, *args)}
 
     pchain {|...args|
@@ -181,11 +170,12 @@
             var iteration = 0;
             while({next.notNil},{
                 var vals = func.(next, iteration);
-                var dur = next[\dur] ?? 1;
+                var dur = next.use({ ~dur.value });
+                var stretch = next.use({~stretch.value});
                 vals.asArray.do({|val|
                     sp.par(val);
                 });
-                sp.wait(dur);
+                sp.wait(dur*stretch);
                 next = pattern.next(Event.default);
                 iteration = iteration + 1;
             })
@@ -193,6 +183,20 @@
     }
 
     seed {|val| ^Pseed(val, this)}
+}
+
++ Pbind {
+
+    // not sure how best to use pfilter vs pchain
+    // or if it really matters
+    // pattern is probably too general of a base class
+    // for this
+    doesNotUnderstand {|selector ... args|
+        if (selector.isSetter) {
+            selector = selector.asGetter;
+        };
+        ^Pbindf(this, selector.asSymbol, args[0])
+    }
 }
 
 + Array {

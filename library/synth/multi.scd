@@ -35,7 +35,7 @@ presets: (
         'res', 0.41758241758242
     ]
 ),
-notes: "
+doc: "
 SinOscFB
 Pulse
 Saw

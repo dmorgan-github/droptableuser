@@ -29,8 +29,7 @@ synth: {|freq, gate, aeg|
     sig = even.blend(odd, evenodd).asArray.sum;
     sig
 },
-notes: "
-
+doc: "
 0: MODAL_RESONATOR
 1: SYMPATHETIC_STRING
 2: MODULATED/INHARMONIC_STRING

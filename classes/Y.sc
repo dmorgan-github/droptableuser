@@ -799,6 +799,9 @@ Y {
         ^output.clip(0, 1);
     }
 
+    /*
+    Y.vowelmap("hello world")
+    */
     *vowelmap {|str|
         ^str
         .stripWhiteSpace
@@ -817,6 +820,9 @@ Y {
         })
     }
 
+    /*
+    Y.binary(118)
+    */
     *binary {|int, numDigits=8|
         ^int.asBinaryDigits(numDigits)
     }

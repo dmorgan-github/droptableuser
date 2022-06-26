@@ -220,8 +220,12 @@ DNodeProxy : NodeProxy {
         }{
             var specs;
             if (fx.isFunction) {
+                var obj = (name:"func_%".format(UniqueID.next), type:'func');
+                obj['ui'] = {|self|
+                    Ui('sgui').gui(this, index);
+                };
                 this.filter(index, fx);
-                this.fxchain.put(index, (name:"func_%".format(UniqueID.next), type:'func'));
+                this.fxchain.put(index, obj);
             }{
                 var num = {
                     var num;
@@ -235,15 +239,31 @@ DNodeProxy : NodeProxy {
                 if (fx.asString.beginsWith("vst:")) {
                     var vst = fx.asString.split($:)[1..].join("/").asSymbol;
                     this.vst(index, vst, cb:{|ctrl|
+
+                        var obj = (name:vst, type:'vst', 'ctrl':ctrl);
+                        obj['ui'] = {|self|
+                            ctrl.editor;
+                        };
+                        obj['writeProgram'] = {|self, path|
+                            ctrl.writeProgram(Document.current.dir +/+ path);
+                        };
+                        obj['readProgram'] = {|self, path|
+                            ctrl.readProgram(Document.current.dir +/+ path);
+                        };
+
                         vstctrls.put(index, ctrl);
-                        this.fxchain.put(index, (name:vst, type:'vst', 'ctrl':ctrl));
+                        this.fxchain.put(index, obj);
                     });
                 }{
                     var func;
-                    var obj = Module("fx/%".format(fx).asSymbol);
-                    func = obj.put('num', num).func;
+                    var mod = Module("fx/%".format(fx).asSymbol);
+                    var obj = (name:fx, type:'func', 'ctrl':mod);
+                    obj['ui'] = {|self|
+                        Ui('sgui').gui(this, index);
+                    };
+                    func = mod.put('num', num).func;
                     this.filter(index, func);
-                    this.fxchain.put(index, (name:fx, type:'func', 'ctrl':obj));
+                    this.fxchain.put(index, obj);
                 };
             };
 

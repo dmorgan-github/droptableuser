@@ -12,7 +12,7 @@ func: {|bufnum, num=4|
 
         loopers = num.collect({|i|
             var key = "loopr_%".format(i).asSymbol;
-            var synth = S.synth(key, 'xloopr');
+            var synth = S.create(key, 'xloopr');
             var buf = bufnum.asArray.wrapAt(i);
             synth.set(\buf, buf);
             synth;
@@ -29,5 +29,9 @@ func: {|bufnum, num=4|
     }).play;
 
     fx;
-}
+},
+doc: "
+~loopbay = Module('device/loopbay').(~rec.get(\buf))
+~loopbay.gui
+"
 )

@@ -14,15 +14,24 @@ synth: {|freq, gate|
         var deccurve = \mdeccurve.kr(-4, spec:DMControlSpec(-8, 8, \lin, 0, -4, units:"pm", sort:9));
         var relcurve = \mrelcurve.kr(-4, spec:DMControlSpec(-8, 8, \lin, 0, -4, units:"pm", sort:10));
 
-        var meg = Env.adsr(
-            atk,
-            dec,
-            suslevel,
-            rel,
-            curve:[atkcurve, deccurve, relcurve]
-        ).ar(gate:gate);
+        var meg, sig;
+        var curve = [atkcurve, deccurve, relcurve];
+        if (~gatemode.debug("pm gate mode") == \retrig) {
+            var sus = \msustain.kr(0.1, spec:DMControlSpec(0, 1, \lin, 0, 0.1, units:"pm", sort:12));
+            meg = Env([0, 0, 1, suslevel, suslevel, 0], [0, atk, dec, sus, rel], curve:curve);
+            //env = Env([0, 1, suslevel, suslevel, 0], [atk, dec, sus, rel], curve:curve);
+        }{
+            meg = Env.adsr(
+                attackTime:atk,
+                decayTime:dec,
+                sustainLevel:suslevel,
+                releaseTime:rel,
+                curve:curve
+            );
+        };
 
-        var sig = SinOscFB.ar(freq * ratio, fb);
+        meg = meg.ar(gate:gate + Impulse.kr(0));
+        sig = SinOscFB.ar(freq * ratio, fb);
         sig = sig * meg * index;
         sig;
     };

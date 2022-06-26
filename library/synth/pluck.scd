@@ -2,9 +2,9 @@
 synth: {|freq, gate, aeg|
 
     var sig, trig, decay, coef, bright, exciter;
-    trig = Impulse.ar(0);
-    decay = \pluckdecay.kr(0.9, spec: ControlSpec(-8, 8, \lin, 0, 0.9, units:"pluck"));
-    coef = \coef.kr(0.5, spec: ControlSpec(-0.1, 1.0, \lin, 0, 0.5, units:"pluck"));
+    trig = gate;//Impulse.ar(0);
+    decay = \pluckdecay.kr(0.505, spec: ControlSpec(0, 1, \lin, 0, 0.505, units:"pluck")).linlin(0, 1, -8, 8);
+    coef = \coef.kr(0.6, spec: ControlSpec(0, 1.0, \lin, 0, 0.6, units:"pluck")).linlin(0, 1, -0.1, 1.0);
     bright = \bright.kr(0.9, spec:ControlSpec(0, 1, \lin, 0, 0.9, "pluck"));
     //exciter = ~exciter ?? { Hasher.ar(Sweep.ar(trig)) };
     exciter = ~exciter ?? { WhiteNoise.ar * 0.5 };

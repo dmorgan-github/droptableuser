@@ -19,5 +19,11 @@ synth: {|freq|
     syncfreq = Select.ar(sync > 0.5, [freq, syncfreq]);
     sig = VarShapeOsc.ar(freq, pw, waveshape, sync, syncfreq);
     sig;
-};
+},
+doc: "
+pw: Pulse width when shape is square. Saw, ramp, tri otherwise. 0.0 to 1.0
+waveshape: Blend between waveshapes. 0.0 is saw/ramp/tri and 1.0 is square
+sync: Whether or not to sync oscillator. 1.0 turns sync on. 0.0 is off
+syncfreq: Sync oscillator frequency in herz
+"
 )

@@ -1,7 +1,7 @@
 // module
 Module {
 
-    var <>envir, <>libfunc, <fullpath, <props, <view;
+    var <>envir, <>libfunc, <fullpath, <props, <view, <doc;
 
     *new {|key|
         var res;
@@ -83,6 +83,7 @@ Module {
                     libfunc = obj[\synth] ?? {obj[\func]};
                     props = obj['props'];
                     view = obj['view'];
+                    doc = obj['doc'];
                     file.close;
                 } {
                     Error("% node not found".format(key)).throw;
@@ -113,6 +114,8 @@ Ui : Module {
 
 }
 
+// ~sd.synthdef.dump
+// ~sd.synthdef.dumpUGens
 M : Module {
 
     var <synthModule, <filterModule, <outModule, <pitchModule, <envModule;

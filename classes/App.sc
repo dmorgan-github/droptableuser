@@ -11,12 +11,6 @@ App {
         touchoscport = 9000;
     }
 
-    *scynapse {
-        var envir = Ndef.dictFor(Server.default).envir;
-        File.open("/Users/david/projects/scynapse/_main.scd", "r").readAllString.interpret;
-        Fdef(\scynapse).(envir, "/Users/david/projects/scynapse/");
-    }
-
     *idgen {
         var str = {"aaabcdeeefghiiijklmnooopqrstuuuvwxyz".choose}.dup(rrand(3,5)).join;
         "echo % | pbcopy".format(str).systemCmd;
@@ -27,6 +21,15 @@ App {
         var filepath = Platform.recordingsDir;
         filepath = filepath ++ "%.wav".format(commit);
         Server.default.record(filepath, bus:D.defaultout, numChannels:2 );
+    }
+
+    *rec {|numchans=2|
+        if ( Document.hasEditedDocuments ) {
+            "save open documents".error
+        }{
+            thisProcess.platform.recordingsDir = Document.current.dir;
+            Server.default.record(numChannels:numchans);
+        };
     }
 
     *saveWorkspace {arg name = "", folder = "~/Documents/supercollider/workspaces".standardizePath, rec = true, envir;

@@ -40,7 +40,19 @@ synth: {|freq, gate|
         [freq.asArray[0] * ratio, 0, env * index];
     });
 
+    /*
+    var mods = [
+        [ 0, 1, 0, 0, 0, 0 ],
+        [ 0, fb, 0, 0, 0, 0 ],
+        [ 0, 0, 0, 1, 1, 1 ],
+        [ 0, 0, 0, 0, 0, 0 ],
+        [ 0, 0, 0, 0, 0, 0 ],
+        [ 0, 0, 0, 0, 0, 0 ]
+    ];
+    */
     var sig = FM7.arAlgo(algo.debug("fm7 algo"), ops, fb).asArray.sum;
+    //var sig = FM7.ar(ops, mods).slice([ 0, 2 ]).asArray.sum;
+
     sig;
 },
 presets: [
