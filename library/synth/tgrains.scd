@@ -5,7 +5,7 @@ synth: {|freq|
 
     var replyid = \bufposreplyid.kr(-1);
 
-    var buf = \buf.kr;
+    var buf = \buf.kr(spec:ControlSpec(units:"buf"));
 
     var root = \rootfreq.kr(60.0.midicps,
         spec:ControlSpec(20, 20000, \exp, 0, 60.0.midicps, units:"tgrains")
@@ -39,8 +39,8 @@ synth: {|freq|
 
     var phase = {
         //var pos = \center.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, "grain"));
-        var start = \startPos.kr(0, spec: ControlSpec(0, 1-0.9999, \lin, 0, 0, units:"tgrains"));
-        var end = \endPos.kr(1, spec: ControlSpec(0, 1, \lin, 0, 1, units:"tgrains"));
+        var start = \startPos.kr(0, spec: ControlSpec(0, 1-0.9999, \lin, 0, 0, units:"buf"));
+        var end = \endPos.kr(1, spec: ControlSpec(0, 1, \lin, 0, 1, units:"buf"));
         var startPos = bufdur * start;
         var endPos = bufdur * end;
         var dur = endPos - startPos;

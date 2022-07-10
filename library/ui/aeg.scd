@@ -10,6 +10,8 @@ func: {|node|
     .keepHorizontalOrder_(true)
     .editable_(false)
     .strokeColor_(node.color)
+    .gridColor_(Color.clear)
+    .thumbSize_(20)
     .step_(0.0001);
 
     curves = [0, 0];

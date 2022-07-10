@@ -24,12 +24,12 @@ App {
     }
 
     *rec {|numchans=2|
-        if ( Document.hasEditedDocuments ) {
-            "save open documents".error
-        }{
-            thisProcess.platform.recordingsDir = Document.current.dir;
+        //if ( \Document.asClass.notNil and: { Document.hasEditedDocuments } ) {
+        //    "save open documents".error
+        //}{
+            thisProcess.platform.recordingsDir = thisProcess.nowExecutingPath.dirname;//Document.current.dir;
             Server.default.record(numChannels:numchans);
-        };
+        //};
     }
 
     *saveWorkspace {arg name = "", folder = "~/Documents/supercollider/workspaces".standardizePath, rec = true, envir;

@@ -41,15 +41,28 @@ func: {arg node;
     var end = Slider();
     var view = View().layout_(VLayout().margins_(0).spacing_(0));//.minSize_(Size(300, 150));
     var sfv = SoundFileView()
-    .gridResolution_(0.0)
+
+
+    .gridOn_(false)
     .drawsRMS_(false)
+    .drawsCenterLine_(true)
+    .drawsBoundingLines_(false)
+    .gridColor_(Color.black)
+    .background_(Color.black)
+    .waveColors_([Color.white, Color.red])
+    //.timeCursorColor_(Color.red)
+
+
+    .gridResolution_(0.0)
+    //.drawsRMS_(false)
     .toolTip_(bufname)
     .timeCursorOn_(true)
     //.timeCursorPosition_(220500)
-    .waveColors_(wavecolors)
-    .background_(backgroundcolor.alpha_(0.3))
-    .gridColor_(gridcolor)
-    .timeCursorColor_(cursorcolor);
+    //.waveColors_(wavecolors)
+    //.background_(backgroundcolor.alpha_(0.3))
+    //.gridColor_(gridcolor)
+    .timeCursorColor_(cursorcolor)
+    ;
 
     watcher = {|obj, what, vals|
         if (what == \set) {
@@ -70,7 +83,7 @@ func: {arg node;
         };
     };
 
-    sfv.setSelectionColor(0, selectioncolor);
+    //sfv.setSelectionColor(0, selectioncolor);
     sfv.setSelectionStart(0, selstart);
     sfv.setSelectionSize(0, selend - selstart);
     buf.loadToFloatArray(action:{|a|

@@ -69,16 +69,16 @@ doc: "
 ~seq.play
 ~seq.stop
 
-~seq.set(\steps, [1, 2, 3, 1].mirror1)
-~seq.set(\durs, [1, 2, 4, 1].scramble.mirror1)
-~seq.set(\subs, [1, 2, 3, 4].mirror1)
-~seq.set(\tatum, 0.5)
+~seq.set('steps', [1, 2, 3, 1].mirror1)
+~seq.set('durs', [1, 2, 4, 1].scramble.mirror1)
+~seq.set('subs', [1, 2, 3, 4].mirror1)
+~seq.set('tatum', 0.5)
 (
   // don't forget asStream
   ~seq.set(
-    \a, [~bass.asStream],
-    \b, [~fd.asStream],
-    \c, []
+    'a', [~bass.asStream],
+    'b', [~fd.asStream],
+    'c', []
   )
 )
 "

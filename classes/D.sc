@@ -79,17 +79,18 @@ DNodeProxy : NodeProxy {
 
         // initialize or re-initialize
         res.filter(1000, {|in|
-            var sig = in;
-            sig = Sanitize.ar(sig);
-            SafetyLimiter.ar(LeakDC.ar(sig));
-        });
-
-        res.filter(1010, {|in|
             Splay.ar(
                 in * \vol.kr(1, spec:ControlSpec(0, 4, \lin, 0, 1, "vol")),
                 spread: \spread.kr(1),
-                center: \center.kr(0)
+                center: \center.kr(0),
+                levelComp: false
             );
+        });
+
+        res.filter(1010, {|in|
+            var sig = in;
+            sig = Sanitize.ar(sig);
+            SafetyLimiter.ar(LeakDC.ar(sig));
         });
 
         ^res;

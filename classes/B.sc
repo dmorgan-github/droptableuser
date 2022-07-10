@@ -147,30 +147,54 @@ c.plot
         "wavetables loaded".debug(key);
     }
 
-    *loadFiles {|key, paths, normalize=true|
+    *loadFiles {|key, paths, seed, normalize=true|
 
         var condition = Condition(false);
 
-        var read = {|path|
+        var read = {|path, num|
             var buffer;
             //var file = SoundFile.openRead(path);
             var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });
-            buffer = Buffer.readChannel(Server.default, path, channels: channels, action:{|buf|
-                condition.unhang;
+
+            // this is not very efficient but will allow
+            // adding to an existing collection of bufs
+            // without reloading what has already been loaded
+            all[key.asSymbol].do({|buf|
+                if (buf.path.asString == path.asString) {
+                    buffer = buf;
+                }
+
             });
+
+            if (buffer.isNil) {
+                buffer = Buffer.readChannel(Server.default, path, channels: channels, action:{|buf|
+                    path.debug("loaded");
+                    condition.unhang;
+                }, bufnum:num);
+            } {
+                { condition.unhang }.defer
+            };
+
             buffer;
         };
 
         key = key.asSymbol;
         {
-            all[key] = Order();
+            if (all[key].isNil) {
+                all[key] = Order();
+            };
             paths.do({|path|
-                var buf = read.(path);
+                var buf = read.(path, seed);
                 condition.hang;
                 if (normalize) {
                     all[key].put(buf.bufnum, buf.normalize);
                 }{
                     all[key].put(buf.bufnum, buf);
+                };
+                // TODO: need validation on deterministic numbering
+                // may get into trouble with s.nextBufferNumber(1)
+                if (seed.notNil) {
+                    seed = seed + 1;
                 };
             });
             all[key].addSpec(\bufnums, [all[key].indices.minItem, all[key].indices.maxItem, \lin, 1, all[key].indices.minItem].asSpec);

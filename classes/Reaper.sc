@@ -41,6 +41,10 @@ Reaper {
         server.sendMsg("f/time", time);
     }
 
+    *trackvolume{|num, vol|
+        Reaper.server.sendMsg("s/track/%/volume".format(num), vol)
+    }
+
     *trackname {arg num, name;
         var path = "s/track/%/name".format(num);
         server.sendMsg(path, name);

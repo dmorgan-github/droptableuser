@@ -558,7 +558,8 @@ SSynth : EventPatternProxy {
                         types ++ ['set'];
                     }),
                     \id, Pfunc({node.nodeID})
-                ) <> chain
+                )
+                <> chain
             }
         })
 
