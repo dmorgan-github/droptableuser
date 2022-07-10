@@ -290,7 +290,7 @@ M : Module {
             sig = sig * env;
             sig = LeakDC.ar(sig);
             sig = filt.(sig, gate, freq, env);
-            sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-6.dbamp);
+            sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-20.dbamp);
             sig = sig * (1+vel);
             sig = sig * \gain.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol"));
 

@@ -131,7 +131,7 @@ MidiSSynth : SSynth {
 
         this.out = DNodeProxy.defaultout + returnbus;
 
-        this.set('types', ['midi'], 'midicmd', 'noteOn', 'midiout', midiout, 'chan', notechan, \amp, -6.dbamp)
+        this.set('types', ['midi'], 'midicmd', 'noteOn', 'midiout', midiout, 'chan', notechan)
     }
 }
 
@@ -214,7 +214,7 @@ VstSSynth : SSynth {
                 }
             });
 
-            this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin, \spread, 1, \pan, 0, \amp, -6.dbamp)
+            this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin, \spread, 1, \pan, 0)
 
         }.fork;
     }
@@ -548,6 +548,7 @@ SSynth : EventPatternProxy {
                 // composite event with set allows us to sequence
                 // parameters on the fx chain
                 Pbind(
+                    /*
                     \type, \composite,
                     \types, Pfunc({|evt|
                         var types = evt[\types];
@@ -558,6 +559,7 @@ SSynth : EventPatternProxy {
                         types ++ ['set'];
                     }),
                     \id, Pfunc({node.nodeID})
+                    */
                 )
                 <> chain
             }
@@ -648,7 +650,7 @@ SSynth : EventPatternProxy {
         };
 
         controlNames = SynthDescLib.global.at(synth).controlNames;
-        this.set(\instrument, synth.debug("synth"), \spread, 1, \pan, 0, \amp, -6.dbamp);
+        this.set(\instrument, synth.debug("synth"), \spread, 1, \pan, 0);
     }
 
     *initClass {
