@@ -215,6 +215,7 @@ VstSSynth : SSynth {
             });
 
             this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin, \spread, 1, \pan, 0)
+            //this.set('type', \vst_midi, 'vst', vstplugin, \spread, 1, \pan, 0)
 
         }.fork;
     }
@@ -234,8 +235,6 @@ VstSSynth : SSynth {
 
 SSynth : EventPatternProxy {
 
-    classvar count=0;
-
     var <node, <cmdperiodfunc, <>color;
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
@@ -244,7 +243,7 @@ SSynth : EventPatternProxy {
     var keyval;
 
     *new {|synth|
-        ^super.new.prInit.prInitSynth(synth);
+        ^super.new.prInit(synth);
     }
 
     @ {|val, adverb|
@@ -252,12 +251,16 @@ SSynth : EventPatternProxy {
         if (adverb.isNil and: val.isKindOf(Array)) {
             this.set(*val);
         } {
-            var func = Fdef("dialects/%".format(adverb).asSymbol);
-            if (func.source.isNil) {
-                this.set(adverb, val);
-            }{
-                func.(val, this);
+            //var func = Fdef("dialects/%".format(adverb).asSymbol);
+            //if (func.source.isNil) {
+            if (val.isNil) {
+              ^this.get(adverb)
+            } {
+              this.set(adverb, val)
             }
+            //}{
+            //    func.(val, this);
+            //}
         }
     }
 
@@ -341,21 +344,6 @@ SSynth : EventPatternProxy {
         ^this.node.fxchain.array
     }
 
-    /*
-    filters {|index|
-        this.fxchain.array[index].ui;
-        /*
-        var fx = this.fxchain.array[index];
-        if (fx['type'] == \vst) {
-            fx['ctrl'].editor
-        }{
-            var num = this.fxchain.indices[index];
-            Ui('sgui').gui(this.node, num)
-        };
-        */
-    }
-    */
-
     controlKeys {|except|
         var keys = envir.keys(Array).sort;
         except = except ++ [];
@@ -370,15 +358,7 @@ SSynth : EventPatternProxy {
 
     gui {
         this.view.front
-    }
-
-    scope {
-        Ui('scope').(this.node).front
-    }
-
-    freqscope {
-        Ui('freqscope').(this.node).front
-    }
+    } 
 
     savePresetAs {|name|
         var v, f;
@@ -419,7 +399,7 @@ SSynth : EventPatternProxy {
         var evt = this.envir ?? ();
         var args;
         var out = this.node.bus.index;
-        var target = this.node.group;
+        var target = this.node.group.nodeID;
 
         if (extra.notNil) {
             extra = extra.asDict;
@@ -532,7 +512,7 @@ SSynth : EventPatternProxy {
             Plazy({
                 Pbind(
                     \out, Pfunc({node.bus.index}),
-                    \group, Pfunc({node.group}),
+                    \group, Pfunc({node.group.nodeID}),
                 )
             })
         );
@@ -545,32 +525,20 @@ SSynth : EventPatternProxy {
                 // not sure how to make composite event work with pmono
                 Pmono(synth, \trig, 1) <> chain
             }{
-                // composite event with set allows us to sequence
-                // parameters on the fx chain
-                Pbind(
-                    /*
-                    \type, \composite,
-                    \types, Pfunc({|evt|
-                        var types = evt[\types];
-                        if (types.isNil) {
-                            types = ['note']
-                        };
-
-                        types ++ ['set'];
-                    }),
-                    \id, Pfunc({node.nodeID})
-                    */
-                )
+                Pbind()
                 <> chain
             }
         })
 
     }
 
-    prInit {
+    prInit {|synth|
 
-        count = count + 1;
-        keyval = "s%".format(count).asSymbol;
+        var count = Halo.at(\synths, synth);
+        count = (count ?? 0) + 1;
+        Halo.put(\synths, synth, count);
+
+        keyval = "%_%".format(synth, count).asSymbol;
         clock = W.clock;
         quant = 4.0;
         color = Color.rand;
@@ -600,6 +568,7 @@ SSynth : EventPatternProxy {
             }.defer(0.5)
         };
         ServerTree.add(cmdperiodfunc);
+        this.prInitSynth(synth);
         ^this
     }
 

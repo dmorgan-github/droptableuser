@@ -3,6 +3,7 @@ Require(App.librarydir ++ "ui/common.scd");
 func: {arg node;
 
     var key = node.key;
+    var refresh, skipjack;
 
     var buf = {
         var buf = node.get(\buf);
@@ -41,18 +42,14 @@ func: {arg node;
     var end = Slider();
     var view = View().layout_(VLayout().margins_(0).spacing_(0));//.minSize_(Size(300, 150));
     var sfv = SoundFileView()
-
-
     .gridOn_(false)
     .drawsRMS_(false)
     .drawsCenterLine_(true)
     .drawsBoundingLines_(false)
     .gridColor_(Color.black)
     .background_(Color.black)
-    .waveColors_([Color.white, Color.red])
+    .waveColors_([node.color, Color.red])
     //.timeCursorColor_(Color.red)
-
-
     .gridResolution_(0.0)
     //.drawsRMS_(false)
     .toolTip_(bufname)
@@ -93,6 +90,21 @@ func: {arg node;
     });
     view.layout.add(HLayout(
 
+        LevelSlider("startPos", [0, 1].asSpec, node.color)
+        .action_({|ctrl|
+            selstart = (ctrl.value * numframes).max(0);
+            selend = (selstart + selsize).min(numframes);
+            selsize = selend - selstart;
+            nb.value = selsize/buf.sampleRate;
+            sfv.setSelectionStart(0, selstart);
+            sfv.setSelectionSize(0, selsize);
+        })
+        .mouseUpAction_({|ctrl|
+            node.set(\startPos, selstart/numframes, \endPos, selend/numframes);
+        })
+        .value_(startPos)
+
+        /*
         Slider().orientation_('horizontal')
         .action_({|ctrl|
             selstart = (ctrl.value * numframes).max(0);
@@ -105,7 +117,9 @@ func: {arg node;
         .mouseUpAction_({|ctrl|
             node.set(\startPos, selstart/numframes, \endPos, selend/numframes);
         })
-        .value_(startPos),
+        .value_(startPos)
+        */
+        ,
 
         /*
         end.orientation_('horizontal')
@@ -145,10 +159,25 @@ func: {arg node;
         ).spacing_(2).margins_(2)
     );
 
+
+    // TODO: this is very inneficient
+    // but i'm not sure how to render buffer
+    // updates without reloading
+    refresh = {
+        buf.loadToFloatArray(action:{arg a;
+		    {
+			    sfv.setData(a, channels: buf.numChannels);
+		    }.defer
+	    })
+    };
+
+    skipjack = SkipJack(refresh, dt: 1, name:"%_%".format(node.key, id));
+
     node.set(\bufposreplyid, id);
     OSCdef(key, {arg msg;
         var val = msg[4];
         var replyid = msg[2];
+
         {
             if (replyid == id) {
                 sfv.timeCursorPosition = val;
@@ -158,6 +187,8 @@ func: {arg node;
 
     view.name = bufname;
     view.onClose_({
+        "close".debug(\buf);
+        skipjack.stop;
         OSCdef(key).free;
     });//.front;
 }

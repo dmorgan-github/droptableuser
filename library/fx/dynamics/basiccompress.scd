@@ -2,6 +2,7 @@
 
 (
 func: { |in|
+    var sig;
     var attack = \compatk.kr(0.01, spec:ControlSpec(0.01, 1, \lin, 0, 0.01, "compress"));
     var release = \comprel.kr(0.1, spec:ControlSpec(0.01, 1, \lin, 0, 0.1, "compress"));
     var threshold = \compthreshdb.kr(-20, spec:ControlSpec(-60, 0, \lin, 0, -20, "compress"));
@@ -9,6 +10,8 @@ func: { |in|
 	var amplitudeDb, gainDb;
 	amplitudeDb = Amplitude.ar(in, attack, release).ampdb;
 	gainDb = ((amplitudeDb - threshold) * (1 / ratio - 1)).min(0);
-	in * gainDb.dbamp;
+	sig = in * gainDb.dbamp;
+    sig = in.blend(sig, \compress_mix.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, "compress")));
+    sig;
 };
 )

@@ -1,4 +1,6 @@
 (
+// TODO: in one case there was weird leakage of sound onto other buses caused by this function
+// could it be related to the localbuf?
 synth: {arg in;
 
     var sig, rate, dur;

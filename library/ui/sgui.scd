@@ -2,6 +2,7 @@
 (
 func: {|node, index|
 
+    var currentcmd;
     var fxnode = node.node;
     var windowname = if (index.notNil) {
         "%/%".format(node.key, fxnode.fxchain[index].name);
@@ -12,16 +13,17 @@ func: {|node, index|
 
     props = Ui('props').view(node, index);
     target = View().layout_(VLayout().margins_(0).spacing_(0));
+
     if (index.isNil) {
-        scope = Ui('scope').view(fxnode);
+        scope = Ui('meter').view(fxnode);
         target.layout.add(scope);
     };
 
-    view = View(bounds:475@250)
+    view = View(bounds:75@150)
     .name_(windowname)
     .layout_(VLayout(
         HLayout(
-            props.minWidth_(235).background_(Color.black),
+            props.minWidth_(175).background_(Color.black),
             target
         ).margins_(5).spacing_(5),
 
@@ -38,7 +40,8 @@ func: {|node, index|
                 //args.postln;
                 //node.set(*args)
                 var val = ctrl.value.asSymbol;
-                switch (val,
+                currentcmd = val;
+                switch (currentcmd,
                     \scope, {
                         target.children.do({|child|
                             child.remove
@@ -69,6 +72,36 @@ func: {|node, index|
                         });
                         target.layout.add(Ui(\fx).view(node))
                     },
+                    \grain, {
+                        target.children.do({|child|
+                            child.remove
+                        });
+                        target.layout.add(Ui(\grainsliders).view(node));
+                    },
+                    \tgrid, {
+                        target.children.do({|child|
+                            child.remove
+                        });
+                        target.layout.add(Ui(\tgrid).view(node));
+                    },
+                    \meter, {
+                        target.children.do({|child|
+                            child.remove
+                        });
+                        target.layout.add(Ui(\meter).view(fxnode));
+                    },
+                    \play, {
+                        node.play
+                    },
+                    \stop, {
+                        node.stop
+                    },
+                    \mute, {
+                        fxnode.stop
+                    },
+                    \unmute, {
+                        fxnode.play
+                    },
                     \close, {
                         target.children.do({|child|
                             child.remove
@@ -88,7 +121,12 @@ func: {|node, index|
                             var rhs = parts[1..].join("");
                             var lhsparts = lhs.split($.);
                             var prop = lhsparts[1];
-                            node.set(prop.asSymbol, rhs.interpret);
+                            if (rhs.isNil or: {rhs == ""}) {
+                                var val = node.get(prop.asSymbol);
+                                ctrl.value = "@.% %".format(prop, val);
+                            } {
+                                node.set(prop.asSymbol, rhs.interpret);
+                            }
                         }
                     }
                 );
