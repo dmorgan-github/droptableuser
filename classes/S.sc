@@ -199,6 +199,9 @@ VstSSynth : SSynth {
                 vstpreset = args[1];
                 vstpreset = App.librarydir +/+ "preset" +/+ vstpreset;
             };
+            // TODO: what's the difference between synth and vstsynthdef?
+            // seems like vstsynthdef is unecessary
+            synth = vstsynthdef;
             synthdef = SynthDescLib.global[vstsynthdef].def;
 
             vstsynth = Synth(vstsynthdef,
@@ -434,6 +437,7 @@ SSynth : EventPatternProxy {
         }
     }
 
+    // TODO: possibly move the midi stuff to a device function
     note {|noteChan, note, debug=false|
 
         var noteonkey = "%_noteon".format(this.key).asSymbol;
@@ -610,7 +614,7 @@ SSynth : EventPatternProxy {
         };
         this.isMono.debug("mono");
 
-        "set defaults from spec...".debug("ssynth");
+        //"set defaults from spec...".debug("ssynth");
         if (this.getSpec.notNil) {
             this.getSpec.keys.do({|key|
                 var spec = this.getSpec[key];

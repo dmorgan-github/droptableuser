@@ -171,7 +171,10 @@ func: {arg node;
 	    })
     };
 
-    skipjack = SkipJack(refresh, dt: 1, name:"%_%".format(node.key, id));
+    // we'll refresh the display only for smaller buffers
+    if (buf.duration < 60) {
+        skipjack = SkipJack(refresh, dt: 1, name:"%_%".format(node.key, id));
+    };
 
     node.set(\bufposreplyid, id);
     OSCdef(key, {arg msg;
@@ -188,7 +191,9 @@ func: {arg node;
     view.name = bufname;
     view.onClose_({
         "close".debug(\buf);
-        skipjack.stop;
+        if (skipjack.notNil) {
+            skipjack.stop;
+        };
         OSCdef(key).free;
     });//.front;
 }
