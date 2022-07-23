@@ -39,7 +39,7 @@ doc: "
 ~seq.play
 ~seq.stop
 (
-~seq2.set(
+~seq.set(
     // don't forget asStream
     'instrs', [~fd.asStream, ~bass.asStream],
     'ptrns', [

@@ -11,6 +11,7 @@ func: {|node|
     .editable_(false)
     .strokeColor_(node.color)
     .gridColor_(Color.clear)
+    .background_(Color.clear)
     .thumbSize_(20)
     .step_(0.0001);
 
@@ -18,8 +19,8 @@ func: {|node|
     levels = [0, 1, 0];
     times = [0, 0, 0];
 
-    xyknobs.addAll([Knob(), Knob()]);
-    curveknobs.addAll([Knob(), Knob()]);
+    xyknobs.addAll([Knob().background_(Color.clear), Knob().background_(Color.clear)]);
+    curveknobs.addAll([Knob().background_(Color.clear), Knob().background_(Color.clear)]);
 
     atkspec = node.getSpec('atk');
     relspec = node.getSpec('rel');
@@ -35,8 +36,8 @@ func: {|node|
         levels = [0, 1, node.get('suslevel'), 0];
         times = [0, 0, node.get('dec'), 0];
 
-        xyknobs.addAll([Knob(), Knob()]);
-        curveknobs.add(Knob());
+        xyknobs.addAll([Knob().background_(Color.clear), Knob().background_(Color.clear)]);
+        curveknobs.add(Knob().background_(Color.clear));
 
         xyknobs[1]
         .value_(decspec.unmap(times[2]))

@@ -63,7 +63,7 @@ func: {|node,nums|
                     }.defer;
                 });
 
-                sp.seq( Pbind(\vals, myvals, \foo, Pn(1, 1)) );
+                sp.seq( Pbind(\vals, myvals, \foo, Pn(1, 1), \rows, vals) );
             });
         });
 

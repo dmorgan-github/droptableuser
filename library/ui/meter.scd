@@ -26,6 +26,8 @@ func: {|node|
         var in = InFeedback.ar(bus, numchannels).asArray;
         SendPeakRMS.kr(in, updateFreq, 3, "/" ++ levelkey ++ "OutLevels")
     }).play(node.group.nodeID, nil, \addToTail);
+    // should this be the node group or monitor group?
+    //node.monitor.group.nodeID
 
     OSCdef(levelkey, {|msg|
         {
@@ -52,7 +54,7 @@ func: {|node|
 
     view = View().layout_(HLayout(*meters));
     view
-    .minWidth_(75)
+    .fixedWidth_(75)
     .onClose_({
         "free".debug("meter");
         synth.free;

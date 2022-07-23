@@ -2,6 +2,8 @@
 (
 func: {|node, index|
 
+    var cmdhistory = List.new;
+    var currentindex = 0;
     var currentcmd;
     var fxnode = node.node;
     var windowname = if (index.notNil) {
@@ -10,6 +12,7 @@ func: {|node, index|
         node.key
     };
     var view, target, props, scope;
+    var getView;
 
     props = Ui('props').view(node, index);
     target = View().layout_(VLayout().margins_(0).spacing_(0));
@@ -19,16 +22,62 @@ func: {|node, index|
         target.layout.add(scope);
     };
 
+    getView = {|currentcmd|
+        switch (currentcmd,
+            \scope, {
+                Ui(\scope).view(fxnode)
+            },
+            \freq, {
+                Ui(\freqscope).view(fxnode)
+            },
+            \buf, {
+                Ui(\buf).view(node)
+            },
+            \aeg, {
+                Ui(\aeg).view(node)
+            },
+            \fx, {
+                Ui(\fx).view(node)
+            },
+            \grain, {
+                Ui(\grainsliders).view(node)
+            },
+            \tgrid, {
+                Ui(\tgrid).view(node)
+            },
+            \meter, {
+                Ui(\meter).view(fxnode)
+            }
+        );
+    };
+
+
     view = View(bounds:75@150)
     .name_(windowname)
     .layout_(VLayout(
         HLayout(
-            props.minWidth_(175).background_(Color.black),
+            props.fixedWidth_(175).background_(Color.black),
             target
         ).margins_(5).spacing_(5),
 
         TextField()
         .keyDownAction_({|ctrl, char, mod, unicode, keycode, key|
+
+            // 16777235 up
+            // 16777237
+
+            if (keycode == 126) {
+                var cmd = cmdhistory.wrapAt(currentindex);
+                ctrl.value = cmd;
+                currentindex = (currentindex - 1).clip(0, cmdhistory.size);
+            };
+
+            if (keycode == 125) {
+                var cmd = cmdhistory.wrapAt(currentindex);
+                ctrl.value = cmd;
+                currentindex = (currentindex + 1).clip(0, cmdhistory.size);
+            };
+
             if (keycode == 36) {
                 //[ctrl, char, mod, unicode, keycode, key].postln;
                 //var args = "[" ++ ctrl.value ++ "]";
@@ -40,56 +89,13 @@ func: {|node, index|
                 //args.postln;
                 //node.set(*args)
                 var val = ctrl.value.asSymbol;
+                var view;
                 currentcmd = val;
+
+                cmdhistory.add(currentcmd);
+                currentindex = cmdhistory.size -1;
+
                 switch (currentcmd,
-                    \scope, {
-                        target.children.do({|child|
-                            child.remove
-                        });
-                        target.layout.add(Ui(\scope).view(fxnode))
-                    },
-                    \freq, {
-                        target.children.do({|child|
-                            child.remove
-                        });
-                        target.layout.add(Ui(\freqscope).view(fxnode))
-                    },
-                    \buf, {
-                        target.children.do({|child|
-                            child.remove
-                        });
-                        target.layout.add(Ui(\buf).view(node))
-                    },
-                    \aeg, {
-                        target.children.do({|child|
-                            child.remove
-                        });
-                        target.layout.add(Ui(\aeg).view(node))
-                    },
-                    \fx, {
-                        target.children.do({|child|
-                            child.remove
-                        });
-                        target.layout.add(Ui(\fx).view(node))
-                    },
-                    \grain, {
-                        target.children.do({|child|
-                            child.remove
-                        });
-                        target.layout.add(Ui(\grainsliders).view(node));
-                    },
-                    \tgrid, {
-                        target.children.do({|child|
-                            child.remove
-                        });
-                        target.layout.add(Ui(\tgrid).view(node));
-                    },
-                    \meter, {
-                        target.children.do({|child|
-                            child.remove
-                        });
-                        target.layout.add(Ui(\meter).view(fxnode));
-                    },
                     \play, {
                         node.play
                     },
@@ -110,24 +116,52 @@ func: {|node, index|
                     {
                         var cmd = val.asString;
                         cmd.postln;
-                        //if (cmd.beginsWith("fx")) {
-                        //    var vals = cmd.split(Char.space);
-                        //    var num = vals[1].asInteger;
-                        //    node.fxchain[num].ui
-                        //};
-                        if (cmd.beginsWith("@")) {
-                            var parts = cmd.split(Char.space);
-                            var lhs = parts[0];
-                            var rhs = parts[1..].join("");
-                            var lhsparts = lhs.split($.);
-                            var prop = lhsparts[1];
-                            if (rhs.isNil or: {rhs == ""}) {
-                                var val = node.get(prop.asSymbol);
-                                ctrl.value = "@.% %".format(prop, val);
-                            } {
-                                node.set(prop.asSymbol, rhs.interpret);
+
+                        case(
+
+                            {cmd.beginsWith("@")}, {
+                                var parts = cmd.split(Char.space);
+                                var lhs = parts[0];
+                                var rhs = parts[1..].join("");
+                                var lhsparts = lhs.split($.);
+                                var prop = lhsparts[1];
+                                if (rhs.isNil or: {rhs == ""}) {
+                                    var val = node.get(prop.asSymbol);
+                                    ctrl.value = "@.% %".format(prop, val);
+                                } {
+                                    node.set(prop.asSymbol, rhs.interpret);
+                                }
+                            },
+
+                            {cmd.beginsWith("split")}, {
+
+                                var parts = cmd.split(Char.space);
+                                var lhs = parts[0];
+                                var rhs = parts[1..].join("");
+                                var vals = rhs.interpret;
+
+                                if (lhs == "split-v") {
+
+                                    target.children.do({|child|
+                                        child.remove
+                                    });
+                                    vals.do({|val|
+                                        var view = getView.(val);
+                                        target.layout.add(view);
+                                    })
+                                } {
+                                    if (lhs == "split-h") {
+
+                                    }
+                                }
+
+                            }, {
+                                target.children.do({|child|
+                                    child.remove
+                                });
+                                target.layout.add( getView.(currentcmd) )
                             }
-                        }
+                        );
                     }
                 );
             }

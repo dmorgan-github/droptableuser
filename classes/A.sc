@@ -219,11 +219,4 @@ A {
         dur = dur * 0.5;
         ^Pseg([0, 1, 0].pseq, [dur, dur, 0].pseq, \lin, inf).linlin(0, 1, lo, hi)
     }
-
-    *parse {|str|
-        str.size.debug(str);
-        ^CollStream(str).all.collect({|v| if (v.isAlphaNum) {v.digit}{\} })
-    }
-
-
 }

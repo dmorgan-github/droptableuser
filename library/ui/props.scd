@@ -1,14 +1,13 @@
-
 (
 func: {|node, index|
 
-    var sliders = [];
+    var sliders = ();
     var height = 19;
     var color = node.color ? Color.rand;
     var fxnode = if (node.respondsTo(\node)) { node.node }{ node };
-
     var scroll;
     var getSpec, getKeys, getGroups, getView;
+    var nodewatcher;
 
     scroll = ScrollView();
 
@@ -64,7 +63,7 @@ func: {|node, index|
                 \fadeTime,
                 \envbuf,
                 //\buf,
-                \amp,
+                //\amp,
                 \spread,
                 \vol,
                 \bend,
@@ -133,7 +132,6 @@ func: {|node, index|
 
             var group = assoc.key;
             var mykeys = assoc.value;
-            var custom;
 
             view.layout.add(
                 StaticText()
@@ -161,10 +159,9 @@ func: {|node, index|
             }).flatten;
 
             mysliders.pairsDo({|key, slider|
+                sliders[key] = slider;
                 view.layout.add(slider);
             });
-
-            sliders = sliders ++ mysliders;
         });
 
         view.layout.add(nil);
@@ -177,6 +174,23 @@ func: {|node, index|
         "% getView".format(err).error;
     });
 
-    scroll;
+    nodewatcher = {|obj, what, vals|
+        if (what == \set) {
+            vals.pairsDo({|k, v|
+                if (v.isNumber) {
+                    var slider = sliders[k];
+                    if (slider.notNil and: {slider.value != v}) {
+                        slider.value = v;
+                    };
+                }
+            })
+        }
+    };
+
+    node.addDependant(nodewatcher);
+    scroll.onClose_({
+        "close".debug(\scroll);
+        node.removeDependant(nodewatcher);
+    })
 }
 )

@@ -203,6 +203,12 @@
     nums { ^this.asInteger.join("").collectAs({|chr| chr.asString.asInteger }, Array) }
 }
 
++ String {
+    parse {
+        ^CollStream(this).all.collect({|v| if (v.isAlphaNum) {v.digit}{\} })
+    }
+}
+
 + NodeProxy {
 
     mix {arg index=0, obj, vol=1;

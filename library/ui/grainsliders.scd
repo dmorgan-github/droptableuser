@@ -7,9 +7,8 @@ func: {|node|
         \grainrate,
         \graindur,
         \async,
-        \startPos,
+        //\startPos,
         \prob,
-        \buf,
     ];
 
     var vals = keys

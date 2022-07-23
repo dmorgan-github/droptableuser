@@ -1,9 +1,9 @@
-Require(App.librarydir ++ "ui/common.scd");
 (
 func: {arg node;
 
     var key = node.key;
     var refresh, skipjack;
+    var bufspec, dorefresh;
 
     var buf = {
         var buf = node.get(\buf);
@@ -11,12 +11,14 @@ func: {arg node;
             buf = Buffer.cachedBufferAt(Server.default, buf.asInteger)
         };
         buf;
-    }.();//.debug("buf");
+    }.();
 
+    var bufnumView, srView, numframesView, durView;
     var startPos = node.get(\startPos) ?? {0};
     var endPos = node.get(\endPos) ?? {1};
 
     var id = UniqueID.next;
+    var oscdef = "bufpos_%".format(id).asSymbol;
     var osckey = 'bufpos';
     var numframes = buf.numFrames;
     var bufname = if (buf.path.notNil) {
@@ -49,116 +51,137 @@ func: {arg node;
     .gridColor_(Color.black)
     .background_(Color.black)
     .waveColors_([node.color, Color.red])
-    //.timeCursorColor_(Color.red)
     .gridResolution_(0.0)
-    //.drawsRMS_(false)
     .toolTip_(bufname)
     .timeCursorOn_(true)
-    //.timeCursorPosition_(220500)
-    //.waveColors_(wavecolors)
-    //.background_(backgroundcolor.alpha_(0.3))
-    //.gridColor_(gridcolor)
     .timeCursorColor_(cursorcolor)
-    ;
+    .mouseUpAction_({|ctrl, x, y|
+        var val = ctrl.selection(0);
+        var start = val[0];
+        var len = val[1];
+        var end = start + len;
+        var numframes = buf.numFrames;
+        var startPos = start/numframes;
+        var endPos = end/numframes;
+
+        //[startPos, endPos].debug(\pos);
+        if (endPos <= startPos) {
+            var start = startPos * numframes;
+            var size = numframes - start;
+            endPos = 1;
+            ctrl.setSelection(0, [start, size])
+        };
+        node.set('endPos', endPos, 'startPos', startPos);
+    });
 
     watcher = {|obj, what, vals|
         if (what == \set) {
             vals.pairsDo({|k, v|
                 if (k == \buf) {
-                    var buf = v;
+                    buf = v;
                     if (buf.isNumber) {
                         buf = Buffer.cachedBufferAt(Server.default, buf.asInteger)
                     };
                     buf.loadToFloatArray(action:{|a|
                         {
+                            var startPos = node.get(\startPos);
+                            var endPos = node.get(\endPos);
+                            var numframes, selstart, selend, selsize;
+                            numframes = buf.numFrames;
+                            selstart = startPos * numframes;
+                            selend = endPos * numframes;
+                            selsize = selend - selstart;
+
                             sfv.setData(a, channels: buf.numChannels);
+                            sfv.setSelection(0, [selstart, selsize]);
+
+                            bufnumView.string = buf.bufnum;
+                            srView.string = buf.sampleRate;
+                            numframesView.string = buf.numFrames;
+                            durView.string = buf.duration;
+
                         }.defer
                     });
-
                 }
             })
         };
     };
 
     //sfv.setSelectionColor(0, selectioncolor);
-    sfv.setSelectionStart(0, selstart);
-    sfv.setSelectionSize(0, selend - selstart);
+    //sfv.setSelectionStart(0, selstart);
+    //sfv.setSelectionSize(0, selend - selstart);
     buf.loadToFloatArray(action:{|a|
         {
+            var startPos = node.get(\startPos);
+            var endPos = node.get(\endPos);
+            var numframes, selstart, selend, selsize;
+            numframes = buf.numFrames;
+            selstart = startPos * numframes;
+            selend = endPos * numframes;
+            selsize = selend - selstart;
+
             sfv.setData(a, channels: buf.numChannels);
+            sfv.setSelection(0, [selstart, selsize]);
+
         }.defer
     });
+
+    /*
+    bufspec = node.getSpec['buf'] ?? { [buf.bufnum, buf.bufnum].asSpec };
+    view.layout.add(VLayout(
+        LevelSlider("buf", bufspec, node.color)
+        .value_(buf.bufnum)
+        .mouseUpAction_({|ctrl|
+            var val = ctrl.value;
+            node.set(\buf, val);
+        })
+    ));
+    */
+
+    /*
     view.layout.add(HLayout(
 
         LevelSlider("startPos", [0, 1].asSpec, node.color)
         .action_({|ctrl|
-            selstart = (ctrl.value * numframes).max(0);
-            selend = (selstart + selsize).min(numframes);
-            selsize = selend - selstart;
-            nb.value = selsize/buf.sampleRate;
-            sfv.setSelectionStart(0, selstart);
-            sfv.setSelectionSize(0, selsize);
+            //selstart = (ctrl.value * numframes).max(0);
+            //selend = (selstart + selsize).min(numframes);
+            //selsize = selend - selstart;
+            //nb.value = selsize/buf.sampleRate;
+            //sfv.setSelectionStart(0, selstart);
+            //sfv.setSelectionSize(0, selsize);
         })
         .mouseUpAction_({|ctrl|
-            node.set(\startPos, selstart/numframes, \endPos, selend/numframes);
+            //node.set(\startPos, selstart/numframes, \endPos, selend/numframes);
         })
         .value_(startPos)
-
-        /*
-        Slider().orientation_('horizontal')
-        .action_({|ctrl|
-            selstart = (ctrl.value * numframes).max(0);
-            selend = (selstart + selsize).min(numframes);
-            selsize = selend - selstart;
-            nb.value = selsize/buf.sampleRate;
-            sfv.setSelectionStart(0, selstart);
-            sfv.setSelectionSize(0, selsize);
-        })
-        .mouseUpAction_({|ctrl|
-            node.set(\startPos, selstart/numframes, \endPos, selend/numframes);
-        })
-        .value_(startPos)
-        */
         ,
 
-        /*
-        end.orientation_('horizontal')
+        nb.maxWidth_(60)
         .action_({|ctrl|
-            selend = ctrl.value * numframes;
-            selsize = selend - selstart;
-            sfv.setSelectionSize(0, selsize);
-            nb.value = selsize/buf.sampleRate;
-        })
-        .mouseUpAction_({|ctrl|
-            node.set(\endPos, selend/numframes)
-        })
-        .value_(endPos),
-        */
-
-        nb.maxWidth_(60).action_({|ctrl|
-            var val = buf.sampleRate * ctrl.value.max(0.001);
-            selend = (selstart + val).min(numframes);
-            selsize = selend - selstart;
-            sfv.setSelectionSize(0, selsize);
-            end.value = selend.linlin(0, numframes, 0, 1);
-            node.set(\endPos, selend/numframes)
+            //var val = buf.sampleRate * ctrl.value.max(0.001);
+            //selend = (selstart + val).min(numframes);
+            //selsize = selend - selstart;
+            //sfv.setSelectionSize(0, selsize);
+            //end.value = selend.linlin(0, numframes, 0, 1);
+            //node.set(\endPos, selend/numframes)
         })
         .clipLo_(0.001)
         .value_(selsize/buf.sampleRate)
     ));
+    */
+
     view.layout.add(sfv);
     view.layout.add(
         HLayout(nil,
-            StaticText().string_(buf.bufnum),
+            bufnumView = StaticText().string_(buf.bufnum),
             StaticText().string_(" | "),
-            StaticText().string_(buf.sampleRate),
+            srView = StaticText().string_(buf.sampleRate),
             StaticText().string_(" | "),
-            StaticText().string_(buf.numFrames),
+            numframesView = StaticText().string_(buf.numFrames),
             StaticText().string_(" | "),
-            StaticText().string_(buf.duration)
+            durView = StaticText().string_(buf.duration)
         ).spacing_(2).margins_(2)
     );
-
 
     // TODO: this is very inneficient
     // but i'm not sure how to render buffer
@@ -172,29 +195,33 @@ func: {arg node;
     };
 
     // we'll refresh the display only for smaller buffers
-    if (buf.duration < 60) {
+    dorefresh = (node.get(\dorefresh) == 1);
+    if (dorefresh) {
         skipjack = SkipJack(refresh, dt: 1, name:"%_%".format(node.key, id));
     };
 
     node.set(\bufposreplyid, id);
-    OSCdef(key, {arg msg;
+    OSCdef(oscdef, {arg msg;
         var val = msg[4];
         var replyid = msg[2];
-
         {
             if (replyid == id) {
-                sfv.timeCursorPosition = val;
+                if (val.notNil) {
+                    sfv.timeCursorPosition = val;
+                }
             }
         }.defer;
     }, osckey);
 
+    node.addDependant(watcher);
     view.name = bufname;
     view.onClose_({
         "close".debug(\buf);
+        node.removeDependant(watcher);
         if (skipjack.notNil) {
             skipjack.stop;
         };
-        OSCdef(key).free;
+        OSCdef(oscdef).free;
     });//.front;
 }
 )
