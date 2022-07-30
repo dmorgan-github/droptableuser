@@ -163,6 +163,13 @@
         })
     }
 
+    doesNotUnderstand {|selector ... args|
+        if (selector.isSetter) {
+            selector = selector.asGetter;
+        };
+        ^Pbindf(this, selector.asSymbol, args[0])
+    }
+
     spawn {|func|
         ^Pspawner({|sp|
             var pattern = this.asStream;
@@ -183,20 +190,6 @@
     }
 
     seed {|val| ^Pseed(val, this)}
-}
-
-+ Pbind {
-
-    // not sure how best to use pfilter vs pchain
-    // or if it really matters
-    // pattern is probably too general of a base class
-    // for this
-    doesNotUnderstand {|selector ... args|
-        if (selector.isSetter) {
-            selector = selector.asGetter;
-        };
-        ^Pbindf(this, selector.asSymbol, args[0])
-    }
 }
 
 + Array {

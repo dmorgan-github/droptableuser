@@ -1,5 +1,5 @@
 (
-synth: {
+synth: {|freq|
     var pdecay = \pdecay.kr(0.135, spec: ControlSpec(0, 1, \lin, 0, 0.135, "kick"));
     var pcurve = \pcurve.kr(-4, spec: ControlSpec(-8, 8, \lin, 0, -4, "kick"));
     var freqmul = \freqmul.kr(3.99, spec:ControlSpec(1, 4, \lin, 0, 3.99, "kick"));

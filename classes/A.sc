@@ -219,4 +219,33 @@ A {
         dur = dur * 0.5;
         ^Pseg([0, 1, 0].pseq, [dur, dur, 0].pseq, \lin, inf).linlin(0, 1, lo, hi)
     }
+
+
+    // A.randseq(32, 0.1, seed:5597)
+    *randseq {|len=16, density=0.3, min=0, max=7, seed|
+        /*
+        Array.fill(32, { 1.0.rand2.linlin(-1, 1, 0, 5).round }).plot
+        Array.fill(32, { 1.0.linrand.linlin(0, 1, 0, 5).round }).plot
+        Array.fill(32, { 1.0.bilinrand.linlin(-1, 1, 0, 5).round }).plot
+        Array.fill(32, { 1.0.sum3rand.linlin(-1, 1, 0, 5).round }).plot
+        Array.fill(32, { exprand(0.001, 1.0).linlin(0.1, 1, 0, 5).round }).plot
+        */
+
+        var result;
+        var den = (len * density).floor.asInteger;
+
+        thisThread.randSeed = seed ?? { 1000000.rand.debug(\seed) };
+
+        result = {
+            {|v|
+                var index = v.indicesOfEqual(\).choose;
+                var val = rrand(min, max);
+                v.wrapPut (index, val)
+            }
+        }
+        .dup(den)
+        .inject(\.dup(len), {|s, f| f.(s) } );
+
+        ^result;
+    }
 }

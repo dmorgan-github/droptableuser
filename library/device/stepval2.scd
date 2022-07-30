@@ -10,20 +10,19 @@ func: {
 
         inf.do({
 
+            var vals;
             data = sp.event;
             instrs = data['instrs'] ?? [];
             ptrns = data['ptrns'] ?? [];
             tatum = data['tatum'] ?? 1;
 
-            ptrns.asArray.do({|row, i|
-                cell = row.asArray.wrapAt(cnt);
-                if (cell.isRest.not and: { cell.isNil.not }) {
-                    var prob = 1;
-                    if (prob.coin) {
-                        stream = instrs.asArray.wrapAt(i);
-                        sp.par( Pbind(\dur, tatum).finDur(tatum) <> stream.next( (val:cell) ) );
-                    }
-                };
+            vals = ptrns.asArray.collect({|row, i|
+                row.asArray.wrapAt(cnt)
+            });
+
+            instrs.asArray.do({|instr, i|
+                stream = instrs.asArray.wrapAt(i);
+                sp.par(Pbind(\dur, Pn(tatum, 1)) <> stream.next( (vals:vals, cnt:cnt) ) );
             });
 
             cnt = cnt + 1;

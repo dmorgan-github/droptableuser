@@ -5,9 +5,13 @@ func: {|node|
     var lastx, lasty;
     var zoomy = 10, zoomx = 5;
     var mousedown = false;
-    var numchannels = node.numChannels;
-    var view = View().layout_(VLayout().margins_(0).spacing_(0));
-    var scope = Stethoscope.new(s, view:view).style_(1)
+    var view, scope;
+    var numchannels;
+    node = if (node.respondsTo(\node)) {node.node}{node};
+
+    numchannels = node.numChannels;
+    view = View().layout_(VLayout().margins_(0).spacing_(0));
+    scope = Stethoscope.new(s, view:view).style_(1)
     .index_(node.bus.index)
     .numChannels_(numchannels)
     .yZoom_(10)

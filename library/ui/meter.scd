@@ -9,6 +9,7 @@ func: {|node|
     var meterWidth = 15;
     var meters, view, synth;
 
+    node = if (node.respondsTo(\node)) {node.node}{node};
     bus = node.bus.index;
     numchannels = node.bus.numChannels;
 

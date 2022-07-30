@@ -86,13 +86,26 @@ func: {|node|
                                 if (ctrl.view.notNil) {
                                     var key = 'ui/' ++ ctrl.view;
                                     if (Module.exists(key)) {
-                                        Ui(ctrl.view).gui(fxnode, index);
+                                        var fxview = Ui(ctrl.view).view(fxnode, index);
+                                        fxview.bounds = Rect(view.bounds.left, view.bounds.top);
+                                        fxview.front;
                                     } {
                                         "custom view does not exists: %".format(key).warn;
                                         Ui('sgui').gui(fxnode, index)
                                     }
                                 }{
-                                    Ui('sgui').gui(fxnode, index)
+                                    var left, top;
+                                    var fxview = Ui('sgui').view(fxnode, index);
+                                    var parents = view.getParents();
+                                    if (parents.notNil) {
+                                        var width;
+                                        var parent = parents.last;
+                                        width = parent.bounds.width;
+                                        left = parent.bounds.left + width + 5;
+                                        top = parent.bounds.top;
+                                    };
+                                    fxview.bounds = Rect(left, top, 100, 200);
+                                    fxview.front;
                                 }
 
                             }
@@ -139,7 +152,8 @@ func: {|node|
     view.layout.add( fxmenu.view(fxnode) );
     view.layout.add( fxbuttonsview);
     view.layout.add( nil);
-    view.onClose_({
+    view
+    .onClose_({
         fxnode.removeDependant(fxwatcher);
     });
 }

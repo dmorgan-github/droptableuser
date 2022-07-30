@@ -361,7 +361,7 @@ SSynth : EventPatternProxy {
 
     gui {
         this.view.front
-    } 
+    }
 
     savePresetAs {|name|
         var v, f;
@@ -494,7 +494,7 @@ SSynth : EventPatternProxy {
             /*
             Pbind(
                 \node_set, Pfunc({|evt|
-                    // TODO server.bind
+                    // TODO server.bind - takes into account latency
                     var pairs;
                     var current = evt;
                     var exceptArgs = current[\exceptArgs];

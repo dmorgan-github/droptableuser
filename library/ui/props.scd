@@ -69,9 +69,9 @@ func: {|node, index|
                 \bend,
                 \vel
             ].includes(key)
-            //or: {
-            //    key.asString.beginsWith("wet")
-            //}
+            or: {
+                key.asString.beginsWith("wet")
+            }
         }).asArray
     };
 

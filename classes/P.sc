@@ -74,4 +74,8 @@ P {
         //.play
     }
 
+    * revdelay {
+        ^['vst:ValhallaSupermassive', 'vst:++Delay', 'dynamics/basiccompress']
+    }
+
 }

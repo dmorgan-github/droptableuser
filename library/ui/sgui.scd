@@ -24,29 +24,14 @@ func: {|node, index|
 
     getView = {|currentcmd|
         switch (currentcmd,
-            \scope, {
-                Ui(\scope).view(fxnode)
-            },
             \freq, {
-                Ui(\freqscope).view(fxnode)
-            },
-            \buf, {
-                Ui(\buf).view(node)
-            },
-            \aeg, {
-                Ui(\aeg).view(node)
-            },
-            \fx, {
-                Ui(\fx).view(node)
+                Ui(\freqscope).view(node)
             },
             \grain, {
                 Ui(\grainsliders).view(node)
             },
-            \tgrid, {
-                Ui(\tgrid).view(node)
-            },
-            \meter, {
-                Ui(\meter).view(fxnode)
+            {
+                Ui(currentcmd).view(node)
             }
         );
     };
