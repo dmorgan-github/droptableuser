@@ -2,13 +2,12 @@
 func: {|node|
 
     var morphbeats = 20;
-    var frompresetview, topresetview;
 
     var buttons = 14.collect({|i|
         var color_active = Color.white.alpha_(0.9);
         var color_saved = Color.green.alpha_(0.9);
-        var color_empty = Color.gray.alpha_(0.5);
-        var issaved = P.getPreset(node, i).notNil;
+        var color_empty = Color.gray;
+        var issaved = P.getSource(node, i).notNil;
         var color_init = if (issaved) {color_saved}{color_empty};
         Button()
         .action_({|ctrl|
@@ -22,13 +21,13 @@ func: {|node|
             });
 
             if (ctrl.value == 1) {
-                var preset = P.getPreset(node, i);
+                var preset = P.getSource(node, i);
                 if (preset.isNil) {
                     //log.("% preset %".format(\save, i));
-                    P.addCurrent(node, i);
+                    P.addCurrentSource(node, i);
                 } {
                     //log.("% preset %".format(\morph, i));
-                    P.morph(node, i, beats:morphbeats);
+                    P.morphSource(node, i, fadeTime:morphbeats);
                 };
             }{
                 // button stays on
@@ -41,12 +40,12 @@ func: {|node|
             // 524288 option
             if (mod == 262144) {
                 //log.("% preset %".format(\remove, i));
-                P.remove(node, i);
+                P.removeSource(node, i);
                 ctrl.states = [ [nil, nil, color_empty ], [nil, nil, color_active ] ];
             };
             if (mod == 131072) {
                 //log.("% preset %".format(\overwrite, i));
-                P.addCurrent(node, i);
+                P.addCurrentSource(node, i);
             };
         })
         .states_([ [nil, nil, color_init ], [nil, nil, color_active ] ])
@@ -55,29 +54,14 @@ func: {|node|
     View().layout_(
         VLayout(
 
-            HLayout(
+            StaticText().string_("sources"),
 
-                NumberBox()
-                .action_({|ctrl|
-                    morphbeats = ctrl.value;
-                })
-                .toolTip_("morph time")
-                .maxWidth_(25)
-                .value_(morphbeats)
-                ,
-
-                frompresetview = PopUpMenu().items_( (0..13) ),
-                Slider()
-                .orientation_(\horizontal)
-                .thumbSize_(0.7)
-                .action_({|ctrl|
-                    var from = frompresetview.item.asInteger;
-                    var to = topresetview.item.asInteger;
-                    P.blend(node, from, to, ctrl.value);
-                }),
-                topresetview = PopUpMenu().items_( (0..13) )
-
-            ).margins_(2).spacing_(2),
+            NumberBox()
+            .action_({|ctrl|
+                morphbeats = ctrl.value;
+            })
+            .toolTip_("morph time")
+            .value_(morphbeats),
 
             GridLayout.rows(
                 buttons[0..6],
@@ -86,7 +70,8 @@ func: {|node|
 
             nil
 
-        ).margins_(0).spacing_(0),
+
+        ).margins_(0).spacing_(0)
     )
-};
+}
 )

@@ -4,8 +4,30 @@ func: {arg node;
     var key = node.key;
     var refresh, skipjack;
     var bufspec, dorefresh;
+    var bufnumView, srView, numframesView, durView;
+    var startPos;
+    var endPos;
+    var id;
+    var oscdef;
+    var osckey;
+    var numframes;
+    var bufname;
+    var selstart;
+    var selend;
+    var selsize;
+    var wavecolors;
+    var gridcolor;
+    var backgroundcolor;
+    var cursorcolor;
+    var selectioncolor;
+    var watcher;
+    var nb;
+    var end;
+    var view;
+    var sfv;
+    var buf;
 
-    var buf = {
+    buf = {
         var buf = node.get(\buf);
         if (buf.isNumber) {
             buf = Buffer.cachedBufferAt(Server.default, buf.asInteger)
@@ -13,37 +35,35 @@ func: {arg node;
         buf;
     }.();
 
-    var bufnumView, srView, numframesView, durView;
-    var startPos = node.get(\startPos) ?? {0};
-    var endPos = node.get(\endPos) ?? {1};
+    startPos = node.get(\startPos) ?? {0};
+    endPos = node.get(\endPos) ?? {1};
 
-    var id = UniqueID.next;
-    var oscdef = "bufpos_%".format(id).asSymbol;
-    var osckey = 'bufpos';
-    var numframes = buf.numFrames;
-    var bufname = if (buf.path.notNil) {
+    id = UniqueID.next;
+    oscdef = "bufpos_%".format(id).asSymbol;
+    osckey = 'bufpos';
+    numframes = buf.numFrames;
+    bufname = if (buf.path.notNil) {
         PathName(buf.path).fileName
     }{
         "buffer %".format(buf.bufnum)
     };
-    var selstart = startPos * numframes;
-    var selend = endPos * numframes;
-    var selsize = selend - selstart;
+    selstart = startPos * numframes;
+    selend = endPos * numframes;
+    selsize = selend - selstart;
 
-    var wavecolors =  [
+    wavecolors =  [
         Color(0.59429912567139, 0.71457996368408, 0.45395700931549),
         Color(0.85957117080688, 0.86903350353241, 0.57564690113068)
     ];
-    var gridcolor = Color(0.59298334121704, 0.61996343135834, 0.82784349918365);
-    var backgroundcolor = Color(0.32606270313263, 0.39292259216309, 0.8526659488678);// Color.rand.debug(\background);
-    var cursorcolor = Color(0.84076716899872, 0.8562139749527, 0.69819803237915);
-    var selectioncolor = Color(0.38695478439331, 0.68618059158325, 0.31084091663361, 0.3);
+    gridcolor = Color(0.59298334121704, 0.61996343135834, 0.82784349918365);
+    backgroundcolor = Color(0.32606270313263, 0.39292259216309, 0.8526659488678);// Color.rand.debug(\background);
+    cursorcolor = Color(0.84076716899872, 0.8562139749527, 0.69819803237915);
+    selectioncolor = Color(0.38695478439331, 0.68618059158325, 0.31084091663361, 0.3);
 
-    var watcher;
-    var nb = NumberBox();
-    var end = Slider();
-    var view = View().layout_(VLayout().margins_(0).spacing_(0));//.minSize_(Size(300, 150));
-    var sfv = SoundFileView()
+    nb = NumberBox();
+    end = Slider();
+    view = View().layout_(VLayout().margins_(0).spacing_(0));//.minSize_(Size(300, 150));
+    sfv = SoundFileView()
     .gridOn_(false)
     .drawsRMS_(false)
     .drawsCenterLine_(true)
@@ -107,7 +127,7 @@ func: {arg node;
         };
     };
 
-    //sfv.setSelectionColor(0, selectioncolor);
+    sfv.setSelectionColor(0, Color.white.alpha_(0.2));
     //sfv.setSelectionStart(0, selstart);
     //sfv.setSelectionSize(0, selend - selstart);
     buf.loadToFloatArray(action:{|a|

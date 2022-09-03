@@ -118,7 +118,7 @@
     // don't advance pattern on rests
     //clutch {|connected| ^Pclutch(this, connected) }
     //norest { ^Pclutch(this, Pfunc({|evt| evt.isRest.not })) }
-    latch {|key|
+    noskip {|key|
         ^Pclutch(
             this,
             Pfunc({|evt|
@@ -281,3 +281,35 @@
         }
     }
 }
+
+
++ Function {
+
+    // copied from: https://scsynth.org/t/proposal-function-await/6396
+	await { |timeout = nil, onTimeout = nil|
+		var cond = CondVar(), done = false, res = nil;
+
+		this.value({|...results|
+			res = results; done = true;
+			cond.signalOne;
+		});
+
+		if (timeout.isNil) {
+			cond.wait { done }
+		} {
+			cond.waitFor(timeout) { done }
+		};
+
+		if (done.not) {
+			if (onTimeout.isFunction) {
+				^onTimeout.value
+			} {
+				AsyncTimeoutError().throw
+			}
+		};
+		^res.unbubble;
+	}
+}
+
+
+

@@ -23,12 +23,12 @@ App {
         Server.default.record(filepath, bus:D.defaultout, numChannels:2 );
     }
 
-    *rec {|numchans=2|
+    *rec {|numchans=2, recdir|
         //if ( \Document.asClass.notNil and: { Document.hasEditedDocuments } ) {
         //    "save open documents".error
         //}{
-            thisProcess.platform.recordingsDir = thisProcess.nowExecutingPath.dirname;//Document.current.dir;
-            Server.default.record(numChannels:numchans);
+        thisProcess.platform.recordingsDir = recdir ?? {thisProcess.nowExecutingPath.dirname};//Document.current.dir;
+        Server.default.record(numChannels:numchans);
         //};
     }
 

@@ -6,6 +6,7 @@ func: {|node|
     var fxbuttonsview = View().layout_(VLayout().margins_(1).spacing_(1));
     var fxnode = if (node.respondsTo(\node)) { node.node }{ node };
     var fxmenu = Ui('fxmenu');
+    var presetview = Ui('presets');
 
     swap = {|node, index2, index1|
 
@@ -151,6 +152,7 @@ func: {|node|
     fxnode.addDependant(fxwatcher);
     view.layout.add( fxmenu.view(fxnode) );
     view.layout.add( fxbuttonsview);
+    view.layout.add( presetview.view(fxnode) );
     view.layout.add( nil);
     view
     .onClose_({

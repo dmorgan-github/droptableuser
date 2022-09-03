@@ -6,6 +6,7 @@
 // By Jean-Philippe Drecourt
 // http://drecourt.com
 // April 2020
+// see comment: http://sccode.org/1-5d6#c1012
 synth: {|freq|
 
     var updateFreq = 15;
@@ -14,6 +15,7 @@ synth: {|freq|
     var start = \startPos.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "paulstretch"));
     var end = \endPos.kr(1, spec: ControlSpec(0, 1, \lin, 0, 1, "paulstretch"));
     var bufFrames = BufFrames.kr(bufnum);
+    var bufdur = BufDur.kr(bufnum);
 
     var envBufnum = {
         if (~psenvbuf.isNil.debug("psenvbuf")) {
@@ -50,11 +52,11 @@ synth: {|freq|
 	// The grain is the exact length of the FFT window
 	trigPeriod = fftSize/SampleRate.ir;
 	trig = Impulse.ar(1/trigPeriod);
-    pos = Demand.ar(trig, 0, demandUGens: Dseries(start, trigPeriod/stretch)).wrap(start, end);
+    pos = Demand.ar(trig, 0, demandUGens: Dseries(start, trigPeriod/(stretch*bufdur))).wrap(start, end);
 	// Extraction of 2 consecutive grains
 	// Both grains need to be treated together for superposition afterwards
 	sig = [GrainBuf.ar(1, trig, trigPeriod, bufnum, rate, pos, envbufnum: envBufnum),
-		GrainBuf.ar(1, trig, trigPeriod, bufnum, rate, pos + (trigPeriod/(2*stretch)), envbufnum: envBufnum)] * amp;
+		GrainBuf.ar(1, trig, trigPeriod, bufnum, rate, pos + (trigPeriod/(2*stretch*bufdur)), envbufnum: envBufnum)] * amp;
 	// FFT magic
 	sig = sig.collect({ |item, i|
 		chain = FFT(LocalBuf(fftSize), item, hop: 1.0, wintype: -1);

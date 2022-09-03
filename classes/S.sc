@@ -40,16 +40,16 @@ S {
         var envir = currentEnvironment;
         var res = envir[key];
 
-        if (res.isNil){
+        if (res.isNil) {
 
-            if (synth.notNil) {
+            if (synth.isKindOf(Symbol)) {
                 var src = synth.asString;
                 res = case
                 {src.beginsWith("vst:")} {
-                    VstSSynth(src.asSymbol).key_(key)
+                    VstSSynth(src[4..].asSymbol).key_(key)
                 }
                 {src.beginsWith("midi:")} {
-                    MidiSSynth(src.asSymbol).key_(key)
+                    MidiSSynth(src[5..].asSymbol).key_(key)
                 }
                 {
                     SSynth(src.asSymbol).key_(key)
@@ -123,15 +123,17 @@ MidiSSynth : SSynth {
         args = argSynth.asString.split($,);
         notechan = args[0].asInteger;
         returnbus = args[1].asInteger;
+
+        /*
         this.node.put(0, {
             var l = returnbus;
             var r = returnbus+1;
             SoundIn.ar([l, r])
         });
-
         this.out = DNodeProxy.defaultout + returnbus;
+        */
 
-        this.set('types', ['midi'], 'midicmd', 'noteOn', 'midiout', midiout, 'chan', notechan)
+        this.set('type', 'midi', 'midicmd', 'noteOn', 'midiout', midiout, 'chan', notechan)
     }
 }
 
@@ -243,6 +245,7 @@ SSynth : EventPatternProxy {
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
     var <synths, <synthdef, <pbindproxy;
+    var <lfos;
     var keyval;
 
     *new {|synth|
@@ -332,14 +335,16 @@ SSynth : EventPatternProxy {
         }{
             this.node.fx(index, fx, wet);
         }
-
     }
 
     clear {
-        this.node.free;
+        this.releaseDependants;
+        this.disconnect;
+        this.clearHalo;
         this.node.clear;
         this.synths.clear;
         this.pbindproxy.clear;
+        this.lfos.clear;
         super.clear;
     }
 
@@ -547,6 +552,8 @@ SSynth : EventPatternProxy {
         quant = 4.0;
         color = Color.rand;
         synths = Order.new;
+        lfos = Order.new();
+
         nodewatcherfunc = {|obj, what|
             if ((what == \play) or: (what == \stop)) {
                 isMonitoring = obj.isMonitoring

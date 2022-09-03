@@ -3,6 +3,8 @@ Presets
 */
 P {
 
+    ///////////////////////////////
+    // properties
     *addCurrent {|node, num|
         var key = node.key;
         var vals = P.getCurrentVals(node);
@@ -31,7 +33,6 @@ P {
     }
 
     *getCurrentVals {|node|
-        //var vals = if (node) node.envir.keys
 
         var vals = if (node.respondsTo(\controlKeys)) {
             node.controlKeys;
@@ -74,8 +75,57 @@ P {
         //.play
     }
 
-    * revdelay {
-        ^['vst:ValhallaSupermassive', 'vst:++Delay', 'dynamics/basiccompress']
+    *blend{|node, from, to, blend=0|
+        var frompreset = P.getPreset(node, from);
+        var topreset = P.getPreset(node, to);
+        if (frompreset.notNil and: {topreset.notNil}) {
+            var result = frompreset.blend(topreset, blend);
+            node.set(*result.getPairs);
+        }
+    }
+
+    ///////////////////////////////
+    // sources
+    *addCurrentSource {|node, num|
+        var key = node.key;
+        var vals = P.getCurrentSource(node);
+        var sources = Halo.at(\source, key);
+        if (sources.isNil) {
+            sources = Order.new;
+            Halo.put(\source, key, sources);
+        };
+        sources.put(num, vals);
+    }
+
+    *getSources {|node|
+        var key = node.key;
+        var sources = Halo.at(\source, key);
+        if (sources.isNil) {
+            sources = Order.new;
+            Halo.put(\source, key, sources);
+        }
+        ^sources
+    }
+
+    *getSource {|node, num|
+        var key = node.key;
+        var sources = P.getSources(node);
+        ^sources[num];
+    }
+
+    *getCurrentSource {|node|
+        ^node.source
+    }
+
+    *removeSource {|node, num|
+        var sources = P.getSources(node);
+        sources.removeAt(num);
+    }
+
+    *morphSource {|node, num, fadeTime=20|
+        var tosource = P.getSource(node, num);
+        node.fadeTime = fadeTime;
+        node.source = tosource;
     }
 
 }

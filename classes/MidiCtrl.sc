@@ -73,10 +73,16 @@ MidiCtrl {
         .fix;
     }
 
+    *connect {
+        MIDIClient.init(verbose:true);
+        MIDIIn.connectAll(verbose:true);
+    }
+
     *initClass {
         MIDIClient.init(verbose:true);
         sources = IdentityDictionary();
 		destinations = IdentityDictionary();
 	}
+
 }
 

@@ -72,7 +72,7 @@ func: {
         \rate, Pfunc({|evt|
             var rate = evt[\speed];
             if (rate.isNil) {
-                //var buf = evt['buf'];
+                var buf = evt['buf'];
                 var bufdur = evt['bufdur'];
                 var dur = evt['numbeats'] * thisThread.clock.beatDur;
                 rate = (bufdur/dur);
@@ -81,15 +81,22 @@ func: {
             rate;
         }),
         \slices, Pfunc({|evt|
-            var numslices = evt[\numslices];
-            (0..numslices-1)/numslices;
+            var slices = evt['slices'];
+            if (slices.isNil) {
+                var numslices = evt[\numslices];
+                slices = (0..numslices-1)/numslices;
+            };
+            slices;
         }),
         \dur, Pfunc({|evt|
             var numslices = evt['numslices'];
             var numbeats = evt['numbeats'];
             numbeats/numslices;
         }),
-        \sustain, Pkey(\dur),
+        \sustain, Pfunc({|evt|
+            var dur = evt['dur'];
+            dur * thisThread.clock.beatDur;
+        }),
         \startPos, Plazy({|evt|
             var val = evt[\slices];
             var start = evt[\start];

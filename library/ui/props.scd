@@ -2,7 +2,7 @@
 func: {|node, index|
 
     var sliders = ();
-    var height = 19;
+    var height = 20;
     var color = node.color ? Color.rand;
     var fxnode = if (node.respondsTo(\node)) { node.node }{ node };
     var scroll;
@@ -65,7 +65,7 @@ func: {|node, index|
                 //\buf,
                 //\amp,
                 \spread,
-                \vol,
+                //\vol,
                 \bend,
                 \vel
             ].includes(key)
@@ -147,7 +147,7 @@ func: {|node, index|
                     val = spec.default;
                 };
                 [key, LevelSlider(key, spec:spec, color:color)
-                    .maxHeight_(20)
+                    .maxHeight_(height)
                     .action_({|ctrl|
                         var val = node.get(key);
                         if (val != ctrl.value) {
@@ -180,7 +180,9 @@ func: {|node, index|
                 if (v.isNumber) {
                     var slider = sliders[k];
                     if (slider.notNil and: {slider.value != v}) {
-                        slider.value = v;
+                        {
+                            slider.value = v;
+                        }.defer
                     };
                 }
             })
@@ -189,7 +191,6 @@ func: {|node, index|
 
     node.addDependant(nodewatcher);
     scroll.onClose_({
-        "close".debug(\scroll);
         node.removeDependant(nodewatcher);
     })
 }

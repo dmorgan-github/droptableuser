@@ -34,20 +34,41 @@ func: {
     seq;
 },
 doc: "
-~seq = Module('device/stepval').()
+~seq = Module('device/stepval2').()
 ~seq.play
 ~seq.stop
 (
 ~seq.set(
+
+    'ptrns', [
+        A.randseq(16, 0.5, -3, 9),
+        A.randseq(24, 0.3, 0, 9),
+    ],
     // don't forget asStream
     'instrs', [
-        ~fd.pfilter(\degree, Pkey(\val)).asStream,
-        ~bass.pfilter(\degree, Pkey(\val)).asStream
-    ],
-    'ptrns', [
-        [7, \, \],
-        [5, \, 1, 1]
-    ],
+
+        ~res.degree_(Pfunc({|evt|
+            var cnt = evt['cnt'];
+            var vals = evt['vals'];
+            var val1 = vals[0];
+            var val2 = vals[1];
+            //[val1, val2].choose
+            val1
+        }))
+        .octave_(4),
+
+        ~res.degree_(Pfunc({|evt|
+            var cnt = evt['cnt'];
+            var vals = evt['vals'];
+            var val1 = vals[0];
+            var val2 = vals[1];
+            //[val1, val2].choose
+            val2
+        }))
+        .octave_(5)
+
+    ].collect(_.asStream),
+
     'tatum', 0.25
 )
 )

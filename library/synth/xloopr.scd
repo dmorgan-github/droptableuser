@@ -5,9 +5,10 @@ synth: {
     var replyid = \bufposreplyid.kr(-1);
     var buf = \buf.kr(0);
     var lag = \lag.kr(1);
-    var rate = \rate.kr(1).lag(lag);
-    var startPos = \startPos.kr(0).lag(0.01);///.poll(label:\startPos);
-    var endPos = \endPos.kr(1).lag(0.01);
+    var rate = \rate.kr(1, spec:ControlSpec(0.125, 4, \lin, 0, 1, "xloopr")).lag(lag);
+
+    var startPos = \startPos.kr(0, spec: ControlSpec(0, 0.9999, \lin, 0, 0, units:"xloopr")).lag(0.01);///.poll(label:\startPos);
+    var endPos = \endPos.kr(1, spec: ControlSpec(0, 1, \lin, 0, 1, units:"xloopr") ).max(startPos).lag(0.01);
     var rev = Select.kr(\rev.kr(0, spec:ControlSpec(0, 1, \lin, 1, 0, "xloopr")), [1, -1]);
 
     var cuePos = \cuePos.kr(0);

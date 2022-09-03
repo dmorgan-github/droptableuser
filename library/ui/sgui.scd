@@ -125,7 +125,7 @@ func: {|node, index|
                                 var rhs = parts[1..].join("");
                                 var vals = rhs.interpret;
 
-                                if (lhs == "split-v") {
+                                if (lhs == "split-h") {
 
                                     target.children.do({|child|
                                         child.remove
@@ -135,7 +135,7 @@ func: {|node, index|
                                         target.layout.add(view);
                                     })
                                 } {
-                                    if (lhs == "split-h") {
+                                    if (lhs == "split-v") {
 
                                     }
                                 }

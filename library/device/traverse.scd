@@ -46,7 +46,7 @@ var degrees = Scale.major.degrees;
 var root = 'C1'.namemidi;
 var step = 7;
 ~data = degrees.collect({|degree|
-    var val = root + degree + (step * (0..7));
+    var val = root + degree + (step * (0..6));
     val.nearestInScale(degrees);
 });
 )

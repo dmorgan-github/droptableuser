@@ -1,18 +1,15 @@
-Require(App.librarydir ++ "ui/common.scd");
 (
 func: {|node|
 
-    var noteChan = 0;
-   // var midiout = MIDIOut(noteChan).latency_(0);
 	var view = View();
 	var baseview;
-	var baseViewFunc = Fdef(\baseview);
     var keys = Order.new;
 
     var scale = Scale.ritusen;
     var map, rows, cols, buttons, hilight;
     var keyboard, grid, func, scales;
     var keyboardview, update;
+    var mode = \push;
 
     var octave = ~octave ?? 3;
     var root = ~root ?? 0;
@@ -57,18 +54,26 @@ func: {|node|
             Button()
             .states_([[label, nil, color], [label, nil, Color.white]])
             .fixedWidth_(40)
-            .fixedHeight_(24)
             .mouseDownAction_({arg ctrl;
                 var note = 12 * octave + num + root;
-                node.on(note);
-                //midiout.noteOn(noteChan, note: note);
-                ctrl.value = 1;
+                if (mode == \push) {
+                    node.on(note);
+                    ctrl.value = 1;
+                };
             })
             .mouseUpAction_({arg ctrl;
                 var note = 12 * octave + num + root;
-                //midiout.noteOff(noteChan, note:note);
-                node.off(note);
-                ctrl.value = 1;
+                if (mode == \push) {
+                    ctrl.value = 1;
+                }
+            })
+            .action_({|ctrl|
+                var note = 12 * octave + num + root;
+                if (ctrl.value == 1) {
+                    node.on(note);
+                } {
+                    node.off(note);
+                }
             });
         });
 
@@ -104,7 +109,18 @@ func: {|node|
 	view = view
     .name_('kb')
 	.layout_(VLayout(
-        scales.(),
+        HLayout(
+            scales.(),
+            Button()
+            .states_([  ["push"], ["toggle"] ] )
+            .action_({|ctrl|
+                if (ctrl.value == 1) {
+                    mode = \toggle
+                }{
+                    mode = \push
+                }
+            })
+        ),
         keyboardview
     ).spacing_(2).margins_(2))
 	.keyDownAction_({arg ctrl, char, mod, uni, keycode, key;
@@ -114,33 +130,39 @@ func: {|node|
 			var note = 12 * octave + val + root;
             if (keys[note].isNil) {
                 keys[note] = 1;
-                //midiout.noteOn(noteChan, note: note);
                 node.on(note);
                 if (num < keyboard.size) {
                     keyboard[num].value = 1;
                 }
+            } {
+                keys.removeAt(note);
+                node.off(note);
+                if (num < keyboard.size) {
+                    keyboard[num].value = 0;
+                }
             }
+
 		};
 		nil;
 	})
 	.keyUpAction_({arg ctrl, char;
 		var val = map.indexOf(char.asSymbol);
-		if (val.isNil.not) {
-			var num = val;
-			var note = 12 * octave + val + root;
-            keys.removeAt(note);
-           // midiout.noteOff(noteChan, note: note);
-            node.off(note);
-			if (num < keyboard.size) {
-				keyboard[num].value = 0;
-			}
-		}
+        if (mode == \push) {
+            if (val.isNil.not) {
+                var num = val;
+                var note = 12 * octave + val + root;
+                keys.removeAt(note);
+                node.off(note);
+                if (num < keyboard.size) {
+                    keyboard[num].value = 0;
+                }
+            }
+        }
 	})
 	.onClose_({arg ctrl;
-        \onclose.postln;
+        //
 	});
 
-    baseview = baseViewFunc.(view, 'kb');
-	baseview.front;
+    view
 }
 )

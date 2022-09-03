@@ -248,4 +248,56 @@ A {
 
         ^result;
     }
+
+
+    // A.rout(32, Array.fill(32, { (0..12).choose  }), [0, 2], [4])
+    *rout {|size=32, vals, startvals, lenvals|
+
+        var phase = 0;
+        var done = false;
+        var result = List.new;
+
+        vals = vals ?? [0];
+        startvals = startvals ?? [0];
+        lenvals = lenvals ?? [1];
+
+        while({done.not}, {
+            var start, len;
+            start = startvals.wrapAt(phase);
+            len = lenvals.wrapAt(phase);
+
+            vals.wrapAt( (start..(start+len-1)) ).do({|val, i|
+                if (result.size >= size) {
+                    done = true;
+                } {
+                    result.add(val);
+                }
+            });
+            phase = phase + 1;
+        });
+
+        ^result.asArray
+    }
+
+    // credit: https://scsynth.org/t/do-not-returning-array/6416/14?u=droptableuser
+    // A.swap_sort_steps(['a', 'b', 'c', 'd'])
+    // returns  [ [ a, b, c, d ], [ b, a, d, c ], [ b, d, a, c ], [ d, b, c, a ], [ d, c, b, a ] ]
+    *swap_sort_steps  {|collection|
+        var size = collection.size;
+        var swapConsequtiveIndexes = {|from, to|
+            (from..to).clump(2).collect{|p| p.reverse }.flat
+        };
+        var indexesEven = swapConsequtiveIndexes.(0, size - 1);
+        var indexesOdd = [0] ++ swapConsequtiveIndexes.(1, size - 1);
+        var swappers = size.collect{ |n|
+            {|toSwap| if(n.even)
+                { indexesEven.collect{|i| toSwap[i]} }
+                { indexesOdd.collect{|i|  toSwap[i]} }
+            }
+        };
+        swappers.inject( [collection], {
+            |col, f|
+            col ++ [f.(col.last)]
+        });
+    }
 }

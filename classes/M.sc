@@ -202,9 +202,22 @@ M : Module {
             };
         }, metadata: envir).add;
 
-        "% synth created".format(name).inform;
+        "synthdef added".debug(name);
 
         ^this;
+    }
+
+    create {|key|
+
+        fork {
+            await {|done|
+                this.add(key);
+                Server.default.sync;
+                done.value(\ok);
+            };
+            S.create(key, key);
+        };
+
     }
 
     *synthDesc {|name|
@@ -292,7 +305,7 @@ M : Module {
             sig = filt.(sig, gate, freq, env);
             sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-20.dbamp);
             sig = sig * (1+vel);
-            sig = sig * \gain.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol"));
+            //sig = sig * \gain.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol"));
 
             if (detectsilence) {
                 "detect silence enabled".postln;

@@ -8,6 +8,21 @@ func: {|node|
     var bus, numchannels;
     var meterWidth = 15;
     var meters, view, synth;
+    var metercolor = if (node.isMonitoring) {Color.green}{Color.yellow};
+
+    var monitorwatcher = {|obj, what|
+        if (what == \play) {
+            meters.do({|m|
+                m.meterColor = Color.green;
+            })
+        }{
+            if (what == \stop) {
+                meters.do({|m|
+                    m.meterColor = Color.grey;
+                })
+            }
+        }
+    };
 
     node = if (node.respondsTo(\node)) {node.node}{node};
     bus = node.bus.index;
@@ -19,6 +34,7 @@ func: {|node|
     meters = Array.fill( numchannels, { arg i;
         LevelIndicator(bounds:Rect(0, 0, meterWidth, 180) ).warning_(0.9).critical_(1.0)
         .drawsPeak_(true)
+        .meterColor_(metercolor)
         .numTicks_(9)
         .numMajorTicks_(3);
     });
@@ -53,11 +69,34 @@ func: {|node|
         }.defer;
     }, ("/" ++ levelkey ++ "OutLevels").asSymbol, server.addr);
 
-    view = View().layout_(HLayout(*meters));
+    node.addDependant(monitorwatcher);
+
+    view = View().layout_(
+        HLayout(
+            Slider().orientation_(\vertical)
+            .thumbSize_(0.5)
+            .knobColor_(Color.cyan)
+            .action_({|ctrl|
+                var val = ctrl.value.linlin(0, 1, 0, 2);
+                node.set(\vol, val);//.debug(node.key);
+            })
+            .fixedWidth_(20)
+            .value_(node.vol.linlin(0, 2, 0, 1))
+            .mouseDownAction_({|ctrl, x, y, mod, button, count|
+                if (count == 2) {
+                    node.set(\vol, 1);//.debug(node.key);
+                    ctrl.value = 1.linlin(0, 2, 0, 1);
+                    true
+                }
+            }),
+            HLayout(*meters)//.margins_(7).spacing_(7)
+        )
+    );
     view
-    .fixedWidth_(75)
+    .fixedWidth_(110)
     .onClose_({
         "free".debug("meter");
+        node.removeDependant(monitorwatcher);
         synth.free;
         OSCdef(levelkey).free;
     });

@@ -31,7 +31,7 @@ synth: {|in|
             'time', 'bubbler_time'.kr(0.39915624260902),
             'timelock', 'bubbler_timelock'.kr(0.0),
             'timevariation', 'bubbler_timevariation'.kr(0.59892189502716),
-            'wetdry', 'bubbler_wetdry'.kr(1.0)
+            'wetdry', 'bubbler_wetdry'.kr(0.3)
         ],
         info:'++bubbler'
     )

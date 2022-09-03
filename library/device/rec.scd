@@ -19,7 +19,7 @@ func: {|len=16, key|
 doc: "
 ~rec = Module('device/rec').()
 ~rec[0] = ~harm.node
-~rec.set(\rec, 1, \fb, 1)
-~rec.get(\buf)
+~rec.set(\\rec, 1, \\fb, 1)
+~rec.get(\\buf)
 "
 )

@@ -31,16 +31,13 @@ D {
 DNodeProxy : NodeProxy {
 
     classvar <>defaultout;
-
     classvar count=0;
 
     var <vstctrls, <>color;
-
     var <fxchain, <metadata;
-
     var <cmdperiodfunc;
-
     var <>key;
+    var <lfos;
 
     *new {|source|
 
@@ -80,7 +77,7 @@ DNodeProxy : NodeProxy {
         // initialize or re-initialize
         res.filter(1000, {|in|
             Splay.ar(
-                in * \vol.kr(1, spec:ControlSpec(0, 4, \lin, 0, 1, "vol")),
+                in * \vol.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol")),
                 spread: \spread.kr(1),
                 center: \center.kr(0),
                 levelComp: false
@@ -97,10 +94,13 @@ DNodeProxy : NodeProxy {
     }
 
     clear {
+        this.releaseDependants;
+        this.clearHalo;
         CmdPeriod.remove(cmdperiodfunc);
         vstctrls.clear;
         fxchain.clear;
         metadata.clear;
+        lfos.clear;
         super.clear;
     }
 
@@ -159,6 +159,7 @@ DNodeProxy : NodeProxy {
         vstctrls = Order.new;
         color = Color.rand;
         fxchain = Order.new;
+        lfos = Order.new();
         metadata = ();
 
         cmdperiodfunc = {

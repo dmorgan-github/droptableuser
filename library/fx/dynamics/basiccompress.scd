@@ -11,7 +11,7 @@ func: { |in|
 	amplitudeDb = Amplitude.ar(in, attack, release).ampdb;
 	gainDb = ((amplitudeDb - threshold) * (1 / ratio - 1)).min(0);
 	sig = in * gainDb.dbamp;
-    sig = in.blend(sig, \compress_mix.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, "compress")));
+    sig = in.blend(sig, \compmix.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, "compress")));
     sig;
 };
 )

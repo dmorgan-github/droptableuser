@@ -5,11 +5,11 @@ synth: {|freq, gate|
     var updateFreq = 15;
     var root = \rootfreq.kr(60.0.midicps).clip(20, 20000);
     var replyid = \bufposreplyid.kr(-1);
-    var buf = \buf.kr(0, specs:ControlSpec(units:"buf"));
+    var buf = \buf.kr(0, spec:ControlSpec(units:"buf"));
     var numframes = max(BufFrames.kr(buf), 1);
 
-    var start = \startPos.kr(0, spec: ControlSpec(0, 0.9999, \lin, 0, 0, units:"buf"));
-    var end = \endPos.kr(1, spec: ControlSpec(0, 1, \lin, 0, 1, units:"buf") ).max(start);
+    var start = \startPos.kr(0, spec: ControlSpec(0, 0.9999, \lin, 0, 0, units:"sampler"));
+    var end = \endPos.kr(1, spec: ControlSpec(0, 1, \lin, 0, 1, units:"sampler") ).max(start);
     var pitched = \pitched.kr(0, spec:ControlSpec(0, 1, \lin, 1, 0, units:"sampler"));
 
     var rate = Select.kr(pitched, [
@@ -24,7 +24,7 @@ synth: {|freq, gate|
 
     //https://scsynth.org/t/when-is-bufrd-done/2899/9
     var phase, sig;
-    var sawrate = rate * BufSampleRate.ir(buf) / (absdif(start, end) * numframes);
+    var sawrate = rate * BufSampleRate.kr(buf) / (absdif(start, end) * numframes);
     phase = (dir * LFSaw.ar(sawrate, 1)).range(start, end) * numframes;
 
     sig = BufRd.ar(
