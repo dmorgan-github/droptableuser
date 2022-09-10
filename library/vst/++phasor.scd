@@ -1,6 +1,6 @@
 (
 synth: {|in|
-    VSTPlugin.ar(in, 2,
+    var sig = VSTPlugin.ar(in, 2,
         params: [
             '1080out', 'phasor_1080out'.kr(0.0),
             '1440out', 'phasor_1440out'.kr(0.0),
@@ -18,6 +18,9 @@ synth: {|in|
             'tempolock', 'phasor_tempolock'.kr(0.0)
         ],
         info:'++phasor'
-    )
+    );
+
+    sig = in.blend(sig, \phaser_mix.kr(0.5, spec:ControlSpec(0, 1, \lin, 0, 0.5, "++phaser")));
+    sig;
 }
 )

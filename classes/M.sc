@@ -121,10 +121,31 @@ M : Module {
     var <synthModule, <filterModule, <outModule, <pitchModule, <envModule;
     var <synthdef, <synthname;
 
-    *new {
+    *new {|osc|
         var res;
         res = super.new().prMInit();
+        if (osc.notNil) {
+            res.osc(osc)
+        };
         ^res;
+    }
+
+    |> {|val, adverb|
+        if (adverb.asSymbol == \f) {
+            this.filter(val)
+        } {
+            var synth = synthModule;
+            var func = {|freq, gate|
+                var sig = synth.(freq, gate);
+                sig = Module(val).(sig);
+                sig;
+            };
+            this.osc(func);
+        }
+    }
+
+    |* {|val, adverb|
+        this.env(val);
     }
 
     osc {|key, cb|
@@ -251,7 +272,7 @@ M : Module {
                 doneaction = Done.freeSelf;
             };
 
-            vel = \vel.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "timbre"));
+            vel = \vel.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, "timbre"));
             freq = if (pitchModule.notNil) {pitchModule.func}{ Module('pitch/freq').func };
             env = if (envModule.notNil) {
                 var env = envir ++ ('gatemode': gatemode);
@@ -282,7 +303,6 @@ M : Module {
                 {|freq| SinOsc.ar(freq)}
             };
 
-
             filt = if (filterModule.notNil) {
                 var env = envir ++ (
                     'freq': freq,
@@ -303,8 +323,8 @@ M : Module {
             sig = sig * env;
             sig = LeakDC.ar(sig);
             sig = filt.(sig, gate, freq, env);
-            sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-20.dbamp);
-            sig = sig * (1+vel);
+            sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-20.dbamp) * vel;
+            //sig = sig * (1+vel);
             //sig = sig * \gain.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol"));
 
             if (detectsilence) {

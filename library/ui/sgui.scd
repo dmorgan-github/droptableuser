@@ -133,7 +133,8 @@ func: {|node, index|
                                     vals.do({|val|
                                         var view = getView.(val);
                                         target.layout.add(view);
-                                    })
+                                    });
+                                    target.layout.add(nil);
                                 } {
                                     if (lhs == "split-v") {
 
@@ -144,7 +145,7 @@ func: {|node, index|
                                 target.children.do({|child|
                                     child.remove
                                 });
-                                target.layout.add( getView.(currentcmd) )
+                                target.layout.add( getView.(currentcmd) );
                             }
                         );
                     }

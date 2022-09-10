@@ -252,21 +252,31 @@ SSynth : EventPatternProxy {
         ^super.new.prInit(synth);
     }
 
+    // build a synthdef and update synth
+    +> {|val, adverb|
+        // creates a synth
+        var me = this;
+        var key = me.key;
+        fork {
+            await {|done|
+                val.add(key);
+                Server.default.sync;
+                done.value(\ok);
+            };
+            me.synth = key;
+        };
+    }
+
     @ {|val, adverb|
 
         if (adverb.isNil and: val.isKindOf(Array)) {
             this.set(*val);
         } {
-            //var func = Fdef("dialects/%".format(adverb).asSymbol);
-            //if (func.source.isNil) {
             if (val.isNil) {
               ^this.get(adverb)
             } {
               this.set(adverb, val)
             }
-            //}{
-            //    func.(val, this);
-            //}
         }
     }
 
@@ -368,6 +378,7 @@ SSynth : EventPatternProxy {
         this.view.front
     }
 
+    /*
     savePresetAs {|name|
         var v, f;
         var e = this.envir.copy.parent_(nil);
@@ -378,6 +389,7 @@ SSynth : EventPatternProxy {
         f.write(v.asCode);
         f.close();
     }
+    */
 
     kill {|ids|
         ids.asArray.do({|id|
@@ -414,8 +426,9 @@ SSynth : EventPatternProxy {
             evt = evt ++ extra;
         };
 
-        args = [\out, out, \gate, 1, \freq, note.midicps, \vel, (vel/127).squared]
+        args = [\out, out, \gate, 1, \freq, note.midicps]
         ++ evt
+        .put(\vel, (vel/127).squared)
         .reject({|v, k|
             (v.isNumber.not and: v.isArray.not and: {v.isKindOf(BusPlug).not})
         })
@@ -587,50 +600,55 @@ SSynth : EventPatternProxy {
 
         synth = argSynth;
         synthdef = SynthDescLib.global.at(synth);
+        //if (synthdef.isNil) {
+        //    synth = \default;
+        //    synthdef = SynthDescLib.global.at(synth);
+        //};
+
         if (synthdef.isNil) {
-            synth = \default;
-            synthdef = SynthDescLib.global.at(synth);
-        };
+            "synth does not exist".debug(synth)
+        } {
 
-        synthdef
-        .controls.reject({|cn|
-            [\freq, \pitch, \trigger, \trig,
-                \in, \buf, \gate, \glis,
-                \bend, \out, \vel].includes(cn.name.asSymbol)
-        }).do({|cn|
-            var key = cn.name.asSymbol;
-            var spec = Spec.specs[key];
-            if (spec.notNil) {
+            synthdef
+            .controls.reject({|cn|
+                [\freq, \pitch, \trigger, \trig,
+                    \in, \buf, \gate, \glis,
+                    \bend, \out, \vel].includes(cn.name.asSymbol)
+            }).do({|cn|
+                var key = cn.name.asSymbol;
+                var spec = Spec.specs[key];
+                if (spec.notNil) {
+                    this.addSpec(key, spec);
+                }/* {
+                var default = cn.defaultValue;
+                var spec = [0, default*2, \lin, 0, default].asSpec;
                 this.addSpec(key, spec);
-            }/* {
-            var default = cn.defaultValue;
-            var spec = [0, default*2, \lin, 0, default].asSpec;
-            this.addSpec(key, spec);
-            }*/
-        });
-
-        metadata = synthdef.metadata ?? ();
-        if (metadata[\specs].notNil) {
-            metadata[\specs].keysValuesDo({|k, v|
-                this.addSpec(k, v);
-            })
-        };
-
-        if (metadata['gatemode'] == \retrig) {
-            this.isMono = true;
-        };
-        this.isMono.debug("mono");
-
-        //"set defaults from spec...".debug("ssynth");
-        if (this.getSpec.notNil) {
-            this.getSpec.keys.do({|key|
-                var spec = this.getSpec[key];
-                this.set(key, spec.default);
+                }*/
             });
-        };
 
-        controlNames = SynthDescLib.global.at(synth).controlNames;
-        this.set(\instrument, synth.debug("synth"), \spread, 1, \pan, 0);
+            metadata = synthdef.metadata ?? ();
+            if (metadata[\specs].notNil) {
+                metadata[\specs].keysValuesDo({|k, v|
+                    this.addSpec(k, v);
+                })
+            };
+
+            if (metadata['gatemode'] == \retrig) {
+                this.isMono = true;
+            };
+            this.isMono.debug("mono");
+
+            //"set defaults from spec...".debug("ssynth");
+            if (this.getSpec.notNil) {
+                this.getSpec.keys.do({|key|
+                    var spec = this.getSpec[key];
+                    this.set(key, spec.default);
+                });
+            };
+
+            controlNames = SynthDescLib.global.at(synth).controlNames;
+            this.set(\instrument, synth.debug("synth"), \spread, 1, \pan, 0);
+        }
     }
 
     *initClass {

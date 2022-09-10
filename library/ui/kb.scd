@@ -14,9 +14,6 @@ func: {|node|
     var octave = ~octave ?? 3;
     var root = ~root ?? 0;
 
-    octave.debug("octave");
-    root.debug("root");
-
 	map = [
 		'z', 'x', 'c', 'v', 'b',
 		'a', 's', 'd', 'f', 'g',
@@ -55,9 +52,11 @@ func: {|node|
             .states_([[label, nil, color], [label, nil, Color.white]])
             .fixedWidth_(40)
             .mouseDownAction_({arg ctrl;
-                var note = 12 * octave + num + root;
+
                 if (mode == \push) {
-                    node.on(note);
+                    var note = 12 * octave + num + root;
+                    var vel = num.linlin(0, 24, 127, 100);
+                    node.on(note, vel);
                     ctrl.value = 1;
                 };
             })
@@ -70,7 +69,9 @@ func: {|node|
             .action_({|ctrl|
                 var note = 12 * octave + num + root;
                 if (ctrl.value == 1) {
-                    node.on(note);
+                    // toggle mode
+                    var vel = num.linlin(0, 24, 127, 100);
+                    node.on(note, vel);
                 } {
                     node.off(note);
                 }
@@ -125,12 +126,14 @@ func: {|node|
     ).spacing_(2).margins_(2))
 	.keyDownAction_({arg ctrl, char, mod, uni, keycode, key;
 		var val = map.indexOf(char.asSymbol);
+
 		if (val.isNil.not) {
+            var vel = val.linlin(0, 24, 127, 100);
 			var num = val;
 			var note = 12 * octave + val + root;
             if (keys[note].isNil) {
                 keys[note] = 1;
-                node.on(note);
+                node.on(note, vel);
                 if (num < keyboard.size) {
                     keyboard[num].value = 1;
                 }

@@ -63,6 +63,7 @@
     pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
     pshuf {arg repeats=inf; ^Pshuf(this, repeats) }
     pstep {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
+    ppar {|repeats=1| ^Ppar(this, repeats) }
 
     pa {
         var a;
@@ -284,6 +285,8 @@
 
 
 + Function {
+
+    => {|a| ^a.(this) }
 
     // copied from: https://scsynth.org/t/proposal-function-await/6396
 	await { |timeout = nil, onTimeout = nil|
