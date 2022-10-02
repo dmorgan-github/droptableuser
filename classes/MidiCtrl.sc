@@ -11,16 +11,15 @@ MidiCtrl {
 
     classvar <skipjack, <>frequency = 0.5;
 	classvar <sources, <destinations;
-    var <instr;
+    var <node;
 
-    *new {|instr|
-        super.new.prInit(instr);
+    *new {|node|
+        ^super.new.prInit(node);
     }
 
-    // TODO: possibly move the midi stuff to a device function
     note {|noteChan, note, debug=false|
 
-        var key = this.instr.key;
+        var key = this.node.key;
         var noteonkey = "%_noteon".format(key).asSymbol;
         var noteoffkey = "%_noteoff".format(key).asSymbol;
 
@@ -29,14 +28,65 @@ MidiCtrl {
         };
 
         MIDIdef.noteOn(noteonkey.debug("noteonkey"), {|vel, note, chan|
-            this.instr.on(note, vel, debug:debug);
+            this.node.on(note, vel, debug:debug);
         }, noteNum:note, chan:noteChan)
         .fix;
 
         MIDIdef.noteOff(noteoffkey.debug("noteoffkey"), {|vel, note, chan|
-            this.instr.off(note);
+            this.node.off(note);
         }, noteNum:note, chan:noteChan)
         .fix;
+    }
+
+    // TODO: ccChan bookkeeping
+    cc {|props, ccNums, ccChan=0|
+
+        var key = this.node.key;
+        var cckey = "%_cc_%".format(key, ccChan).asSymbol.debug("mididef");
+
+        if (props.isNil) {
+            cckey.debug("disconnect");
+            MIDIdef.cc(cckey).permanent_(false).free;
+        }{
+            var order = Order.newFromIndices(props.asArray, ccNums.asArray);
+            MIDIdef.cc(cckey, {|val, num, chan|
+                var mapped, ctrl, spec, filter;
+                ctrl = order[num];
+                spec = node.getSpec(ctrl);
+                if (spec.isNil) {
+                    spec = [0, 1].asSpec;
+                };
+                mapped = spec.map(val/127);
+                node.set(ctrl, mapped);
+            }, ccNum:ccNums, chan:ccChan)
+            .fix;
+
+            // initialize midi cc value
+            // not sure how to find the correct midiout
+            // so trying all of them
+            MIDIClient.destinations.do({|dest, i|
+                order.indices.do({|num|
+                    var ctrl = order[num];
+                    var spec = node.getSpec(ctrl);
+                    var min, max, current, ccval;
+                    if (spec.isNil) {
+                        spec = [0, 1].asSpec;
+                    };
+                    min = spec.minval;
+                    max = spec.maxval;
+                    current = node.get(ctrl);
+                    if (current.notNil) {
+                        ccval = current.linlin(min, max, 0, 127);
+                        //[\curent, current, \cc, ccval].debug(ctrl);
+                        try {
+                            MIDIOut(i).control(ccChan, num, ccval);
+                        } {|err|
+                            "midi out: %".format(err).warn;
+                        }
+                    }
+                });
+            })
+        }
     }
 
     *trace {arg enable=true;
@@ -83,43 +133,26 @@ MidiCtrl {
             // MacOS does not need to connect
             [ \destinationAdded, destinations[added] ].postln;
         };
-
 	}
 
-    *cc {|ccNum, ccChan=0, func, spec|
-        var cckey = "cc_%_%".format(ccNum, ccChan).asSymbol.debug("mididef");
-        if (spec.notNil) {
-            spec = spec.asSpec;
-        };
-
-        if (func.isNil) {
-            MIDIdef(cckey).permanent_(false).free;
-        } {
-            MIDIdef.cc(cckey, {|val, num, chan|
-                if (spec.notNil) {
-                    val = spec.map(val/127);
-                };
-                func.(val, num, chan);
-            }, ccNum:ccNum, chan:ccChan)
-            .fix;
-        }
-    }
-
-    *connect {
-        MIDIClient.init(verbose:true);
-        MIDIIn.connectAll(verbose:true);
-    }
-
     disconnect {
-        var key = this.instr.key;
+        var cckey;
+        var key = this.node.key;
         "%_noteon".format(key).debug("disconnect");
         MIDIdef.noteOn("%_noteon".format(key).asSymbol).permanent_(false).free;
         "%_noteoff".format(key).debug("disconnect");
         MIDIdef.noteOn("%_noteoff".format(key).asSymbol).permanent_(false).free;
+        cckey = "%_cc_%".format(key, 0).asSymbol.debug("mididef");
+        MIDIdef.cc(cckey).permanent_(false).free;
     }
 
-    prInit {|argInstr|
-        this.instr = argInstr;
+    *connectAll {
+        MIDIClient.init(verbose:true);
+        MIDIIn.connectAll(verbose:true);
+    }
+
+    prInit {|argNode|
+        node = argNode;
     }
 
     *initClass {

@@ -83,7 +83,7 @@ S {
 */
 
 // TODO: this hasn't been tested
-MidiIDef : IDef {
+MidiInstrProxy : InstrProxy {
 
     var <notechan=0, <returnbus=0, <midiout;
 
@@ -139,7 +139,7 @@ MidiIDef : IDef {
     }
 }
 
-VstIDef : IDef {
+VstInstrProxy : InstrProxy {
 
     var <>vstsynthdef=\vsti;
     var <vstsynth, <vstplugin, <vstpreset;
@@ -240,18 +240,20 @@ VstIDef : IDef {
     }
 }
 
-IDef : EventPatternProxy {
+InstrProxy : EventPatternProxy {
 
-    var <node, <cmdperiodfunc, <>color, <key;
+    classvar <>count=0;
+
+    var <node, <cmdperiodfunc, <>color;
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
     var <synths, <synthdef, <pbindproxy;
     var <s, <objects;
-    var midictrl;
+    var midictrl, keyval;
 
-    *new {|key|
-        ^super.new.prInit(key);
+    *new {
+        ^super.new.prInit();
     }
 
     at {|num|
@@ -345,11 +347,11 @@ IDef : EventPatternProxy {
         });
     }
 
-    m {
-        if (this.midictrl.isNil) {
-            this.midictrl = MidiCtrl(this);
+    midi {
+        if (midictrl.isNil) {
+            midictrl = MidiCtrl(this);
         };
-        ^this.midictrl;
+        ^midictrl;
     }
 
     synth_ {|synthname|
@@ -426,9 +428,17 @@ IDef : EventPatternProxy {
         this.node.monitor.out = bus
     }
 
+    key { | envir |
+        var val = super.envirKey(envir);
+        if (val.isNil) {
+            val = keyval;
+        };
+		^val
+	}
+
     key_ {|val|
-        key = val;
-        node.key = "%_out".format(val).asSymbol;
+        keyval = val;
+        this.node.key = "%_out".format(keyval).asSymbol;
     }
 
     on {|note, vel=127, extra, debug=false|
@@ -538,13 +548,13 @@ IDef : EventPatternProxy {
 
     }
 
-    prInit {|argKey|
+    prInit {
 
         var synthfunc, me = this, ptrnfunc;
-        key = argKey.asSymbol;
-
+        keyval = "instr%".format(count).asSymbol;
+        count = count + 1;
         color = Color.rand;
-        node = DNodeProxy().key_("%_out".format(key).asSymbol);
+        node = DNodeProxy().key_("%_out".format(keyval).asSymbol);
         node.color = color;
 
         this.clock = W.clock;
@@ -610,13 +620,11 @@ IDef : EventPatternProxy {
             {
                 node.wakeUp;
                 if (isMonitoring) {
-                    \cmdperiod.debug(node.key);
                     node.play
                 };
             }.defer(0.5)
         };
         ServerTree.add(cmdperiodfunc);
-        this.prInitSynth(argKey);
         ^this
     }
 
@@ -626,7 +634,7 @@ IDef : EventPatternProxy {
         synthdef = SynthDescLib.global.at(synth);
 
         if (synthdef.isNil) {
-            "synth does not exist".debug(synth)
+            //"synth does not exist".debug(synth)
         } {
 
             synthdef
@@ -666,9 +674,38 @@ IDef : EventPatternProxy {
             };
 
             controlNames = SynthDescLib.global.at(synth).controlNames;
-            this.set(\instrument, synth.debug("synth"), \spread, 1, \pan, 0);
+            this.set(\instrument, synth, \spread, 1, \pan, 0);
         }
     }
+
+    /*
+    push {|name|
+        key = name;
+        topEnvironment[key] = this;
+    }
+    */
+
+    /*
+    *push { |pushSyntax = true|
+		current = this;
+		if(pushSyntax) {
+			thisProcess.interpreter.preProcessor = { |string|
+				string = string.copy; // make it mutable
+				while { string.beginsWith("\n") } { string = string.drop(1) };
+				if(string.beginsWith("(\n--") and: string.endsWith("\n)")) { string = string.drop(2).drop(-2) };
+				if(string.beginsWith("--")) { string = "Steno.current.value(\"%\")".format(string.drop(2)) };
+				string
+			}
+		}
+	}
+
+    pop { |popSyntax = true|
+		if(current === this) { current = nil };
+		if(popSyntax) {
+			thisProcess.interpreter.preProcessor = nil
+		}
+	}
+    */
 
     *initClass {
     }
