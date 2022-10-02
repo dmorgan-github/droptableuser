@@ -1,8 +1,4 @@
 /*
-Synth
-*/
-
-/*
 nice colors:
 Color(0.60549101829529, 0.63466150760651, 0.86493694782257, 0.2)
 Color(0.55233793258667, 0.65434362888336, 0.71119487285614, 0.2)
@@ -31,55 +27,6 @@ savable
 playable with synthdef, vst, midi instruments
 filterable with sc fx
 filterable with vst fx
-*/
-
-/*
-S {
-
-    *create {|key, synth|
-
-        var envir = currentEnvironment;
-        var res = envir[key];
-
-        if (res.isNil) {
-
-            if (synth.isKindOf(Symbol)) {
-                var src = synth.asString;
-                res = case
-                {src.beginsWith("vst:")} {
-                    VstSSynth(src[4..].asSymbol).key_(key)
-                }
-                {src.beginsWith("midi:")} {
-                    MidiSSynth(src[5..].asSymbol).key_(key)
-                }
-                {
-                    SSynth(src.asSymbol).key_(key)
-                };
-                envir[key] = res;
-            } {
-                "source not provided".warn
-            }
-        } {
-            if (synth.notNil) {
-                res.synth = synth;
-            }
-        };
-
-        ^res;
-    }
-
-    *clear {|key|
-        var envir = currentEnvironment;
-        var res = envir[key];
-        if (res.notNil) {
-            envir.removeAt(key);
-            res.clear;
-        }
-    }
-
-    *initClass {
-    }
-}
 */
 
 // TODO: this hasn't been tested
@@ -647,11 +594,7 @@ InstrProxy : EventPatternProxy {
                 var spec = Spec.specs[key];
                 if (spec.notNil) {
                     this.addSpec(key, spec);
-                }/* {
-                var default = cn.defaultValue;
-                var spec = [0, default*2, \lin, 0, default].asSpec;
-                this.addSpec(key, spec);
-                }*/
+                }
             });
 
             metadata = synthdef.metadata ?? ();
@@ -677,35 +620,6 @@ InstrProxy : EventPatternProxy {
             this.set(\instrument, synth, \spread, 1, \pan, 0);
         }
     }
-
-    /*
-    push {|name|
-        key = name;
-        topEnvironment[key] = this;
-    }
-    */
-
-    /*
-    *push { |pushSyntax = true|
-		current = this;
-		if(pushSyntax) {
-			thisProcess.interpreter.preProcessor = { |string|
-				string = string.copy; // make it mutable
-				while { string.beginsWith("\n") } { string = string.drop(1) };
-				if(string.beginsWith("(\n--") and: string.endsWith("\n)")) { string = string.drop(2).drop(-2) };
-				if(string.beginsWith("--")) { string = "Steno.current.value(\"%\")".format(string.drop(2)) };
-				string
-			}
-		}
-	}
-
-    pop { |popSyntax = true|
-		if(current === this) { current = nil };
-		if(popSyntax) {
-			thisProcess.interpreter.preProcessor = nil
-		}
-	}
-    */
 
     *initClass {
     }
