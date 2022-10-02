@@ -83,7 +83,7 @@ S {
 */
 
 // TODO: this hasn't been tested
-MidiInstrDef : InstrDef {
+MidiIDef : IDef {
 
     var <notechan=0, <returnbus=0, <midiout;
 
@@ -139,7 +139,7 @@ MidiInstrDef : InstrDef {
     }
 }
 
-VstInstrDef : InstrDef {
+VstIDef : IDef {
 
     var <>vstsynthdef=\vsti;
     var <vstsynth, <vstplugin, <vstpreset;
@@ -240,14 +240,15 @@ VstInstrDef : InstrDef {
     }
 }
 
-InstrDef : EventPatternProxy {
+IDef : EventPatternProxy {
 
     var <node, <cmdperiodfunc, <>color, <key;
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
     var <synths, <synthdef, <pbindproxy;
-    var <m, <objects;
+    var <s, <objects;
+    var midictrl;
 
     *new {|key|
         ^super.new.prInit(key);
@@ -263,7 +264,7 @@ InstrDef : EventPatternProxy {
         if (val.isNil) {
             objects.removeAt(num);
             objects.changed(\put, [num, nil]);
-            m.removeAt(num);
+            this.s.removeAt(num);
             this.fx(num, nil);
         } {
             objects.put(num, val);
@@ -280,11 +281,11 @@ InstrDef : EventPatternProxy {
                         //so ugly
                     },
                     {
-                        m.put(num, val)
+                        this.s.put(num, val)
                     }
                 )
             } {
-                m.put(num, val)
+                this.s.put(num, val)
             }
         }
     }
@@ -301,21 +302,6 @@ InstrDef : EventPatternProxy {
             }
         }
     }
-
-    /*
-    >> {|val|
-        //>> ['delay/fb' -> [\delayfb_mix: 1], 'reverb/miverb' ]
-        val.asArray.do({|v, i|
-            var slot = 100 + i;
-            if (v.isKindOf(Association)) {
-                this.fx(slot, v.key);
-                this.node.set(*v.value);
-            }{
-                this.fx(slot, v);
-            };
-        });
-    }
-    */
 
     set {|...args|
 
@@ -359,6 +345,13 @@ InstrDef : EventPatternProxy {
         });
     }
 
+    m {
+        if (this.midictrl.isNil) {
+            this.midictrl = MidiCtrl(this);
+        };
+        ^this.midictrl;
+    }
+
     synth_ {|synthname|
         this.prInitSynth(synthname);
     }
@@ -375,14 +368,19 @@ InstrDef : EventPatternProxy {
     }
 
     clear {
+        // TODO: figure out how to simplify
         this.releaseDependants;
-        this.disconnect;
         this.clearHalo;
         this.node.clear;
         this.synths.clear;
         this.pbindproxy.clear;
         this.objects.clear;
-        m.release;
+        this.s.release;
+        if (this.midictrl.notNil) {
+            this.midictrl.disconnect;
+            this.midictrl = nil;
+        };
+        ServerTree.remove(cmdperiodfunc);
         super.clear;
     }
 
@@ -475,38 +473,6 @@ InstrDef : EventPatternProxy {
         }
     }
 
-    /*
-    // TODO: possibly move the midi stuff to a device function
-    note {|noteChan, note, debug=false|
-
-        var noteonkey = "%_noteon".format(this.key).asSymbol;
-        var noteoffkey = "%_noteoff".format(this.key).asSymbol;
-
-        if (note.isNil) {
-            note = (0..110);
-        };
-
-        MIDIdef.noteOn(noteonkey.debug("noteonkey"), {|vel, note, chan|
-            this.on(note, vel, debug:debug);
-        }, noteNum:note, chan:noteChan)
-        .fix;
-
-        MIDIdef.noteOff(noteoffkey.debug("noteoffkey"), {|vel, note, chan|
-            this.off(note);
-        }, noteNum:note, chan:noteChan)
-        .fix;
-    }
-    */
-
-    /*
-    disconnect {
-        "%_noteon".format(this.key).debug("disconnect");
-        MIDIdef.noteOn("%_noteon".format(this.key).asSymbol).permanent_(false).free;
-        "%_noteoff".format(this.key).debug("disconnect");
-        MIDIdef.noteOn("%_noteoff".format(this.key).asSymbol).permanent_(false).free;
-    }
-    */
-
     print {
         //this.envir.copy.parent_(nil).getPairs.asCode.postln;
         "[".format(this.key).postln;
@@ -527,16 +493,6 @@ InstrDef : EventPatternProxy {
     source_ {|pattern|
 
         var chain;
-
-        /*
-        if (pattern.isKindOf(Array)) {
-            if (pattern.shape.size > 1) {
-                pattern = pattern.ppar
-            } {
-                pattern = pattern.p
-            }
-        };
-        */
 
         chain = Pchain(
             /*
@@ -596,23 +552,22 @@ InstrDef : EventPatternProxy {
 
         synths = Order.new;
         objects = Order();
-        m = M();
+        s = M();
 
         synthfunc = {|obj, what, vals|
             var key = me.key;
             fork {
                 await {|done|
-                    m.add(key);
+                    s.add(key);
                     Server.default.sync;
                     done.value(\ok);
                 };
                 me.synth = key;
             };
         };
-        m.addDependant(synthfunc);
+        this.s.addDependant(synthfunc);
 
         ptrnfunc = {|obj, what, vals|
-
             var ptrns = objects
             .select({|obj|
                 obj.isKindOf(Association) and: {obj.key == \ptrn}
@@ -628,7 +583,11 @@ InstrDef : EventPatternProxy {
             });
 
             if (ptrns.size > 0) {
-                me.source = Ppar(ptrns)
+                if (ptrns.size > 1) {
+                    me.source = Ppar(ptrns)
+                } {
+                    me.source = ptrns[0]
+                }
             }{
                 me.source = Pbind()
             }
@@ -642,8 +601,8 @@ InstrDef : EventPatternProxy {
         };
 
         node.addDependant(nodewatcherfunc);
-        node.play;
 
+        node.play;
         pbindproxy = PbindProxy();
         super.source = Pbind();
 

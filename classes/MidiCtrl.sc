@@ -11,29 +11,30 @@ MidiCtrl {
 
     classvar <skipjack, <>frequency = 0.5;
 	classvar <sources, <destinations;
-    var <synth;
+    var <instr;
 
-    *new {|synth|
-        super.new.prInit(synth);
+    *new {|instr|
+        super.new.prInit(instr);
     }
 
     // TODO: possibly move the midi stuff to a device function
     note {|noteChan, note, debug=false|
 
-        var noteonkey = "%_noteon".format(this.key).asSymbol;
-        var noteoffkey = "%_noteoff".format(this.key).asSymbol;
+        var key = this.instr.key;
+        var noteonkey = "%_noteon".format(key).asSymbol;
+        var noteoffkey = "%_noteoff".format(key).asSymbol;
 
         if (note.isNil) {
             note = (0..110);
         };
 
         MIDIdef.noteOn(noteonkey.debug("noteonkey"), {|vel, note, chan|
-            synth.on(note, vel, debug:debug);
+            this.instr.on(note, vel, debug:debug);
         }, noteNum:note, chan:noteChan)
         .fix;
 
         MIDIdef.noteOff(noteoffkey.debug("noteoffkey"), {|vel, note, chan|
-            synth.off(note);
+            this.instr.off(note);
         }, noteNum:note, chan:noteChan)
         .fix;
     }
@@ -110,14 +111,15 @@ MidiCtrl {
     }
 
     disconnect {
-        "%_noteon".format(this.key).debug("disconnect");
-        MIDIdef.noteOn("%_noteon".format(this.key).asSymbol).permanent_(false).free;
-        "%_noteoff".format(this.key).debug("disconnect");
-        MIDIdef.noteOn("%_noteoff".format(this.key).asSymbol).permanent_(false).free;
+        var key = this.instr.key;
+        "%_noteon".format(key).debug("disconnect");
+        MIDIdef.noteOn("%_noteon".format(key).asSymbol).permanent_(false).free;
+        "%_noteoff".format(key).debug("disconnect");
+        MIDIdef.noteOn("%_noteoff".format(key).asSymbol).permanent_(false).free;
     }
 
-    prInit {|argSynth|
-        this.synth = argSynth;
+    prInit {|argInstr|
+        this.instr = argInstr;
     }
 
     *initClass {

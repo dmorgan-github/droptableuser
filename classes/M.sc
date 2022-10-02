@@ -162,14 +162,13 @@ M : Module {
                     if (mod.isKindOf(Symbol)) {
                         mod = "out/%".format(mod).asSymbol;
                     };
+                },
+                \sig, {
+                    if (mod.isKindOf(Symbol)) {
+                        mod = "synth/%".format(mod).asSymbol;
+                    };
                 }
             );
-
-        } {
-            key = \sig;
-            if (val.isKindOf(Symbol)) {
-                mod = "synth/%".format(val).asSymbol;
-            };
         };
 
         mod = Module(mod);
