@@ -3,7 +3,7 @@ synth: {|freq, gate|
 
     var mod = {
         var ratio = \mratio.kr(1, spec:DMControlSpec(0.5, 20, \lin, 0, 1, units:"pm", sort:0));
-        var fb = \mfb.kr(0, spec:DMControlSpec(0, 1.5, \lin, 0, 0, units:"pm", sort:1));
+        var fb = \mfb.kr(0, spec:DMControlSpec(-1, 1.5, \lin, 0, 0, units:"pm", sort:1));
         var index = \mindex.kr(0, spec:DMControlSpec(0, 20, \lin, 0, 0, units:"pm", sort:2));
         var atk = \matk.kr(0.01, spec:DMControlSpec(0, 2, \lin, 0, 0.01, units:"pm", sort:3));
         var dec = \mdec.kr(0.3, spec:DMControlSpec(0, 2, \lin, 0, 0.3, units:"pm", sort:5));

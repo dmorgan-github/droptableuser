@@ -279,7 +279,7 @@ A {
         ^result.asArray
     }
 
-    // credit: https://scsynth.org/t/do-not-returning-array/6416/14?u=droptableuser
+    // credit: https://scsynth.org/t/do-not-returning-array/6416/14
     // A.swap_sort_steps(['a', 'b', 'c', 'd'])
     // returns  [ [ a, b, c, d ], [ b, a, d, c ], [ b, d, a, c ], [ d, b, c, a ], [ d, c, b, a ] ]
     *swap_sort_steps  {|collection|

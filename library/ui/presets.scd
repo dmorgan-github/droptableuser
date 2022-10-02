@@ -7,7 +7,7 @@ func: {|node|
     var buttons = 14.collect({|i|
         var color_active = Color.white.alpha_(0.9);
         var color_saved = Color.green.alpha_(0.9);
-        var color_empty = Color.gray.alpha_(0.5);
+        var color_empty = Color.clear.alpha_(0.5);
         var issaved = P.getPreset(node, i).notNil;
         var color_init = if (issaved) {color_saved}{color_empty};
         Button()
@@ -50,43 +50,53 @@ func: {|node|
             };
         })
         .states_([ [nil, nil, color_init ], [nil, nil, color_active ] ])
+        .maxSize_(Size(12, 12))
     });
 
     View().layout_(
-        VLayout(
 
-            HLayout(
-
-                NumberBox()
-                .action_({|ctrl|
-                    morphbeats = ctrl.value;
-                })
-                .toolTip_("morph time")
-                .maxWidth_(25)
-                .value_(morphbeats)
-                ,
-
-                frompresetview = PopUpMenu().items_( (0..13) ),
-                Slider()
-                .orientation_(\horizontal)
-                .thumbSize_(0.7)
-                .action_({|ctrl|
-                    var from = frompresetview.item.asInteger;
-                    var to = topresetview.item.asInteger;
-                    P.blend(node, from, to, ctrl.value);
-                }),
-                topresetview = PopUpMenu().items_( (0..13) )
-
-            ).margins_(2).spacing_(2),
+        HLayout(
 
             GridLayout.rows(
                 buttons[0..6],
                 buttons[7..13]
             ).margins_(0).spacing_(0),
 
-            nil
+            NumberBox()
+            .action_({|ctrl|
+                morphbeats = ctrl.value;
+            })
+            .toolTip_("morph time")
+            .fixedWidth_(25)
+            .value_(morphbeats)
+            .background_(Color.clear),
 
-        ).margins_(0).spacing_(0),
+            frompresetview = NumberBox()
+            .value_(0)
+            .clipLo_(0)
+            .clipHi_(13)
+            .minDecimals_(0)
+            .fixedWidth_(25)
+            .background_(Color.clear)
+            ,
+            LevelSlider("blend", [0, 1].asSpec)
+            //.orientation_(\horizontal)
+            //.thumbSize_(0.7)
+            .action_({|ctrl|
+                var from = frompresetview.value.asInteger;
+                var to = topresetview.value.asInteger;
+                P.blend(node, from, to, ctrl.value);
+            }),
+            topresetview = NumberBox()
+            .value_(0)
+            .clipLo_(0)
+            .clipHi_(13)
+            .minDecimals_(0)
+            .fixedWidth_(25)
+            .background_(Color.clear)
+
+        ).margins_(2).spacing_(2),
+
     )
 };
 )

@@ -36,7 +36,6 @@ func: {|node, index|
         );
     };
 
-
     view = View(bounds:75@150)
     .name_(windowname)
     .layout_(VLayout(

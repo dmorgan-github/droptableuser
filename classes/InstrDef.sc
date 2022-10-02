@@ -33,6 +33,7 @@ filterable with sc fx
 filterable with vst fx
 */
 
+/*
 S {
 
     *create {|key, synth|
@@ -79,9 +80,10 @@ S {
     *initClass {
     }
 }
+*/
 
 // TODO: this hasn't been tested
-MidiSSynth : SSynth {
+MidiInstrDef : InstrDef {
 
     var <notechan=0, <returnbus=0, <midiout;
 
@@ -137,7 +139,7 @@ MidiSSynth : SSynth {
     }
 }
 
-VstSSynth : SSynth {
+VstInstrDef : InstrDef {
 
     var <>vstsynthdef=\vsti;
     var <vstsynth, <vstplugin, <vstpreset;
@@ -238,33 +240,53 @@ VstSSynth : SSynth {
     }
 }
 
-SSynth : EventPatternProxy {
+InstrDef : EventPatternProxy {
 
-    var <node, <cmdperiodfunc, <>color;
+    var <node, <cmdperiodfunc, <>color, <key;
     var <>isMono=false, <synth;
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
     var <synths, <synthdef, <pbindproxy;
-    var <lfos;
-    var keyval;
+    var <m, <objects;
 
-    *new {|synth|
-        ^super.new.prInit(synth);
+    *new {|key|
+        ^super.new.prInit(key);
     }
 
-    // build a synthdef and update synth
-    +> {|val, adverb|
-        // creates a synth
-        var me = this;
-        var key = me.key;
-        fork {
-            await {|done|
-                val.add(key);
-                Server.default.sync;
-                done.value(\ok);
-            };
-            me.synth = key;
-        };
+    at {|num|
+        ^objects[num]
+    }
+
+    put {|num, val|
+
+        // TODO: need to improve bookkeeping
+        if (val.isNil) {
+            objects.removeAt(num);
+            objects.changed(\put, [num, nil]);
+            m.removeAt(num);
+            this.fx(num, nil);
+        } {
+            objects.put(num, val);
+            objects.changed(\put, [num, val]);
+
+            if (val.isKindOf(Association)) {
+                var key = val.key;
+                var item = val.value;
+                switch(key,
+                    \fx, {
+                        this.fx(num, item)
+                    },
+                    \ptrn, {
+                        //so ugly
+                    },
+                    {
+                        m.put(num, val)
+                    }
+                )
+            } {
+                m.put(num, val)
+            }
+        }
     }
 
     @ {|val, adverb|
@@ -280,6 +302,7 @@ SSynth : EventPatternProxy {
         }
     }
 
+    /*
     >> {|val|
         //>> ['delay/fb' -> [\delayfb_mix: 1], 'reverb/miverb' ]
         val.asArray.do({|v, i|
@@ -292,29 +315,33 @@ SSynth : EventPatternProxy {
             };
         });
     }
+    */
 
     set {|...args|
 
         var controlKeys = this.node.controlKeys;
-        // TODO server.bind
-        Server.default.makeBundle(Server.default.latency, {
 
-            // set node properties
-            var dict = args.asDict;
-            var val = dict.select({|v, k|
-                controlKeys.includes(k) and: {v.isNumber.or(v.isArray)}
-            });
-            node.set(*val.getPairs);
+        // this is inefficient for a synth with lots of params
+        var nodeprops = Array.new(args.size);
+        var synthprops = Array.new(args.size);
+        var mycontrolnames = controlNames ?? { [] };
+        args.pairsDo({|k, v|
+            if ( v.isNumber.or(v.isArray) )  {
+                if (mycontrolnames.includes(k)) {
+                    synthprops = synthprops.add(k).add(v);
+                } {
+                    if (controlKeys.includes(k)) {
+                        nodeprops = nodeprops.add(k).add(v);
+                    }
+                }
+            };
+        });
 
-            // this will update the settings on already playing
-            // synths, otherwise you have to wait until the next
-            // event
-            if (controlNames.notNil) {
-                val = dict.select({|v, k|
-                    controlNames.includes(k) and: {v.isNumber.or(v.isArray)}
-                });
-                node.group.set(*val.getPairs);
-            }
+        Server.default.bind({
+            node.set(*nodeprops);
+            // this will update the settings on already playing synths,
+            // otherwise you have to wait until the next event
+            node.group.set(*synthprops);
         });
 
         args.pairsDo({|k, v|
@@ -354,7 +381,8 @@ SSynth : EventPatternProxy {
         this.node.clear;
         this.synths.clear;
         this.pbindproxy.clear;
-        this.lfos.clear;
+        this.objects.clear;
+        m.release;
         super.clear;
     }
 
@@ -378,23 +406,18 @@ SSynth : EventPatternProxy {
         this.view.front
     }
 
-    /*
-    savePresetAs {|name|
-        var v, f;
-        var e = this.envir.copy.parent_(nil);
-        e.removeAt('instrument');
-        v = e.getPairs;
-        f = App.librarydir ++ "preset/%".format(name);
-        f = File.open(f, "w");
-        f.write(v.asCode);
-        f.close();
-    }
-    */
-
     kill {|ids|
         ids.asArray.do({|id|
             Synth.basicNew(this.synth, Server.default, id).free
         });
+    }
+
+    mute {
+        this.node.stop
+    }
+
+    unmute {
+        this.node.play
     }
 
     out {
@@ -406,12 +429,8 @@ SSynth : EventPatternProxy {
     }
 
     key_ {|val|
-        keyval = val;
+        key = val;
         node.key = "%_out".format(val).asSymbol;
-    }
-
-    key {
-        ^keyval;
     }
 
     on {|note, vel=127, extra, debug=false|
@@ -428,6 +447,7 @@ SSynth : EventPatternProxy {
 
         args = [\out, out, \gate, 1, \freq, note.midicps]
         ++ evt
+        .copy
         .put(\vel, (vel/127).squared)
         .reject({|v, k|
             (v.isNumber.not and: v.isArray.not and: {v.isKindOf(BusPlug).not})
@@ -455,6 +475,7 @@ SSynth : EventPatternProxy {
         }
     }
 
+    /*
     // TODO: possibly move the midi stuff to a device function
     note {|noteChan, note, debug=false|
 
@@ -475,13 +496,16 @@ SSynth : EventPatternProxy {
         }, noteNum:note, chan:noteChan)
         .fix;
     }
+    */
 
+    /*
     disconnect {
         "%_noteon".format(this.key).debug("disconnect");
         MIDIdef.noteOn("%_noteon".format(this.key).asSymbol).permanent_(false).free;
         "%_noteoff".format(this.key).debug("disconnect");
         MIDIdef.noteOn("%_noteoff".format(this.key).asSymbol).permanent_(false).free;
     }
+    */
 
     print {
         //this.envir.copy.parent_(nil).getPairs.asCode.postln;
@@ -504,9 +528,15 @@ SSynth : EventPatternProxy {
 
         var chain;
 
+        /*
         if (pattern.isKindOf(Array)) {
-            pattern = pattern.p
+            if (pattern.shape.size > 1) {
+                pattern = pattern.ppar
+            } {
+                pattern = pattern.p
+            }
         };
+        */
 
         chain = Pchain(
             /*
@@ -529,8 +559,8 @@ SSynth : EventPatternProxy {
                 })
             ),
             */
-            pbindproxy,
             pattern,
+            pbindproxy,
             Plazy({
                 Pbind(
                     \out, Pfunc({node.bus.index}),
@@ -540,9 +570,7 @@ SSynth : EventPatternProxy {
         );
 
         super.source = Plazy({
-
             synth = synth ?? {\default};
-
             if (isMono) {
                 // not sure how to make composite event work with pmono
                 Pmono(synth, \trig, 1) <> chain
@@ -554,33 +582,70 @@ SSynth : EventPatternProxy {
 
     }
 
-    prInit {|synth|
+    prInit {|argKey|
 
-        var count = Halo.at(\synths, synth);
-        count = (count ?? 0) + 1;
-        Halo.put(\synths, synth, count);
+        var synthfunc, me = this, ptrnfunc;
+        key = argKey.asSymbol;
 
-        keyval = "%_%".format(synth, count).asSymbol;
-        clock = W.clock;
-        quant = 4.0;
         color = Color.rand;
+        node = DNodeProxy().key_("%_out".format(key).asSymbol);
+        node.color = color;
+
+        this.clock = W.clock;
+        this.quant = 4.0;
+
         synths = Order.new;
-        lfos = Order.new();
+        objects = Order();
+        m = M();
+
+        synthfunc = {|obj, what, vals|
+            var key = me.key;
+            fork {
+                await {|done|
+                    m.add(key);
+                    Server.default.sync;
+                    done.value(\ok);
+                };
+                me.synth = key;
+            };
+        };
+        m.addDependant(synthfunc);
+
+        ptrnfunc = {|obj, what, vals|
+
+            var ptrns = objects
+            .select({|obj|
+                obj.isKindOf(Association) and: {obj.key == \ptrn}
+            })
+            .collect({|val|
+                var key = val.key;
+                var item = val.value;
+                if (item.isKindOf(Array)) {
+                    item.p
+                }{
+                    item
+                }
+            });
+
+            if (ptrns.size > 0) {
+                me.source = Ppar(ptrns)
+            }{
+                me.source = Pbind()
+            }
+        };
+        objects.addDependant(ptrnfunc);
 
         nodewatcherfunc = {|obj, what|
             if ((what == \play) or: (what == \stop)) {
                 isMonitoring = obj.isMonitoring
             }
         };
-        //node = D("%_out".format(this.key).asSymbol);
-        node = DNodeProxy().key_("%_out".format(keyval).asSymbol);
-        node.color = color;
-        node.addDependant(nodewatcherfunc);
 
+        node.addDependant(nodewatcherfunc);
         node.play;
+
         pbindproxy = PbindProxy();
         super.source = Pbind();
-        this.quant = 4.0;
 
         cmdperiodfunc = {
             {
@@ -592,7 +657,7 @@ SSynth : EventPatternProxy {
             }.defer(0.5)
         };
         ServerTree.add(cmdperiodfunc);
-        this.prInitSynth(synth);
+        this.prInitSynth(argKey);
         ^this
     }
 
@@ -600,10 +665,6 @@ SSynth : EventPatternProxy {
 
         synth = argSynth;
         synthdef = SynthDescLib.global.at(synth);
-        //if (synthdef.isNil) {
-        //    synth = \default;
-        //    synthdef = SynthDescLib.global.at(synth);
-        //};
 
         if (synthdef.isNil) {
             "synth does not exist".debug(synth)
@@ -636,7 +697,6 @@ SSynth : EventPatternProxy {
             if (metadata['gatemode'] == \retrig) {
                 this.isMono = true;
             };
-            this.isMono.debug("mono");
 
             //"set defaults from spec...".debug("ssynth");
             if (this.getSpec.notNil) {

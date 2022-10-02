@@ -27,6 +27,7 @@ ConvRev {
 
         spectrums = List.new;
 
+        // TODO: clean up buffers
         Buffer.read(Server.default, inIrPath, action:{arg buf;
             var numChannels = buf.numChannels;
             numChannels.do({arg i;

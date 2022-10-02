@@ -1,7 +1,12 @@
 (
 func: {|node|
 
-    var view = View().layout_(VLayout().margins_(1).spacing_(1));
+    var view = View()
+    .layout_(VLayout()
+        .margins_(1)
+        .spacing_(1)
+    );
+
     var swap, moveUp, moveDown, updateButtons, fxwatcher;
     var fxbuttonsview = View().layout_(VLayout().margins_(1).spacing_(1));
     var fxnode = if (node.respondsTo(\node)) { node.node }{ node };
@@ -68,18 +73,15 @@ func: {|node|
 
                 fxbuttonsview.layout.add(
                     HLayout(
-                        Button().states_([  ["↓", nil, Color.clear]  ]).action_({
-                            moveDown.(index);
-                        })
-                        .maxWidth_(50),
-                        Button().states_([  ["↑", nil, Color.clear]  ]).action_({
-                            moveUp.(index);
-                        })
-                        .maxWidth_(50),
 
+                        StaticText()
+                        .string_(obj.name.asString.split($.)[0].toUpper)
+                        .stringColor_(Color.white.alpha_(0.5))
 
-                        // TODO: this is a bit hacky and should be refactored
-                        Button().states_( [ [obj.name, nil, Color.clear] ] ).action_({|ctrl|
+                        /*
+                        Button()
+                        .states_( [ [obj.name, Color.white.alpha_(0.5), Color.clear] ] )
+                        .action_({|ctrl|
                             if (obj.type == 'vst') {
                                 obj['ctrl'].editor
                             }{
@@ -111,18 +113,60 @@ func: {|node|
 
                             }
                         })
+                        */
                         .mouseDownAction_({|ctrl, x, y, mod, num, count|
+
                             if (obj.type == 'vst') {
-                                // ctrl key
-                                if (mod == 262144) {
-                                    Ui('sgui').gui(fxnode, index)
-                                };
-                                // alt key
-                                if (mod == 524288) {
-                                    obj['ctrl'].gui
+                                switch (mod,
+                                    262144, { // ctrl key
+                                        Ui('sgui').gui(fxnode, index)
+                                    },
+                                    524288, { // alt key
+                                        obj['ctrl'].gui
+                                    },
+                                    {
+                                        obj['ctrl'].editor
+                                    }
+                                )
+                            }{
+                                var ctrl = obj['ctrl'];
+                                if (ctrl.view.notNil) {
+                                    var key = 'ui/' ++ ctrl.view;
+                                    if (Module.exists(key)) {
+                                        var fxview = Ui(ctrl.view).view(fxnode, index);
+                                        fxview.bounds = Rect(view.bounds.left, view.bounds.top);
+                                        fxview.front;
+                                    } {
+                                        "custom view does not exists: %".format(key).warn;
+                                        Ui('sgui').gui(fxnode, index)
+                                    }
+                                }{
+                                    var left, top;
+                                    var fxview = Ui('sgui').view(fxnode, index);
+                                    var parents = view.getParents();
+                                    if (parents.notNil) {
+                                        var width;
+                                        var parent = parents.last;
+                                        width = parent.bounds.width;
+                                        left = parent.bounds.left + width + 5;
+                                        top = parent.bounds.top;
+                                    };
+                                    fxview.bounds = Rect(left, top, 100, 200);
+                                    fxview.front;
                                 }
                             }
                         }),
+
+                        nil,
+
+                        Button().states_([  ["↓", nil, Color.clear]  ]).action_({
+                            moveDown.(index);
+                        })
+                        .maxWidth_(50),
+                        Button().states_([  ["↑", nil, Color.clear]  ]).action_({
+                            moveUp.(index);
+                        })
+                        .maxWidth_(50),
 
                         Button().states_([  ["x", nil, Color.clear]  ]).action_({
                             node.fx(index, nil)

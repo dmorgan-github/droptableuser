@@ -118,36 +118,86 @@ Ui : Module {
 // ~sd.synthdef.dumpUGens
 M : Module {
 
-    var <synthModule, <filterModule, <outModule, <pitchModule, <envModule;
+    //var <synthModule, <filterModules, <outModule, <pitchModule, <envModule;
     var <synthdef, <synthname;
+    var <modules;
 
-    *new {|osc|
+    *new {
         var res;
         res = super.new().prMInit();
-        if (osc.notNil) {
-            res.osc(osc)
-        };
         ^res;
     }
 
-    |> {|val, adverb|
-        if (adverb.asSymbol == \f) {
-            this.filter(val)
+    at {|num|
+        ^modules[num];
+    }
+
+    put {|num, val|
+
+        var key, mod;
+        mod = val;
+
+        if (val.isKindOf(Association)) {
+
+            key = val.key;
+            mod = val.value;
+
+            switch(key,
+                \pitch, {
+                    if (mod.isKindOf(Symbol)) {
+                        mod = "pitch/%".format(mod).asSymbol;
+                    };
+                },
+                \filter, {
+                    if (mod.isKindOf(Symbol)) {
+                        mod = "filter/%".format(mod).asSymbol;
+                    };
+                },
+                \env, {
+                    if (mod.isKindOf(Symbol)) {
+                        mod = "env/%".format(mod).asSymbol;
+                    };
+                },
+                \out, {
+                    if (mod.isKindOf(Symbol)) {
+                        mod = "out/%".format(mod).asSymbol;
+                    };
+                }
+            );
+
         } {
-            var synth = synthModule;
-            var func = {|freq, gate|
-                var sig = synth.(freq, gate);
-                sig = Module(val).(sig);
-                sig;
+            key = \sig;
+            if (val.isKindOf(Symbol)) {
+                mod = "synth/%".format(val).asSymbol;
             };
-            this.osc(func);
+        };
+
+        mod = Module(mod);
+        if (mod.props.notNil) {
+            envir.putAll(mod.props);
+        };
+        modules.put(num, key -> mod);
+        this.changed(\put, [num, key -> mod]);
+    }
+
+    removeAt {|num|
+        if (modules[num].notNil) {
+            modules.removeAt(num);
+            this.changed(\put, [num, nil])
         }
+    }
+
+    /*
+    |> {|val, adverb|
+        this.filter(val)
     }
 
     |* {|val, adverb|
         this.env(val);
     }
+    */
 
+    /*
     osc {|key, cb|
         if (key.isKindOf(Symbol)) {
             synthname = key;
@@ -160,7 +210,9 @@ M : Module {
         cb.(synthModule);
         ^this;
     }
+    */
 
+    /*
     env {|key, cb|
         if (key.isKindOf(Symbol)) {
             key = "env/%".format(key).asSymbol;
@@ -172,19 +224,28 @@ M : Module {
         cb.(envModule);
         ^this;
     }
+    */
 
+    /*
     filter {|key, cb|
+        var mod;
         if (key.isKindOf(Symbol)) {
-            key = "filter/%".format(key).asSymbol;
+            if (Module.exists(key).not) {
+                key = "filter/%".format(key).asSymbol;
+            }
         };
-        filterModule = Module(key);
-        if (filterModule.props.notNil) {
-            envir.putAll(filterModule.props);
+        mod = Module(key);
+        if (mod.props.notNil) {
+            envir.putAll(mod.props);
         };
-        cb.(filterModule);
+
+        cb.(mod);
+        filterModules.add(mod);
         ^this;
     }
+    */
 
+    /*
     out {|key, cb|
         if (key.isKindOf(Symbol)) {
             key = "out/%".format(key).asSymbol;
@@ -196,7 +257,9 @@ M : Module {
         cb.(outModule);
         ^this;
     }
+    */
 
+    /*
     pitch {|key, cb|
         if (key.isKindOf(Symbol)) {
             key = "pitch/%".format(key).asSymbol;
@@ -208,6 +271,7 @@ M : Module {
         cb.(pitchModule);
         ^this;
     }
+    */
 
     add {|name|
 
@@ -228,6 +292,7 @@ M : Module {
         ^this;
     }
 
+    /*
     create {|key|
 
         fork {
@@ -240,6 +305,7 @@ M : Module {
         };
 
     }
+    */
 
     *synthDesc {|name|
         ^SynthDescLib.global[name];
@@ -247,13 +313,17 @@ M : Module {
 
     prMInit {
 
+        modules = Order();
         synthname = "synth_%".format(UniqueID.next).asSymbol;
 
         this.libfunc = {
 
+            var currentEnvir;
             var gatemode = ~gatemode;
             var detectsilence = ~detectsilence ?? false;
-            var gate = DC.kr(1), vel, sig, filt, out, freq, env, doneaction;
+            var gate = DC.kr(1), vel;
+            var sig, filt, sigs = List.new, filts = List.new;
+            var out, freq, env, doneaction;
             var hasgate;
 
             if (gatemode.debug("gate mode") == \retrig) {
@@ -273,59 +343,66 @@ M : Module {
             };
 
             vel = \vel.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, "timbre"));
-            freq = if (pitchModule.notNil) {pitchModule.func}{ Module('pitch/freq').func };
-            env = if (envModule.notNil) {
-                var env = envir ++ ('gatemode': gatemode);
-                envModule
-                .putAll(env)
-                .func
-            }{
-                var env = envir ++ ('gatemode': gatemode);
-                Module('env/adsr')
-                .putAll(env)
-                .func
-            };
+            freq = Module('pitch/freq');
+            env = Module('env/adsr');
+            out = Module('out/pan2');
+
+            modules.do({|val, index|
+                if (val.isKindOf(Association)) {
+                    var key = val.key;
+                    var mod = val.value;
+                    switch(key,
+                        \pitch, {
+                            freq = mod;
+                        },
+                        \filter, {
+                            filts.add(mod);
+                        },
+                        \env, {
+                            env = mod
+                        },
+                        \out, {
+                            out = mod
+                        },
+                        \sig, {
+                            sigs.add( mod );
+                        }
+                    )
+                }
+            });
+
+            currentEnvir = envir.copy ++ ('gatemode': gatemode);
+            freq = freq.putAll(currentEnvir).func;
+            env = env.putAll(currentEnvir).func;
+            out = out.putAll(currentEnvir).func;
 
             freq = freq.(gate);
             env = env.(gate, doneaction);
+            currentEnvir = currentEnvir ++ ('freq': freq, gate: gate, vel: vel);
 
-            sig = if (synthModule.notNil) {
-                var env = envir ++ (
-                    'freq': freq,
-                    'gate': gate,
-                    'vel': vel
-                );
-
-                synthModule
-                .putAll( env )
-                .func
-            }{
-                {|freq| SinOsc.ar(freq)}
+            sig = {|freq, gate|
+                var snd = 0;
+                sigs.do({|m|
+                    m.putAll(currentEnvir);
+                    snd = snd + m.func.(freq, gate);
+                });
+                snd
             };
 
-            filt = if (filterModule.notNil) {
-                var env = envir ++ (
-                    'freq': freq,
-                    'gate': gate,
-                    'vel': vel
-                );
-
-                filterModule
-                .putAll(env)
-                .func
-            } { {|in| in} };
-
-            out = if (outModule.notNil) {
-                outModule.func
-            }{ Module('out/pan2').func };
+            filt = {|sig, gate, freq, env|
+                filts.do({|m|
+                    m.putAll(currentEnvir);
+                    sig = m.(sig, gate, freq, env);
+                });
+                sig;
+            };
 
             sig = sig.(freq, gate);
             sig = sig * env;
             sig = LeakDC.ar(sig);
             sig = filt.(sig, gate, freq, env);
+            sig = LeakDC.ar(sig);
             sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-20.dbamp) * vel;
-            //sig = sig * (1+vel);
-            //sig = sig * \gain.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol"));
 
             if (detectsilence) {
                 "detect silence enabled".postln;

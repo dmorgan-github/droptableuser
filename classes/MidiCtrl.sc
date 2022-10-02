@@ -11,6 +11,32 @@ MidiCtrl {
 
     classvar <skipjack, <>frequency = 0.5;
 	classvar <sources, <destinations;
+    var <synth;
+
+    *new {|synth|
+        super.new.prInit(synth);
+    }
+
+    // TODO: possibly move the midi stuff to a device function
+    note {|noteChan, note, debug=false|
+
+        var noteonkey = "%_noteon".format(this.key).asSymbol;
+        var noteoffkey = "%_noteoff".format(this.key).asSymbol;
+
+        if (note.isNil) {
+            note = (0..110);
+        };
+
+        MIDIdef.noteOn(noteonkey.debug("noteonkey"), {|vel, note, chan|
+            synth.on(note, vel, debug:debug);
+        }, noteNum:note, chan:noteChan)
+        .fix;
+
+        MIDIdef.noteOff(noteoffkey.debug("noteoffkey"), {|vel, note, chan|
+            synth.off(note);
+        }, noteNum:note, chan:noteChan)
+        .fix;
+    }
 
     *trace {arg enable=true;
         MIDIFunc.trace(enable);
@@ -64,13 +90,18 @@ MidiCtrl {
         if (spec.notNil) {
             spec = spec.asSpec;
         };
-        MIDIdef.cc(cckey, {|val, num, chan|
-            if (spec.notNil) {
-                val = spec.map(val/127);
-            };
-            func.(val, num, chan);
-        }, ccNum:ccNum, chan:ccChan)
-        .fix;
+
+        if (func.isNil) {
+            MIDIdef(cckey).permanent_(false).free;
+        } {
+            MIDIdef.cc(cckey, {|val, num, chan|
+                if (spec.notNil) {
+                    val = spec.map(val/127);
+                };
+                func.(val, num, chan);
+            }, ccNum:ccNum, chan:ccChan)
+            .fix;
+        }
     }
 
     *connect {
@@ -78,11 +109,21 @@ MidiCtrl {
         MIDIIn.connectAll(verbose:true);
     }
 
+    disconnect {
+        "%_noteon".format(this.key).debug("disconnect");
+        MIDIdef.noteOn("%_noteon".format(this.key).asSymbol).permanent_(false).free;
+        "%_noteoff".format(this.key).debug("disconnect");
+        MIDIdef.noteOn("%_noteoff".format(this.key).asSymbol).permanent_(false).free;
+    }
+
+    prInit {|argSynth|
+        this.synth = argSynth;
+    }
+
     *initClass {
         MIDIClient.init(verbose:true);
         sources = IdentityDictionary();
 		destinations = IdentityDictionary();
 	}
-
 }
 

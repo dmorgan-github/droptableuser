@@ -320,7 +320,7 @@ func: {arg node;
 		*/
 
         window.refresh;
-		window = window.asView.fixedSize_(Size(337, 185));
+        window = window.asView.fixedSize_(Size(337, 185)).background_(Color.clear);
         window;
     };
 

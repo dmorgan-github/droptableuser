@@ -63,7 +63,9 @@
     pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
     pshuf {arg repeats=inf; ^Pshuf(this, repeats) }
     pstep {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
-    ppar {|repeats=1| ^Ppar(this, repeats) }
+    ppar {|repeats=1| ^Ppar(this.collect({|val|
+        if (val.isArray) {val.p} {val}
+    }), repeats) }
 
     pa {
         var a;
@@ -75,6 +77,8 @@
     }
 
     p { ^Pbind(*this.pa)}
+
+    place {|repeats=inf| Place(this, repeats) }
 
     playTimeline {|clock=(TempoClock.default)|
         this.collect({|assoc|
@@ -200,6 +204,18 @@
 + String {
     parse {
         ^CollStream(this).all.collect({|v| if (v.isAlphaNum) {v.digit}{\} })
+    }
+
+    toGrid {
+        ^this
+        .stripWhiteSpace
+        .split($\n)
+        .collect({|str| str.parse })
+    }
+
+    tag {|tags|
+        T.tag(tags, this);
+        ^this;
     }
 }
 

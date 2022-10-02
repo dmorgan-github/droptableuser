@@ -8,7 +8,7 @@ func: {|node|
     var bus, numchannels;
     var meterWidth = 15;
     var meters, view, synth;
-    var metercolor = if (node.isMonitoring) {Color.green}{Color.yellow};
+    var metercolor = if (node.isMonitoring) {Color.green}{Color.grey};
 
     var monitorwatcher = {|obj, what|
         if (what == \play) {

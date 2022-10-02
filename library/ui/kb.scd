@@ -41,7 +41,7 @@ func: {|node|
 
         keyboard = buttons.collect({arg i;
             var label;
-            var color = Color.grey;
+            var color = Color.grey.alpha_(0.3);
             var num = buttons-i;
             num = buttons - num;
             label = map[num];
@@ -102,6 +102,7 @@ func: {|node|
                 update.();
             }
         })
+        .background_(Color.clear)
         .value_(default+1);
     };
 
@@ -113,7 +114,7 @@ func: {|node|
         HLayout(
             scales.(),
             Button()
-            .states_([  ["push"], ["toggle"] ] )
+            .states_([  ["push", nil, Color.clear.alpha_(0.5)], ["toggle", nil, Color.clear.alpha_(0.5)] ] )
             .action_({|ctrl|
                 if (ctrl.value == 1) {
                     mode = \toggle

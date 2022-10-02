@@ -135,7 +135,7 @@ func: {|node, index|
 
             view.layout.add(
                 StaticText()
-                .string_(group)
+                .string_(group.asString.toUpper)
                 .stringColor_(Color.white)
                 .background_(Color.clear)
             );
@@ -190,7 +190,9 @@ func: {|node, index|
     };
 
     node.addDependant(nodewatcher);
-    scroll.onClose_({
+    scroll
+    .background_(Color.black)
+    .onClose_({
         node.removeDependant(nodewatcher);
     })
 }

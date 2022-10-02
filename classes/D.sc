@@ -87,7 +87,8 @@ DNodeProxy : NodeProxy {
         res.filter(1010, {|in|
             var sig = in;
             sig = Sanitize.ar(sig);
-            SafetyLimiter.ar(LeakDC.ar(sig));
+            Limiter.ar(LeakDC.ar(sig));
+            //SafetyLimiter.ar(LeakDC.ar(sig));
         });
 
         ^res;

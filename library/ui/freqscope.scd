@@ -8,7 +8,7 @@ func: {|node|
     scope.inBus = node.bus.index;
     scope.freqMode = 1;
     scope.active = true;
-    scope.fill = true;
+    scope.fill = false;
     scope.waveColors_([Color.rand.alpha_(1)]);
     view.onClose_({ scope.kill }); // YOU MUST HAVE THIS
     view;
