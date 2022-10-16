@@ -1,3 +1,23 @@
+/*
+~indices = Buffer(s);
+~feature = Buffer(s);
+FluidBufOnsetSlice.processBlocking(s,~src,indices:~indices,metric:9,threshold:0.2);
+FluidBufOnsetFeature.processBlocking(s,~src,features:~feature,metric:9);
+FluidWaveform(~src,~indices,~feature,bounds:Rect(0,0,1600,400),lineWidth:2);
+
+
+var view = View().layout_(VLayout(
+    FluidWaveform(~drums,
+        waveformColor:Color.cyan,
+        imageBuffer:~mags,
+        imageColorScheme:1,
+        imageColorScaling:1
+    ).asView.background_(Color.clear)
+));
+view.front;
+
+*/
+
 (
 func: {arg node;
 

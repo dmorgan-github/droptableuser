@@ -300,4 +300,52 @@ A {
             col ++ [f.(col.last)]
         });
     }
+
+    *ixi {|str|
+
+        var stream = CollStream(str.stripWhiteSpace);
+        var val, seq;
+        var f1, f2;
+
+        f2 = {|stream|
+            var vals = List.new;
+            var ch;
+            while({ (ch = stream.next).notNil and: {ch != $]} }, {
+                vals.add(ch.digit)
+            });
+
+            vals.asArray
+        };
+
+        f1 = {|stream|
+            var vals = List.new;
+            var ch;
+            while({ (ch = stream.next).notNil and: {ch != $|} }, {
+
+                switch(ch,
+                    $[, {
+                        var sub = f2.(stream);
+                        vals.add(sub);
+                    },
+                    {
+                        if (ch.isAlphaNum) {
+                            vals.add(ch.digit)
+                        } {
+                            vals.add(\)
+                        }
+                    }
+                );
+            });
+
+            vals.asArray
+        };
+
+        while({(val = stream.next).notNil}, {
+            if (val == $|) {
+                seq = f1.(stream);
+            };
+        });
+
+        ^seq
+    }
 }

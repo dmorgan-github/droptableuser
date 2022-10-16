@@ -1,3 +1,20 @@
+/*
+
+~size = 4096
+~file = SoundFile.openRead("/Users/david/Documents/supercollider/resources/4096 Volume 1 (NeverEngine Labs)/Signals/Single Cycles/Brightfm_85046.wav");
+~sig = Signal.newClear(~file.numFrames);
+~file.readData(~sig);
+~sig.plot
+
+~imag = Signal.newClear(~size)
+~cosTable = Signal.fftCosTable(~size)
+~complex = fft(~sig, ~imag, ~cosTable)
+~mag = ~complex.magnitude.normalize * ~sig.peak
+~phs = ~complex.phase + (pi/2) % 2pi
+plot([ ~mag[0..50], ~phs[0..50] ]).plotMode_(\bars)
+
+*/
+
 (
 func: {|node|
     var path = "/Users/david/Documents/supercollider/resources/4096 Volume 1 (NeverEngine Labs)/Signals/Necklaces (concatenated renders)/Single Cycles 141n.wav";

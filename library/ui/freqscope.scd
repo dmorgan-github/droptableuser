@@ -1,6 +1,8 @@
 (
 func: {|node|
 
+    // DrawGrid.test( nil, \freq.asSpec.grid );
+
     var view = View(bounds:Rect(0, 0, 511/2, 300/2)).layout_(VLayout().margins_(0).spacing_(0));
     var scope = FreqScopeView(view, view.bounds);
     node = if (node.respondsTo(\node)) {node.node}{node};

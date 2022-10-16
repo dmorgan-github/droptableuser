@@ -58,6 +58,8 @@
 + SequenceableCollection {
 
     pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
+    pseq2 {|repeats=inf, offset=0| ^Pseq(this, repeats, offset).noskip }
+
     prand {arg repeats=inf; ^Prand(this, repeats) }
     pxrand {arg repeats=inf; ^Pxrand(this, repeats) }
     pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
@@ -78,7 +80,7 @@
 
     p { ^Pbind(*this.pa)}
 
-    place {|repeats=inf| Place(this, repeats) }
+    place {|repeats=inf| ^Place(this, repeats) }
 
     playTimeline {|clock=(TempoClock.default)|
         this.collect({|assoc|
@@ -202,8 +204,13 @@
 }
 
 + String {
-    parse {
-        ^CollStream(this).all.collect({|v| if (v.isAlphaNum) {v.digit}{\} })
+
+    ixi {
+        ^A.ixi(this)
+    }
+
+    mod {|pairs|
+        ^(Pbind(*pairs) <> Pbind(\degree, this.ixi.pseq))
     }
 
     toGrid {

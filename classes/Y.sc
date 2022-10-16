@@ -553,7 +553,7 @@ Y {
     // reads intervals and converts them to a binary string
     //------------------------------------------------------------------------
     /*
-    Y.int2b([2, 3, 4, 3, 4]);
+    Y.int2b([2, 3, 4, 3, 4])
     */
     *int2b {|line|
         var res= "";
@@ -574,12 +574,12 @@ Y {
     //   n= number of terms to generate, default= p+q
     //------------------------------------------------------------------------
     /*
-    Y.chsequl(\upper, 8, 7, 6).do{|x| x.postln};
-    Y.chsequl(\upper, 8, 7, 5).do{|x| x.postln};
-    Y.chsequl(\upper, 8, 3).do{|x| x.postln};
-    Y.chsequl(\lower, 8, 3).do{|x| x.postln};
-    Y.chsequl(\lower, 3, 8).do{|x| x.postln};
-    Y.chsequl(\upper, 3, 8).do{|x| x.postln};
+    Y.chsequl(\upper, 8, 7, 6).do{|x| x.postln}
+    Y.chsequl(\upper, 8, 7, 5).do{|x| x.postln}
+    Y.chsequl(\upper, 8, 3).do{|x| x.postln}
+    Y.chsequl(\lower, 8, 3).do{|x| x.postln}
+    Y.chsequl(\lower, 3, 8).do{|x| x.postln}
+    Y.chsequl(\upper, 3, 8).do{|x| x.postln}
     */
     *chsequl {|t, p, q, n|
         var res= List.new;
@@ -615,10 +615,10 @@ Y {
     // calculates continued fractions for: sqrt(n)
     //------------------------------------------------------------------------
     /*
-    Y.cfsqrt(3);
-    Y.cfsqrt(12);
-    Y.cfsqrt(32);
-    Y.cfsqrt(128);
+    Y.cfsqrt(3)
+    Y.cfsqrt(12)
+    Y.cfsqrt(32)
+    Y.cfsqrt(128)
     */
     *cfsqrt {|n|
         var res= List.new;
@@ -642,10 +642,10 @@ Y {
     // calculates a continued fraction convergent
     //------------------------------------------------------------------------
     /*
-    Y.cfcv(1, 1, 2);
-    Y.cfcv(1, 1, 2, 1, 2);
-    Y.cfcv(1, 2, 3, 4);
-    Y.cfcv(1, 2, 3, 4, 5);
+    Y.cfcv(1, 1, 2)
+    Y.cfcv(1, 1, 2, 1, 2)
+    Y.cfcv(1, 2, 3, 4)
+    Y.cfcv(1, 2, 3, 4, 5)
     */
     *cfcv {|...ai|
         var res= List.new;
@@ -671,10 +671,10 @@ Y {
     //   f= function number 0 -> 2^m-1
     //------------------------------------------------------------------------
     /*
-    Y.pfold(15, 4, 1);
-    Y.pfold(31, 5, 0);
-    Y.pfold(3, 4, 5);
-    Y.pfold(4, 5, 6);
+    Y.pfold(15, 4, 1)
+    Y.pfold(31, 5, 0)
+    Y.pfold(3, 4, 5)
+    Y.pfold(4, 5, 6)
     */
     *pfold {|n, m, f|
         var res= List.new;
@@ -711,8 +711,8 @@ Y {
     //   n= how many random numbers to generate
     //------------------------------------------------------------------------
     /*
-    Y.rndint(3, 2, 1, 4);
-    Y.rndint(5, 2, 2, 8);
+    Y.rndint(3, 2, 1, 4)
+    Y.rndint(5, 2, 2, 8)
     */
     *rndint {|m, s, c, n|
         var res= List.new;
@@ -831,6 +831,8 @@ Y {
     /*
     Y.anyupto(16, [3, 5, 1, 2])
     */
+    // i think this can be replaced with
+    // Pconst(16, [0.5, 0.25, 1, 2].prand).asStream.all.sum
     *anyupto {|target, divs|
 
         var func = {|target, divs, nums = ([])|

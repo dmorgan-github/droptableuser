@@ -197,7 +197,8 @@ InstrProxy : EventPatternProxy {
     var <metadata, <controlNames;
     var <synths, <synthdef, <pbindproxy;
     var <s, <objects;
-    var midictrl, keyval;
+    var midictrl, keyval, <nodeptrnprops;
+    var <>spawner, <patterns, <streams, <streamstate;
 
     *new {
         ^super.new.prInit();
@@ -219,6 +220,7 @@ InstrProxy : EventPatternProxy {
             objects.put(num, val);
             objects.changed(\put, [num, val]);
 
+            // TODO: figure out good way to dispatch
             if (val.isKindOf(Association)) {
                 var key = val.key;
                 var item = val.value;
@@ -226,7 +228,7 @@ InstrProxy : EventPatternProxy {
                     \fx, {
                         this.fx(num, item)
                     },
-                    \ptrn, {
+                    \pat, {
                         //so ugly
                     },
                     {
@@ -244,11 +246,7 @@ InstrProxy : EventPatternProxy {
         if (adverb.isNil and: val.isKindOf(Array)) {
             this.set(*val);
         } {
-            if (val.isNil) {
-              ^this.get(adverb)
-            } {
-              this.set(adverb, val)
-            }
+            this.set(adverb, val)
         }
     }
 
@@ -292,6 +290,10 @@ InstrProxy : EventPatternProxy {
                 super.set(k, v);
             }
         });
+    }
+
+    nodeptrnprops_ {|...args|
+        nodeptrnprops.addAll(args.flatten)
     }
 
     midi {
@@ -346,6 +348,8 @@ InstrProxy : EventPatternProxy {
     }
 
     view {
+        // TODO: using topenvironment as a sort of cache
+        // but probably can use Halo instead
         ^Ui('sgui').envir_(topEnvironment).view(this);
     }
 
@@ -365,6 +369,18 @@ InstrProxy : EventPatternProxy {
 
     unmute {
         this.node.play
+    }
+
+    suspend {|num|
+        this.spawner.suspend( this.streams[num] );
+        streamstate[num] = 0;
+    }
+
+    par {|num|
+        if (streamstate[num].isNil or: { streamstate[num] == 0} ) {
+            this.spawner.par( this.streams[num] );
+            streamstate[num] = 1;
+        }
     }
 
     out {
@@ -451,48 +467,63 @@ InstrProxy : EventPatternProxy {
 
         var chain;
 
-        chain = Pchain(
-            /*
-            Pbind(
-                \node_set, Pfunc({|evt|
-                    // TODO server.bind - takes into account latency
+        if (pattern.notNil) {
+
+            chain = Pchain(
+
+                Pbind(
+
+                    /*
+                    \node_set, Pfunc({|evt|
                     var pairs;
                     var current = evt;
-                    var exceptArgs = current[\exceptArgs];
-                    var args = node.controlKeys(except: exceptArgs);
-                    current = current.select({|v, k| args.includes(k) });
+                    current = current.select({|v, k| nodeptrnprops.includes(k) });
                     pairs = current.getPairs;
-                    // not sure if this is the best way
                     if (pairs.size > 0) {
-                        Server.default.makeBundle(Server.default.latency, {
-                            node.set(*pairs)
-                        });
+                    Server.default.bind({
+                    node.set(*pairs)
+                    });
                     };
                     1
+                    }),
+                    */
+
+                    [\degree, \octave, \mtranspose, \legato, \harmonic, \amp], Pfunc({|evt|
+                        [
+                            evt['d'] ?? {evt['degree']},
+                            evt['o'] ?? {evt['octave']},
+                            evt['m'] ?? {evt['mtranspose']},
+                            evt['l'] ?? {evt['legato']},
+                            evt['h'] ?? {evt['harmonic']},
+                            evt['a'] ?? {evt['amp']},
+                        ]
+                    })
+                ),
+
+                pattern,
+                pbindproxy,
+                Plazy({
+                    Pbind(
+                        \out, Pfunc({node.bus.index}),
+                        \group, Pfunc({node.group.nodeID}),
+                    )
                 })
-            ),
-            */
-            pattern,
-            pbindproxy,
-            Plazy({
-                Pbind(
-                    \out, Pfunc({node.bus.index}),
-                    \group, Pfunc({node.group.nodeID}),
-                )
+            );
+
+            super.source = Plazy({
+
+                synth = synth ?? {\default};
+                isMono.debug("is mono");
+
+                if (isMono) {
+                    // not sure how to make composite event work with pmono
+                    Pmono(synth, \trig, 1) <> chain
+                }{
+                    Pbind()
+                    <> chain
+                }
             })
-        );
-
-        super.source = Plazy({
-            synth = synth ?? {\default};
-            if (isMono) {
-                // not sure how to make composite event work with pmono
-                Pmono(synth, \trig, 1) <> chain
-            }{
-                Pbind()
-                <> chain
-            }
-        })
-
+        }
     }
 
     prInit {
@@ -505,11 +536,12 @@ InstrProxy : EventPatternProxy {
         node.color = color;
 
         this.clock = W.clock;
-        this.quant = 4.0;
+        this.quant = 1.0;
 
         synths = Order.new;
         objects = Order();
         s = M();
+        nodeptrnprops = Set();
 
         synthfunc = {|obj, what, vals|
             var key = me.key;
@@ -525,10 +557,12 @@ InstrProxy : EventPatternProxy {
         this.s.addDependant(synthfunc);
 
         ptrnfunc = {|obj, what, vals|
+
             var ptrns = objects
             .select({|obj|
-                obj.isKindOf(Association) and: {obj.key == \ptrn}
+                obj.isKindOf(Association) and: {obj.key == \pat}
             })
+            .asArray
             .collect({|val|
                 var key = val.key;
                 var item = val.value;
@@ -539,6 +573,23 @@ InstrProxy : EventPatternProxy {
                 }
             });
 
+            objects.do({|obj, i|
+                if (obj.isKindOf(Association) and: {obj.key == \pat}) {
+                    var item = obj.value;
+                    if (item.isKindOf(Array)) {
+                        item = item.p;
+                    };
+                    if (patterns[i].isNil) {
+                        patterns[i] = PatternProxy().quant_(1.0);
+                    };
+                    patterns[i].source = item;
+                    if (streams[i].isNil) {
+                        streams[i] = me.spawner.par(patterns[i]);
+                    }
+                }
+            });
+
+            /*
             if (ptrns.size > 0) {
                 if (ptrns.size > 1) {
                     me.source = Ppar(ptrns)
@@ -548,6 +599,7 @@ InstrProxy : EventPatternProxy {
             }{
                 me.source = Pbind()
             }
+            */
         };
         objects.addDependant(ptrnfunc);
 
@@ -561,7 +613,24 @@ InstrProxy : EventPatternProxy {
 
         node.play;
         pbindproxy = PbindProxy();
-        super.source = Pbind();
+        patterns = Order();
+        streams = Order();
+        streamstate = Order();
+        //super.source = Pbind();
+        super.source = Plazy({
+
+            Pspawner({|sp|
+                me.spawner = sp;
+                \reset.debug(this.key);
+                me.streams.do({|stream, i|
+                    me.spawner.par( stream );
+                });
+
+                inf.do({
+                    sp.wait(me.quant);
+                });
+            })
+        });
 
         cmdperiodfunc = {
             {
@@ -572,6 +641,7 @@ InstrProxy : EventPatternProxy {
             }.defer(0.5)
         };
         ServerTree.add(cmdperiodfunc);
+        this.play
         ^this
     }
 
@@ -612,7 +682,9 @@ InstrProxy : EventPatternProxy {
             if (this.getSpec.notNil) {
                 this.getSpec.keys.do({|key|
                     var spec = this.getSpec[key];
-                    this.set(key, spec.default);
+                    if (this.get(key).isNil) {
+                        this.set(key, spec.default);
+                    }
                 });
             };
 

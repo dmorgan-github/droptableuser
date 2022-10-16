@@ -63,16 +63,17 @@ func: {|node|
                     });
 
                     sfv.setData(data, channels: 1);
-                    layout.add(sfv);
 
-                    if (files.size < 7) {
+                    if ( index ==  (wavetables.size -1) ) {
                         wtView.layout.add(layout);
                     } {
                         if (index > 0 and: { index.mod(7) == 0} ) {
                             wtView.layout.add(layout);
                             layout = HLayout();
                         }
-                    }
+                    };
+
+                    layout.add(sfv);
                 });
 
             }.defer

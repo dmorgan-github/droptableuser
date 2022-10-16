@@ -143,12 +143,12 @@ M : Module {
             mod = val.value;
 
             switch(key,
-                \pitch, {
+                \pit, {
                     if (mod.isKindOf(Symbol)) {
                         mod = "pitch/%".format(mod).asSymbol;
                     };
                 },
-                \filter, {
+                \fil, {
                     if (mod.isKindOf(Symbol)) {
                         mod = "filter/%".format(mod).asSymbol;
                     };
@@ -171,7 +171,9 @@ M : Module {
             );
         };
 
-        mod = Module(mod);
+        if (mod.isKindOf(Module).not) {
+            mod = Module(mod);
+        };
         if (mod.props.notNil) {
             envir.putAll(mod.props);
         };
@@ -185,92 +187,6 @@ M : Module {
             this.changed(\put, [num, nil])
         }
     }
-
-    /*
-    |> {|val, adverb|
-        this.filter(val)
-    }
-
-    |* {|val, adverb|
-        this.env(val);
-    }
-    */
-
-    /*
-    osc {|key, cb|
-        if (key.isKindOf(Symbol)) {
-            synthname = key;
-            key = "synth/%".format(key).asSymbol;
-        };
-        synthModule = Module(key);
-        if (synthModule.props.notNil) {
-            envir.putAll(synthModule.props);
-        };
-        cb.(synthModule);
-        ^this;
-    }
-    */
-
-    /*
-    env {|key, cb|
-        if (key.isKindOf(Symbol)) {
-            key = "env/%".format(key).asSymbol;
-        };
-        envModule = Module(key);
-        if (envModule.props.notNil) {
-            envir.putAll(envModule.props);
-        };
-        cb.(envModule);
-        ^this;
-    }
-    */
-
-    /*
-    filter {|key, cb|
-        var mod;
-        if (key.isKindOf(Symbol)) {
-            if (Module.exists(key).not) {
-                key = "filter/%".format(key).asSymbol;
-            }
-        };
-        mod = Module(key);
-        if (mod.props.notNil) {
-            envir.putAll(mod.props);
-        };
-
-        cb.(mod);
-        filterModules.add(mod);
-        ^this;
-    }
-    */
-
-    /*
-    out {|key, cb|
-        if (key.isKindOf(Symbol)) {
-            key = "out/%".format(key).asSymbol;
-        };
-        outModule = Module(key);
-        if (outModule.props.notNil) {
-            envir.putAll(outModule.props);
-        };
-        cb.(outModule);
-        ^this;
-    }
-    */
-
-    /*
-    pitch {|key, cb|
-        if (key.isKindOf(Symbol)) {
-            key = "pitch/%".format(key).asSymbol;
-        };
-        pitchModule = Module(key);
-        if (pitchModule.props.notNil) {
-            envir.putAll(pitchModule.props);
-        };
-        cb.(pitchModule);
-        ^this;
-    }
-    */
 
     add {|name|
 
@@ -290,21 +206,6 @@ M : Module {
 
         ^this;
     }
-
-    /*
-    create {|key|
-
-        fork {
-            await {|done|
-                this.add(key);
-                Server.default.sync;
-                done.value(\ok);
-            };
-            S.create(key, key);
-        };
-
-    }
-    */
 
     *synthDesc {|name|
         ^SynthDescLib.global[name];
@@ -351,10 +252,10 @@ M : Module {
                     var key = val.key;
                     var mod = val.value;
                     switch(key,
-                        \pitch, {
+                        \pit, {
                             freq = mod;
                         },
-                        \filter, {
+                        \fil, {
                             filts.add(mod);
                         },
                         \env, {
@@ -381,10 +282,14 @@ M : Module {
 
             sig = {|freq, gate|
                 var snd = 0;
-                sigs.do({|m|
-                    m.putAll(currentEnvir);
-                    snd = snd + m.func.(freq, gate);
-                });
+                if (sigs.size > 0) {
+                    sigs.do({|m|
+                        m.putAll(currentEnvir);
+                        snd = snd + m.func.(freq, gate);
+                    });
+                } {
+                    snd = Module({|freq, gate| SinOsc.ar(freq) }).func.(freq, gate)
+                };
                 snd
             };
 
