@@ -5,7 +5,7 @@ synth: {|in|
     // 0!5;
     var coefsctl = \coefs.kr(coefs);
     fx = SOS.ar(in, *coefsctl);
-    fx = in.blend(fx, \filter_mix.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, "filter")));
+    fx = in.blend(fx, \sos_mix.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, "sos")));
     fx
 },
 view: 'soskernel'

@@ -199,6 +199,7 @@ func: {|node|
 
     view
     .minSize_(Size(420, 220))
+    .name_(node.key)
     .front
 };
 )

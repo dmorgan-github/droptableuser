@@ -32,11 +32,16 @@ func: {|node|
 	//numRMSSampsRecip = 1 / numRMSSamps;
 
     meters = Array.fill( numchannels, { arg i;
-        LevelIndicator(bounds:Rect(0, 0, meterWidth, 180) ).warning_(0.9).critical_(1.0)
+        var li = LevelIndicator().warning_(0.9).critical_(1.0)
         .drawsPeak_(true)
         .meterColor_(metercolor)
-        .numTicks_(9)
-        .numMajorTicks_(3);
+        .numTicks_( if (i == 0) {0}{9})
+        .numMajorTicks_(if (i == 0) {0}{3});
+        if (i == 0) {
+            li.maxWidth = 15
+        }{
+           li.maxWidth = 20
+        }
     });
 
     synth = SynthDef(levelkey ++ "OutputLevels", {
@@ -72,28 +77,55 @@ func: {|node|
     node.addDependant(monitorwatcher);
 
     view = View().layout_(
-        HLayout(
-            Slider().orientation_(\vertical)
+        VLayout(
+            HLayout(
+                Slider().orientation_(\vertical)
+                .thumbSize_(0.5)
+                .knobColor_(Color.cyan)
+                .action_({|ctrl|
+                    var val = ctrl.value.linlin(0, 1, 0, 2);
+                    node.set(\vol, val);//.debug(node.key);
+                })
+                .maxWidth_(20)
+                .value_(node.vol.linlin(0, 2, 0, 1))
+                .mouseDownAction_({|ctrl, x, y, mod, button, count|
+                    if (count == 2) {
+                        node.set(\vol, 1);//.debug(node.key);
+                        ctrl.value = 1.linlin(0, 2, 0, 1);
+                        true
+                    }
+                }),
+                HLayout(*meters).margins_(1).spacing_(1),
+                nil
+            ),
+
+
+            Slider()
+            .orientation_(\horizontal)
             .thumbSize_(0.5)
             .knobColor_(Color.cyan)
+            .value_(node.get(\spread) ?? 1)
             .action_({|ctrl|
-                var val = ctrl.value.linlin(0, 1, 0, 2);
-                node.set(\vol, val);//.debug(node.key);
+                node.set(\spread, ctrl.value)
             })
-            .fixedWidth_(20)
-            .value_(node.vol.linlin(0, 2, 0, 1))
-            .mouseDownAction_({|ctrl, x, y, mod, button, count|
-                if (count == 2) {
-                    node.set(\vol, 1);//.debug(node.key);
-                    ctrl.value = 1.linlin(0, 2, 0, 1);
-                    true
-                }
+            .maxHeight_(15)
+            .maxWidth_(60),
+
+            Slider()
+            .orientation_(\horizontal)
+            .thumbSize_(0.5)
+            .knobColor_(Color.cyan)
+            .maxHeight_(15)
+            .maxWidth_(60)
+            .value_((node.get(\center) ?? 0).linlin(-1, 1, 0, 1))
+            .action_({|ctrl|
+                node.set(\center, ctrl.value.linlin(0, 1, -1, 1))
             }),
-            HLayout(*meters)//.margins_(7).spacing_(7)
-        )
+
+        ).spacing_(0).margins_(0)
     );
     view
-    .fixedWidth_(110)
+    .minWidth_(75)
     .onClose_({
         "free".debug("meter");
         node.removeDependant(monitorwatcher);

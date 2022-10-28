@@ -214,6 +214,9 @@ InstrProxy : EventPatternProxy {
         if (val.isNil) {
             objects.removeAt(num);
             objects.changed(\put, [num, nil]);
+            patterns.removeAt(num);
+            streams.removeAt(num);
+            streamstate.removeAt(num);
             this.s.removeAt(num);
             this.fx(num, nil);
         } {
@@ -383,6 +386,10 @@ InstrProxy : EventPatternProxy {
         }
     }
 
+    reset {|num|
+        this.streams[num].reset
+    }
+
     out {
         ^this.node.monitor.out
     }
@@ -391,7 +398,7 @@ InstrProxy : EventPatternProxy {
         this.node.monitor.out = bus
     }
 
-    key { | envir |
+    key {|envir|
         var val = super.envirKey(envir);
         if (val.isNil) {
             val = keyval;

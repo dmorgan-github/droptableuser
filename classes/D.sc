@@ -74,6 +74,12 @@ DNodeProxy : NodeProxy {
             res.put(0, source)
         };
 
+        res.filter(10, {|in|
+            var sig = BHiShelf.ar(in, \hishelf.kr(10000), 1, -60);
+            sig = BLowShelf.ar(sig, \loshelf.kr(60), 1, -60);
+            sig;
+        });
+
         // initialize or re-initialize
         res.filter(1000, {|in|
             Splay.ar(

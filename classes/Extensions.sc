@@ -93,9 +93,90 @@
     cycle {|dur=8, len, repeats=inf|
         ^this.p.cycle(dur, len, repeats);
     }
+
+    alt {
+        ^this.pseq.asStream
+    }
+
+    pdv {
+
+        var list = this;
+
+        ^Plazy({
+
+            Prout({|inval|
+
+                var parse = {arg seq, div=1;
+
+                    var myval = seq;
+                    // if the value is a function don't unpack it here
+                    if (myval.isKindOf(Function).not) {
+                        if (myval.isKindOf(Association)) {
+                            div = div * myval.key.asFloat;
+                        };
+                        myval = myval.value;
+                    };
+
+                    if (myval.isArray) {
+                        var myseq = myval;
+                        var mydiv = 1/myseq.size * div;
+                        var stream = CollStream(myseq);
+                        var val = stream.next;
+                        while ({val.isNil.not},
+                            {
+                                parse.(val, mydiv);
+                                val = stream.next
+                            }
+                        );
+                    } {
+                        if (myval.isRest) {
+                            myval = Rest();
+                            div = Rest(div);
+                        } {
+                            if (myval.isKindOf(Function)) {
+                                // if the value is a Function
+                                // unpack it and use as-is
+                                // this allows us to configure chords
+                                // and multi-channel expansion
+                                myval = myval.value;
+                            } {
+                                if (myval.isNil) {
+                                    div = nil;
+                                }
+                            }
+                        };
+                        inval['dur'] = div;
+                        inval = myval.value.embedInStream(inval);
+                    }
+                };
+
+                inf.do({|i|
+                    list.asArray.do({|val|
+                        parse.(val);
+                    })
+                });
+
+                inval;
+            })
+
+        }).repeat
+    }
+
 }
 
 + Object {
+
+    !! {|val|
+        ^Pseq(this.asArray, val)
+    }
+
+    |> { |f| ^f.(this) }
+
+	<| { |f|
+		^if(f.isKindOf(Function),
+			{ {|i| this.( f.(i) )} },
+			{ this.(f) })
+	}
 
     ifnil {|val|
 
@@ -114,6 +195,8 @@
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
 
     pfilter {|...args| ^Pbindf(this, *args)}
+
+    pstep {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
 
     pchain {|...args|
         if (args[0].isKindOf(Symbol)) {
@@ -308,8 +391,6 @@
 
 
 + Function {
-
-    => {|a| ^a.(this) }
 
     // copied from: https://scsynth.org/t/proposal-function-await/6396
 	await { |timeout = nil, onTimeout = nil|
