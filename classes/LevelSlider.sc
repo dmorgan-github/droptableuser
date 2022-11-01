@@ -66,6 +66,7 @@ LevelSlider : View {
 
     initLevelSlider {|argLabel, argSpec, argColor|
 
+        var nbpallette;
         var color = argColor ?? {Color.rand};
         var sliderStack, editStack, sliderView;
         spec = argSpec;
@@ -78,6 +79,11 @@ LevelSlider : View {
         step = 0.001;
 
         nb = NumberBox();
+        nbpallette = QPalette();
+        nbpallette.setColor(Color.clear, \window, \active);
+        nbpallette.setColor(Color.clear, \highlight, \active);
+        nb.palette = nbpallette;
+
         sliderView = View();
 
         nbView = View()

@@ -189,6 +189,10 @@ VstInstrProxy : InstrProxy {
 
 InstrProxy : EventPatternProxy {
 
+    // TODO:
+    // * improve handling of Pspawner
+    // * improve clean up and bookkeeping
+
     classvar <>count=0;
 
     var <node, <cmdperiodfunc, <>color;
@@ -232,13 +236,17 @@ InstrProxy : EventPatternProxy {
                         this.fx(num, item)
                     },
                     \pat, {
-                        //so ugly
+
+                    },
+                    \set, {
+
                     },
                     {
                         this.s.put(num, val)
                     }
                 )
             } {
+                "how did we get here?".postln;
                 this.s.put(num, val)
             }
         }
@@ -295,6 +303,7 @@ InstrProxy : EventPatternProxy {
         });
     }
 
+    // TODO: is this being used?
     nodeptrnprops_ {|...args|
         nodeptrnprops.addAll(args.flatten)
     }
@@ -581,17 +590,28 @@ InstrProxy : EventPatternProxy {
             });
 
             objects.do({|obj, i|
-                if (obj.isKindOf(Association) and: {obj.key == \pat}) {
-                    var item = obj.value;
-                    if (item.isKindOf(Array)) {
-                        item = item.p;
-                    };
-                    if (patterns[i].isNil) {
-                        patterns[i] = PatternProxy().quant_(1.0);
-                    };
-                    patterns[i].source = item;
-                    if (streams[i].isNil) {
-                        streams[i] = me.spawner.par(patterns[i]);
+                if (obj.isKindOf(Association)) {
+                    if (obj.key == \pat or: { obj.key == \set}) {
+                        var item = obj.value;
+
+                        if (item.isKindOf(Array)) {
+                            item = item.p;
+                        };
+
+                        if (patterns[i].isNil) {
+                            patterns[i] = PatternProxy().quant_(this.quant);
+                        };
+
+                        if (obj.key == \set) {
+                            patterns[i].source = Pbind(\type, \set, \id, Pfunc({ this.node.nodeID })) <> item;
+                        }{
+                            patterns[i].source = item;
+                        };
+
+                        if (streams[i].isNil) {
+                            streamstate[i] = 1;
+                            streams[i] = me.spawner.par(patterns[i]);
+                        }
                     }
                 }
             });
@@ -628,9 +648,11 @@ InstrProxy : EventPatternProxy {
 
             Pspawner({|sp|
                 me.spawner = sp;
-                \reset.debug(this.key);
+                //\reset.debug(this.key);
                 me.streams.do({|stream, i|
-                    me.spawner.par( stream );
+                    if (me.streamstate[i] == 1) {
+                        me.spawner.par( stream )
+                    }
                 });
 
                 inf.do({

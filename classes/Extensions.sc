@@ -98,6 +98,7 @@
         ^this.pseq.asStream
     }
 
+    /*
     pdv {
 
         var list = this;
@@ -161,6 +162,7 @@
 
         }).repeat
     }
+    */
 
 }
 
@@ -306,6 +308,10 @@
     tag {|tags|
         T.tag(tags, this);
         ^this;
+    }
+
+    pdv {
+        ^Pdv.parse(this)
     }
 }
 
