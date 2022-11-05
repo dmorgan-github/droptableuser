@@ -100,6 +100,14 @@ DNodeProxy : NodeProxy {
         ^res;
     }
 
+    mute {|fadeTime=1|
+        this.stop(fadeTime:fadeTime)
+    }
+
+    unmute {|fadeTime=1|
+        this.play(fadeTime:fadeTime)
+    }
+
     clear {
         this.releaseDependants;
         this.clearHalo;

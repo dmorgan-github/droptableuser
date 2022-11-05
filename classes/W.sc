@@ -105,15 +105,15 @@ W : EnvironmentRedirect {
     }
 
     *view {
-        ^U(\wview)
+        ^Ui(\wview)
     }
 
     *kb {
-        ^U(\kb)
+        ^Ui(\kb)
     }
 
     *transport {|clock|
-        U(\transport, clock);
+        Ui(\transport, clock);
     }
 
     *setParentEvent {|evt|

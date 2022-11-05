@@ -8,12 +8,12 @@ func: {|node|
     var bus, numchannels;
     var meterWidth = 15;
     var meters, view, synth;
-    var metercolor = if (node.isMonitoring) {Color.green}{Color.grey};
+    var metercolor = if (node.isMonitoring) {node.color}{Color.grey};
 
     var monitorwatcher = {|obj, what|
         if (what == \play) {
             meters.do({|m|
-                m.meterColor = Color.green;
+                m.meterColor = node.color;
             })
         }{
             if (what == \stop) {
@@ -34,14 +34,17 @@ func: {|node|
     meters = Array.fill( numchannels, { arg i;
         var li = LevelIndicator().warning_(0.9).critical_(1.0)
         .drawsPeak_(true)
-        .meterColor_(metercolor)
-        .numTicks_( if (i == 0) {0}{9})
-        .numMajorTicks_(if (i == 0) {0}{3});
-        if (i == 0) {
-            li.maxWidth = 15
-        }{
-           li.maxWidth = 20
-        }
+        .style_(\led)
+        .numSteps_(30)
+        .meterColor_(metercolor);
+        //.numTicks_( if (i == 0) {0}{9})
+        //.numMajorTicks_(if (i == 0) {0}{3});
+        //if (i == 0) {
+        li.minWidth = 175;
+        li.fixedHeight = 8
+        //}{
+        //   li.maxWidth = 20
+        //}
     });
 
     synth = SynthDef(levelkey ++ "OutputLevels", {
@@ -77,6 +80,10 @@ func: {|node|
     node.addDependant(monitorwatcher);
 
     view = View().layout_(
+
+        VLayout(*meters).margins_(1).spacing_(1)
+
+        /*
         VLayout(
             HLayout(
                 Slider().orientation_(\vertical)
@@ -123,6 +130,7 @@ func: {|node|
             }),
 
         ).spacing_(0).margins_(0)
+        */
     );
     view
     .minWidth_(75)

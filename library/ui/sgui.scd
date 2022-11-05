@@ -11,16 +11,17 @@ func: {|node, index|
     }{
         node.key
     };
-    var view, target, props, scope;
+    var view, target, props, scope, meter;
     var getView;
 
+    meter = Ui('meter').view(node);
     props = Ui('props').view(node, index);
     target = View().layout_(VLayout().margins_(0).spacing_(0));
 
-    if (index.isNil) {
-        scope = Ui('meter').view(fxnode);
-        target.layout.add(scope);
-    };
+    //if (index.isNil) {
+    //    scope = Ui('meter').view(fxnode);
+    //    target.layout.add(scope);
+    //};
 
     getView = {|currentcmd|
         switch (currentcmd,
@@ -40,7 +41,10 @@ func: {|node, index|
     .name_(windowname)
     .layout_(VLayout(
         HLayout(
-            props.fixedWidth_(175).background_(Color.black),
+            VLayout(
+                meter.fixedWidth_(175),
+                props.fixedWidth_(175).background_(Color.black)
+            ),
             target
         ).margins_(5).spacing_(5),
 
@@ -72,6 +76,7 @@ func: {|node, index|
                 //args = args.asCompileString.interpret.interpret;
                 //args.postln;
                 //node.set(*args)
+                var parts, lhs, rhs;
                 var val = ctrl.value.asSymbol;
                 var view;
                 currentcmd = val;
@@ -85,12 +90,6 @@ func: {|node, index|
                     },
                     \stop, {
                         node.stop
-                    },
-                    \mute, {
-                        fxnode.stop
-                    },
-                    \unmute, {
-                        fxnode.play
                     },
                     \close, {
                         target.children.do({|child|
@@ -115,6 +114,30 @@ func: {|node, index|
                                 } {
                                     node.set(prop.asSymbol, rhs.interpret);
                                 }
+                            },
+
+                            {cmd.beginsWith("mute")}, {
+                                var fadetime = 1;
+                                var cmd = val.asString;
+                                parts = cmd.split(Char.space);
+                                lhs = parts[0];
+                                rhs = parts[1..].join("");
+                                if (rhs.notNil) {
+                                    fadetime = rhs.asFloat;
+                                };
+                                fxnode.stop(fadeTime:fadetime.debug("fadetime"))
+                            },
+
+                            {cmd.beginsWith("unmute")}, {
+                                var fadetime = 1;
+                                var cmd = val.asString;
+                                parts = cmd.split(Char.space);
+                                lhs = parts[0];
+                                rhs = parts[1..].join("");
+                                if (rhs.notNil) {
+                                    fadetime = rhs.asFloat;
+                                };
+                                fxnode.play(fadeTime:fadetime.debug("fadetime"))
                             },
 
                             {cmd.beginsWith("split")}, {

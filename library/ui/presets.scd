@@ -7,7 +7,7 @@ func: {|node|
     var buttons = 14.collect({|i|
         var color_active = Color.white.alpha_(0.9);
         var color_saved = Color.green.alpha_(0.9);
-        var color_empty = Color.clear.alpha_(0.5);
+        var color_empty = Color.clear.alpha_(0.9);
         var issaved = P.getPreset(node, i).notNil;
         var color_init = if (issaved) {color_saved}{color_empty};
         Button()

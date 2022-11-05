@@ -375,23 +375,36 @@ InstrProxy : EventPatternProxy {
         });
     }
 
-    mute {
-        this.node.stop
+    mute {|fadeTime=1|
+        this.node.stop(fadeTime:fadeTime)
     }
 
-    unmute {
-        this.node.play
+    unmute {|fadeTime=1|
+        this.node.play(fadeTime:fadeTime)
     }
 
     suspend {|num|
-        this.spawner.suspend( this.streams[num] );
+        // supend and par seem to affect the timing of the pattern
+        // so it seems better to just silence the current pattern
+        //this.spawner.suspend( this.streams[num] );
+        this.patterns[num].set(\foo, Rest(1));
         streamstate[num] = 0;
     }
 
     par {|num|
         if (streamstate[num].isNil or: { streamstate[num] == 0} ) {
-            this.spawner.par( this.streams[num] );
+
+            // supend and par seem to affect the timing of the pattern
+            // so it seems better to just un-silence the current pattern
+            this.patterns[num].set(\foo, 1);
             streamstate[num] = 1;
+            /*
+            this.clock.play({
+                this.spawner.par( this.streams[num].reset );
+                streamstate[num] = 1;
+                nil
+            }, this.quant);
+            */
         }
     }
 
@@ -529,7 +542,6 @@ InstrProxy : EventPatternProxy {
             super.source = Plazy({
 
                 synth = synth ?? {\default};
-                isMono.debug("is mono");
 
                 if (isMono) {
                     // not sure how to make composite event work with pmono
@@ -599,7 +611,7 @@ InstrProxy : EventPatternProxy {
                         };
 
                         if (patterns[i].isNil) {
-                            patterns[i] = PatternProxy().quant_(this.quant);
+                            patterns[i] = EventPatternProxy().quant_(this.quant);
                         };
 
                         if (obj.key == \set) {
@@ -610,7 +622,10 @@ InstrProxy : EventPatternProxy {
 
                         if (streams[i].isNil) {
                             streamstate[i] = 1;
-                            streams[i] = me.spawner.par(patterns[i]);
+                            this.clock.play({
+                                streams[i] = me.spawner.par(patterns[i]);
+                                nil
+                            }, this.quant);
                         }
                     }
                 }
