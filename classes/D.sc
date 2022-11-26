@@ -75,8 +75,8 @@ DNodeProxy : NodeProxy {
         };
 
         res.filter(10, {|in|
-            var sig = BHiShelf.ar(in, \hishelf.kr(10000), 1, -60);
-            sig = BLowShelf.ar(sig, \loshelf.kr(60), 1, -60);
+            var sig = BHiShelf.ar(in, \hishelf.kr(16000), 1, -30);
+            sig = BLowShelf.ar(sig, \loshelf.kr(60), 1, -30);
             sig;
         });
 

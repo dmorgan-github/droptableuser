@@ -10,6 +10,9 @@ func: {|node|
         var color_empty = Color.clear.alpha_(0.9);
         var issaved = P.getPreset(node, i).notNil;
         var color_init = if (issaved) {color_saved}{color_empty};
+
+        //[node, i, issaved].postln;
+
         Button()
         .action_({|ctrl|
             buttons.do({|btn, j|
@@ -50,6 +53,7 @@ func: {|node|
             };
         })
         .states_([ [nil, nil, color_init ], [nil, nil, color_active ] ])
+        //.value_( if(issaved.postln) {1} {0} )
         .maxSize_(Size(12, 12))
     });
 

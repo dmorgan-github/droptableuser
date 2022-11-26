@@ -93,84 +93,9 @@
     cycle {|dur=8, len, repeats=inf|
         ^this.p.cycle(dur, len, repeats);
     }
-
-    alt {
-        ^this.pseq.asStream
-    }
-
-    /*
-    pdv {
-
-        var list = this;
-
-        ^Plazy({
-
-            Prout({|inval|
-
-                var parse = {arg seq, div=1;
-
-                    var myval = seq;
-                    // if the value is a function don't unpack it here
-                    if (myval.isKindOf(Function).not) {
-                        if (myval.isKindOf(Association)) {
-                            div = div * myval.key.asFloat;
-                        };
-                        myval = myval.value;
-                    };
-
-                    if (myval.isArray) {
-                        var myseq = myval;
-                        var mydiv = 1/myseq.size * div;
-                        var stream = CollStream(myseq);
-                        var val = stream.next;
-                        while ({val.isNil.not},
-                            {
-                                parse.(val, mydiv);
-                                val = stream.next
-                            }
-                        );
-                    } {
-                        if (myval.isRest) {
-                            myval = Rest();
-                            div = Rest(div);
-                        } {
-                            if (myval.isKindOf(Function)) {
-                                // if the value is a Function
-                                // unpack it and use as-is
-                                // this allows us to configure chords
-                                // and multi-channel expansion
-                                myval = myval.value;
-                            } {
-                                if (myval.isNil) {
-                                    div = nil;
-                                }
-                            }
-                        };
-                        inval['dur'] = div;
-                        inval = myval.value.embedInStream(inval);
-                    }
-                };
-
-                inf.do({|i|
-                    list.asArray.do({|val|
-                        parse.(val);
-                    })
-                });
-
-                inval;
-            })
-
-        }).repeat
-    }
-    */
-
 }
 
 + Object {
-
-    !! {|val|
-        ^Pseq(this.asArray, val)
-    }
 
     |> { |f| ^f.(this) }
 
@@ -193,7 +118,6 @@
 + Pattern {
 
     limit {arg num; ^Pfin(num, this.iter) }
-    step {arg dur, repeats=inf; ^Pstep(this, dur, repeats)}
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
 
     pfilter {|...args| ^Pbindf(this, *args)}
@@ -253,13 +177,6 @@
                 })
             }
         })
-    }
-
-    doesNotUnderstand {|selector ... args|
-        if (selector.isSetter) {
-            selector = selector.asGetter;
-        };
-        ^Pbindf(this, selector.asSymbol, args[0])
     }
 
     spawn {|func|

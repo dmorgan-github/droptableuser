@@ -190,7 +190,6 @@ VstInstrProxy : InstrProxy {
 InstrProxy : EventPatternProxy {
 
     // TODO:
-    // * improve handling of Pspawner
     // * improve clean up and bookkeeping
 
     classvar <>count=0;
@@ -202,7 +201,7 @@ InstrProxy : EventPatternProxy {
     var <synths, <synthdef, <pbindproxy;
     var <s, <objects;
     var midictrl, keyval, <nodeptrnprops;
-    var <>spawner, <patterns, <streams, <streamstate;
+    //var <>spawner, <patterns, <streams, <streamstate;
 
     *new {
         ^super.new.prInit();
@@ -218,9 +217,9 @@ InstrProxy : EventPatternProxy {
         if (val.isNil) {
             objects.removeAt(num);
             objects.changed(\put, [num, nil]);
-            patterns.removeAt(num);
-            streams.removeAt(num);
-            streamstate.removeAt(num);
+            //patterns.removeAt(num);
+            //streams.removeAt(num);
+            //streamstate.removeAt(num);
             this.s.removeAt(num);
             this.fx(num, nil);
         } {
@@ -235,12 +234,10 @@ InstrProxy : EventPatternProxy {
                     \fx, {
                         this.fx(num, item)
                     },
-                    \pat, {
-
-                    },
-                    \set, {
-
-                    },
+                    //\pat, {
+                    //},
+                    //\set, {
+                    //},
                     {
                         this.s.put(num, val)
                     }
@@ -383,21 +380,22 @@ InstrProxy : EventPatternProxy {
         this.node.play(fadeTime:fadeTime)
     }
 
-    suspend {|num|
+    //suspend {|num|
         // supend and par seem to affect the timing of the pattern
         // so it seems better to just silence the current pattern
         //this.spawner.suspend( this.streams[num] );
-        this.patterns[num].set(\foo, Rest(1));
-        streamstate[num] = 0;
-    }
+    //   this.patterns[num].set(\foo, Rest(1));
+    //   streamstate[num] = 0;
+    //}
 
-    par {|num|
-        if (streamstate[num].isNil or: { streamstate[num] == 0} ) {
+    
+    //par {|num|
+    //    if (streamstate[num].isNil or: { streamstate[num] == 0} ) {
 
             // supend and par seem to affect the timing of the pattern
             // so it seems better to just un-silence the current pattern
-            this.patterns[num].set(\foo, 1);
-            streamstate[num] = 1;
+    //        this.patterns[num].set(\foo, 1);
+    //        streamstate[num] = 1;
             /*
             this.clock.play({
                 this.spawner.par( this.streams[num].reset );
@@ -405,12 +403,12 @@ InstrProxy : EventPatternProxy {
                 nil
             }, this.quant);
             */
-        }
-    }
+    //    }
+    //}
 
-    reset {|num|
-        this.streams[num].reset
-    }
+    //reset {|num|
+    //    this.streams[num].reset
+    //}
 
     out {
         ^this.node.monitor.out
@@ -420,8 +418,8 @@ InstrProxy : EventPatternProxy {
         this.node.monitor.out = bus
     }
 
-    key {|envir|
-        var val = super.envirKey(envir);
+    key {
+        var val = super.envirKey(topEnvironment);
         if (val.isNil) {
             val = keyval;
         };
@@ -476,20 +474,20 @@ InstrProxy : EventPatternProxy {
     }
 
     print {
-        //this.envir.copy.parent_(nil).getPairs.asCode.postln;
-        "[".format(this.key).postln;
-        this.envir.copy.parent_(nil)
-        .getPairs
-        .pairsDo({|k, v|
-            "\t".post;
-            k.asCode.post;
-            ", ".post;
-            v.asCode.post;
-            ",".postln;
+        var envir = this.envir.copy.parent_(nil);
+        var keys = envir.keys.asArray.sort;
+        var str = "(\n~%".format(this.key) + "\n";
+        keys.do({|k|
+            var v = envir[k];
+            var spec = this.getSpec(k);
+            var default = if (spec.notNil) {spec.default}{nil};
+            if (v != default and: {k != \instrument}) {
+                str = str + ("@." ++ k);
+                str = str + v.asCode + "\n";
+            }
         });
-        "]".postln;
-
-        this.node.print;
+        str = str + ")";
+        ^str
     }
 
     source_ {|pattern|
@@ -504,16 +502,16 @@ InstrProxy : EventPatternProxy {
 
                     /*
                     \node_set, Pfunc({|evt|
-                    var pairs;
-                    var current = evt;
-                    current = current.select({|v, k| nodeptrnprops.includes(k) });
-                    pairs = current.getPairs;
-                    if (pairs.size > 0) {
-                    Server.default.bind({
-                    node.set(*pairs)
-                    });
-                    };
-                    1
+                        var pairs;
+                        var current = evt;
+                        current = current.select({|v, k| nodeptrnprops.includes(k) });
+                        pairs = current.getPairs;
+                        if (pairs.size > 0) {
+                          Server.default.bind({
+                            node.set(*pairs)
+                          });
+                        };
+                        1
                     }),
                     */
 
@@ -584,6 +582,7 @@ InstrProxy : EventPatternProxy {
         };
         this.s.addDependant(synthfunc);
 
+        /*
         ptrnfunc = {|obj, what, vals|
 
             var ptrns = objects
@@ -643,27 +642,28 @@ InstrProxy : EventPatternProxy {
             }
             */
         };
-        objects.addDependant(ptrnfunc);
+        */
+        //objects.addDependant(ptrnfunc);
 
         nodewatcherfunc = {|obj, what|
             if ((what == \play) or: (what == \stop)) {
                 isMonitoring = obj.isMonitoring
             }
         };
-
         node.addDependant(nodewatcherfunc);
 
         node.play;
         pbindproxy = PbindProxy();
-        patterns = Order();
-        streams = Order();
-        streamstate = Order();
-        //super.source = Pbind();
+        //patterns = Order();
+        //streams = Order();
+        //streamstate = Order();
+        super.source = Pbind();
+        
+        /*
         super.source = Plazy({
 
             Pspawner({|sp|
                 me.spawner = sp;
-                //\reset.debug(this.key);
                 me.streams.do({|stream, i|
                     if (me.streamstate[i] == 1) {
                         me.spawner.par( stream )
@@ -671,10 +671,11 @@ InstrProxy : EventPatternProxy {
                 });
 
                 inf.do({
-                    sp.wait(me.quant);
+                    sp.wait(1);
                 });
             })
         });
+        */
 
         cmdperiodfunc = {
             {
@@ -685,7 +686,7 @@ InstrProxy : EventPatternProxy {
             }.defer(0.5)
         };
         ServerTree.add(cmdperiodfunc);
-        this.play
+        //this.play
         ^this
     }
 

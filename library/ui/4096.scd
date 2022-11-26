@@ -23,12 +23,16 @@ func: {|node|
     var view, sfv;
     var wavetables = Array.new(141);
     var loadView;
+    var currentsfv;
+    var wtnum = node.get(\wtnum);
+    var wtpage = node.get(\wtpage);
     view = View().layout_(VLayout());
 
     loadView = {|buf|
         var sfv;
         sfv = {|data, index|
-            var sfv = SoundFileView()
+            var mysfv;
+            mysfv = SoundFileView()
             .gridOn_(false)
             .drawsRMS_(false)
             .drawsBoundingLines_(false)
@@ -39,10 +43,20 @@ func: {|node|
                     Buffer.loadCollection(Server.default, wt, action:{|buf|
                         node.set(\buf, buf.bufnum)
                     });
+                    node.set(\wtpage, '4096', \wtnum, index);
+                    if (currentsfv.notNil){
+                        currentsfv.background = Color.clear;
+                    };
+                    ctrl.background = Color.white.alpha_(0.3);
+                    currentsfv = ctrl;
                 }.defer;
             });
-            sfv.setData(data, channels: 1);
-            sfv
+            mysfv.setData(data, channels: 1);
+            if (index == wtnum and: {wtpage == '4096'}) {
+                mysfv.background = Color.white.alpha_(0.3);
+                currentsfv = mysfv;
+            };
+            mysfv
         };
 
         buf.loadToFloatArray(action:{|a|

@@ -23,33 +23,35 @@ func: {|node|
     times = [0, 0, 0];
 
     listener = {|obj, what, vals|
-        if (what == \set) {
-            vals.pairsDo({|k, v|
-                if (k == \frel) {
-                    times[times.size-1] = v;
-                };
-                if (k == \fatk) {
-                    times[1] = v;
-                };
-                if (k == \fdec) {
-                    times[2] = v;
-                };
-                if (k == \fsuslevel) {
-                    levels[2] = v
-                };
-                if (k == \frelcurve) {
-                    curves[curves.size-1] = v;
-                };
-                if (k == \fdeccurve) {
-                    curves[1] = v;
-                };
-                if (k == \fatkcurve) {
-                    curves[0] = v;
-                };
-                envview.curves = curves;
-                envview.value = [ times, levels ];
-            })
-        }
+        {
+            if (what == \set) {
+                vals.pairsDo({|k, v|
+                    if (k == \frel) {
+                        times[times.size-1] = v;
+                    };
+                    if (k == \fatk) {
+                        times[1] = v;
+                    };
+                    if (k == \fdec) {
+                        times[2] = v;
+                    };
+                    if (k == \fsuslevel) {
+                        levels[2] = v
+                    };
+                    if (k == \frelcurve) {
+                        curves[curves.size-1] = v;
+                    };
+                    if (k == \fdeccurve) {
+                        curves[1] = v;
+                    };
+                    if (k == \fatkcurve) {
+                        curves[0] = v;
+                    };
+                    envview.curves = curves;
+                    envview.value = [ times, levels ];
+                })
+            }
+        }.defer
     };
 
     //xyknobs.addAll([Knob().background_(Color.clear), Knob().background_(Color.clear)]);

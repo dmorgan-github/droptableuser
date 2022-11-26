@@ -231,6 +231,15 @@ A {
         Array.fill(32, { exprand(0.001, 1.0).linlin(0.1, 1, 0, 5).round }).plot
         */
 
+        /*
+        var vals = Pbrown(min, max, 1).asStream;
+        var vals = Pbrown(min, max, 1).asStream;
+        var result = num.collect({|num|
+           Array.fill(len, { if (density.coin) { vals.next }{ \ } })
+        });
+        result
+        */
+
         var result;
         var den = (len * density).floor.asInteger;
 

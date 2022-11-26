@@ -12,16 +12,18 @@ func: {|node, index|
         node.key
     };
     var view, target, props, scope, meter;
-    var getView;
+    var getView, presets, freq, fx, views=[];
 
     meter = Ui('meter').view(node);
     props = Ui('props').view(node, index);
-    target = View().layout_(VLayout().margins_(0).spacing_(0));
+    fx = Ui('fx').view(node);
+    presets = Ui('presets').view(node);
+    freq = Ui('freqscope').view(node);
+    if (index.isNil) {
+        views = [presets, freq, fx];
+    };
 
-    //if (index.isNil) {
-    //    scope = Ui('meter').view(fxnode);
-    //    target.layout.add(scope);
-    //};
+    target = View().layout_(VLayout(*views).margins_(0).spacing_(0));
 
     getView = {|currentcmd|
         switch (currentcmd,
@@ -37,14 +39,19 @@ func: {|node, index|
         );
     };
 
+    if (index.isNil) {
+        views = [
+            meter.fixedWidth_(175), 
+            props.fixedWidth_(175).background_(Color.black)  ]
+    }{
+        views = [props.minWidth_(175).background_(Color.black)]
+    };
+
     view = View(bounds:75@150)
     .name_(windowname)
     .layout_(VLayout(
         HLayout(
-            VLayout(
-                meter.fixedWidth_(175),
-                props.fixedWidth_(175).background_(Color.black)
-            ),
+            VLayout(*views),
             target
         ).margins_(5).spacing_(5),
 

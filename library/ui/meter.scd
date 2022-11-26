@@ -135,7 +135,7 @@ func: {|node|
     view
     .minWidth_(75)
     .onClose_({
-        "free".debug("meter");
+        //"free".debug("meter");
         node.removeDependant(monitorwatcher);
         synth.free;
         OSCdef(levelkey).free;

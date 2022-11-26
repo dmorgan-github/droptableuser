@@ -1,7 +1,10 @@
 (
 func: {|node|
-    var view = View().layout_(VLayout());
-    var tv = TextView()
+    var val, tv;
+    var view = View().layout_(VLayout().spacing_(0).margins_(0));
+
+    val = node.get(\pdv);
+    tv = TextView()
     .background_(Color.clear)
     .keyDownAction_({|ctrl, char, modifiers, unicode, keycode, key|
 
@@ -11,14 +14,17 @@ func: {|node|
             switch(keycode,
                 40, { // k
                     var code = ctrl.string;
-                    var obj = code.interpret;
-                    ~s2.perform(\source_, obj)
+                    //var obj = code.interpret;
+                    //node.perform(\source_, obj)
+                    node.set(\pdv, code);
+                    node.source = Pbind(\degree, pdv(code))
                 }
             )
         }
     })
     //.palette_(QPalette.dark)
     .hasVerticalScroller_(true)
+    .string_(val)
     ;
 
     tv.syntaxColorize;

@@ -13,6 +13,19 @@ stretch
 values can be a single value or chosen from a list or generated with a function (e.g. mirror, pyramid)
 */
 
+/*
+operators:
+" " - empty space separates beats/values
+~   - rest
+[]  - beat sub division
+<>  - alternating values
+^n   - stretch duration - where n is a float
+!n   - repeat value - where n is an integer
+$   - shuffle group of values
+#   - choose from group of values
+$n   - chance of value or rest - where n is an integer 0-9
+*/
+
 Pdv {
 
     *new {
@@ -26,23 +39,40 @@ Pdv {
 
             var parse;
 
-            parse = {|obj, div=1, stretch=1|
+            parse = {|obj, div=1, stretch=1, chance=9|
 
-                var val, rep, shuf;
+                var val, rep, shuf, choose, weights;
                 var result = ();
 
                 val = obj['val'].value;
                 stretch = (obj['stretch'] ?? stretch).value.asFloat;
+                chance = (obj['chance'] ?? chance).value.asInteger;
                 rep = (obj['rep'] ?? 1).value.asInteger;
+                choose = obj['choose'];
+                weights = obj['weights'];
+
+                if (choose == true) {
+                    if (val.isSequenceableCollection) {
+                        if (weights.notNil) {
+                            val = val.wchoose(weights.normalizeSum);
+                        }{
+                            val = val.choose;
+                        }
+                    }
+                };
 
                 if (val.isSequenceableCollection) {
                     var size = val.size;
                     val.do({|item|
-                        parse.(item, div * size.reciprocal, stretch);
+                        parse.(item, div * size.reciprocal, stretch, chance);
                     });
                 }{
 
                     if (obj['type'] == \value) {
+
+                        if ( (chance/9).coin.not ) {
+                            val = \rest;
+                        };
 
                         if (val.isRest) {
                             div = Rest(div);
@@ -54,7 +84,7 @@ Pdv {
                             gate = nil
                         })
                     } {
-                        parse.(val, div, stretch)
+                        parse.(val, div, stretch, chance)
                     }
                 };
             };
@@ -82,14 +112,12 @@ Pdv {
                     var mylist = List.new;
                     mylist = parse.(val, mylist);
                     result.add(
+                        // is it necessary to do this here?
+                        // or would it be better to move to rout function
                         item['val'] = if (item['shuf'] == true) {
                             { mylist.asArray.scramble }
                         } {
-                            if (item['choose'] == true) {
-                                { mylist.asArray.choose }
-                            } {
-                                mylist
-                            }
+                            mylist
                         };
                     );
                 } {
@@ -97,7 +125,9 @@ Pdv {
                         var mylist = List.new;
                         mylist = parse.(val, mylist);
                         result.add(
-
+                            // we need to create the routine here
+                            // otherwise we end up creating it each cycle
+                            // and it would sequnce properly
                             item['val'] = Routine({
                                 var cnt = 0;
                                 inf.do({|i|
@@ -136,6 +166,8 @@ Pdv {
             'rest', "^\~",
             'shuf', "^\\$",
             'choose', "^\#",
+            'chance', "^\%",
+            'weights', "^\\([0-9]+\\)",
             '[', "^\\[",
             ']', "^\\]",
             '<', "^\<",
@@ -167,6 +199,7 @@ Pdv {
                     spec.pairsDo({|k, v|
                         if (result.isNil) {
                             var val = match.(v, str[cursor..]);
+                            //[k, v, val].debug("match");
                             if (val.notNil) {
                                 if (k.isNil) {
                                     getNext.()
@@ -195,6 +228,7 @@ Pdv {
             var exit = false;
             while ({ hasMoreTokens.() and: { exit.not } }, {
                 var token = getNextToken.();
+                //token.debug("token");
                 switch(token['type'],
                     // entities
                     'number', {
@@ -210,11 +244,20 @@ Pdv {
                     'rep', {
                         list.last['rep'] = getNextToken.()['val'].asInteger;
                     },
+                    'chance', {
+                        list.last['chance'] = getNextToken.()['val'].asInteger;
+                    },
                     'shuf', {
                         list.last['shuf'] = true;
                     },
                     'choose', {
                         list.last['choose'] = true;
+                    },
+                    'weights', {
+                        var weights = token['val'];
+                        weights = weights.findRegexp("\\d+")[0][1];
+                        weights = weights.asString.as(Array).collect(_.digit);
+                        list.last['weights'] = weights;//.debug("weights");
                     },
                     // grouping delimiters
                     '[', {

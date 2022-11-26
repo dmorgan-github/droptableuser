@@ -17,33 +17,35 @@ func: {|node|
     .step_(0.0001);
 
     listener = {|obj, what, vals|
-        if (what == \set) {
-            vals.pairsDo({|k, v|
-                if (k == \rel) {
-                    times[times.size-1] = v;
-                };
-                if (k == \atk) {
-                    times[1] = v;
-                };
-                if (k == \dec) {
-                    times[2] = v;
-                };
-                if (k == \suslevel) {
-                    levels[2] = v
-                };
-                if (k == \relcurve) {
-                    curves[curves.size-1] = v;
-                };
-                if (k == \deccurve) {
-                    curves[1] = v;
-                };
-                if (k == \atkcurve) {
-                    curves[0] = v;
-                };
-                envview.curves = curves;
-                envview.value = [ times, levels ];
-            })
-        }
+        {
+            if (what == \set) {
+                vals.pairsDo({|k, v|
+                    if (k == \rel) {
+                        times[times.size-1] = v;
+                    };
+                    if (k == \atk) {
+                        times[1] = v;
+                    };
+                    if (k == \dec) {
+                        times[2] = v;
+                    };
+                    if (k == \suslevel) {
+                        levels[2] = v
+                    };
+                    if (k == \relcurve) {
+                        curves[curves.size-1] = v;
+                    };
+                    if (k == \deccurve) {
+                        curves[1] = v;
+                    };
+                    if (k == \atkcurve) {
+                        curves[0] = v;
+                    };
+                    envview.curves = curves;
+                    envview.value = [ times, levels ];
+                })
+            }
+        }.defer
     };
 
     curves = [0, 0];

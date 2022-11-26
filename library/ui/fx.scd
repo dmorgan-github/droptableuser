@@ -162,16 +162,16 @@ func: {|node|
                         Button().states_([  ["↓", nil, Color.clear]  ]).action_({
                             moveDown.(index);
                         })
-                        .maxWidth_(50),
+                        .maxWidth_(20),
                         Button().states_([  ["↑", nil, Color.clear]  ]).action_({
                             moveUp.(index);
                         })
-                        .maxWidth_(50),
+                        .maxWidth_(20),
 
                         Button().states_([  ["x", nil, Color.clear]  ]).action_({
                             node.fx(index, nil)
                         })
-                        .maxWidth_(50)
+                        .maxWidth_(20)
                         //.icon_(Image.new(App.librarydir ++ "images/noun_Delete_1982479.png")),
                     )
                 );
@@ -196,7 +196,7 @@ func: {|node|
     fxnode.addDependant(fxwatcher);
     view.layout.add( fxmenu.view(fxnode) );
     view.layout.add( fxbuttonsview);
-    view.layout.add( presetview.view(fxnode) );
+    //view.layout.add( presetview.view(fxnode) );
     view.layout.add( nil);
     view
     .onClose_({

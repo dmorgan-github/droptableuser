@@ -217,7 +217,10 @@ M : Module {
         synthname = "synth_%".format(UniqueID.next).asSymbol;
 
         this.libfunc = {
-
+            // TODO: this might be easier
+            // sendGate
+            // Override SynthDef behavior for the gate argument. 
+            // If the SynthDef as gate, setting sendGate = false prevents the release message from being sent.
             var currentEnvir;
             var gatemode = ~gatemode;
             var detectsilence = ~detectsilence ?? false;

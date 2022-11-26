@@ -1,0 +1,3 @@
+grep -Ewroh --include \*.scd '[A-Z][a-zA-Z0-9]+' . | sort | uniq -c | sort -nr | head -n 100
+
+grep "^::tag\ granular" *.scd

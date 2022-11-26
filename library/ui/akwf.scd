@@ -1,12 +1,13 @@
 (
 func: {|node|
     var upsample = 4096;
-    var currentbuf;
+    var currentbuf, currentsfv;
     var view;
     var folders, wavetables, loadwavs, list;
     var wtView = View().layout_(VLayout());
     var root = "/Users/david/Documents/supercollider/resources/AKWF";
-    //root = "/Users/david/Documents/supercollider/resources/AKWF-1024/";
+    var wtpage, selected;
+    wtpage = node.get(\wtpage);
 
     folders = {|dir|
         var folders = PathName(dir).folders.collect({|pn| pn.folderName});
@@ -36,6 +37,7 @@ func: {|node|
 
             {
                 var layout;
+                var wtnum = node.get(\wtnum);
                 layout = HLayout();
                 wavetables.do({|data, index|
 
@@ -55,14 +57,23 @@ func: {|node|
                                 wt = wt.resamp1(4096);// with linear interpolation
                                 wt = wt.as(Signal).asWavetable;
                                 Buffer.loadCollection(Server.default, wt, action:{|buf|
-                                    node.set(\buf, buf.bufnum);
-                                    currentbuf.free({  currentbuf = buf; 1});
+                                    node.set(\buf, buf.bufnum, \wtnum, index);
+                                    currentbuf.free({ currentbuf = buf; 1});
                                 });
+                                if (currentsfv.notNil) {
+                                    currentsfv.background = Color.clear;
+                                };
+                                sfv.background = Color.white.alpha_(0.3);
+                                currentsfv = sfv;
                             }.defer;
                         }
                     });
 
                     sfv.setData(data, channels: 1);
+                    if (index == wtnum) {
+                        sfv.background = Color.white.alpha_(0.3);
+                        currentsfv = sfv;
+                    };
 
                     if ( index ==  (wavetables.size -1) ) {
                         wtView.layout.add(layout);
@@ -80,6 +91,12 @@ func: {|node|
         };
     };
 
+    selected = 0;
+    list = folders.(root);
+    if (wtpage.notNil) {
+        selected = list.detectIndex({|v| v == wtpage });
+        if (selected.isNil) { selected = 0} { selected = selected + 1}
+    };
     list = folders.(root);
     view = View().layout_(VLayout());
     view.layout.add(
@@ -88,9 +105,11 @@ func: {|node|
         .action_({|ctrl|
             if (ctrl.item != "") {
                 var path = "%/%".format(root, ctrl.item);
+                node.set(\wtpage, ctrl.item);
                 loadwavs.(path);
             }
         })
+        .valueAction_(selected)
     );
     view.layout.add(wtView);
     view

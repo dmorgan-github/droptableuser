@@ -2,10 +2,24 @@
 func: {|node|
 
     var background, view, scope, stack, scopeview;
+    var monitorwatcher, color;
     view = View(bounds:Rect(0, 0, 511/2, 300/2)).layout_(VLayout().margins_(0).spacing_(0));
     scopeview = View(bounds:Rect(0, 0, 511/2, 300/2)).layout_(VLayout().margins_(0).spacing_(0));
     scope = FreqScopeView(scopeview, scopeview.bounds);
+    node = if (node.respondsTo(\node)) {node.node}{node};
+    color = if (node.isMonitoring) { node.color } { Color.grey};
 
+    monitorwatcher = {|obj, what|
+        if (what == \play) {
+            scope.waveColors_([node.color]);
+        }{
+            if (what == \stop) {
+                scope.waveColors_([Color.grey]);
+            }
+        }
+    };
+
+    node.addDependant(monitorwatcher);
     background = {
 
         var view, markersImage;
@@ -84,14 +98,15 @@ func: {|node|
     stack = StackLayout(background.().alpha_(0.5), scopeview).mode_(1);
     view.layout.add(stack);
 
-    node = if (node.respondsTo(\node)) {node.node}{node};
-
     scope.inBus = node.bus.index;
     scope.freqMode = 1;
     scope.active = true;
     scope.fill = false;
-    scope.waveColors_([node.color.alpha_(1)]);
-    view.onClose_({ scope.kill }); // YOU MUST HAVE THIS
+    scope.waveColors_([color]);
+    view.onClose_({
+        node.removeDependant(monitorwatcher);
+        scope.kill
+    }); // YOU MUST HAVE THIS
     view
 }
 )
