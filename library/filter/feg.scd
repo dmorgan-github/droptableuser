@@ -6,7 +6,7 @@
     var vel = ~vel;
     var envmode = ~fenvmode.debug("feg fenvmode");
     var keyamt = \keyamt.kr(0, spec: DMControlSpec(0, 1, \lin, 0, 0, "filter", sort:8));
-    var cutoff = \cutoff.kr(2000, spec: DMControlSpec(20, 20000, \exp, 0, 1000, "filter", sort:9));
+    var cutoff = \cutoff.kr(2000, spec: DMControlSpec(100, 16000, \exp, 0, 2000, "filter", sort:9));
     var res = \res.kr(0.1, spec:DMControlSpec(0, 1, \lin, 0, 0.1, units:"filter", sort:10));
     var basefreq = 48.midicps;
     var cutoffratio, feg;
@@ -23,6 +23,7 @@
         var suslevel = \fsuslevel.kr(0.5, spec: DMControlSpec(0, 1, \lin, 0, 0.5, units:"filter", sort:3));
         var rel = \frel.kr(0.2, spec: DMControlSpec(0, 8, \lin, 0, 0.29, units:"filter", sort:4));
         var curve = [fatkcurve, fdeccurve, frelcurve];
+        var ts = \fts.kr(1);
 
         if (gatemode.debug("filter gate mode") == \retrig) {
             var sus = \fsustain.kr(1, spec:DMControlSpec(0, 1, \lin, 0, 0.1, units:"filter", sort:1));
@@ -30,7 +31,7 @@
                 [0, 0, 1, suslevel, suslevel, 0],
                 [0, atk, dec, sus, rel],
                 curve:curve
-            ).ar(gate:gate);
+            ).ar(gate:gate, timeScale: ts);
 
         }{
             feg = Env.adsr(
@@ -40,7 +41,7 @@
                 rel,
                 1,
                 curve:curve
-            ).ar(gate:gate);//.linlin(0, 1, 1, 0.1);
+            ).ar(gate:gate, timeScale: ts);//.linlin(0, 1, 1, 0.1);
         };
     };
 

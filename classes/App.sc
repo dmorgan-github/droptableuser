@@ -2,6 +2,7 @@ App {
 
     classvar <>workspacedir, <>mediadir, <>librarydir;
     classvar <>touchoscserver, <>touchoscport;
+    classvar <>isrecording;
 
     *initClass {
         workspacedir = "~/Documents/supercollider/workspaces/".standardizePath;
@@ -24,12 +25,14 @@ App {
     }
 
     *rec {|numchans=2, recdir|
-        //if ( \Document.asClass.notNil and: { Document.hasEditedDocuments } ) {
-        //    "save open documents".error
-        //}{
         thisProcess.platform.recordingsDir = recdir ?? {thisProcess.nowExecutingPath.dirname};//Document.current.dir;
-        Server.default.record(numChannels:numchans);
-        //};
+        if (isrecording == true) {
+            isrecording = false;
+            Server.default.stopRecording;
+        } {
+            Server.default.record(numChannels:numchans);
+            isrecording = true;
+        };
     }
 
     *saveWorkspace {arg name = "", folder = "~/Documents/supercollider/workspaces".standardizePath, rec = true, envir;

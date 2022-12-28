@@ -131,7 +131,8 @@ M : Module {
     at {|num|
         ^modules[num];
     }
-
+    
+   
     put {|num, val|
 
         var key, mod;
@@ -169,16 +170,24 @@ M : Module {
                     };
                 }
             );
-        };
 
-        if (mod.isKindOf(Module).not) {
-            mod = Module(mod);
+            if (mod.isKindOf(Module).not) {
+                mod = Module(mod);
+            };
+            if (mod.props.notNil) {
+                envir.putAll(mod.props);
+            };
+            modules.put(num, key -> mod);
+            this.changed(\put, [num, key, mod]);
+        } {
+            if (val.isNil) {
+                modules.put(num, nil);
+                envir.put(num, nil);
+            } {
+                envir.put(num, val)
+            };
+            this.changed(\put, [num, val]);
         };
-        if (mod.props.notNil) {
-            envir.putAll(mod.props);
-        };
-        modules.put(num, key -> mod);
-        this.changed(\put, [num, key -> mod]);
     }
 
     removeAt {|num|

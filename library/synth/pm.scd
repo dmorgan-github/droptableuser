@@ -1,6 +1,13 @@
 (
 synth: {|freq, gate|
 
+    /*
+    https://scsynth.org/t/clean-fm-with-sinosc-phase/6887/2?u=droptableuser
+var mod = SinOsc.ar(freq * ratio) * index;
+var phase = Phasor.ar(0, freq * SampleDur.ir, 0, 1) * 2pi;
+var carrier = SinOsc.ar(0, (phase + mod) % 4pi);
+*/
+
     var mod = {
         var ratio = \mratio.kr(1, spec:DMControlSpec(0.5, 20, \lin, 0, 1, units:"pm", sort:0));
         var fb = \mfb.kr(0, spec:DMControlSpec(-1, 1.5, \lin, 0, 0, units:"pm", sort:1));

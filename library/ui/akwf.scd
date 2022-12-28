@@ -47,6 +47,7 @@ func: {|node|
                     .drawsRMS_(false)
                     .drawsBoundingLines_(false)
                     .waveColors_( [node.color] )
+                    //.maxSize_(60)
                     .mouseDownAction_({|ctrl, x, y, modifiers, buttonNumber, clickCount|
 
                         if (clickCount == 2) {

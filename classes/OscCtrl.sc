@@ -57,6 +57,6 @@ OscCtrl {
     }
 
     *trace {arg enable=true;
-        OSCdef.trace(enable);
+        OSCdef.trace(enable, true);
     }
 }

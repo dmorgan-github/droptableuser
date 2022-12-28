@@ -8,12 +8,14 @@ func: {|node|
     var bus, numchannels;
     var meterWidth = 15;
     var meters, view, synth;
-    var metercolor = if (node.isMonitoring) {node.color}{Color.grey};
+    var alpha = 0.6;
+    var color = Color.green.alpha_(alpha);
+    var metercolor = if (node.isMonitoring) {color}{Color.grey};
 
     var monitorwatcher = {|obj, what|
         if (what == \play) {
             meters.do({|m|
-                m.meterColor = node.color;
+                m.meterColor = color;
             })
         }{
             if (what == \stop) {
@@ -32,7 +34,11 @@ func: {|node|
 	//numRMSSampsRecip = 1 / numRMSSamps;
 
     meters = Array.fill( numchannels, { arg i;
-        var li = LevelIndicator().warning_(0.9).critical_(1.0)
+        var li = LevelIndicator()
+        .warning_(-3.dbamp)
+        .critical_(-1.dbamp)
+        .warningColor_(Color.yellow.alpha_(alpha))
+        .criticalColor_(Color.red.alpha_(alpha))
         .drawsPeak_(true)
         .style_(\led)
         .numSteps_(30)

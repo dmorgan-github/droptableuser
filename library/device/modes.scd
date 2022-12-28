@@ -202,7 +202,7 @@ var config = [
     [
         (
             mode: 'push',
-            scale: \aeolian,
+            scale: \\aeolian,
             interval: 7,
             root: 36,
             on: {|note| \on.postln; },
@@ -210,7 +210,7 @@ var config = [
         ),
         (
             mode: 'toggle',
-            scale: \aeolian,
+            scale: \\aeolian,
             interval: 7,
             root: 36,
             on: {|note| \on.postln; },
@@ -221,7 +221,7 @@ var config = [
     [
         (
             mode: 'toggle',
-            scale: \aeolian,
+            scale: \\aeolian,
             interval: 7,
             root: 36,
             on: {|note| \on.postln; },
@@ -229,7 +229,7 @@ var config = [
         ),
         (
             mode: 'toggle',
-            scale: \yu,
+            scale: \\yu,
             interval: 7,
             root: 36,
             on: {|note| \on.postln; },

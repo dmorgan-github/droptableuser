@@ -11,7 +11,7 @@ func: {|node|
     var fxbuttonsview = View().layout_(VLayout().margins_(1).spacing_(1));
     var fxnode = if (node.respondsTo(\node)) { node.node }{ node };
     var fxmenu = Ui('fxmenu');
-    var presetview = Ui('presets');
+    //var presetview = Ui('presets');
 
     swap = {|node, index2, index1|
 

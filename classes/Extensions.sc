@@ -151,12 +151,20 @@
         )
     }
 
-    cycle {|dur=8, len, repeats=inf|
+    cycle {|dur=8, len, offset=0, repeats=inf|
         var iteration = -1;
         if (len.isNil) {len = dur};
         ^Plazy({
             iteration = iteration + 1;
-            Psync(this.finDur(len), dur, dur) <> (cycle:iteration);
+            if (offset > 0) {
+                dur = dur - offset;
+                [
+                    [\dur, Pn(Rest(offset), 1)].p,
+                    Psync(this.finDur(len), dur, dur) <> (cycle:iteration);
+                ].pseq(1)
+            }{
+                Psync(this.finDur(len), dur, dur) <> (cycle:iteration);
+            }
         }).repeat(repeats)
     }
 

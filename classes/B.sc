@@ -184,18 +184,22 @@ c.plot
                 all[key] = Order();
             };
             paths.do({|path|
-                var buf = read.(path, seed);
-                condition.hang;
-                if (normalize) {
-                    all[key].put(buf.bufnum, buf.normalize);
-                }{
-                    all[key].put(buf.bufnum, buf);
-                };
-                // TODO: need validation on deterministic numbering
-                // may get into trouble with s.nextBufferNumber(1)
-                if (seed.notNil) {
-                    seed = seed + 1;
-                };
+                var buf, ext;
+                ext = PathName(path).extension;
+                if ([\wav, \aif].includes(ext.toLower.asSymbol)) {
+                    buf = read.(path, seed);
+                    condition.hang;
+                    if (normalize) {
+                        all[key].put(buf.bufnum, buf.normalize);
+                    }{
+                        all[key].put(buf.bufnum, buf);
+                    };
+                    // TODO: need validation on deterministic numbering
+                    // may get into trouble with s.nextBufferNumber(1)
+                    if (seed.notNil) {
+                        seed = seed + 1;
+                    };
+                }
             });
             all[key].addSpec(\bufnums, [all[key].indices.minItem, all[key].indices.maxItem, \lin, 1, all[key].indices.minItem].asSpec);
             "buffers loaded".postln

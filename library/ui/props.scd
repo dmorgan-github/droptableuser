@@ -9,7 +9,7 @@ func: {|node, index|
     var getSpec, getKeys, getGroups, getView;
     var nodewatcher;
 
-    scroll = ScrollView().hasBorder_(false).autohidesScrollers_(false);
+    scroll = ScrollView().hasBorder_(false).autohidesScrollers_(true);
 
     getSpec = {|key|
         var specs = node.getSpec;
@@ -32,14 +32,15 @@ func: {|node, index|
                 var except = List.new;
                 var controlKeys;
 
-                fxnode.objects.doRange({|obj, index, i|
-                    if (index >= 100 and: {index < 1000}) {
-                        var names = obj.controlNames.collect({|cn| cn.name});
+                //fxnode.objects.doRange({|obj, index, i|
+                    //if (index >= 100 and: {index < 1000}) {
+                        var names = fxnode.controlNames.collect({|cn| cn.name.asSymbol });
                         except.addAll(names);
-                    }
-                });
+                    //}
+                //});
 
                 try({
+                    except.debug("except....");
                     node.controlKeys(except:except);
                 }, {|err|
                     "node.controlKeys (use bufnum): %".format(err).postln;

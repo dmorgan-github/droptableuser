@@ -18,7 +18,7 @@ func: {|node, index|
     props = Ui('props').view(node, index);
     fx = Ui('fx').view(node);
     presets = Ui('presets').view(node);
-    freq = Ui('freqscope').view(node);
+    freq = Ui('freqscope').view(node).maxHeight_(80);
     if (index.isNil) {
         views = [presets, freq, fx];
     };
@@ -26,12 +26,20 @@ func: {|node, index|
     target = View().layout_(VLayout(*views).margins_(0).spacing_(0));
 
     getView = {|currentcmd|
+        //currentcmd.debug("getView");
         switch (currentcmd,
             \freq, {
                 Ui(\freqscope).view(node)
             },
             \grain, {
                 Ui(\grainsliders).view(node)
+            },
+            \home, {
+                var freq, fx, presets;
+                freq = Ui('freqscope').view(node).maxHeight_(80);
+                fx = Ui('fx').view(node);
+                presets = Ui('presets').view(node);
+                VLayout(presets, freq, fx)
             },
             {
                 Ui(currentcmd).view(node)
@@ -105,7 +113,7 @@ func: {|node, index|
                     },
                     {
                         var cmd = val.asString;
-                        cmd.postln;
+                        cmd.debug("cmd");
 
                         case(
 
@@ -171,6 +179,7 @@ func: {|node, index|
                                 }
 
                             }, {
+                                var myviews;
                                 target.children.do({|child|
                                     child.remove
                                 });

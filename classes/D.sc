@@ -46,7 +46,7 @@ DNodeProxy : NodeProxy {
         res.mold(2, \audio);
         res.wakeUp;
         res.vol = 1;
-        res.postInit;
+        //res.postInit;
 
         // if we're using a synthdef as a source
         // copy the specs if they are defined
@@ -75,8 +75,8 @@ DNodeProxy : NodeProxy {
         };
 
         res.filter(10, {|in|
-            var sig = BHiShelf.ar(in, \hishelf.kr(16000), 1, -30);
-            sig = BLowShelf.ar(sig, \loshelf.kr(60), 1, -30);
+            var sig = BHiShelf.ar(in, \hishelf.kr(16000), 1, \hishefldb.kr(-30));
+            sig = BLowShelf.ar(sig, \loshelf.kr(60), 1, \loshelfdb.kr(-30));
             sig;
         });
 
@@ -198,14 +198,9 @@ DNodeProxy : NodeProxy {
 
         CmdPeriod.add(cmdperiodfunc);
 
-        ^this.deviceInit;
+        ^this;
+        //^this.deviceInit;
     }
-
-    /*
-	*doesNotUnderstand {|selector|
-		^this.new(selector);
-	}
-    */
 
     put {|index, obj, channelOffset = 0, extraArgs, now = true|
         super.put(index, obj, channelOffset, extraArgs, now);
@@ -217,25 +212,18 @@ DNodeProxy : NodeProxy {
         }.defer(0.5)
     }
 
-    deviceInit {
-        // override to initialize
-    }
-
-    postInit {
-        // override to initialize after init
-    }
-
     out_ {|bus=0|
         this.monitor.out = bus;
     }
 
-    fx {|index, fx, wet=1, env|
+    fx {|index, fx, wet=1, params|
 
         if (fx.isNil) {
             this.removeAt(index);
             this.fxchain.removeAt(index);
         }{
             var specs;
+
             if (fx.isFunction) {
                 var obj = (name:"func_%".format(UniqueID.next), type:'func');
                 obj['ui'] = {|self|
@@ -254,10 +242,22 @@ DNodeProxy : NodeProxy {
                 }.();
 
                 if (fx.asString.beginsWith("vst:")) {
-                    var vst = fx.asString.split($:)[1..].join("/").asSymbol;
+
+                    var vst;
+                    vst = fx.asString.split($:)[1..].join("/").asSymbol;
+                    
                     this.vst(index, vst, cb:{|ctrl|
 
-                        var obj = (name:vst, type:'vst', 'ctrl':ctrl);
+                        var func;
+                        var obj = (name:vst, type:'vst', 'ctrl':ctrl, 'params': Order());
+
+                        func = {|ctrl, what, num, val|
+                            if (what == \param) {
+                                {
+                                    obj['params'].put(num.asInteger, val);
+                                }.defer
+                            }
+                        };
                         obj['ui'] = {|self|
                             ctrl.editor;
                         };
@@ -267,7 +267,10 @@ DNodeProxy : NodeProxy {
                         obj['readProgram'] = {|self, path|
                             ctrl.readProgram(Document.current.dir +/+ path);
                         };
-
+                        if (params.notNil) {
+                            ctrl.set(*params);
+                        };
+                        ctrl.addDependant(func);
                         vstctrls.put(index, ctrl);
                         this.fxchain.put(index, obj);
                     });
@@ -317,11 +320,13 @@ DNodeProxy : NodeProxy {
             {
                 if (node.objects[index].isNil) {
 
-                    var path = App.librarydir ++ "vst/" ++ vst.asString ++ ".scd";
-                    var pathname = PathName(path.standardizePath);
-                    var fullpath = pathname.fullPath;
+                    var path, pathname, fullpath, filename;
+                    filename = vst.asString.toLower.split($.)[0];
+                    path = App.librarydir ++ "vst/" ++ filename ++ ".scd";
+                    pathname = PathName(path.standardizePath);
+                    fullpath = pathname.fullPath.debug("vst path");
 
-                    if (File.exists(fullpath)) {
+                    if (false /*File.exists(fullpath)*/) {
                         var name = pathname.fileNameWithoutExtension;
                         var obj = File.open(fullpath, "r").readAllString.interpret;
                         node.filter(index, obj[\synth]);

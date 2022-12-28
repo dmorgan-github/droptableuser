@@ -1,21 +1,3 @@
-/*
-nice colors:
-Color(0.60549101829529, 0.63466150760651, 0.86493694782257, 0.2)
-Color(0.55233793258667, 0.65434362888336, 0.71119487285614, 0.2)
-Color(0.77472245693207, 0.82329275608063, 0.75887560844421, 0.2)
-Color(0.67403962612152, 0.74898204803467, 0.83484077453613, 0.2)
-Color(0.43814084529877, 0.35949912071228, 0.8521347284317, 0.2)
-Color(0.60353236198425, 0.85716576576233, 0.54857833385468, 0.2)
-Color(0.84560143947601, 0.71142382621765, 0.53232064247131, 0.2)
-Color(0.75822179317474, 0.58384845256805, 0.37344696521759, 0.2)
-Color(0.46127707958221, 0.63891048431396, 0.49481935501099, 0.2)
-Color(0.7760725736618, 0.79725716114044, 0.52006945610046, 0.2)
-Color(0.61446368694305, 0.50829205513, 0.49966106414795, 0.2)
-Color(0.68937842845917, 0.80199530124664, 0.8592972278595, 0.2)
-Color(0.74614992141724, 0.8588672876358, 0.77721869945526, 0.2)
-Color(0.67358100414276, 0.74493434429169, 0.40996670722961, 0.2)
-Color(0.66662492752075, 0.72109272480011, 0.70863604545593, 0.2)
-*/
 
 /*
 sequencable/modulatable from midi/osc
@@ -29,36 +11,21 @@ filterable with sc fx
 filterable with vst fx
 */
 
-// TODO: this hasn't been tested
 MidiInstrProxy : InstrProxy {
 
     var <notechan=0, <returnbus=0, <midiout;
 
     *new {|synth|
-        ^super.new(synth);
+        ^super.new().prInitSynth(synth);
     }
 
     source_ {|pattern|
-
-        var src;
 
         if (pattern.isKindOf(Array)) {
             pattern = pattern.p
         };
 
-        src = Pchain(
-            /*
-            Pbind(
-                \type, \midi,
-                \midicmd, \noteOn,
-                \midiout, Pfunc({midiout}),
-                \chan, Pfunc({notechan})
-            ),
-            */
-            pattern
-        );
-
-        super.source = src;
+       super.source = pattern;
     }
 
     prInitSynth {|argSynth|
@@ -71,7 +38,7 @@ MidiInstrProxy : InstrProxy {
 
         args = argSynth.asString.split($,);
         notechan = args[0].asInteger;
-        returnbus = args[1].asInteger;
+        //returnbus = args[1].asInteger;
 
         /*
         this.node.put(0, {
@@ -91,8 +58,8 @@ VstInstrProxy : InstrProxy {
     var <>vstsynthdef=\vsti;
     var <vstsynth, <vstplugin, <vstpreset;
 
-    *new {|synth|
-        ^super.new(synth);
+    *new {
+        ^super.new();
     }
 
     source_ {|pattern|
@@ -144,6 +111,7 @@ VstInstrProxy : InstrProxy {
         {
             var plugin;
             var args;// = argSynth.asString.split($:);
+
             args = argSynth.asString.split($/);
             plugin = args[0];
             if (args.size > 1){
@@ -193,6 +161,7 @@ InstrProxy : EventPatternProxy {
     // * improve clean up and bookkeeping
 
     classvar <>count=0;
+    classvar <>colors;
 
     var <node, <cmdperiodfunc, <>color;
     var <>isMono=false, <synth;
@@ -200,8 +169,7 @@ InstrProxy : EventPatternProxy {
     var <metadata, <controlNames;
     var <synths, <synthdef, <pbindproxy;
     var <s, <objects;
-    var midictrl, keyval, <nodeptrnprops;
-    //var <>spawner, <patterns, <streams, <streamstate;
+    var midictrl, keyval;
 
     *new {
         ^super.new.prInit();
@@ -217,9 +185,6 @@ InstrProxy : EventPatternProxy {
         if (val.isNil) {
             objects.removeAt(num);
             objects.changed(\put, [num, nil]);
-            //patterns.removeAt(num);
-            //streams.removeAt(num);
-            //streamstate.removeAt(num);
             this.s.removeAt(num);
             this.fx(num, nil);
         } {
@@ -228,16 +193,14 @@ InstrProxy : EventPatternProxy {
 
             // TODO: figure out good way to dispatch
             if (val.isKindOf(Association)) {
+
                 var key = val.key;
                 var item = val.value;
+
                 switch(key,
                     \fx, {
                         this.fx(num, item)
                     },
-                    //\pat, {
-                    //},
-                    //\set, {
-                    //},
                     {
                         this.s.put(num, val)
                     }
@@ -300,11 +263,6 @@ InstrProxy : EventPatternProxy {
         });
     }
 
-    // TODO: is this being used?
-    nodeptrnprops_ {|...args|
-        nodeptrnprops.addAll(args.flatten)
-    }
-
     midi {
         if (midictrl.isNil) {
             midictrl = MidiCtrl(this);
@@ -317,13 +275,21 @@ InstrProxy : EventPatternProxy {
     }
 
     fx {|index, fx, wet=1|
+
         if (index.isArray) {
             index.do({|fx, i|
                 var slot = 100 + i;
                 this.node.fx(slot, fx, wet);
             })
         }{
-            this.node.fx(index, fx, wet);
+            var key = fx, params;
+            if (fx.isKindOf(Event)) {
+                key = fx.keys.as(Array)[0];
+                params = fx[key]
+            };
+
+            //[index, key, wet, params].postln;
+            this.node.fx(index, key, wet, params);
         }
     }
 
@@ -379,36 +345,6 @@ InstrProxy : EventPatternProxy {
     unmute {|fadeTime=1|
         this.node.play(fadeTime:fadeTime)
     }
-
-    //suspend {|num|
-        // supend and par seem to affect the timing of the pattern
-        // so it seems better to just silence the current pattern
-        //this.spawner.suspend( this.streams[num] );
-    //   this.patterns[num].set(\foo, Rest(1));
-    //   streamstate[num] = 0;
-    //}
-
-    
-    //par {|num|
-    //    if (streamstate[num].isNil or: { streamstate[num] == 0} ) {
-
-            // supend and par seem to affect the timing of the pattern
-            // so it seems better to just un-silence the current pattern
-    //        this.patterns[num].set(\foo, 1);
-    //        streamstate[num] = 1;
-            /*
-            this.clock.play({
-                this.spawner.par( this.streams[num].reset );
-                streamstate[num] = 1;
-                nil
-            }, this.quant);
-            */
-    //    }
-    //}
-
-    //reset {|num|
-    //    this.streams[num].reset
-    //}
 
     out {
         ^this.node.monitor.out
@@ -467,16 +403,36 @@ InstrProxy : EventPatternProxy {
 
     off {|note|
         if (synthdef.hasGate) {
-            //var synth = synths[note];
             synths.removeAt(note).set(\gate, 0)
-            //synth.set(\gate, 0);
         }
     }
 
     print {
-        var envir = this.envir.copy.parent_(nil);
-        var keys = envir.keys.asArray.sort;
-        var str = "(\n~%".format(this.key) + "\n";
+        var envir, keys, str = "\n";
+        var node = this.node;
+        envir = this.envir.copy.parent_(nil);
+        keys = envir.keys.asArray.sort;
+
+        this.fxchain.do({|obj, i|
+            var prefix = "", fxname;
+            if (obj.type == \vst) { prefix = "vst:" };
+            fxname = obj.name.asString.split($.)[0];
+            fxname = fxname.select({|val| val.isAlphaNum}).toLower;
+            str = str ++ "~%[%] = 'fx' -> ('".format(this.key, 20 + i) ++ prefix ++ obj.name ++ "': [";
+            if (obj.params.notNil) {
+                var names = obj.ctrl.info.parameters;
+                //str = str ++ "~%.fxchain[%].ctrl.set(*[".format(this.key, i);
+                obj.params.array.do({|val, i|
+                    if (i > 0) {str = str + ","};
+                    str = str ++ "'" ++ names[i].name ++ "', " ++ val.asCode;
+                });
+                str = str ++ "]);\n";
+            };
+            str = str + "\n\n";
+        });
+
+        str = str + "\n";
+        str = str + "(\n~%".format(this.key) + "\n";
         keys.do({|k|
             var v = envir[k];
             var spec = this.getSpec(k);
@@ -486,8 +442,20 @@ InstrProxy : EventPatternProxy {
                 str = str + v.asCode + "\n";
             }
         });
+
+        envir = node.nodeMap;
+        keys = envir.keys.asArray.sort;
+        keys.do({|k|
+            var v = envir[k];
+            var spec = node.getSpec(k);
+            var default = if (spec.notNil) {spec.default}{nil};
+            if (v != default and: { [\i_out, \out, \fadeTime].includes(k).not } ) {
+                str = str + ("@." ++ k);
+                str = str + v.asCode + "\n";
+            }
+        });
         str = str + ")";
-        ^str
+        ^str;
     }
 
     source_ {|pattern|
@@ -556,8 +524,12 @@ InstrProxy : EventPatternProxy {
 
         var synthfunc, me = this, ptrnfunc;
         keyval = "instr%".format(count).asSymbol;
+        if (count > colors.size) {
+          color = Color.rand;
+        }{
+          color = colors.wrapAt(count);
+        };
         count = count + 1;
-        color = Color.rand;
         node = DNodeProxy().key_("%_out".format(keyval).asSymbol);
         node.color = color;
 
@@ -567,7 +539,6 @@ InstrProxy : EventPatternProxy {
         synths = Order.new;
         objects = Order();
         s = M();
-        nodeptrnprops = Set();
 
         synthfunc = {|obj, what, vals|
             var key = me.key;
@@ -577,73 +548,11 @@ InstrProxy : EventPatternProxy {
                     Server.default.sync;
                     done.value(\ok);
                 };
+                // re-initialize the synth
                 me.synth = key;
             };
         };
         this.s.addDependant(synthfunc);
-
-        /*
-        ptrnfunc = {|obj, what, vals|
-
-            var ptrns = objects
-            .select({|obj|
-                obj.isKindOf(Association) and: {obj.key == \pat}
-            })
-            .asArray
-            .collect({|val|
-                var key = val.key;
-                var item = val.value;
-                if (item.isKindOf(Array)) {
-                    item.p
-                }{
-                    item
-                }
-            });
-
-            objects.do({|obj, i|
-                if (obj.isKindOf(Association)) {
-                    if (obj.key == \pat or: { obj.key == \set}) {
-                        var item = obj.value;
-
-                        if (item.isKindOf(Array)) {
-                            item = item.p;
-                        };
-
-                        if (patterns[i].isNil) {
-                            patterns[i] = EventPatternProxy().quant_(this.quant);
-                        };
-
-                        if (obj.key == \set) {
-                            patterns[i].source = Pbind(\type, \set, \id, Pfunc({ this.node.nodeID })) <> item;
-                        }{
-                            patterns[i].source = item;
-                        };
-
-                        if (streams[i].isNil) {
-                            streamstate[i] = 1;
-                            this.clock.play({
-                                streams[i] = me.spawner.par(patterns[i]);
-                                nil
-                            }, this.quant);
-                        }
-                    }
-                }
-            });
-
-            /*
-            if (ptrns.size > 0) {
-                if (ptrns.size > 1) {
-                    me.source = Ppar(ptrns)
-                } {
-                    me.source = ptrns[0]
-                }
-            }{
-                me.source = Pbind()
-            }
-            */
-        };
-        */
-        //objects.addDependant(ptrnfunc);
 
         nodewatcherfunc = {|obj, what|
             if ((what == \play) or: (what == \stop)) {
@@ -654,28 +563,7 @@ InstrProxy : EventPatternProxy {
 
         node.play;
         pbindproxy = PbindProxy();
-        //patterns = Order();
-        //streams = Order();
-        //streamstate = Order();
         super.source = Pbind();
-        
-        /*
-        super.source = Plazy({
-
-            Pspawner({|sp|
-                me.spawner = sp;
-                me.streams.do({|stream, i|
-                    if (me.streamstate[i] == 1) {
-                        me.spawner.par( stream )
-                    }
-                });
-
-                inf.do({
-                    sp.wait(1);
-                });
-            })
-        });
-        */
 
         cmdperiodfunc = {
             {
@@ -686,7 +574,6 @@ InstrProxy : EventPatternProxy {
             }.defer(0.5)
         };
         ServerTree.add(cmdperiodfunc);
-        //this.play
         ^this
     }
 
@@ -739,7 +626,35 @@ InstrProxy : EventPatternProxy {
     }
 
     *initClass {
+
+        // nice colors;
+        colors = List();
+        colors.addAll(
+          [
+              Color(0.80594773292541, 0.4751119852066, 0.32443220615387),
+              Color(0.62813115119934, 0.50460469722748, 0.42918348312378),
+              Color(0.50277349948883, 0.55445058345795, 0.85384097099304),
+              Color(0.60549101829529, 0.63466150760651, 0.86493694782257),
+              Color(0.55233793258667, 0.65434362888336, 0.71119487285614),
+              Color(0.77472245693207, 0.82329275608063, 0.75887560844421),
+              Color(0.67403962612152, 0.74898204803467, 0.83484077453613),
+              Color(0.43814084529877, 0.35949912071228, 0.8521347284317),
+              Color(0.60353236198425, 0.85716576576233, 0.54857833385468),
+              Color(0.84560143947601, 0.71142382621765, 0.53232064247131),
+              Color(0.75822179317474, 0.58384845256805, 0.37344696521759),
+              Color(0.46127707958221, 0.63891048431396, 0.49481935501099),
+              Color(0.7760725736618, 0.79725716114044, 0.52006945610046),
+              Color(0.61446368694305, 0.50829205513, 0.49966106414795),
+              Color(0.74614992141724, 0.8588672876358, 0.77721869945526),
+              Color(0.67358100414276, 0.74493434429169, 0.40996670722961)
+          ].scramble
+        )
     }
 }
+
+
+
+
+
 
 
