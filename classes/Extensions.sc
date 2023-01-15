@@ -48,13 +48,6 @@
     }
 }
 
-+ Float {
-
-    pchance {
-        ^Pfunc({ if (this.coin) {1}{Rest(1)} })
-    }
-}
-
 + SequenceableCollection {
 
     pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
@@ -103,16 +96,7 @@
 		^if(f.isKindOf(Function),
 			{ {|i| this.( f.(i) )} },
 			{ this.(f) })
-	}
-
-    ifnil {|val|
-
-        if (this.isNil) {
-            ^val;
-        }{
-            ^this
-        }
-    }
+	} 
 }
 
 + Pattern {

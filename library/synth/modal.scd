@@ -19,7 +19,11 @@ synth: {|freq, gate, aeg|
 
     //var exciter = ~exciter ?? { Hasher.ar(Sweep.ar) * Env.perc(0, 0.01).ar };
 
-    var exciter = ~exciter ?? { WhiteNoise.ar * Env.perc(0, 0.01).ar(gate:gate) * 0.7 };
+    var noisedecay = \noisedecay.kr(0.01, spec:ControlSpec(0.001, 1, \lin, 0, 0.01, units:"modal"));
+
+    var vol = noisedecay.linlin(0, 1, 1, 2).sqrt.reciprocal;
+
+    var exciter = ~exciter ?? { PinkNoise.ar * Env.perc(0.05, noisedecay).ar(gate:gate) * 0.7 * vol };
 
     exciter = exciter * 0.2;
 

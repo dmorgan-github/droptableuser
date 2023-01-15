@@ -1,5 +1,5 @@
 (
-if (~tbuf.isNil) {
+if (topEnvironment[\tbuf].isNil) {
     var tf = Signal.newClear(1025).waveFill({|x, old, i|
         sin(x)
     }, -pi/2, pi/2);
@@ -8,7 +8,7 @@ if (~tbuf.isNil) {
     }, 0, 25pi).normalize;
 
     tf = tf.asWavetableNoWrap;
-    ~tbuf = Buffer.loadCollection(s, tf)
+    topEnvironment[\tbuf] = Buffer.loadCollection(s, tf)
 };
 
 (

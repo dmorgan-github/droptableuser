@@ -2,10 +2,11 @@
 func: {|node|
     var curves, levels, times;
     var view = View().layout_(VLayout().spacing_(0).margins_(0));
-    var atkspec, relspec, atkcurvespec, relcurvespec;
+    var atkspec, decspec, relspec, atkcurvespec, deccurvespec, relcurvespec;
     var listener, prevy;
     var curvesupdater, timesupdater, levelsupdater;
-   
+    var atkmapped, decmapped, relmapped;
+
     var envview = EnvelopeView()
     .keepHorizontalOrder_(true)
     .elasticSelection_(true)
@@ -18,6 +19,7 @@ func: {|node|
     .gridOn_(true)
     .step_(0.0001);
 
+    /*
     listener = {|obj, what, vals|
         {
             if (what == \set) {
@@ -48,7 +50,7 @@ func: {|node|
                         }
                     };
                     if (k == \relcurve) {
-                        if (v != curves[curves.size-1]) { 
+                        if (v != curves[curves.size-1]) {
                             curves[curves.size-1] = v;
                             ischanged = true;
                         }
@@ -65,40 +67,36 @@ func: {|node|
                             ischanged = true;
                         }
                     };
-                    
+
                 });
-                if (ischanged) {
-                    envview.curves = curves;
-                    envview.value = [ times, levels ];
-                }
+                //if (ischanged) {
+                //    envview.curves = curves;
+                //    envview.value = [ times, levels ];
+                //}
             }
         }.defer
     };
+    */
 
-    curves = [0, 0];
-    levels = [0, 1, 0];
-    times = [0, 0, 0];
+    curves = [node.get('atkcurve'), node.get('deccurve'), node.get('relcurve')];
+    levels = [0, 1, node.get('suslevel'), 0];
+
+    atkmapped = node.get('atk').linlin(0, 8, 0, 0.25);
+    decmapped = node.get('dec').linlin(0, 1, atkmapped, 0.5);
+    relmapped = node.get('rel').linlin(0, 8, decmapped, 1);
+    times = [
+        0,
+        atkmapped,
+        decmapped,
+        relmapped
+    ];
 
     atkspec = node.getSpec('atk');
+    decspec = node.getSpec('dec');
     relspec = node.getSpec('rel');
     atkcurvespec = node.getSpec('atkcurve');
+    deccurvespec = node.getSpec('deccurve');
     relcurvespec = node.getSpec('relcurve');
-
-    if (node.getSpec['dec'].notNil) {
-
-        var decspec = node.getSpec('dec');
-        var deccurvespec = node.getSpec('deccurve');
-
-        curves = [0, node.get('deccurve'), 0];
-        levels = [0, 1, node.get('suslevel'), 0];
-        times = [0, 0, node.get('dec'), 0];
-    };
-
-    curves[0] = node.get('atkcurve');
-    curves[curves.size-1] = node.get('relcurve');
-
-    times[1] = node.get('atk');
-    times[times.size-1] = node.get('rel');
 
     curvesupdater = {|obj, which|
         if (which == 0) {
@@ -111,19 +109,28 @@ func: {|node|
             }
         }
     };
+
     timesupdater = {|obj, which|
         if (which > 0) {
             if (which == 1) {
-                node.set('atk', times[which])
+                var val = times[which].linlin(0, 0.25, 0, 8);
+                node.set('atk', val)
             } {
                 if (which == (times.size-1)) {
-                    node.set('rel', times[which])
+                    var val;
+                    decmapped = times[2];
+                    val = times[which].linlin(decmapped, 1, 0, 8);
+                    node.set('rel', val)
                 } {
-                    node.set('dec', times[which])
+                    var val;
+                    var atkmapped = times[1];
+                    val = times[which].linlin(atkmapped, 0.5, 0, 1);
+                    node.set('dec', val)
                 }
             }
         }
     };
+
     levelsupdater = {|obj, which|
         if (which == 2) {
             node.set('suslevel', obj[which])
@@ -140,11 +147,18 @@ func: {|node|
     .action_({|ctrl|
         var index = ctrl.index;
         if (index == 1) {
-            ctrl.y = 1.0
-        } {
-            if (index == (times.size-1)) {
-                ctrl.y = 0.0
+            ctrl.y = 1.0;
+            if (ctrl.x > 0.25) {
+                ctrl.x = 0.25
             }
+        };
+        if (index == 2) {
+            if (ctrl.x > 0.5) {
+                ctrl.x = 0.5
+            };
+        };
+        if (index == (times.size-1)) {
+            ctrl.y = 0.0
         };
         times[index] = ctrl.value[0][index];
         levels[index] = ctrl.value[1][index];
@@ -166,7 +180,7 @@ func: {|node|
             if (y < prevy) {
                 var val = clip(curves[index-1] + 0.1, -8, 8);
                 curves[index-1] = val;
-                curves.changed(index-1); 
+                curves.changed(index-1);
                 ctrl.curves = curves;
             } {
                 if (y > prevy) {
@@ -177,13 +191,13 @@ func: {|node|
                 }
             };
             prevy = y;
-        } 
+        }
     })
     ;
 
     envview.setEditable(0, false);
     view.layout.add(envview);
-    node.addDependant(listener);
+    //node.addDependant(listener);
 
     view.onClose_({
         node.removeDependant(listener);

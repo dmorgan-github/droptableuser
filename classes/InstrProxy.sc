@@ -168,7 +168,7 @@ InstrProxy : EventPatternProxy {
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
     var <synths, <synthdef, <pbindproxy;
-    var <s, <objects;
+    var <s, <objects, stream;
     var midictrl, keyval;
 
     *new {
@@ -220,6 +220,13 @@ InstrProxy : EventPatternProxy {
             this.set(adverb, val)
         }
     }
+
+    @@ {|val, adverb|
+        if (adverb.notNil) {
+            this.node.set(adverb, val)
+        }
+    }
+
 
     set {|...args|
 
@@ -284,6 +291,7 @@ InstrProxy : EventPatternProxy {
         }{
             var key = fx, params;
             if (fx.isKindOf(Event)) {
+                // e.g: ('fx':[\p1, 1, \p2, 1])
                 key = fx.keys.as(Array)[0];
                 params = fx[key]
             };
@@ -369,6 +377,20 @@ InstrProxy : EventPatternProxy {
 
     on {|note, vel=127, extra, debug=false|
 
+        var args;
+        var target = this.node.group.nodeID;
+        var evt = stream.next(Event.default);
+       
+        evt[\freq] = note.midicps;
+        evt[\vel] = (vel/127).squared;
+        evt[\gate] = 1;
+        
+        args = evt.use({
+            ~amp = ~amp.value;
+            SynthDescLib.global[synth].msgFunc.valueEnvir  
+        });
+
+        /*
         var evt = this.envir ?? ();
         var args;
         var out = this.node.bus.index;
@@ -387,6 +409,7 @@ InstrProxy : EventPatternProxy {
             (v.isNumber.not and: v.isArray.not and: {v.isKindOf(BusPlug).not})
         })
         .asPairs();
+        */
 
         if (debug) {
             args.postln;
@@ -466,8 +489,7 @@ InstrProxy : EventPatternProxy {
 
             chain = Pchain(
 
-                Pbind(
-
+                //Pbind(
                     /*
                     \node_set, Pfunc({|evt|
                         var pairs;
@@ -483,6 +505,7 @@ InstrProxy : EventPatternProxy {
                     }),
                     */
 
+                    /*
                     [\degree, \octave, \mtranspose, \legato, \harmonic, \amp], Pfunc({|evt|
                         [
                             evt['d'] ?? {evt['degree']},
@@ -493,7 +516,8 @@ InstrProxy : EventPatternProxy {
                             evt['a'] ?? {evt['amp']},
                         ]
                     })
-                ),
+                    */
+                //),
 
                 pattern,
                 pbindproxy,
@@ -506,9 +530,7 @@ InstrProxy : EventPatternProxy {
             );
 
             super.source = Plazy({
-
                 synth = synth ?? {\default};
-
                 if (isMono) {
                     // not sure how to make composite event work with pmono
                     Pmono(synth, \trig, 1) <> chain
@@ -564,6 +586,7 @@ InstrProxy : EventPatternProxy {
         node.play;
         pbindproxy = PbindProxy();
         super.source = Pbind();
+        stream = this.asStream;
 
         cmdperiodfunc = {
             {

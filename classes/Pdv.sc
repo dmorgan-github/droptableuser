@@ -127,7 +127,7 @@ Pdv {
                         result.add(
                             // we need to create the routine here
                             // otherwise we end up creating it each cycle
-                            // and it would sequnce properly
+                            // and it wouldn't sequnce properly
                             item['val'] = Routine({
                                 var cnt = 0;
                                 inf.do({|i|

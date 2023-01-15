@@ -205,16 +205,16 @@ var config = [
             scale: \\aeolian,
             interval: 7,
             root: 36,
-            on: {|note| \on.postln; },
-            off: {|note| \off.postln;  }
+            on: {|note| \\on.postln; },
+            off: {|note| \\off.postln;  }
         ),
         (
             mode: 'toggle',
             scale: \\aeolian,
             interval: 7,
             root: 36,
-            on: {|note| \on.postln; },
-            off: {|note| \off.postln; }
+            on: {|note| \\on.postln; },
+            off: {|note| \\off.postln; }
         )
     ],
 
@@ -224,16 +224,16 @@ var config = [
             scale: \\aeolian,
             interval: 7,
             root: 36,
-            on: {|note| \on.postln; },
-            off: {|note| \off.postln; }
+            on: {|note| \\on.postln; },
+            off: {|note| \\off.postln; }
         ),
         (
             mode: 'toggle',
             scale: \\yu,
             interval: 7,
             root: 36,
-            on: {|note| \on.postln; },
-            off: {|note| \off.postln; }
+            on: {|note| \\on.postln; },
+            off: {|note| \\off.postln; }
         )
     ]
 ];

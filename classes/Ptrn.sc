@@ -1,3 +1,39 @@
+Ptrn {
+
+    *wrapAt {|vals, index|
+        index = index.asStream;
+        vals = vals.asStream;
+        ^Pfunc({|evt|
+            var i = index.next(evt);
+            var v = vals.next(evt);
+            if (i.isNumber) {
+                v.wrapAt(i)
+            }{
+                Rest(1)
+            }
+        })
+    }
+
+    *env {|key, dur=16|
+        ^Prout({|inval|
+            inf.do({
+                var env, vals, size;
+                var startTime;
+                startTime = thisThread.endBeat ? thisThread.beats;
+                thisThread.endBeat = dur + startTime;
+                while ({ thisThread.beats < thisThread.endBeat }, {
+                    vals = inval[key];
+                    size = vals.size;
+                    env = Env(vals, dur/size, 0);
+                    inval = env.at(thisThread.beats - startTime).embedInStream(inval)
+                });
+            });
+            inval
+        })
+    }
+}
+
+
 Ppub : EventPatternProxy {
 
     var <spawner;

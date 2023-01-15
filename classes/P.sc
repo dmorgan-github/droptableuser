@@ -41,7 +41,9 @@ P {
         };
 
         vals = vals
-        .select({|key| node.get(key).isNumber })
+        .select({|key| 
+            node.get(key).isNumber or: {node.get(key).isArray}
+        })
         .collect({|key| [key, node.get(key)] });
 
         ^vals.asArray.flatten.asDict

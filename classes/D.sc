@@ -120,7 +120,7 @@ DNodeProxy : NodeProxy {
     }
 
     node {
-        // this is echo the SSynth interface
+        // this is to echo the SSynth interface
         ^this
     }
 
@@ -326,7 +326,7 @@ DNodeProxy : NodeProxy {
                     pathname = PathName(path.standardizePath);
                     fullpath = pathname.fullPath.debug("vst path");
 
-                    if (false /*File.exists(fullpath)*/) {
+                    if (File.exists(fullpath)) {
                         var name = pathname.fileNameWithoutExtension;
                         var obj = File.open(fullpath, "r").readAllString.interpret;
                         node.filter(index, obj[\synth]);

@@ -1,23 +1,27 @@
 (
-func: {|node|
+func: {|node, prop|
+
     var val, tv;
     var view = View().layout_(VLayout().spacing_(0).margins_(0));
+    var pdvkey;
 
-    val = node.get(\pdv);
+    if (prop.notNil) {
+        prop = prop.asSymbol.postln;
+        pdvkey = "%_pdv_vals".format(prop).asSymbol;
+        val = node.get(pdvkey);
+    };
+
     tv = TextView()
     .background_(Color.clear)
     .keyDownAction_({|ctrl, char, modifiers, unicode, keycode, key|
 
         //[char, modifiers, unicode, keycode, key].postln;
-
         if (modifiers == 262144) {
             switch(keycode,
                 40, { // k
-                    var code = ctrl.string;
-                    //var obj = code.interpret;
-                    //node.perform(\source_, obj)
-                    node.set(\pdv, code);
-                    node.source = Pbind(\degree, pdv(code))
+                    var code = ctrl.string.stripWhiteSpace;
+                    node.set(pdvkey, code);
+                    node.set(prop, pdv(code))
                 }
             )
         }

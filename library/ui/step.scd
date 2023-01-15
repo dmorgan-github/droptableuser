@@ -1,195 +1,112 @@
 (
-func: {|node|
+func: {|node, prop|
 
     var view;
-    var valsview;
-    var lenview;
-    var startview;
-    var len = 32;
-    var stepval = Ref(1/len);
-    var seqvals, lenvals, startvals, seqview;
-    var seqvalscontroller, lenvalscontroller, startvalscontroller;
-    seqview = MultiSliderView().showIndex_(true);
+    var val;
+    var key;
+    var num = 16;
+    var min = 0, max = 1;
+    var minkey;
+    var maxkey;
+    var numkey;
+    var msv;
 
-    seqvals = Ref(node.get(\vals));
-    lenvals = Ref(node.get(\len));
-    startvals = Ref(node.get(\start));
+    val = 0.dup(num);
+    if (prop.notNil) {
 
-    seqvalscontroller = SimpleController(seqvals);
-    seqvalscontroller.put(\value, {|obj, what, args|
-        //obj.value.debug(\vals);
-        node.set(\vals, obj.value);
-    });
+        prop = prop.asSymbol;
+        key = "%_step_vals".format(prop).asSymbol;
+        minkey = "%_step_min".format(prop).asSymbol;
+        maxkey = "%_step_max".format(prop).asSymbol;
+        numkey = "%_step_num".format(prop).asSymbol;
 
-    lenvalscontroller = SimpleController(lenvals);
-    lenvalscontroller.put(\value, {|obj, what, args|
-        //obj.value.debug(\len);
-        node.set(\len, obj.value);
-    });
+        if (node.get(key).notNil) {
+            val = node.get(key);
+        } {
+            node.set(key, val)
+        };
 
-    startvalscontroller = SimpleController(startvals);
-    startvalscontroller.put(\value, {|obj, what, args|
-        //obj.value.debug(\start);
-        node.set(\start, obj.value);
-    });
+        if (node.get(minkey).notNil) {
+            min = node.get(minkey);
+        };
+        if (node.get(maxkey).notNil) {
+            max = node.get(maxkey);
+        };
+        if (node.get(numkey).notNil) {
+            num = node.get(numkey);
+        };
+        node.set(prop, Ptrn.wrapAt(Pkey(key), Pseries(0, 1)).linlin(0, 1, min, max).round);
 
-    if (seqvals.value.isNil) {
-        seqvals.value_(Array.fill(len, {1.0.rand})).changed(\value);
     };
+ 
+    msv = MultiSliderView();
 
-    if (lenvals.value.isNil) {
-        lenvals.value_([1]).changed(\value);
-    };
+    view = View().layout_(VLayout(
 
-    if (startvals.value.isNil) {
-        startvals.value_([0]).changed(\value);
-    };
-
-    len = seqvals.value.size;
-
-    valsview = {
-        var nb = NumberBox();
-        HLayout(
-            VLayout(
-                StaticText().string_("vals"),
-
-                nb
-                .value_(len)
-                .action_({|ctrl|
-                    var vals = seqview.value;
-                    var size = ctrl.value.clip(1, 128).asInteger;
-                    seqvals.value_(vals.wrapExtend(size)).changed(\value);
-                    seqview.value = seqvals.value;
-                }),
-                nil
-            ),
-
-            seqview
-            .step_(1/12)
-            .value_(seqvals.value)
-            .isFilled_(true)
-            .fillColor_(Color.cyan)
-            .valueThumbSize_(0.5)
-            .action_({|ctrl|
-                seqvals.value_(ctrl.value).changed(\value);
-            }),
-            nil
-        )
-    };
-
-    lenview = {
-
-        var msv = MultiSliderView();
-        var nb = NumberBox();
-
-        HLayout(
-
-            VLayout(
-                StaticText().string_("len"),
-
-                nb
-                .value_(lenvals.value.size)
-                .action_({|ctrl|
-                    var vals = msv.value;
-                    var size = ctrl.value.clip(1, 128).asInteger;
-                    lenvals.value_(vals.wrapExtend(size)).changed(\value);
-                    msv.value = lenvals.value;
-                }),
-                nil
-            ),
-
-            msv
-            .step_(stepval.value)
-            .value_(lenvals.value)
-            .isFilled_(true)
-            .fillColor_(Color.cyan)
-            .valueThumbSize_(0.5)
-            .action_({|ctrl|
-                lenvals.value_(ctrl.value).changed(\value)
-            }),
-            nil
-        )
-    };
-
-    startview = {
-
-        var msv = MultiSliderView();
-        var nb = NumberBox();
-
-        HLayout(
-            VLayout(
-                StaticText().string_("start"),
-
-                nb
-                .value_(startvals.value.size)
-                .action_({|ctrl|
-                    var vals = msv.value;
-                    var size = ctrl.value.clip(1, 128).asInteger;
-                    startvals.value_(vals.wrapExtend(size)).changed(\value);
-                    msv.value = startvals.value;
-                }),
-                nil
-            ),
-            msv
-            .step_(stepval.value)
-            .value_(startvals.value)
-            .isFilled_(true)
-            .fillColor_(Color.cyan)
-            .valueThumbSize_(0.5)
-            .action_({|ctrl|
-                startvals.value_(ctrl.value).changed(\value)
-            }),
-            nil
-        )
-    };
-
-    view = View()
-    .layout_(VLayout(
-        valsview.(),
-        lenview.(),
-        startview.()
-    ));
-
-    node.source = Pbind(
-
-        \val, Prout({|inval|
-            var phase = inval['phase'] ?? 0;
-            inf.do({
-                var start, len, dir;
-                var dirvals = [1];//inval['dir'].asArray;
-                var offset = 0;//inval['offset'];
-                var vals = inval['vals'].asArray;
-                var startvals = inval['start'].asArray;
-                var lenvals = inval['len'].asArray;
-
-                start = startvals.wrapAt(phase).linlin(0, 1, 0, vals.size-1).floor;// + offset;
-                len = lenvals.wrapAt(phase).linlin(0, 1, 1, vals.size-1).floor;
-                dir = dirvals.wrapAt(phase);
-
-                if (dir < 0) {
-
-                    vals.wrapAt( (start..(start+len-1)) ).reverseDo({|val|
-                        inval = val.embedInStream(inval);
-                    });
-
-                }{
-                    vals.wrapAt( (start..(start+len-1)) ).do({|val, i|
-                        {
-                            // this should raise an event
-                            seqview.index = (start+i).mod(vals.size);
-                        }.defer(0.0);
-
-                        inval = val.embedInStream(inval);
-                    });
-                };
-
-                phase = phase + 1;
-            });
+        msv
+        .isFilled_(true)
+        .elasticMode_(1)
+        //.thumbSize_(3)
+        .drawLines_(false)
+        .size_(num)
+        .background_(Color.clear)
+        .action_({|ctrl|
+            node.set(key, ctrl.value);
         })
+        .value_(val),
+
+        HLayout(
+            nil,
+            HLayout(
+                StaticText().string_(prop)
+            ),
+            nil,
+            HLayout(
+                nil,
+                StaticText().string_("min"),
+                NumberBox()
+                .action_({|ctrl|
+                    min = ctrl.value;
+                    node.set(minkey, min);
+                    node.set(prop, Ptrn.wrapAt(Pkey(key), Pseries(0, 1)).linlin(0, 1, min, max).round );
+                })
+                .maxWidth_(30)
+                .value_(min)
+            ),
+            HLayout(
+                nil,
+                StaticText().string_("max"),
+                NumberBox()
+                .action_({|ctrl|
+                    max = ctrl.value;
+                    node.set(maxkey, max);
+                    node.set(prop, Ptrn.wrapAt(Pkey(key), Pseries(0, 1)).linlin(0, 1, min, max).round );
+                })
+                .maxWidth_(30)
+                .value_(max)
+            ),
+            HLayout(
+                nil,
+                StaticText().string_("num"),
+                NumberBox()
+                .action_({|ctrl|
+                    num = ctrl.value.asInteger;
+                    node.set(numkey, num);
+                    val = val[..(num-1)];
+                    msv.valueAction_(val)
+                })
+                .maxWidth_(30)
+                .value_(num)
+            )
+
+        )
+    )
+    .spacing_(5)
+    .margins_(5)
     );
 
-    view;
+    view
+    .background_(Color.clear)
 }
 )
-
 

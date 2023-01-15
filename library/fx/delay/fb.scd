@@ -27,6 +27,7 @@ synth: {arg in;
     sig
     */
 
+    /*
     var sig;
     var du = TempoClock.default.beatDur/4; // 16th notes
     var hpf = \delay_hpf.kr(100, spec:ControlSpec(20, 10000, \lin, 0, 100, "delay"));
@@ -40,14 +41,37 @@ synth: {arg in;
     sig = SwitchDelay.ar(sig, 0, 1, delayunit * [delL, delR], [fbL, fbR], 20);
     sig = in.blend(sig, \delay_mix.kr(0.3, spec: ControlSpec(0, 1, \lin, 0, 0.3, "delay") ));
     sig
+    */
+
+    var sig = in;
+    var tempo = TempoClock.default.beatDur;
+    var beatdur = \beatdur.kr(tempo, spec:ControlSpec(0.001, 4, \lin, 0, tempo, units:"delay") );
+    var hpf = \delay_hpf.kr(100, spec:ControlSpec(20, 10000, \lin, 0, 100, "delay")); 
+    var lpf = \delay_lpf.kr(20000, spec:ControlSpec(10000, 20000, \lin, 0, 20000, "delay"));
+    var res = \delay_res.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, units:"delay"));
+    var lfoHz = \delay_lfohz.kr(0, spec: ControlSpec(0, 10, \lin, 0, 0, units:"delay"));
+    var lfophase = \delay_lfophase.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, units:"delay"));
+    var lfodepth = \delay_lfodepth.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, units:"delay")).lag(0.01);
+    var lfo = SinOsc.kr(lfoHz, [0pi, lfophase * pi]).unipolar(lfodepth);
+    var time = \delay_time.kr(1, spec:ControlSpec(0.001, 20, \lin, 0.08, units:"delay"));
+    var feedback = \delay_feedback.kr(0, spec:ControlSpec(0, 2, \lin, 0, 0, units:"delay"));
+    var width = \delay_width.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, units:"delay"));
+    var ratio = \delay_ratio_right.kr(1, spec:ControlSpec(1, 2, \lin, 0, 1, units:"delay"));
+
+    sig = FbC({arg fb;
+        var fx = fb * feedback + sig;
+        Limiter.ar(fx, 1)
+    }, 20, time.lag(0.001) * (1 + lfo) * [1, ratio]);
+
+    sig = HPF.ar(sig, hpf);
+    sig = BLowPass4.ar(sig, lpf, res.linlin(0, 1, 1, 0.001));
+    sig = Splay.ar(sig, spread: width, center: 0);
+    sig = in.blend(sig, \delay_mix.kr(0.4, spec: ControlSpec(0, 1, \lin, 0, 0.4, "delay") ));
+    sig
+
 
 },
-presets: (
-    expand: (
-        delay_delL: 1.5,
-        delay_delR: 0.5
-    )
-)
+presets: ()
 )
 
 

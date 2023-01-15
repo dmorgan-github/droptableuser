@@ -13,6 +13,7 @@ func: {|node, index|
     };
     var view, target, props, scope, meter;
     var getView, presets, freq, fx, views=[];
+    var parse;
 
     meter = Ui('meter').view(node);
     props = Ui('props').view(node, index);
@@ -25,9 +26,115 @@ func: {|node, index|
 
     target = View().layout_(VLayout(*views).margins_(0).spacing_(0));
 
-    getView = {|currentcmd|
+    parse = {|str|
+
+        var exec, match;
+        var getNextToken;
+        var hasMoreTokens;
+        var spec;
+        var cursor = 0;
+
+        // as pairs
+        spec = [
+            'string', "^[a-zA-Z\/]+",
+            '[', "^\\[",
+            ']', "^\\]",
+            '(', "^\\(",
+            ')', "^\\)",
+            nil, "^\\s+",
+            nil, "^\,",
+
+        ];
+
+        hasMoreTokens = {
+            cursor < str.size;
+        };
+
+        match = {|regex, str|
+            var val = nil;
+            var m = str.findRegexp(regex);
+            if (m.size > 0) {
+                val = m[0][1];
+                cursor = cursor + val.size;
+            };
+            val;
+        };
+
+        getNextToken = {
+            var getNext;
+            var result = nil;
+            getNext = {
+                if (hasMoreTokens.()) {
+                    spec.pairsDo({|k, v|
+                        if (result.isNil) {
+                            var val = match.(v, str[cursor..]);
+                            //[k, v, val].debug("match");
+                            if (val.notNil) {
+                                if (k.isNil) {
+                                    getNext.()
+                                }{
+                                    result = (
+                                        type: k,
+                                        val: val
+                                    );
+                                }
+                            }
+                        }
+                    });
+                };
+            };
+
+            getNext.();
+
+            if (result.isNil) {
+                "unexpected token %".format(str[cursor]).throw
+            };
+            result;
+        };
+
+        exec = {|list|
+
+            var exit = false;
+            while ({ hasMoreTokens.() and: { exit.not } }, {
+                var token = getNextToken.();
+                //token.debug("token");
+                switch(token['type'],
+                    // entities
+                    'string', {
+                        var ui = token['val'];
+                        ui = ui.asString.split($/);
+                        list.add( getView.(ui[0], ui[1]) )
+                    },
+                    // grouping delimiters
+                    '[', {
+                        var result;
+                        result = exec.(HLayout());
+                        list.add(result);
+                    },
+                    ']', {
+                        list.add(nil);
+                        exit = true;
+                    },
+                    '(', {
+                        var result;
+                        result = exec.(VLayout());
+                        list.add(result);
+                    },
+                    ')', {
+                        list.add(nil);
+                        exit = true
+                    }
+                );
+            });
+
+            list;
+        };
+        exec.(VLayout());
+    };
+
+    getView = {|currentcmd, args|
         //currentcmd.debug("getView");
-        switch (currentcmd,
+        switch (currentcmd.asSymbol,
             \freq, {
                 Ui(\freqscope).view(node)
             },
@@ -42,14 +149,14 @@ func: {|node, index|
                 VLayout(presets, freq, fx)
             },
             {
-                Ui(currentcmd).view(node)
+                Ui(currentcmd).view(node, args)
             }
         );
     };
 
     if (index.isNil) {
         views = [
-            meter.fixedWidth_(175), 
+            meter.fixedWidth_(175),
             props.fixedWidth_(175).background_(Color.black)  ]
     }{
         views = [props.minWidth_(175).background_(Color.black)]
@@ -154,7 +261,16 @@ func: {|node, index|
                                 };
                                 fxnode.play(fadeTime:fadetime.debug("fadetime"))
                             },
+                            {
+                                var layout;
+                                target.children.do({|child|
+                                    child.remove
+                                });
+                                layout = parse.(cmd.asString);
+                                target.layout.add( layout );
+                            }
 
+                            /*
                             {cmd.beginsWith("split")}, {
 
                                 var parts = cmd.split(Char.space);
@@ -180,11 +296,20 @@ func: {|node, index|
 
                             }, {
                                 var myviews;
+                                var args;
+                                var mycmd;
                                 target.children.do({|child|
                                     child.remove
                                 });
-                                target.layout.add( getView.(currentcmd) );
+                                mycmd = cmd.asString.split($/);
+                                currentcmd = mycmd[0].asSymbol;
+                                if (mycmd.size > 1) {
+                                    args = mycmd[1];
+                                };
+                                //[cmd, mycmd, args].postln;
+                                target.layout.add( getView.(currentcmd, args) );
                             }
+                            */
                         );
                     }
                 );
