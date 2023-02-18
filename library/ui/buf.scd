@@ -90,7 +90,7 @@ func: {arg node;
     .drawsBoundingLines_(false)
     .gridColor_(Color.black)
     .background_(Color.black)
-    .waveColors_([node.color, Color.red])
+    .waveColors_([node.color, node.color])
     .gridResolution_(0.0)
     .toolTip_(bufname)
     .timeCursorOn_(true)

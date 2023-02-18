@@ -27,5 +27,9 @@ synth: {|freq|
         doneAction:Done.freeSelf
     );
     sig;
-}
+},
+props: (
+    freeself: true,
+    hasgate: false
+)
 )

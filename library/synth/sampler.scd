@@ -22,10 +22,9 @@ synth: {|freq, gate|
         [1, -1]
     );
 
-    //https://scsynth.org/t/when-is-bufrd-done/2899/9
     var phase, sig;
     var sawrate = rate * BufSampleRate.kr(buf) / (absdif(start, end) * numframes);
-    phase = (dir * LFSaw.ar(sawrate, 1)).range(start, end) * numframes;
+    phase = (LFSaw.ar(sawrate * dir, 1)).range(start, end) * numframes;
 
     sig = BufRd.ar(
         numChannels: numchannels.debug("numchannels"),

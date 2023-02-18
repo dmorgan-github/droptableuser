@@ -118,7 +118,6 @@ Ui : Module {
 // ~sd.synthdef.dumpUGens
 M : Module {
 
-    //var <synthModule, <filterModules, <outModule, <pitchModule, <envModule;
     var <synthdef, <synthname;
     var <modules;
 
@@ -130,8 +129,7 @@ M : Module {
 
     at {|num|
         ^modules[num];
-    }
-    
+    } 
    
     put {|num, val|
 
@@ -254,9 +252,9 @@ M : Module {
                 doneaction = Done.freeSelf;
             };
 
-            vel = \vel.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1, "timbre"));
+            vel = \vel.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1));
             freq = Module('pitch/freq');
-            env = Module('env/adsr');
+            env = Module('env/asr');
             out = Module('out/pan2');
 
             modules.do({|val, index|
@@ -314,14 +312,17 @@ M : Module {
             };
 
             sig = sig.(freq, gate);
-            sig = sig * env;
+            if (envir.freeself.debug("freeself").isNil) {
+                sig = sig * env;
+            };
             sig = LeakDC.ar(sig);
             sig = filt.(sig, gate, freq, env);
             sig = LeakDC.ar(sig);
             sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-20.dbamp) * vel;
+            sig = sig * env;
 
             if (detectsilence) {
-                "detect silence enabled".postln;
+                detectsilence.debug("detect silence");
                 DetectSilence.ar(in: sig, amp: 0.00025, doneAction:Done.freeSelf);
             };
 

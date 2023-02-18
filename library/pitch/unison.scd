@@ -4,9 +4,12 @@ synth: {
     var freq = \freq.ar(261).lag(\glis.kr(0));
     var detunehz = \detunehz.kr(0);
     var detunedepth = \detunedepth.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, "pitch"));
-    var detune = ( { LFNoise2.kr(detunehz) }.dup(numvoices.debug("numvoices")) * detunedepth).midiratio;
+    //var detune = ( { LFNoise2.kr(detunehz) }.dup(numvoices.debug("numvoices")) * detunedepth).midiratio;
+    var detune = LFNoise0.kr( detunehz.dup(numvoices.debug("numvoices")) ).bipolar(detunedepth).midiratio;
     freq = freq * detune;
     freq = Vibrato.ar(freq, \vrate.ar(6), \vdepth.ar(0.0));
     freq
 };
 )
+
+

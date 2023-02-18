@@ -37,44 +37,47 @@ func: {|node|
             cnt = cnt + 1;
         };
     });
-    //view.mouseMoveAction_({|ctrl, x, y|
-
-    //    var xdir, ydir;
-
-    //    xdir = if (x < lastx) {-1}{1} * 0.05;
-    //    ydir = if (y < lasty) {-1}{1} * 0.05;
-
-    //    zoomx = (zoomx + xdir).clip(1, 10);
-    //    zoomy = (zoomy + ydir).clip(1, 10);
-
-    //    scope.xZoom = zoomx;
-    //    scope.yZoom = zoomy;
-
-    //});
+    
     view = View().layout_(HLayout(
         VLayout(
             scopeview, 
-            Slider()
-            .orientation_(\horizontal)
-            .thumbSize_(0.5)
-            .action_({|ctrl|
-                var zoom = ctrl.value.linlin(0, 1, 1, 10);
-                scope.xZoom = zoom;
-            })
-            .value_(5.linlin(1, 10, 0, 1))
-            .background_(Color.clear)
+            HLayout(
+
+                StaticText().string_("x"),
+
+                NumberBox()
+                .action_({|ctrl|
+                    var zoom = ctrl.value.clip(1, 10);
+                    scope.xZoom = zoom;
+                })
+                .background_(Color.clear)
+                .minDecimals_(2)
+                .clipHi_(10)
+                .clipLo_(1)
+                .maxWidth_(45)
+                .value_(5.0)
+                ,
+
+                StaticText().string_("y"),
+                NumberBox()
+                .action_({|ctrl|
+                    var zoom = ctrl.value.clip(1, 10);
+                    scope.yZoom = zoom;
+                })
+                .background_(Color.clear)
+                .minDecimals_(2)
+                .clipHi_(10)
+                .clipLo_(1)
+                .maxWidth_(45) 
+                .value_(10.0),
+
+                nil
+
+            ).margins_(0).spacing_(10)
+
             //.palette_(sliderpalette)
         ).margins_(0).spacing_(0),
-        Slider()
-        .orientation_(\vertical)
-        .thumbSize_(0.5)
-        .action_({|ctrl|
-            var zoom = ctrl.value.linlin(0, 1, 1, 10);
-            scope.yZoom = zoom;
-        })
-        .value_(10.linlin(1, 10, 0, 1))
-        .background_(Color.clear)
-        //.palette_(sliderpalette)
+               //.palette_(sliderpalette)
     ).margins_(0).spacing_(0));
     scopeview.onClose = { scope.free };
     view

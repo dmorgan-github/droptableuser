@@ -245,7 +245,7 @@ DNodeProxy : NodeProxy {
 
                     var vst;
                     vst = fx.asString.split($:)[1..].join("/").asSymbol;
-                    
+
                     this.vst(index, vst, cb:{|ctrl|
 
                         var func;
@@ -326,9 +326,11 @@ DNodeProxy : NodeProxy {
                     pathname = PathName(path.standardizePath);
                     fullpath = pathname.fullPath.debug("vst path");
 
+
                     if (File.exists(fullpath)) {
+                        var obj;
                         var name = pathname.fileNameWithoutExtension;
-                        var obj = File.open(fullpath, "r").readAllString.interpret;
+                        obj = File.open(fullpath, "r").readAllString.interpret;
                         node.filter(index, obj[\synth]);
                     } {
                         node.filter(index, {|in|
@@ -344,6 +346,7 @@ DNodeProxy : NodeProxy {
                     // i can't figure out a better way than to wait
                     0.5.wait;
                 };
+
 
                 nodeId = node.objects[index].nodeID;
                 ctrl = if (node.objects[index].class == SynthDefControl) {
@@ -362,6 +365,7 @@ DNodeProxy : NodeProxy {
                         VSTPluginController(synth);
                     }
                 };
+
 
                 ctrl.open(vst, editor:true, verbose: true, action:{
                     "loaded %".format(key).postln;

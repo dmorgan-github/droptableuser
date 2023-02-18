@@ -11,7 +11,7 @@ func: {|node|
     var keyboardview, update;
     var mode = \push;
 
-    var octave = ~octave ?? 3;
+    var octave = node.get(\octave) ?? 3;
     var root = ~root ?? 0;
 
 	map = [
@@ -139,10 +139,12 @@ func: {|node|
                     keyboard[num].value = 1;
                 }
             } {
-                keys.removeAt(note);
-                node.off(note);
-                if (num < keyboard.size) {
-                    keyboard[num].value = 0;
+                if (mode == \toggle) {
+                    keys.removeAt(note);
+                    node.off(note);
+                    if (num < keyboard.size) {
+                        keyboard[num].value = 0;
+                    }
                 }
             }
 

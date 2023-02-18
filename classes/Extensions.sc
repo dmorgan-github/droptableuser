@@ -58,9 +58,25 @@
     pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
     pshuf {arg repeats=inf; ^Pshuf(this, repeats) }
     pstep {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
-    ppar {|repeats=1| ^Ppar(this.collect({|val|
-        if (val.isArray) {val.p} {val}
-    }), repeats) }
+    ppar {|repeats=1|
+        if (this.first.isKindOf(Pattern) ) {
+
+            ^Ppar(this.collect({|val|
+                if (val.isArray) {val.p} {val}
+            }), repeats) 
+        } {
+            ^Ptrn.par(*this);
+        }
+    }
+
+    ptpar {|times, repeats=1|
+
+        var vals = this.collect({|v, i|
+            [times.wrapAt(i), v]    
+        });
+
+        ^Ptpar(vals.flatten, repeats)
+    }
 
     pa {
         var a;
@@ -99,13 +115,11 @@
 	} 
 }
 
+
 + Pattern {
 
     limit {arg num; ^Pfin(num, this.iter) }
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
-
-    pfilter {|...args| ^Pbindf(this, *args)}
-
     pstep {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
 
     pchain {|...args|
@@ -113,6 +127,10 @@
             args = Pbind(*args)
         };
         ^Pchain(this, *args)
+    }
+
+    timeClutch {|delta=0.0|
+        ^PtimeClutch(this, delta)
     }
 
     // don't advance pattern on rests
@@ -140,15 +158,7 @@
         if (len.isNil) {len = dur};
         ^Plazy({
             iteration = iteration + 1;
-            if (offset > 0) {
-                dur = dur - offset;
-                [
-                    [\dur, Pn(Rest(offset), 1)].p,
-                    Psync(this.finDur(len), dur, dur) <> (cycle:iteration);
-                ].pseq(1)
-            }{
-                Psync(this.finDur(len), dur, dur) <> (cycle:iteration);
-            }
+            Psync(this.finDur(len), dur, dur) <> (cycle:iteration);
         }).repeat(repeats)
     }
 
@@ -189,8 +199,6 @@
             })
         })
     }
-
-    seed {|val| ^Pseed(val, this)}
 }
 
 + Array {
@@ -202,11 +210,7 @@
     ixi {
         ^A.ixi(this)
     }
-
-    mod {|pairs|
-        ^(Pbind(*pairs) <> Pbind(\degree, this.ixi.pseq))
-    }
-
+ 
     toGrid {
         ^this
         .stripWhiteSpace
@@ -221,6 +225,10 @@
 
     pdv {
         ^Pdv.parse(this)
+    }
+
+    pv {
+        ^Pv.parse(this)
     }
 }
 

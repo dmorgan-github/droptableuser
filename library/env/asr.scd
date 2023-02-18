@@ -14,7 +14,7 @@ synth: {|gate, doneAction=(Done.freeSelf)|
 
     if (~gatemode == \retrig) {
         var sus = \sustain.kr(0.1, spec:DMControlSpec(0, 1, \lin, 0, 0.1, units:"aeg", sort:2));
-        env = Env([0, 0, suslevel, suslevel, 0], [0, atk, sus, rel], curve:curve);
+        env = Env([0, suslevel, suslevel, 0], [atk, sus, rel], curve:curve);
     }{
         env = Env.asr(
             attackTime: atk,

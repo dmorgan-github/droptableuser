@@ -55,8 +55,11 @@ MidiInstrProxy : InstrProxy {
 
 VstInstrProxy : InstrProxy {
 
-    var <>vstsynthdef=\vsti;
-    var <vstsynth, <vstplugin, <vstpreset;
+    // the synth running on the server
+    var <vstsynth;
+    // the vst controller
+    var <vstplugin;
+    var <vstpreset;
 
     *new {
         ^super.new();
@@ -110,24 +113,24 @@ VstInstrProxy : InstrProxy {
 
         {
             var plugin;
-            var args;// = argSynth.asString.split($:);
+            var args;
 
             args = argSynth.asString.split($/);
             plugin = args[0];
             if (args.size > 1){
                 vstpreset = args[1];
                 vstpreset = App.librarydir +/+ "preset" +/+ vstpreset;
-            };
-            // TODO: what's the difference between synth and vstsynthdef?
-            // seems like vstsynthdef is unecessary
-            synth = vstsynthdef;
-            synthdef = SynthDescLib.global[vstsynthdef].def;
+            }; 
+            synthdef = SynthDescLib.global[\vsti].def;
 
-            vstsynth = Synth(vstsynthdef,
+            vstsynth = Synth(\vsti,
                 args: [\out, this.node.bus.index],
                 target: this.node.group.nodeID
             );
-            1.wait;
+
+            // i can't find a better way, sync doesn't help in this scenario
+            //1.wait;
+            Server.default.latency.wait;
             vstplugin = VSTPluginController(vstsynth, synthDef:synthdef);
             vstplugin.open(plugin, editor: true, verbose:true, action:{|ctrl|
                 if (vstpreset.notNil) {
@@ -136,8 +139,7 @@ VstInstrProxy : InstrProxy {
                 }
             });
 
-            this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin, \spread, 1, \pan, 0)
-            //this.set('type', \vst_midi, 'vst', vstplugin, \spread, 1, \pan, 0)
+            this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin, \spread, 1, \pan, 0) 
 
         }.fork;
     }
@@ -236,6 +238,7 @@ InstrProxy : EventPatternProxy {
         var nodeprops = Array.new(args.size);
         var synthprops = Array.new(args.size);
         var mycontrolnames = controlNames ?? { [] };
+
         args.pairsDo({|k, v|
             if ( v.isNumber.or(v.isArray) )  {
                 if (mycontrolnames.includes(k)) {
@@ -556,7 +559,7 @@ InstrProxy : EventPatternProxy {
         node.color = color;
 
         this.clock = W.clock;
-        this.quant = 1.0;
+        //this.quant = PatternProxy.defaultQuant;
 
         synths = Order.new;
         objects = Order();

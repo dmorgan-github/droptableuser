@@ -15,16 +15,100 @@ values can be a single value or chosen from a list or generated with a function 
 
 /*
 operators:
-" " - empty space separates beats/values
-~   - rest
-[]  - beat sub division
-<>  - alternating values
-^n   - stretch duration - where n is a float
-!n   - repeat value - where n is an integer
-$   - shuffle group of values
-#   - choose from group of values
-$n   - chance of value or rest - where n is an integer 0-9
+" "    - empty space separates beats/values
+~      - rest
+[]     - beat sub division or group
+<>     - alternating values
+^n     - stretch duration - where n is a float
+!n     - repeat value - where n is an integer
+$      - shuffle group of values
+?n     - chance of value or rest - optional probability is specified with n as an integer 0-9
+#(nnn) - choose from preceeding group of values, optional weights are specified with parens where n is an integer 0-9
 */
+
+// use the pdv parser to generate values without dur calculation
+// maybe there is a way to incorporate pstep to allow for dur calculations
+Pv {
+
+    *new {
+    }
+
+    *parse {|str|
+        var list, seq;
+        list = Pdv.tokenize(str);
+        seq = Pdv.sequence(list)
+        ^Pv.route(seq);
+    }
+
+    *route {|list|
+
+        var gate = nil;
+
+        ^Prout({|inval|
+
+            var parse;
+
+            parse = {|obj, div=1, stretch=1, chance=9|
+
+                var val, rep, shuf, choose, weights;
+                var result = ();
+
+                val = obj['val'].value;
+                stretch = (obj['stretch'] ?? stretch).value.asFloat;
+                chance = (obj['chance'] ?? chance).value.asInteger;
+                rep = (obj['rep'] ?? 1).value.asInteger;
+                choose = obj['choose'];
+                weights = obj['weights'];
+                if (stretch == 0.0) {"invalid stretch".postln; stretch = 1};
+
+                // why is this here?
+                if (choose == true) {
+                    if (val.isSequenceableCollection) {
+                        if (weights.notNil) {
+                            val = val.wchoose(weights.normalizeSum);
+                        }{
+                            val = val.choose;
+                        }
+                    }
+                };
+
+                if (val.isSequenceableCollection) {
+                    var size = val.size;
+                    val.do({|item|
+                        parse.(item, div * size.reciprocal, stretch, chance);
+                    });
+                }{
+                    if (obj['type'] == \value) {
+
+                        if ( (chance/9).coin.not ) {
+                            val = \rest;
+                        };
+
+                        if (val.isRest) {
+                            div = Rest(div);
+                        };
+
+                        rep.do({|i|
+                            //inval[\g1] = gate;
+                            //inval['dur'] = div * rep.reciprocal * stretch;
+                            inval = val.embedInStream(inval);
+                        })
+                    } {
+                        parse.(val, div, stretch, chance)
+                    }
+                };
+            };
+
+            inf.do({
+                list.asArray.do({|val|
+                    parse.(val);
+                });
+            });
+
+            inval;
+        });
+    }
+}
 
 Pdv {
 
@@ -50,7 +134,9 @@ Pdv {
                 rep = (obj['rep'] ?? 1).value.asInteger;
                 choose = obj['choose'];
                 weights = obj['weights'];
+                if (stretch == 0.0) {"invalid stretch".postln; stretch = 1};
 
+                // why is this here?
                 if (choose == true) {
                     if (val.isSequenceableCollection) {
                         if (weights.notNil) {
@@ -61,13 +147,19 @@ Pdv {
                     }
                 };
 
+                /*
+                if (obj['type'] == 'chord') {
+                val = val.collect({|v| v['val'].value });
+                obj['type'] = \value
+                };
+                */
+
                 if (val.isSequenceableCollection) {
                     var size = val.size;
                     val.do({|item|
                         parse.(item, div * size.reciprocal, stretch, chance);
                     });
                 }{
-
                     if (obj['type'] == \value) {
 
                         if ( (chance/9).coin.not ) {
@@ -77,6 +169,7 @@ Pdv {
                         if (val.isRest) {
                             div = Rest(div);
                         };
+
                         rep.do({|i|
                             inval[\g1] = gate;
                             inval['dur'] = div * rep.reciprocal * stretch;
@@ -107,42 +200,89 @@ Pdv {
         parse = {|list, result|
 
             list.do({|item|
+
                 var val = item['val'];
-                if (item['type'] == \group) {
-                    var mylist = List.new;
-                    mylist = parse.(val, mylist);
-                    result.add(
-                        // is it necessary to do this here?
-                        // or would it be better to move to rout function
-                        item['val'] = if (item['shuf'] == true) {
-                            { mylist.asArray.scramble }
-                        } {
-                            mylist
-                        };
-                    );
-                } {
-                    if (item['type'] == \alt) {
+                switch(item['type'],
+                    'group', {
+                        var mylist = List.new;
+                        mylist = parse.(val, mylist);
+                        result.add(
+                            // is it necessary to do this here?
+                            // or would it be better to move to rout function
+                            item['val'] = if (item['shuf'] == true) {
+                                { mylist.asArray.scramble }
+                            } {
+                                mylist
+                            };
+                        )
+                    },
+                    'alt', {
                         var mylist = List.new;
                         mylist = parse.(val, mylist);
                         result.add(
                             // we need to create the routine here
                             // otherwise we end up creating it each cycle
-                            // and it wouldn't sequnce properly
+                            // and it wouldn't sequence properly
                             item['val'] = Routine({
-                                var cnt = 0;
+
+                                //var cnt = 0;
+                                if (item['shuf'] == true) {
+                                    mylist = mylist.asArray.scramble;
+                                };
                                 inf.do({|i|
-                                    if (item['shuf'] == true) {
-                                        mylist = mylist.asArray.scramble;
-                                    };
                                     mylist.wrapAt(i).yield;
-                                    cnt = cnt + 1;
+                                    //cnt = cnt + 1;
                                 });
                             })
-                        );
-                    }{
+                        )
+                    },
+                    'chord', {
+                        var mylist = List.new;
+                        mylist = parse.(val, mylist);
+                        result.add( item['val'] = mylist);
+                    },
+                    {
                         result.add( item )
                     }
+                );
+
+                /*
+                if (item['type'] == \group) {
+                var mylist = List.new;
+                mylist = parse.(val, mylist);
+                result.add(
+                // is it necessary to do this here?
+                // or would it be better to move to rout function
+                item['val'] = if (item['shuf'] == true) {
+                { mylist.asArray.scramble }
+                } {
+                mylist
+                };
+                );
+                } {
+                if (item['type'] == \alt) {
+                var mylist = List.new;
+                mylist = parse.(val, mylist);
+                result.add(
+                // we need to create the routine here
+                // otherwise we end up creating it each cycle
+                // and it wouldn't sequnce properly
+                item['val'] = Routine({
+                var cnt = 0;
+                inf.do({|i|
+                if (item['shuf'] == true) {
+                mylist = mylist.asArray.scramble;
+                };
+                mylist.wrapAt(i).yield;
+                cnt = cnt + 1;
+                });
+                })
+                );
+                }{
+                result.add( item )
                 }
+                }
+                */
             });
             result;
         };
@@ -152,7 +292,7 @@ Pdv {
 
     *tokenize {|str|
 
-        var exec, match;
+        var exec, match, peek;
         var getNextToken;
         var hasMoreTokens;
         var spec;
@@ -166,14 +306,17 @@ Pdv {
             'rest', "^\~",
             'shuf', "^\\$",
             'choose', "^\#",
-            'chance', "^\%",
+            'chance', "^\\?",
             'weights', "^\\([0-9]+\\)",
             '[', "^\\[",
             ']', "^\\]",
             '<', "^\<",
             '>', "^\>",
+            '{', "^\{",
+            '}', "^\}",
             nil, "^\\s+",
             nil, "^\,",
+            nil, "^\\|" // ignore pipe character so it can be used as a visual marker
 
         ];
 
@@ -191,6 +334,10 @@ Pdv {
             val;
         };
 
+        peek = {
+            str[cursor];
+        };
+
         getNextToken = {
             var getNext;
             var result = nil;
@@ -200,7 +347,7 @@ Pdv {
                         if (result.isNil) {
                             var val = match.(v, str[cursor..]);
                             //[k, v, val].debug("match");
-                            if (val.notNil) {
+                            if (val.size > 0) {
                                 if (k.isNil) {
                                     getNext.()
                                 }{
@@ -239,13 +386,28 @@ Pdv {
                     },
                     // modifiers
                     'stretch', {
-                        list.last['stretch'] = getNextToken.()['val'].asFloat
+                        var next = peek.();
+                        if (next.notNil and: {next.isDecDigit}) {
+                            list.last['stretch'] = getNextToken.()['val'].asFloat
+                        } {
+                            list.last['stretch'] = 2
+                        }
                     },
                     'rep', {
-                        list.last['rep'] = getNextToken.()['val'].asInteger;
+                        var next = peek.();
+                        if (next.notNil and: {next.isDecDigit}) {
+                            list.last['rep'] = getNextToken.()['val'].asInteger;
+                        } {
+                            list.last['rep'] = 2;
+                        }
                     },
                     'chance', {
-                        list.last['chance'] = getNextToken.()['val'].asInteger;
+                        var next = peek.();
+                        if (next.notNil and: {next.isDecDigit} ) {
+                            list.last['chance'] = getNextToken.()['val'].asInteger;
+                        } {
+                            list.last['chance'] = 4;
+                        }
                     },
                     'shuf', {
                         list.last['shuf'] = true;
@@ -278,6 +440,16 @@ Pdv {
                         list.last['type'] = 'alt'
                     },
                     '>', {
+                        exit = true
+                    },
+                    '{', {
+                        var result;
+                        list.add( () );
+                        result = exec.(List.new);
+                        list.last['val'] = result;
+                        list.last['type'] = 'chord'
+                    },
+                    '}', {
                         exit = true
                     }
                 );

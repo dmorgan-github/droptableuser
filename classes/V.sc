@@ -10,45 +10,6 @@ V {
 
     var <onload;
 
-    load {|name, func|
-        var index = 100;
-        vst = name;
-        onload = func;
-        V.prFunc(index, this, vst, {|fx, synth| this.fx = fx; this.synth = synth;}, onload);
-    }
-
-    *prFunc {|index, node, vst, cb, onload|
-
-        var fx, synth;
-
-        var func = {
-
-            Routine({
-                node.wakeUp;
-                node.send;
-                node[index] = \vst.debug(\synthdef);
-                synth = Synth.basicNew(\vst, Server.default, node.objects[index].nodeID);
-                Server.default.latency.wait;
-                synth.set(\in, node.bus.index);
-                fx = VSTPluginController(synth);
-                Server.default.latency.wait;
-                fx.open(vst.asString, verbose:true, editor:true);
-                //Server.default.latency.wait;
-                // don't understand this but it is necessary
-                // to get the paramcache populated
-                fx.addDependant(node);
-                cb.(fx, synth);
-                if (onload.isNil.not) {
-                    { onload.(fx) }.defer(2);
-                };
-
-            }).play;
-        };
-
-        func.();
-        ServerTree.add(func);
-    }
-
     *ls {
         var result = List.new;
         VSTPlugin.search(verbose:false);
@@ -57,26 +18,6 @@ V {
         ^result;
     }
 
-    /*
-    (
-Routine({
-
-    ~vst.do({|key|
-
-        var str, file;
-        var path = "~/projects/droptableuser/library/vst/%.scd".format(key.asString).standardizePath.postln;
-        var vst = V('a').load(key.asSymbol);
-        2.wait;
-        str = V.printSynthParams(key.asSymbol, vst.fx);
-        file = File.new(path, "w");
-        file.write(str);
-        file.close;
-
-    });
-
-}).play;
-)
-    */
     *getSynthParams {|vst, ctrl, cb|
 
         var params = ctrl.info.parameters;
@@ -116,6 +57,7 @@ synth: {|in|
         });
     }
 
+    /*
     *printPatternParams {|vst, ctrl|
         var params = ctrl.info.parameters;
         var cache = ctrl.parameterCache;
@@ -133,7 +75,9 @@ synth: {|in|
             ("'" ++ named ++ "', %".format(v) ++ ",").postln;
         })
     }
+    */
 
+    /*
     *getPatternParams {|vst, ctrl, cb|
         var returnVal = List.new;
         var mycb = {|vals|
@@ -159,7 +103,9 @@ synth: {|in|
             mycb.(vals);
         });
     }
+    */
 
+    /*
     *printParamVals {|ctrl|
         var cb = {|vals| vals.asCompileString.postln;};
         var vals = ();
@@ -173,9 +119,9 @@ synth: {|in|
             cb.(vals);
         });
     }
+    */
 
-
-
+    /*
     set {|key, val|
 
         if ( fx.isNil.not and: { fx.info.parameters
@@ -199,18 +145,6 @@ synth: {|in|
     browse {
         fx.browse;
     }
-
-    /*
-    snapshot {
-    fx.getProgramData({ arg data; pdata = data;});
-    }
-    */
-
-    /*
-    restore {
-    fx.setProgramData(pdata);
-    }
-    */
 
     bypass {arg bypass=0;
         synth.set(\bypass, bypass)
@@ -253,7 +187,9 @@ synth: {|in|
         fx.removeDependant(this);
         super.clear;
     }
+    */
 
+    /*
     *initClass {
         StartUp.add({
             SynthDef.new(\vst, {arg out;
@@ -266,4 +202,5 @@ synth: {|in|
             //VSTPlugin.search;
         });
     }
+    */
 }

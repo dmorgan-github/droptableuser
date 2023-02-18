@@ -76,44 +76,7 @@ func: {|node|
 
                         StaticText()
                         .string_(obj.name.asString.split($.)[0].toUpper)
-                        .stringColor_(Color.white.alpha_(0.5))
-
-                        /*
-                        Button()
-                        .states_( [ [obj.name, Color.white.alpha_(0.5), Color.clear] ] )
-                        .action_({|ctrl|
-                            if (obj.type == 'vst') {
-                                obj['ctrl'].editor
-                            }{
-                                var ctrl = obj['ctrl'];
-                                if (ctrl.view.notNil) {
-                                    var key = 'ui/' ++ ctrl.view;
-                                    if (Module.exists(key)) {
-                                        var fxview = Ui(ctrl.view).view(fxnode, index);
-                                        fxview.bounds = Rect(view.bounds.left, view.bounds.top);
-                                        fxview.front;
-                                    } {
-                                        "custom view does not exists: %".format(key).warn;
-                                        Ui('sgui').gui(fxnode, index)
-                                    }
-                                }{
-                                    var left, top;
-                                    var fxview = Ui('sgui').view(fxnode, index);
-                                    var parents = view.getParents();
-                                    if (parents.notNil) {
-                                        var width;
-                                        var parent = parents.last;
-                                        width = parent.bounds.width;
-                                        left = parent.bounds.left + width + 5;
-                                        top = parent.bounds.top;
-                                    };
-                                    fxview.bounds = Rect(left, top, 100, 200);
-                                    fxview.front;
-                                }
-
-                            }
-                        })
-                        */
+                        .stringColor_(Color.white.alpha_(0.5)) 
                         .mouseDownAction_({|ctrl, x, y, mod, num, count|
 
                             if (obj.type == 'vst') {

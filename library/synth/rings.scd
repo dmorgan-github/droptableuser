@@ -19,7 +19,8 @@ synth: {|freq, gate, aeg|
         damp: damp,
         pos: pos,
         model: model,
-        poly: poly
+        poly: poly,
+        //intern_exciter: 1
     );
 
     var even = sig[0];

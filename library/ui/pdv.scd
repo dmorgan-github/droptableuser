@@ -5,11 +5,13 @@ func: {|node, prop|
     var view = View().layout_(VLayout().spacing_(0).margins_(0));
     var pdvkey;
 
-    if (prop.notNil) {
-        prop = prop.asSymbol.postln;
-        pdvkey = "%_pdv_vals".format(prop).asSymbol;
-        val = node.get(pdvkey);
+    if (prop.isNil) {
+        prop = \degree;
     };
+
+    prop = prop.asSymbol.postln;
+    pdvkey = "%_pdv_vals".format(prop).asSymbol;
+    val = node.get(pdvkey);
 
     tv = TextView()
     .background_(Color.clear)
