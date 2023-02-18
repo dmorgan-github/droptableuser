@@ -89,7 +89,10 @@ func: {|node|
             child.remove
         });
 
-        keyboardview.layout = GridLayout.rows(*grid).margins_(0).spacing_(0);
+        keyboardview.layout = VLayout(
+            GridLayout.rows(*grid).margins_(0).spacing_(0),
+            nil
+        ).margins_(0).spacing_(0);
 
     };
 

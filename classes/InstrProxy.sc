@@ -84,7 +84,7 @@ VstInstrProxy : InstrProxy {
         vstplugin.editor;
     }
 
-    on {|note, vel=127, debug|
+    on {|note, vel|
         vstplugin.midi.noteOn(0, note, vel)
     }
 
@@ -157,61 +157,21 @@ VstInstrProxy : InstrProxy {
     }
 }
 
-InstrProxy : EventPatternProxy {
-
-    // TODO:
-    // * improve clean up and bookkeeping
+InstrProxy : EventPatternProxy { 
 
     classvar <>count=0;
     classvar <>colors;
 
     var <node, <cmdperiodfunc, <>color;
-    var <>isMono=false, <synth;
+    var <>isMono=false, <instrument;
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
-    var <synths, <synthdef, <pbindproxy;
-    var <s, <objects, stream;
+    var <synthdef, <pbindproxy;
+    var <synth, <note;
     var midictrl, keyval;
 
     *new {
         ^super.new.prInit();
-    }
-
-    at {|num|
-        ^objects[num]
-    }
-
-    put {|num, val|
-
-        // TODO: need to improve bookkeeping
-        if (val.isNil) {
-            objects.removeAt(num);
-            objects.changed(\put, [num, nil]);
-            this.s.removeAt(num);
-            this.fx(num, nil);
-        } {
-            objects.put(num, val);
-            objects.changed(\put, [num, val]);
-
-            // TODO: figure out good way to dispatch
-            if (val.isKindOf(Association)) {
-
-                var key = val.key;
-                var item = val.value;
-
-                switch(key,
-                    \fx, {
-                        this.fx(num, item)
-                    },
-                    {
-                        this.s.put(num, val)
-                    }
-                )
-            } {
-                "how did we get here?".postln;
-                this.s.put(num, val)
-            }
-        }
     }
 
     @ {|val, adverb|
@@ -228,7 +188,6 @@ InstrProxy : EventPatternProxy {
             this.node.set(adverb, val)
         }
     }
-
 
     set {|...args|
 
@@ -280,39 +239,31 @@ InstrProxy : EventPatternProxy {
         ^midictrl;
     }
 
-    synth_ {|synthname|
-        this.prInitSynth(synthname);
+    instrument_ {|name|
+        this.prInitSynth(name);
     }
 
-    fx {|index, fx, wet=1|
-
-        if (index.isArray) {
-            index.do({|fx, i|
-                var slot = 100 + i;
-                this.node.fx(slot, fx, wet);
-            })
-        }{
-            var key = fx, params;
-            if (fx.isKindOf(Event)) {
-                // e.g: ('fx':[\p1, 1, \p2, 1])
-                key = fx.keys.as(Array)[0];
-                params = fx[key]
-            };
-
-            //[index, key, wet, params].postln;
-            this.node.fx(index, key, wet, params);
-        }
+    on {|note, vel=127, extra, debug=false|
+        this.note.on(note, vel, extra, debug);
+        ^this;
     }
 
-    clear {
-        // TODO: figure out how to simplify
+    off {|note|
+        this.note.off(note);
+        ^this;
+    }
+
+    fx {|index, fx|
+        this.node.fx(index, fx);
+        ^this;
+    }
+
+    clear { 
         this.releaseDependants;
         this.clearHalo;
         this.node.clear;
-        this.synths.clear;
-        this.pbindproxy.clear;
-        this.objects.clear;
-        this.s.release;
+        this.note.clear;
+        this.pbindproxy.clear; 
         if (this.midictrl.notNil) {
             this.midictrl.disconnect;
             this.midictrl = nil;
@@ -345,7 +296,7 @@ InstrProxy : EventPatternProxy {
 
     kill {|ids|
         ids.asArray.do({|id|
-            Synth.basicNew(this.synth, Server.default, id).free
+            Synth.basicNew(this.instrument, Server.default, id).free
         });
     }
 
@@ -376,61 +327,6 @@ InstrProxy : EventPatternProxy {
     key_ {|val|
         keyval = val;
         this.node.key = "%_out".format(keyval).asSymbol;
-    }
-
-    on {|note, vel=127, extra, debug=false|
-
-        var args;
-        var target = this.node.group.nodeID;
-        var evt = stream.next(Event.default);
-       
-        evt[\freq] = note.midicps;
-        evt[\vel] = (vel/127).squared;
-        evt[\gate] = 1;
-        
-        args = evt.use({
-            ~amp = ~amp.value;
-            SynthDescLib.global[synth].msgFunc.valueEnvir  
-        });
-
-        /*
-        var evt = this.envir ?? ();
-        var args;
-        var out = this.node.bus.index;
-        var target = this.node.group.nodeID;
-
-        if (extra.notNil) {
-            extra = extra.asDict;
-            evt = evt ++ extra;
-        };
-
-        args = [\out, out, \gate, 1, \freq, note.midicps]
-        ++ evt
-        .copy
-        .put(\vel, (vel/127).squared)
-        .reject({|v, k|
-            (v.isNumber.not and: v.isArray.not and: {v.isKindOf(BusPlug).not})
-        })
-        .asPairs();
-        */
-
-        if (debug) {
-            args.postln;
-        };
-
-        if (synthdef.hasGate) {
-            if (synths[note].isNil) {
-                synths[note] = Synth(synth, args, target:target, addAction:\addToHead);
-            }
-        } {
-            Synth(synth, args, target:target, addAction:\addToHead);
-        }
-    }
-
-    off {|note|
-        if (synthdef.hasGate) {
-            synths.removeAt(note).set(\gate, 0)
-        }
     }
 
     print {
@@ -506,20 +402,7 @@ InstrProxy : EventPatternProxy {
                         };
                         1
                     }),
-                    */
-
-                    /*
-                    [\degree, \octave, \mtranspose, \legato, \harmonic, \amp], Pfunc({|evt|
-                        [
-                            evt['d'] ?? {evt['degree']},
-                            evt['o'] ?? {evt['octave']},
-                            evt['m'] ?? {evt['mtranspose']},
-                            evt['l'] ?? {evt['legato']},
-                            evt['h'] ?? {evt['harmonic']},
-                            evt['a'] ?? {evt['amp']},
-                        ]
-                    })
-                    */
+                    */ 
                 //),
 
                 pattern,
@@ -533,10 +416,10 @@ InstrProxy : EventPatternProxy {
             );
 
             super.source = Plazy({
-                synth = synth ?? {\default};
+                instrument = instrument ?? {\default};
                 if (isMono) {
                     // not sure how to make composite event work with pmono
-                    Pmono(synth, \trig, 1) <> chain
+                    Pmono(instrument, \trig, 1) <> chain
                 }{
                     Pbind()
                     <> chain
@@ -547,37 +430,33 @@ InstrProxy : EventPatternProxy {
 
     prInit {
 
-        var synthfunc, me = this, ptrnfunc;
+        var synthfunc, me = this;
         keyval = "instr%".format(count).asSymbol;
         if (count > colors.size) {
-          color = Color.rand;
+            color = Color.rand;
         }{
-          color = colors.wrapAt(count);
+            color = colors.wrapAt(count);
         };
         count = count + 1;
         node = DNodeProxy().key_("%_out".format(keyval).asSymbol);
         node.color = color;
 
         this.clock = W.clock;
-        //this.quant = PatternProxy.defaultQuant;
-
-        synths = Order.new;
-        objects = Order();
-        s = M();
-
-        synthfunc = {|obj, what, vals|
+        note = InstrProxyNotePlayer(this);
+        synth = M();
+        synth.addDependant({|obj, what, vals|
             var key = me.key;
+            [obj, what, vals].postln;
             fork {
                 await {|done|
-                    s.add(key);
+                    obj.add(key);
                     Server.default.sync;
                     done.value(\ok);
                 };
                 // re-initialize the synth
-                me.synth = key;
+                me.instrument = key;
             };
-        };
-        this.s.addDependant(synthfunc);
+        });
 
         nodewatcherfunc = {|obj, what|
             if ((what == \play) or: (what == \stop)) {
@@ -589,7 +468,7 @@ InstrProxy : EventPatternProxy {
         node.play;
         pbindproxy = PbindProxy();
         super.source = Pbind();
-        stream = this.asStream;
+        
 
         cmdperiodfunc = {
             {
@@ -603,10 +482,10 @@ InstrProxy : EventPatternProxy {
         ^this
     }
 
-    prInitSynth {|argSynth|
+    prInitSynth {|synthname|
 
-        synth = argSynth;
-        synthdef = SynthDescLib.global.at(synth);
+        instrument = synthname;
+        synthdef = SynthDescLib.global.at(instrument);
 
         if (synthdef.isNil) {
             //"synth does not exist".debug(synth)
@@ -646,8 +525,8 @@ InstrProxy : EventPatternProxy {
                 });
             };
 
-            controlNames = SynthDescLib.global.at(synth).controlNames;
-            this.set(\instrument, synth, \spread, 1, \pan, 0);
+            controlNames = SynthDescLib.global.at(instrument).controlNames;
+            this.set(\instrument, instrument, \spread, 1, \pan, 0);
         }
     }
 
@@ -679,6 +558,61 @@ InstrProxy : EventPatternProxy {
 }
 
 
+InstrProxyNotePlayer {
+
+    var <synths;
+    var <instr;
+    var <stream;
+
+    *new {|instrproxy|
+        ^super.new.prInit(instrproxy);
+    }
+
+    clear {
+        synths.clear;
+    }
+
+    on {|note, vel=127, extra, debug=false|
+        var args;
+        var target = instr.node.group.nodeID;
+        var evt = stream.next(Event.default);
+        var instrument = instr.instrument;
+        var synthdef = instr.synthdef;
+       
+        evt[\freq] = note.midicps;
+        evt[\vel] = (vel/127).squared;
+        evt[\gate] = 1;
+        
+        args = evt.use({
+            ~amp = ~amp.value;
+            SynthDescLib.global[instrument].msgFunc.valueEnvir  
+        });
+
+        if (debug) {
+            args.postln;
+        };
+
+        if (synthdef.hasGate) {
+            if (synths[note].isNil) {
+                synths[note] = Synth(instrument, args, target:target, addAction:\addToHead);
+            }
+        } {
+            Synth(instrument, args, target:target, addAction:\addToHead);
+        } 
+    }
+
+    off {|note|
+        if (instr.synthdef.hasGate) {
+            synths.removeAt(note).set(\gate, 0)
+        }
+    }
+
+    prInit {|instrproxy|
+        instr = instrproxy;
+        stream = instr.asStream;
+        synths = Order.new;
+    }
+}
 
 
 

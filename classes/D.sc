@@ -37,7 +37,6 @@ DNodeProxy : NodeProxy {
     var <fxchain, <metadata;
     var <cmdperiodfunc;
     var <>key;
-    var <lfos;
 
     *new {|source|
 
@@ -114,8 +113,7 @@ DNodeProxy : NodeProxy {
         CmdPeriod.remove(cmdperiodfunc);
         vstctrls.clear;
         fxchain.clear;
-        metadata.clear;
-        lfos.clear;
+        metadata.clear; 
         super.clear;
     }
 
@@ -173,8 +171,7 @@ DNodeProxy : NodeProxy {
         key = "d%".format(count).asSymbol;
         vstctrls = Order.new;
         color = Color.rand;
-        fxchain = Order.new;
-        lfos = Order.new();
+        fxchain = Order.new; 
         metadata = ();
 
         cmdperiodfunc = {
@@ -347,7 +344,6 @@ DNodeProxy : NodeProxy {
                     0.5.wait;
                 };
 
-
                 nodeId = node.objects[index].nodeID;
                 ctrl = if (node.objects[index].class == SynthDefControl) {
                     var synthdef = node.objects[index].synthDef;
@@ -386,6 +382,7 @@ DNodeProxy : NodeProxy {
         this.view.front
     }
 
+    /*
     rec {|beats=4, preLevel=0, cb|
 
         // how to coordinate clocks?
@@ -409,11 +406,13 @@ DNodeProxy : NodeProxy {
             nil;
         });
     }
+    */
 
     *initClass {
 
         defaultout = 0;//Server.default.options.numInputBusChannels;
 
+        /*
         StartUp.add({
             SynthDef(\rec, {
                 var buf = \buf.kr(0);
@@ -429,6 +428,7 @@ DNodeProxy : NodeProxy {
                 Out.ar(0, Silent.ar(2));
             }).add;
         });
+        */
     }
 
 }
