@@ -37,6 +37,7 @@ DNodeProxy : NodeProxy {
     var <fxchain, <metadata;
     var <cmdperiodfunc;
     var <>key;
+    var <patterns;
 
     *new {|source|
 
@@ -99,6 +100,33 @@ DNodeProxy : NodeProxy {
         ^res;
     }
 
+    @ {|val, adverb|
+        this.setOrPut(adverb, val);
+    }
+
+    setOrPut {|prop, val|
+
+        if (prop.isNil and: val.isKindOf(Array)) {
+            this.set(*val);
+        } {
+            if (val.isKindOf(Pattern) ) {
+                var index;
+                if ((index = patterns.indexOf(prop)).isNil) {
+                    patterns.add(prop);
+                    index = patterns.size-1;
+                };
+                // if the property had previously been set
+                // then we have to clear it from the nodemap
+                // otherwise the set from the pattern will be ignored
+                this.set(prop, nil);
+                this.put(300 + index, \set -> Pbind(prop, val))
+                
+            }{
+                this.set(prop, val)
+            }
+        }
+    }
+
     mute {|fadeTime=1|
         this.stop(fadeTime:fadeTime)
     }
@@ -122,83 +150,6 @@ DNodeProxy : NodeProxy {
         ^this
     }
 
-    print {
-
-        //this.fxchain.asCode.postln;
-        this.fxchain.do({|v, i|
-            var name = v.name;
-            if (v.type == 'vst') {
-                name = "vst/%".format(name);
-            };
-            "D('%').fx(%, '%')".format(this.key, i, name).postln;
-        });
-
-        "(\nD('%').set(".format(this.key).postln;
-        this.nodeMap.getPairs.pairsDo({|k, v|
-            if (this.internalKeys.includes(k).not) {
-                "\t".post;
-                k.asCode.post;
-                ", ".post;
-                v.asCode.post;
-                ",".postln;
-            }
-        });
-        ")\n)".postln;
-
-        //"(\nD('%').set(".format(this.key).postln;
-        this.fxchain.do({|fx|
-            if (fx.type == \vst) {
-                V.getPatternParams(fx.name, fx.ctrl, {|vals|
-                    "(\nD('%').set(".format(this.key).postln;
-                    vals.do({|val|
-                        "\t".post;
-                        val.key.asCode.post;
-                        ", ".post;
-                        val.value.asCode.post;
-                        ",".postln;
-                    });
-                    ")\n)".postln;
-                });
-                //"".postln;
-            }
-        });
-        //")\n)".postln;
-    }
-
-    prDNodeInit {
-
-        count = count+1;
-        key = "d%".format(count).asSymbol;
-        vstctrls = Order.new;
-        color = Color.rand;
-        fxchain = Order.new; 
-        metadata = ();
-
-        cmdperiodfunc = {
-            {
-                this.send;
-                {
-                    this.objects.doRange({|obj, index, i|
-                        var hasvst = obj.synthDef.children.select({|ctrl| ctrl.isKindOf(VSTPlugin) }).size > 0;
-                        if (hasvst) {
-                            var synthdef = obj.synthDef;
-                            var nodeId = obj.nodeID;
-                            var synth = Synth.basicNew(synthdef.name, Server.default, nodeId);
-                            var ctrl = VSTPluginController(synth, synthDef:synthdef);
-                            ctrl.open(ctrl.info.key, verbose: true, editor:true);
-                            fxchain[index]['ctrl'] = ctrl;
-                        }
-                    })
-                }.defer(2)
-            }.defer(1)
-        };
-
-        CmdPeriod.add(cmdperiodfunc);
-
-        ^this;
-        //^this.deviceInit;
-    }
-
     put {|index, obj, channelOffset = 0, extraArgs, now = true|
         super.put(index, obj, channelOffset, extraArgs, now);
         {
@@ -213,7 +164,7 @@ DNodeProxy : NodeProxy {
         this.monitor.out = bus;
     }
 
-    fx {|index, fx, wet=1, params|
+    fx {|index, fx, cb, wet=1|
 
         if (fx.isNil) {
             this.removeAt(index);
@@ -231,9 +182,11 @@ DNodeProxy : NodeProxy {
             }{
                 var num = {
                     var num;
-                    var size = this.fxchain.select({|obj| obj.name == fx }).size;
-                    if (size > 0) {
-                        num = size+1;
+                    if (this.fxchain[index].notNil and: { this.fxchain[index].name != fx }) {
+                        var size = this.fxchain.select({|obj| obj.name == fx }).size;
+                        if (size > 0) {
+                            num = size+1;
+                        };
                     };
                     num;
                 }.();
@@ -264,9 +217,7 @@ DNodeProxy : NodeProxy {
                         obj['readProgram'] = {|self, path|
                             ctrl.readProgram(Document.current.dir +/+ path);
                         };
-                        if (params.notNil) {
-                            ctrl.set(*params);
-                        };
+
                         ctrl.addDependant(func);
                         vstctrls.put(index, ctrl);
                         this.fxchain.put(index, obj);
@@ -278,6 +229,7 @@ DNodeProxy : NodeProxy {
                     obj['ui'] = {|self|
                         Ui('sgui').gui(this, index);
                     };
+                    cb.(mod.envir);
                     func = mod.put('num', num).func;
                     this.filter(index, func);
                     this.fxchain.put(index, obj);
@@ -362,7 +314,6 @@ DNodeProxy : NodeProxy {
                     }
                 };
 
-
                 ctrl.open(vst, editor:true, verbose: true, action:{
                     "loaded %".format(key).postln;
                     if (cb.isNil.not) {
@@ -382,53 +333,86 @@ DNodeProxy : NodeProxy {
         this.view.front
     }
 
-    /*
-    rec {|beats=4, preLevel=0, cb|
+    print {
 
-        // how to coordinate clocks?
-        var clock = TempoClock.default;
-        var seconds = clock.beatDur * beats;
-        var id = "%_%".format(this.key, UniqueID.next).asSymbol;
-        var buf = B.allocSec(id, seconds, 1);
-        var bus = this.bus;
-        var group = this.group;
-
-        clock.schedAbs(clock.nextTimeOnGrid(1), {
-
-            var synth = Synth(\rec, [\buf, buf, \in, bus, \preLevel, preLevel, \run, 1], target:group, addAction:\addToTail);
-            synth.onFree({
-                {
-                    buf = B.all[id] = buf.normalize;
-                    "buffer saved to %".format(id).postln;
-                    cb.(buf);
-                }.defer
-            });
-            nil;
+        //this.fxchain.asCode.postln;
+        this.fxchain.do({|v, i|
+            var name = v.name;
+            if (v.type == 'vst') {
+                name = "vst/%".format(name);
+            };
+            "D('%').fx(%, '%')".format(this.key, i, name).postln;
         });
+
+        "(\nD('%').set(".format(this.key).postln;
+        this.nodeMap.getPairs.pairsDo({|k, v|
+            if (this.internalKeys.includes(k).not) {
+                "\t".post;
+                k.asCode.post;
+                ", ".post;
+                v.asCode.post;
+                ",".postln;
+            }
+        });
+        ")\n)".postln;
+
+        //"(\nD('%').set(".format(this.key).postln;
+        this.fxchain.do({|fx|
+            if (fx.type == \vst) {
+                V.getPatternParams(fx.name, fx.ctrl, {|vals|
+                    "(\nD('%').set(".format(this.key).postln;
+                    vals.do({|val|
+                        "\t".post;
+                        val.key.asCode.post;
+                        ", ".post;
+                        val.value.asCode.post;
+                        ",".postln;
+                    });
+                    ")\n)".postln;
+                });
+                //"".postln;
+            }
+        });
+        //")\n)".postln;
     }
-    */
+
+    prDNodeInit {
+
+        count = count+1;
+        key = "d%".format(count).asSymbol;
+        vstctrls = Order.new;
+        color = Color.rand;
+        fxchain = Order.new;
+        patterns = List.new;
+        metadata = ();
+
+        cmdperiodfunc = {
+            {
+                this.send;
+                {
+                    this.objects.doRange({|obj, index, i|
+                        var hasvst = obj.synthDef.children.select({|ctrl| ctrl.isKindOf(VSTPlugin) }).size > 0;
+                        if (hasvst) {
+                            var synthdef = obj.synthDef;
+                            var nodeId = obj.nodeID;
+                            var synth = Synth.basicNew(synthdef.name, Server.default, nodeId);
+                            var ctrl = VSTPluginController(synth, synthDef:synthdef);
+                            ctrl.open(ctrl.info.key, verbose: true, editor:true);
+                            fxchain[index]['ctrl'] = ctrl;
+                        }
+                    })
+                }.defer(2)
+            }.defer(1)
+        };
+
+        CmdPeriod.add(cmdperiodfunc);
+
+        ^this;
+        //^this.deviceInit;
+    }
 
     *initClass {
-
-        defaultout = 0;//Server.default.options.numInputBusChannels;
-
-        /*
-        StartUp.add({
-            SynthDef(\rec, {
-                var buf = \buf.kr(0);
-                var in = In.ar(\in.kr(0), 2).asArray.sum;
-                var sig = RecordBuf.ar(in, buf,
-                    \offset.kr(0),
-                    \recLevel.kr(1),
-                    \preLevel.kr(0),
-                    \run.kr(1),
-                    \loop.kr(0),
-                    1,
-                    doneAction:Done.freeSelf);
-                Out.ar(0, Silent.ar(2));
-            }).add;
-        });
-        */
+        defaultout = 0;//Server.default.options.numInputBusChannels; 
     }
 
 }

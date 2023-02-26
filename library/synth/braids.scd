@@ -16,7 +16,7 @@ synth: {|freq, gate, aeg|
         timbre: timbre,
         color: color,
         model: model,
-        trig: trigger,
+        trig: gate + Impulse.kr(0),
         resamp: resamp,
         decim: decim,
         bits: bits,

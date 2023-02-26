@@ -11,28 +11,30 @@ synth: {|freq, gate, aeg|
     var timbremod = \timb_mod.kr(0, spec: ControlSpec(-1, 1, \lin, 0, 0, "plaits"));
     var morphmod = \morph_mod.kr(0, spec: ControlSpec(-1, 1, \lin, 0, 0, "plaits"));
     var lpg = \lpg.kr(0.5, spec: ControlSpec(0, 1, \lin, 0, 0.5, "plaits"));
+    var level = \level.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, "plaits"));
     //var level = \level.kr(0.5);
+    var slice = ~slice ?? [0, 1];
 
     var note = A2K.kr(freq).cpsmidi;
+    
     var sig = MiPlaits.ar(note,
         engine:engine,
         harm:harm,
         timbre: timbre,
         morph:morph,
-        trigger:gate,
-        level: 0, //not sure how to make this work
+        trigger:gate + Impulse.kr(0),
+        level: level.squared, //not sure how to make this work
         fm_mod: fmmod,
         timb_mod: timbremod,
         morph_mod: morphmod,
         decay: decay,
         lpg_colour: lpg
     );
-    var pri = sig[0];
-    var aux = sig[1];
-
-    sig = pri;//pri.blend(aux, \auxmix.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "plaits")));
-    sig.sum
-
+    //var pri = sig[0];
+    //var aux = sig[1];
+    //sig = pri;//pri.blend(aux, \auxmix.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "plaits")));
+    //sig.sum
+    sig.slice(slice.debug("slice"));
 },
 presets: [
     bd: [

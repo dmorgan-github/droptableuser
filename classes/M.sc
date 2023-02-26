@@ -30,6 +30,8 @@ Module {
         libfunc = val
     }
 
+    // TODO: need to change so that it is aligned
+    // with set and put in M subclass
     put {|key, val|
         envir.put(key, val);
         ^this
@@ -129,7 +131,12 @@ M : Module {
 
     at {|num|
         ^modules[num];
-    } 
+    }
+
+    set {|key, val|
+        super.put(key, val);
+        this.changed(\set, [key, val]);
+    }
    
     put {|num, val|
 
@@ -140,6 +147,14 @@ M : Module {
 
             key = val.key;
             mod = val.value;
+
+            if (mod.isKindOf(Array)) {
+                var props, temp;
+                temp = mod[0];
+                props = mod[1..].asDict;
+                mod = temp;
+                this.envir.putAll(props);
+            };
 
             switch(key,
                 \pit, {

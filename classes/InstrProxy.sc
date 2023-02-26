@@ -167,7 +167,7 @@ InstrProxy : EventPatternProxy {
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
     var <synthdef, <pbindproxy;
-    var <synth, <note;
+    var <synthmodule, <note;
     var midictrl, keyval;
 
     *new {
@@ -175,7 +175,6 @@ InstrProxy : EventPatternProxy {
     }
 
     @ {|val, adverb|
-
         if (adverb.isNil and: val.isKindOf(Array)) {
             this.set(*val);
         } {
@@ -185,7 +184,7 @@ InstrProxy : EventPatternProxy {
 
     @@ {|val, adverb|
         if (adverb.notNil) {
-            this.node.set(adverb, val)
+            this.node.setOrPut(adverb, val);
         }
     }
 
@@ -253,8 +252,14 @@ InstrProxy : EventPatternProxy {
         ^this;
     }
 
-    fx {|index, fx|
-        this.node.fx(index, fx);
+    fx {|index, fx, cb|
+        this.node.fx(index, fx, cb);
+        ^this;
+    }
+
+    synth {|index, component, module, cb|
+        cb.value(this.synthmodule.envir);
+        this.synthmodule[index] = component -> module;
         ^this;
     }
 
@@ -443,8 +448,8 @@ InstrProxy : EventPatternProxy {
 
         this.clock = W.clock;
         note = InstrProxyNotePlayer(this);
-        synth = M();
-        synth.addDependant({|obj, what, vals|
+        synthmodule = M();
+        synthmodule.addDependant({|obj, what, vals|
             var key = me.key;
             [obj, what, vals].postln;
             fork {
@@ -469,7 +474,6 @@ InstrProxy : EventPatternProxy {
         pbindproxy = PbindProxy();
         super.source = Pbind();
         
-
         cmdperiodfunc = {
             {
                 node.wakeUp;
@@ -563,6 +567,7 @@ InstrProxyNotePlayer {
     var <synths;
     var <instr;
     var <stream;
+    var <synthdef;
 
     *new {|instrproxy|
         ^super.new.prInit(instrproxy);
@@ -577,7 +582,6 @@ InstrProxyNotePlayer {
         var target = instr.node.group.nodeID;
         var evt = stream.next(Event.default);
         var instrument = instr.instrument;
-        var synthdef = instr.synthdef;
        
         evt[\freq] = note.midicps;
         evt[\vel] = (vel/127).squared;
@@ -602,7 +606,7 @@ InstrProxyNotePlayer {
     }
 
     off {|note|
-        if (instr.synthdef.hasGate) {
+        if (synthdef.hasGate) {
             synths.removeAt(note).set(\gate, 0)
         }
     }
@@ -610,6 +614,7 @@ InstrProxyNotePlayer {
     prInit {|instrproxy|
         instr = instrproxy;
         stream = instr.asStream;
+        synthdef = instr.synthdef;
         synths = Order.new;
     }
 }

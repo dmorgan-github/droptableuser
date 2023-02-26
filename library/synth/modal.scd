@@ -23,7 +23,7 @@ synth: {|freq, gate, aeg|
 
     var vol = noisedecay.linlin(0, 1, 1, 2).sqrt.reciprocal;
 
-    var exciter = ~exciter ?? { PinkNoise.ar * Env.perc(0.05, noisedecay).ar(gate:gate) * 0.7 * vol };
+    var exciter = ~exciter ?? { BrownNoise.ar * Env.perc(0.05, noisedecay).ar(gate:gate) * 0.2 * vol };
 
     exciter = exciter * 0.2;
 

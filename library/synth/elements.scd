@@ -2,7 +2,7 @@
 synth: {|freq, gate|
 
     var strike_in = 0;//~strike ?? 0;//PinkNoise.ar(0.3);
-    var pit = A2K.kr(freq).asArray[0].cpsmidi;
+    var pit = A2K.kr(freq).cpsmidi;
     var strength = \strength.kr(0.5, spec:ControlSpec(0, 1, \lin, 0, 0.5, units:"elements"));
     var contour = \contour.kr(0.2, spec:ControlSpec(0, 1, \lin, 0, 0.2, units:"elements"));
     var bow_level = \bowlevel.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, units:"elements"));
@@ -28,7 +28,7 @@ synth: {|freq, gate|
     MiElements.ar(
         PinkNoise.ar(1),//Hasher.ar(Sweep.ar(0)),//PinkNoise.ar(0.5),
         0,
-        Trig1.kr(gate + Impulse.kr(0), \sustain.kr), //A2K.kr(gate),
+        gate + Impulse.kr(0), //A2K.kr(gate),
         pit,
         strength,
         contour,

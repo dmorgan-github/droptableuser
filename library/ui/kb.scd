@@ -46,7 +46,7 @@ func: {|node|
             num = buttons - num;
             label = map[num];
             if (hilight.().includes(num.mod(12))) {
-                color = QtGUI.palette.highlight.alpha_(0.5);
+                color = node.color.alpha_(0.5);
             };
             Button()
             .states_([[label, nil, color], [label, nil, Color.white]])
