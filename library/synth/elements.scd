@@ -28,7 +28,7 @@ synth: {|freq, gate|
     MiElements.ar(
         PinkNoise.ar(1),//Hasher.ar(Sweep.ar(0)),//PinkNoise.ar(0.5),
         0,
-        gate + Impulse.kr(0), //A2K.kr(gate),
+        gate, //A2K.kr(gate),
         pit,
         strength,
         contour,

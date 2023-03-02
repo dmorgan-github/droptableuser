@@ -31,8 +31,10 @@ Lfo : Ndef {
 
 PLfo {
 
-  *sine {|dur=1, min=0, max=1|
-      ^Pseg(Pseq([min, max], inf), Pseq([dur], inf), \sine)
+  *sine {|dur=1, min=0, max=1, phase=0|
+      //^Pseg(Pseq([min, max], inf), Pseq([dur], inf), \sine)
+      var num = 64;
+      ^Pseg(Signal.sineFill(num, [1], [phase * pi]).asArray.pseq, [1/num].pseq * dur).linlin(-1, 1, min, max);
   }
 
   *tri {|dur=1, min=0, max=1|

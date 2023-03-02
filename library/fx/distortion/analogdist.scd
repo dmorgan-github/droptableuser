@@ -36,7 +36,7 @@ synth: {|in|
     sig;
 },
 
-notes: "
+doc: "
 oversample: 0 = No oversampling, 1 = x2, 2 = x4, 3 = x8, 4 = x16
 "
 )

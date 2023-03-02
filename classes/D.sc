@@ -36,7 +36,7 @@ DNodeProxy : NodeProxy {
     var <vstctrls, <>color;
     var <fxchain, <metadata;
     var <cmdperiodfunc;
-    var <>key;
+    //var <>key;
     var <patterns;
 
     *new {|source|
@@ -74,13 +74,16 @@ DNodeProxy : NodeProxy {
             res.put(0, source)
         };
 
+        /*
         res.filter(10, {|in|
             var sig = BHiShelf.ar(in, \hishelf.kr(16000), 1, \hishefldb.kr(-30));
-            sig = BLowShelf.ar(sig, \loshelf.kr(60), 1, \loshelfdb.kr(-30));
+            sig = BLowShelf.ar(sig, \loshelf.kr(30), 1, \loshelfdb.kr(-30));
             sig;
         });
+        */
 
         // initialize or re-initialize
+        /*
         res.filter(1000, {|in|
             Splay.ar(
                 in * \vol.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol")),
@@ -89,20 +92,24 @@ DNodeProxy : NodeProxy {
                 levelComp: false
             );
         });
+        */
 
+        /*
         res.filter(1010, {|in|
             var sig = in;
             sig = Sanitize.ar(sig);
+            // limiter introduces a slight delay
             Limiter.ar(LeakDC.ar(sig));
             //SafetyLimiter.ar(LeakDC.ar(sig));
         });
+        */
 
         ^res;
     }
 
     @ {|val, adverb|
         this.setOrPut(adverb, val);
-    }
+    } 
 
     setOrPut {|prop, val|
 
@@ -379,7 +386,7 @@ DNodeProxy : NodeProxy {
     prDNodeInit {
 
         count = count+1;
-        key = "d%".format(count).asSymbol;
+        //key = "d%".format(count).asSymbol;
         vstctrls = Order.new;
         color = Color.rand;
         fxchain = Order.new;

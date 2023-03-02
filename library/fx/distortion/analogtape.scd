@@ -12,7 +12,7 @@ synth: {|in|
     sig;
 },
 
-notes: "
+doc: "
 oversampe: 0 = No oversampling, 1 = x2, 2 = x4, 3 = x8, 4 = x16
 mode: Change the mode (solver type) of the tape algorithm: 0 = RK2 (2nd order Runge Kutta) 1 = RK4 (4th order Runge Kutta) 2 = NR4 (4-iteration Newton Raphson) 3 = NR8 (8-iteration Newton Raphson)
 

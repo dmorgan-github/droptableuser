@@ -122,6 +122,7 @@ M : Module {
 
     var <synthdef, <synthname;
     var <modules;
+    var <metadata;
 
     *new {
         var res;
@@ -185,7 +186,12 @@ M : Module {
             );
 
             if (mod.isKindOf(Module).not) {
+                var doc, key = mod;
                 mod = Module(mod);
+                doc = mod.doc;
+                if (doc.notNil) {
+                    metadata.put(key, doc);
+                }
             };
             if (mod.props.notNil) {
                 envir.putAll(mod.props);
@@ -236,6 +242,7 @@ M : Module {
     prMInit {
 
         modules = Order();
+        metadata = Dictionary.new;
         synthname = "synth_%".format(UniqueID.next).asSymbol;
 
         this.libfunc = {
@@ -260,7 +267,9 @@ M : Module {
                 hasgate = ~hasgate ?? true;
                 hasgate.debug("hasgate");
                 if (hasgate) {
-                    gate = \gate.kr(1);
+                    // this is a trick to ensure the gate is opened
+                    // before being closed if there is a race condition
+                    gate = \gate.kr(1) + Impulse.kr(0);
                 } {
                     gate = DC.kr(1);
                 };
@@ -270,7 +279,7 @@ M : Module {
             vel = \vel.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1));
             freq = Module('pitch/freq');
             env = Module('env/asr');
-            out = Module('out/pan2');
+            out = Module('out/splay');
 
             modules.do({|val, index|
                 if (val.isKindOf(Association)) {

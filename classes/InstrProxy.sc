@@ -460,6 +460,7 @@ InstrProxy : EventPatternProxy {
                 };
                 // re-initialize the synth
                 me.instrument = key;
+                me.metadata.putAll(obj.metadata);
             };
         });
 

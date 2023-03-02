@@ -27,7 +27,8 @@ synth: {|gate, doneAction=(Done.freeSelf)|
         );
     };
 
-    aeg = env.ar(doneAction:doneAction, gate:gate + Impulse.kr(0), timeScale:ts);
+    //aeg = env.ar(doneAction:doneAction, gate:gate + Impulse.kr(0), timeScale:ts);
+    aeg = env.ar(doneAction:doneAction, gate:gate, timeScale:ts);
     aeg;
 }
 )

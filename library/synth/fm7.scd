@@ -5,6 +5,8 @@ synth: {|freq, gate|
     var velamt = ~velamt ?? 0.55;
 
     var algo = ~algo ?? 0;
+    var mods = ~mods;
+    var sig;
     var fb = \fm7fb.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, "fm7"));
 
     var indexlforate = \indexlforate.kr(0, spec:ControlSpec(0, 20, \lin, 0, 0, "fm7"));
@@ -39,20 +41,14 @@ synth: {|freq, gate|
 
         [freq.asArray[0] * ratio, 0, env * index];
     });
-
-    /*
-    var mods = [
-        [ 0, 1, 0, 0, 0, 0 ],
-        [ 0, fb, 0, 0, 0, 0 ],
-        [ 0, 0, 0, 1, 1, 1 ],
-        [ 0, 0, 0, 0, 0, 0 ],
-        [ 0, 0, 0, 0, 0, 0 ],
-        [ 0, 0, 0, 0, 0, 0 ]
-    ];
-    */
-    var sig = FM7.arAlgo(algo.debug("fm7 algo"), ops, fb).asArray.sum;
-    //var sig = FM7.ar(ops, mods).slice([ 0, 2 ]).asArray.sum;
-
+    
+    if (mods.notNil) {
+        var vals = mods.(fb).debug("fm7 algo");
+        sig = FM7.ar(ops, vals[0]).slice( vals[1] ).asArray.sum    
+    } {
+        sig = FM7.arAlgo(algo.debug("fm7 algo"), ops, fb).asArray.sum
+    };
+    
     sig;
 },
 presets: [

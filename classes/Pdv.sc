@@ -1,116 +1,3 @@
-/*
-either repeat or alternate
-    alternate = routine
-    repeat = loop
-values and groups of values
-    both can be repeated and alternated
-groups are played as subdivisions of current beat
-stretch
-    does not retain total bar duration at current level
-    if value 1 is stretched beyond current beat then remaining items' beats are not compressed
-    "1 2 [3 3 3 3 3]^2" 4 total beats beat 3 lasts 2 beats and is subdived by 5
-    "1 2 [3 3 3 3 3] ~" 4 total beats beat 3 lasts 1 beat and is subdived by 5
-*/
-
-/*
-operators:
-" "    - empty space separates beats/values
-~      - rest
-[]     - beat sub division or group
-<>     - alternating values
-{}     - chord values
-^n     - stretch duration - where n is a float
-!n     - repeat value - where n is an integer
-$      - shuffle group of values
-?n     - chance of value or rest - optional probability is specified with n as an integer 0-9
-#(nnn) - choose one value from preceeding group of values, optional weights are specified within parens where n is an integer 0-9
-|      - can be used as visual separator to help readability
-*/
-
-// use the pdv parser to generate values without dur calculation
-// maybe there is a way to incorporate pstep to allow for dur calculations
-Pv {
-
-    *new {
-    }
-
-    *parse {|str|
-        var list, seq;
-        list = Pdv.tokenize(str);
-        seq = Pdv.sequence(list)
-        ^Pv.route(seq);
-    }
-
-    *route {|list|
-
-        var gate = nil;
-
-        ^Prout({|inval|
-
-            var parse;
-
-            parse = {|obj, div=1, stretch=1, chance=9|
-
-                var val, rep, shuf, choose, weights;
-                var result = ();
-
-                val = obj['val'].value;
-                stretch = (obj['stretch'] ?? stretch).value.asFloat;
-                chance = (obj['chance'] ?? chance).value.asInteger;
-                rep = (obj['rep'] ?? 1).value.asInteger;
-                choose = obj['choose'];
-                weights = obj['weights'];
-                if (stretch == 0.0) {"invalid stretch".postln; stretch = 1};
-
-                // why is this here?
-                if (choose == true) {
-                    if (val.isSequenceableCollection) {
-                        if (weights.notNil) {
-                            val = val.wchoose(weights.normalizeSum);
-                        }{
-                            val = val.choose;
-                        }
-                    }
-                };
-
-                if (val.isSequenceableCollection) {
-                    var size = val.size;
-                    val.do({|item|
-                        parse.(item, div * size.reciprocal, stretch, chance);
-                    });
-                }{
-                    if (obj['type'] == \value) {
-
-                        if ( (chance/9).coin.not ) {
-                            val = \rest;
-                        };
-
-                        if (val.isRest) {
-                            div = Rest(div);
-                        };
-
-                        rep.do({|i|
-                            //inval[\g1] = gate;
-                            //inval['dur'] = div * rep.reciprocal * stretch;
-                            inval = val.embedInStream(inval);
-                        })
-                    } {
-                        parse.(val, div, stretch, chance)
-                    }
-                };
-            };
-
-            inf.do({
-                list.asArray.do({|val|
-                    parse.(val);
-                });
-            });
-
-            inval;
-        });
-    }
-}
-
 Pdv {
 
     *new {
@@ -124,17 +11,17 @@ Pdv {
 
             var parse;
 
-            parse = {|obj, div=1, stretch=1, chance=9, ischord=false, list|
+            parse = {|obj, div=1, stretch=1, chance=9, rep=1, ischord=false, list|
 
-                var val, rep, shuf, choose, weights;
+                var val, shuf, choose, weights;
                 val = obj['val'].value;
                 stretch = (obj['stretch'] ?? stretch).value.asFloat;
                 chance = (obj['chance'] ?? chance).value.asInteger;
-                rep = (obj['rep'] ?? 1).value.asInteger;
+                rep = (obj['rep'] ?? rep).value.asInteger;
                 choose = obj['choose'];
                 weights = obj['weights'];
                 ischord = if (ischord or: { obj['type'] == 'chord' }) {true }{false};
-                if (ischord) { 
+                if (ischord) {
                     if (list.isNil) {
                         list = List.new;
                         // we don't know the size of the chord
@@ -144,8 +31,8 @@ Pdv {
                         // to know when all the chord items have been
                         // accumulated and we can embed the result
                         val = val.copy.add( (type: 'chordend') )
-                    } 
-                }; 
+                    }
+                };
                 if (stretch == 0.0) {"invalid stretch".postln; stretch = 1};
 
                 if (choose == true) {
@@ -162,7 +49,7 @@ Pdv {
                     var size = val.size;
                     div = if (ischord) { div }{ div * size.reciprocal };
                     val.do({|item|
-                        parse.(item, div, stretch, chance, ischord, list);
+                        parse.(item, div, stretch, chance, rep, ischord, list);
                     });
                 }{
                     if (obj['type'] == \value or: {obj['type'] == 'chordend'}) {
@@ -191,8 +78,8 @@ Pdv {
                                 embed = true;
                                 val = list.asArray
                             } {
-                                embed = false; 
-                                list.add(val);    
+                                embed = false;
+                                list.add(val);
                             }
                         };
 
@@ -204,8 +91,8 @@ Pdv {
                                 gate = nil
                             })
                         }
-                    } {  
-                        parse.(val, div, stretch, chance, ischord, list)
+                    } {
+                        parse.(val, div, stretch, chance, rep, ischord, list)
                     }
                 };
             };
@@ -308,7 +195,6 @@ Pdv {
             nil, "^\\s+",
             nil, "^\,",
             nil, "^\\|" // ignore pipe character so it can be used as a visual marker
-
         ];
 
         hasMoreTokens = {
@@ -355,7 +241,7 @@ Pdv {
 
             getNext.();
 
-            if (result.isNil) {
+            if (result.isNil and: {cursor < str.size}) {
                 "unexpected token %".format(str[cursor]).throw
             };
             result;
@@ -366,84 +252,87 @@ Pdv {
             var exit = false;
             while ({ hasMoreTokens.() and: { exit.not } }, {
                 var token = getNextToken.();
-                //token.debug("token");
-                switch(token['type'],
-                    // entities
-                    'number', {
-                        list.add( (val:token['val'].asFloat, type:\value) )
-                    },
-                    'rest', {
-                        list.add( (val:\rest, type:\value) )
-                    },
-                    // modifiers
-                    'stretch', {
-                        var next = peek.();
-                        if (next.notNil and: {next.isDecDigit}) {
-                            list.last['stretch'] = getNextToken.()['val'].asFloat
-                        } {
-                            list.last['stretch'] = 2
+
+                if (token.notNil) {
+                    //token.debug("token");
+                    switch(token['type'],
+                        // entities
+                        'number', {
+                            list.add( (val:token['val'].asFloat, type:\value) )
+                        },
+                        'rest', {
+                            list.add( (val:\rest, type:\value) )
+                        },
+                        // modifiers
+                        'stretch', {
+                            var next = peek.();
+                            if (next.notNil and: {next.isDecDigit}) {
+                                list.last['stretch'] = getNextToken.()['val'].asFloat
+                            } {
+                                list.last['stretch'] = 2
+                            }
+                        },
+                        'rep', {
+                            var next = peek.();
+                            if (next.notNil and: {next.isDecDigit}) {
+                                list.last['rep'] = getNextToken.()['val'].asInteger;
+                            } {
+                                list.last['rep'] = 2;
+                            }
+                        },
+                        'chance', {
+                            var next = peek.();
+                            if (next.notNil and: {next.isDecDigit} ) {
+                                list.last['chance'] = getNextToken.()['val'].asInteger;
+                            } {
+                                list.last['chance'] = 4;
+                            }
+                        },
+                        'shuf', {
+                            list.last['shuf'] = true;
+                        },
+                        'choose', {
+                            list.last['choose'] = true;
+                        },
+                        'weights', {
+                            var weights = token['val'];
+                            weights = weights.findRegexp("\\d+")[0][1];
+                            weights = weights.asString.as(Array).collect(_.digit);
+                            list.last['weights'] = weights;//.debug("weights");
+                        },
+                        // grouping delimiters
+                        '[', {
+                            var result;
+                            list.add( () );
+                            result = exec.(List.new);
+                            list.last['val'] = result;
+                            list.last['type'] = 'group'
+                        },
+                        ']', {
+                            exit = true
+                        },
+                        '<', {
+                            var result;
+                            list.add( () );
+                            result = exec.(List.new);
+                            list.last['val'] = result;
+                            list.last['type'] = 'alt'
+                        },
+                        '>', {
+                            exit = true
+                        },
+                        '{', {
+                            var result;
+                            list.add( () );
+                            result = exec.(List.new);
+                            list.last['val'] = result;
+                            list.last['type'] = 'chord'
+                        },
+                        '}', {
+                            exit = true
                         }
-                    },
-                    'rep', {
-                        var next = peek.();
-                        if (next.notNil and: {next.isDecDigit}) {
-                            list.last['rep'] = getNextToken.()['val'].asInteger;
-                        } {
-                            list.last['rep'] = 2;
-                        }
-                    },
-                    'chance', {
-                        var next = peek.();
-                        if (next.notNil and: {next.isDecDigit} ) {
-                            list.last['chance'] = getNextToken.()['val'].asInteger;
-                        } {
-                            list.last['chance'] = 4;
-                        }
-                    },
-                    'shuf', {
-                        list.last['shuf'] = true;
-                    },
-                    'choose', {
-                        list.last['choose'] = true;
-                    },
-                    'weights', {
-                        var weights = token['val'];
-                        weights = weights.findRegexp("\\d+")[0][1];
-                        weights = weights.asString.as(Array).collect(_.digit);
-                        list.last['weights'] = weights;//.debug("weights");
-                    },
-                    // grouping delimiters
-                    '[', {
-                        var result;
-                        list.add( () );
-                        result = exec.(List.new);
-                        list.last['val'] = result;
-                        list.last['type'] = 'group'
-                    },
-                    ']', {
-                        exit = true
-                    },
-                    '<', {
-                        var result;
-                        list.add( () );
-                        result = exec.(List.new);
-                        list.last['val'] = result;
-                        list.last['type'] = 'alt'
-                    },
-                    '>', {
-                        exit = true
-                    },
-                    '{', {
-                        var result;
-                        list.add( () );
-                        result = exec.(List.new);
-                        list.last['val'] = result;
-                        list.last['type'] = 'chord'
-                    },
-                    '}', {
-                        exit = true
-                    }
-                );
+                    );
+                }
             });
 
             list;
@@ -457,7 +346,7 @@ Pdv {
         if (str.isNil) {
             "pdv input is nil".throw;
         }{
-            list = Pdv.tokenize(str);
+            list = Pdv.tokenize(str.stripWhiteSpace);
             seq = Pdv.sequence(list);
             ^Pdv.rout(seq)
         }

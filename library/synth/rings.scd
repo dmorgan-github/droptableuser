@@ -13,7 +13,7 @@ synth: {|freq, gate, aeg|
 
     var sig = MiRings.ar(
         in: exciter.value.debug("exciter"),
-        trig: gate + Impulse.kr(0),
+        trig: gate,
         pit: pitch,
         struct: struct,
         bright: bright,

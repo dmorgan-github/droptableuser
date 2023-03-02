@@ -22,7 +22,7 @@ synth: {|freq, gate, aeg|
         harm:harm,
         timbre: timbre,
         morph:morph,
-        trigger:gate + Impulse.kr(0),
+        trigger:gate,
         level: level.squared, //not sure how to make this work
         fm_mod: fmmod,
         timb_mod: timbremod,

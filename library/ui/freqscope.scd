@@ -57,7 +57,6 @@ func: {|node|
                 Pen.strokeRect(Rect(0,0,viewWidth-1,viewHeight-1));
                 Pen.line(Point(0,scaleZero), Point(viewWidth-1.0,scaleZero));
 
-
                 freqMarkers.do { arg marker;
                     var x, freq, tag;
                     freq = marker.freq;
