@@ -22,7 +22,7 @@ synth: {
     var rungler1 = \rungler1.kr(0.16, spec: ControlSpec( 0.0, 1.0, \lin, 0, 0.16, "benjolis"));
     var rungler2 = \rungler2.kr(0.0, spec: ControlSpec( 0.0, 1.0, \lin, 0, 0, "benjolis"));
     var runglerFilt = \runglerFilt.kr(9, spec: ControlSpec( 0.01, 10, \lin, 0, 9, "benjolis"));
-    var loop = \loop.kr(0, spec: ControlSpec( 0.0, 1.0, \lin, 0, 1, "benjolis"));
+    var loop = \feedback.kr(0, spec: ControlSpec( 0.0, 1.0, \lin, 0, 1, "benjolis"));
     var filtFreq = \filtFreq.kr(40, spec:ControlSpec( 20.0, 20000.0, \exp, 0, 40, "benjolis"));
     var q = \q.kr(0.82, spec: ControlSpec( 0.0, 1.0, \lin, 0, 0.82, "benjolis"));
     var gain = \gain.kr(1, spec: ControlSpec( 0.0, 3.0, \lin, 0, 1, "benjolis"));

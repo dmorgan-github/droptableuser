@@ -1,3 +1,4 @@
+
 Pdv {
 
     *new {
@@ -64,11 +65,7 @@ Pdv {
                             div = Rest(div);
                         };
 
-                        if (ischord) {
-                            //embed = false;
-                            //if (val.notNil) {
-                            //    list.add(val);
-                            //};
+                        if (ischord) { 
                             // we are within a chord - either we are resolving
                             // the items within the chord or we are done
                             // and can output the result

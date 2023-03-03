@@ -36,7 +36,7 @@ DNodeProxy : NodeProxy {
     var <vstctrls, <>color;
     var <fxchain, <metadata;
     var <cmdperiodfunc;
-    //var <>key;
+    var keyval;
     var <patterns;
 
     *new {|source|
@@ -46,7 +46,6 @@ DNodeProxy : NodeProxy {
         res.mold(2, \audio);
         res.wakeUp;
         res.vol = 1;
-        //res.postInit;
 
         // if we're using a synthdef as a source
         // copy the specs if they are defined
@@ -105,6 +104,18 @@ DNodeProxy : NodeProxy {
         */
 
         ^res;
+    } 
+
+    key {
+        var val = super.envirKey(topEnvironment);
+        if (val.isNil) {
+            val = keyval;
+        };
+		^val
+	}
+
+    key_ {|val|
+        keyval = val;
     }
 
     @ {|val, adverb|
@@ -386,7 +397,7 @@ DNodeProxy : NodeProxy {
     prDNodeInit {
 
         count = count+1;
-        //key = "d%".format(count).asSymbol;
+        keyval = "d%".format(count).asSymbol;
         vstctrls = Order.new;
         color = Color.rand;
         fxchain = Order.new;

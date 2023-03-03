@@ -9,6 +9,13 @@ Module {
         ^res;
     }
 
+    doesNotUnderstand {|selector ...args|
+        if (selector.isSetter) {
+            var key = selector.asGetter;
+            this.envir.put(key, args[0]);
+        } 
+    }
+
     *exists {|key|
         var path = App.librarydir ++ key.asString ++ ".scd";
         ^File.exists(path.standardizePath);
@@ -129,6 +136,15 @@ M : Module {
         res = super.new().prMInit();
         ^res;
     }
+
+    /*
+    doesNotUnderstand {|selector ...args|
+        if (selector.isSetter) {
+            var key = selector.asGetter;
+            this.set(key, args[0]);
+        } 
+    }
+    */
 
     at {|num|
         ^modules[num];

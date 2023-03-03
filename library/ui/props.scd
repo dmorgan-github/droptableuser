@@ -32,12 +32,10 @@ func: {|node, index|
                 var except = List.new;
                 var controlKeys;
 
-                //fxnode.objects.doRange({|obj, index, i|
-                    //if (index >= 100 and: {index < 1000}) {
-                        var names = fxnode.controlNames.collect({|cn| cn.name.asSymbol });
-                        except.addAll(names);
-                    //}
-                //});
+                if (node.isKindOf(InstrProxy)){
+                    var names = fxnode.controlNames.collect({|cn| cn.name.asSymbol });
+                    except.addAll(names);
+                };
 
                 try({
                     except.debug("except....");

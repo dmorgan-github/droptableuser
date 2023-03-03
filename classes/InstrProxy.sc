@@ -258,7 +258,7 @@ InstrProxy : EventPatternProxy {
     }
 
     synth {|index, component, module, cb|
-        cb.value(this.synthmodule.envir);
+        cb.value(this.synthmodule);
         this.synthmodule[index] = component -> module;
         ^this;
     }
