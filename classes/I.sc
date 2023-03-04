@@ -1,5 +1,6 @@
-I : D {
+I {
 
+    /*
     deviceInit {
         this.put(0, {
             var l = \left.kr(0);
@@ -7,8 +8,9 @@ I : D {
             SoundIn.ar([l, r]) * \amp.kr(0.dbamp)
         });
     }
+    */
 
-
+    /*
     *stereo0_1 {
         ^I('stereo0_1').set(\left, 0, \right, 1);
     }
@@ -24,4 +26,5 @@ I : D {
     *stereo6_7 {
         ^I('stereo6_7').set(\left, 6, \right, 7);
     }
+    */
 }

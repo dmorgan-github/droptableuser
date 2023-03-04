@@ -22,31 +22,4 @@ synth: {|freq|
     sig
 }
 )
-/*
-(
-S('kick2').set(
-	'bend', 0,
-	'atkcurve', -4.0,
-	'drive', 1.02,
-	'vel', 1.0,
-	'amp', 0.31622776601684,
-	'pan', 0,
-	'bassgain', 2.5358490566038,
-	'basseq', 60.0,
-	'pdecay', 0.037735849056604,
-	'glis', 0.0,
-	'vrate', 6.0,
-	'vdepth', 0.0,
-	'freqmul', 2.8905660377358,
-	'instrument', 'kick',
-	'rel', 0.45283018867925,
-	'spread', 1,
-	'detunehz', 0.0,
-	'phaseoffset', 0.15471698113208,
-	'atk', 0.01,
-	'pcurve', -7.3962264150943,
-	'relcurve', -3.0490566037736,
-	'ts', 1.0,
-)
-)
-*/
+

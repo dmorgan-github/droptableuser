@@ -1,33 +1,3 @@
-D {
-    *node {|key, source|
-        var envir = currentEnvironment;
-        var res = envir[key];
-        if (res.isNil){
-            res = DNodeProxy(source);
-            if (key.notNil) {
-                res.key = key;
-                "adding % to currentEnvironment".format(key).debug("D");
-                envir[key] = res;
-            };
-        } {
-            if (source.notNil) {
-                res.put(0, source);
-            }
-        }
-        ^res;
-    }
-
-    *clear {|key|
-        var envir = currentEnvironment;
-        var res = envir[key];
-        if (res.notNil)  {
-            envir.removeAt(key);
-            res.clear;
-        };
-    }
-}
-
-
 DNodeProxy : NodeProxy {
 
     classvar <>defaultout;
@@ -104,7 +74,7 @@ DNodeProxy : NodeProxy {
         */
 
         ^res;
-    } 
+    }
 
     key {
         var val = super.envirKey(topEnvironment);
@@ -120,7 +90,7 @@ DNodeProxy : NodeProxy {
 
     @ {|val, adverb|
         this.setOrPut(adverb, val);
-    } 
+    }
 
     setOrPut {|prop, val|
 
@@ -138,7 +108,7 @@ DNodeProxy : NodeProxy {
                 // otherwise the set from the pattern will be ignored
                 this.set(prop, nil);
                 this.put(300 + index, \set -> Pbind(prop, val))
-                
+
             }{
                 this.set(prop, val)
             }
@@ -159,7 +129,7 @@ DNodeProxy : NodeProxy {
         CmdPeriod.remove(cmdperiodfunc);
         vstctrls.clear;
         fxchain.clear;
-        metadata.clear; 
+        metadata.clear;
         super.clear;
     }
 
@@ -430,7 +400,7 @@ DNodeProxy : NodeProxy {
     }
 
     *initClass {
-        defaultout = 0;//Server.default.options.numInputBusChannels; 
+        defaultout = 0;//Server.default.options.numInputBusChannels;
     }
 
 }

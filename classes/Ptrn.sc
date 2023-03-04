@@ -42,7 +42,7 @@ Ptrn {
             vals
             .flop
             .collect({|v, i|
-               keys.collect({|k, i| [k, v[i]] }).flatten.p
+                keys.collect({|k, i| [k, v[i]] }).flatten.p
             })
         )
     }
@@ -158,33 +158,6 @@ Pphrase {
         var func = if (inner.isKindOf(Function)) { inner }{ {inner} };
         Pdef(instrument, func);
         ^Pdef(key.asSymbol, Pbind(\type, \phrase, \instrument, instrument) <> outer);
-    }
-}
-
-
-Pdur{
-    *new {|k=1, n=1, div=\beat, offset=0, repeats=inf|
-
-        switch (div,
-            \euclid, {
-                k = if (k.isKindOf(Array)) {k.pseq}{k};
-                n = if (n.isKindOf(Array)) {n.pseq}{n};
-                ^Pbjorklund2(k, n, repeats, offset)
-            },
-            \beat, {
-                ^Pn(k/n, repeats)
-            },
-            \bar, {
-                ^Pn(n/k, repeats)
-            }
-        )
-    }
-}
-
-
-Pchance {
-    *new {|prob=(0.5)|
-        ^Pfunc({ if (prob.coin) {1}{0} })
     }
 }
 

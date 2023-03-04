@@ -13,7 +13,7 @@ Module {
         if (selector.isSetter) {
             var key = selector.asGetter;
             this.envir.put(key, args[0]);
-        } 
+        }
     }
 
     *exists {|key|
@@ -45,12 +45,12 @@ Module {
     }
 
     putAll {|... dictionaries|
-		dictionaries.do {|dict|
-			dict.keysValuesDo {|key, value|
-				this.put(key, value)
-			}
-		}
-	}
+        dictionaries.do {|dict|
+            dict.keysValuesDo {|key, value|
+                this.put(key, value)
+            }
+        }
+    }
 
     *ls {|path|
 
@@ -104,25 +104,6 @@ Module {
     }
 }
 
-Ui : Module {
-
-    *new {|key|
-        var res;
-        key = "ui/%".format(key).asSymbol;
-        res = super.new(key);
-        ^res;
-    }
-
-    view {|...args|
-        ^this.value(*args);
-    }
-
-    gui {|...args|
-        ^this.view(*args).front
-    }
-
-}
-
 // ~sd.synthdef.dump
 // ~sd.synthdef.dumpUGens
 M : Module {
@@ -139,10 +120,10 @@ M : Module {
 
     /*
     doesNotUnderstand {|selector ...args|
-        if (selector.isSetter) {
-            var key = selector.asGetter;
-            this.set(key, args[0]);
-        } 
+    if (selector.isSetter) {
+    var key = selector.asGetter;
+    this.set(key, args[0]);
+    }
     }
     */
 
@@ -154,7 +135,7 @@ M : Module {
         super.put(key, val);
         this.changed(\set, [key, val]);
     }
-   
+
     put {|num, val|
 
         var key, mod;
@@ -264,7 +245,7 @@ M : Module {
         this.libfunc = {
             // TODO: this might be easier
             // sendGate
-            // Override SynthDef behavior for the gate argument. 
+            // Override SynthDef behavior for the gate argument.
             // If the SynthDef as gate, setting sendGate = false prevents the release message from being sent.
             var currentEnvir;
             var gatemode = ~gatemode;

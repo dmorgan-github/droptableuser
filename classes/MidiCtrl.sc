@@ -1,16 +1,7 @@
-Microlab {
-    classvar <>ccChan=3, <>noteChan=3;
-}
-
-Roli {
-    classvar <>noteChan=2, <>ccChan=2;
-}
-
-
 MidiCtrl {
 
     classvar <skipjack, <>frequency = 0.5;
-	classvar <sources, <destinations;
+    classvar <sources, <destinations;
     var <node;
 
     *new {|node|
@@ -94,16 +85,16 @@ MidiCtrl {
     }
 
     *start {
-		if (skipjack.notNil) {
-			skipjack.stop();
-		};
+        if (skipjack.notNil) {
+            skipjack.stop();
+        };
 
-		skipjack = SkipJack({ MidiCtrl.update }, { MidiCtrl.frequency }, name:'MidiCtrl');
-	}
+        skipjack = SkipJack({ MidiCtrl.update }, { MidiCtrl.frequency }, name:'MidiCtrl');
+    }
 
-	*stop {
-		skipjack.stop();
-	}
+    *stop {
+        skipjack.stop();
+    }
 
     *update {
 
@@ -133,7 +124,7 @@ MidiCtrl {
             // MacOS does not need to connect
             [ \destinationAdded, destinations[added] ].postln;
         };
-	}
+    }
 
     disconnect {
         var cckey;
@@ -158,7 +149,7 @@ MidiCtrl {
     *initClass {
         MIDIClient.init(verbose:true);
         sources = IdentityDictionary();
-		destinations = IdentityDictionary();
-	}
+        destinations = IdentityDictionary();
+    }
 }
 

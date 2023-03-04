@@ -1,3 +1,5 @@
+// adding a sort property to help
+// organize guis
 DMControlSpec : ControlSpec {
 
     var <>sort=0;
@@ -6,5 +8,5 @@ DMControlSpec : ControlSpec {
         var res = super.new(minval, maxval, warp, step, default, units, grid);
         res.sort = sort;
         ^res;
-	}
+    }
 }
