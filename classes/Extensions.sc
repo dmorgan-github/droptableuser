@@ -8,37 +8,37 @@
         } {
             ^NamedControl.kr(name, val, lag, fixedLag, spec)
         }
-	}
+    }
 
-	ir { | val, spec |
+    ir { | val, spec |
         var name = "%%".format(this, ~num ?? {""});
-		if (currentEnvironment[this].notNil ) {
+        if (currentEnvironment[this].notNil ) {
             "replacing namedcontrol".debug(this);
             ^currentEnvironment[this].value
         } {
             ^NamedControl.ir(name, val, spec:spec)
         }
-	}
+    }
 
-	tr { | val, spec |
+    tr { | val, spec |
         var name = "%%".format(this, ~num ?? {""});
-		if (currentEnvironment[this].notNil ) {
+        if (currentEnvironment[this].notNil ) {
             "replacing namedcontrol".debug(this);
             ^currentEnvironment[this].value
         } {
             ^NamedControl.tr(name, val, spec:spec)
         }
-	}
+    }
 
-	ar {| val, lag, spec |
+    ar {| val, lag, spec |
         var name = "%%".format(this, ~num ?? {""});
-		if (currentEnvironment[this].notNil ) {
+        if (currentEnvironment[this].notNil ) {
             "replacing namedcontrol".debug(this);
             ^currentEnvironment[this].value
         } {
             ^NamedControl.ar(name, val, lags:lag, spec:spec)
         }
-	}
+    }
 }
 
 + Buffer {
@@ -108,11 +108,11 @@
 
     |> { |f| ^f.(this) }
 
-	<| { |f|
-		^if(f.isKindOf(Function),
-			{ {|i| this.( f.(i) )} },
-			{ this.(f) })
-	}
+    <| { |f|
+        ^if(f.isKindOf(Function),
+            { {|i| this.( f.(i) )} },
+            { this.(f) })
+    }
 }
 
 
@@ -312,29 +312,29 @@
 + Function {
 
     // copied from: https://scsynth.org/t/proposal-function-await/6396
-	await { |timeout = nil, onTimeout = nil|
-		var cond = CondVar(), done = false, res = nil;
+    await { |timeout = nil, onTimeout = nil|
+        var cond = CondVar(), done = false, res = nil;
 
-		this.value({|...results|
-			res = results; done = true;
-			cond.signalOne;
-		});
+        this.value({|...results|
+            res = results; done = true;
+            cond.signalOne;
+        });
 
-		if (timeout.isNil) {
-			cond.wait { done }
-		} {
-			cond.waitFor(timeout) { done }
-		};
+        if (timeout.isNil) {
+            cond.wait { done }
+        } {
+            cond.waitFor(timeout) { done }
+        };
 
-		if (done.not) {
-			if (onTimeout.isFunction) {
-				^onTimeout.value
-			} {
-				AsyncTimeoutError().throw
-			}
-		};
-		^res.unbubble;
-	}
+        if (done.not) {
+            if (onTimeout.isFunction) {
+                ^onTimeout.value
+            } {
+                AsyncTimeoutError().throw
+            }
+        };
+        ^res.unbubble;
+    }
 }
 
 
