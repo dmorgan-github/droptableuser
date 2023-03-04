@@ -15,11 +15,11 @@ func: {|node, index|
     var getView, presets, freq, fx, views=[];
     var parse;
 
-    meter = Ui('meter').view(node);
-    props = Ui('props').view(node, index);
-    fx = Ui('fx').view(node);
-    presets = Ui('presets').view(node);
-    freq = Ui('freqscope').view(node).maxHeight_(80);
+    meter = UiModule('meter').view(node);
+    props = UiModule('props').view(node, index);
+    fx = UiModule('fx').view(node);
+    presets = UiModule('presets').view(node);
+    freq = UiModule('freqscope').view(node).maxHeight_(80);
     if (index.isNil) {
         views = [presets, freq, fx];
     };
@@ -136,20 +136,20 @@ func: {|node, index|
         //currentcmd.debug("getView");
         switch (currentcmd.asSymbol,
             \freq, {
-                Ui(\freqscope).view(node)
+                UiModule(\freqscope).view(node)
             },
             \grain, {
-                Ui(\grainsliders).view(node)
+                UiModule(\grainsliders).view(node)
             },
             \home, {
                 var freq, fx, presets;
-                freq = Ui('freqscope').view(node).maxHeight_(80);
-                fx = Ui('fx').view(node);
-                presets = Ui('presets').view(node);
+                freq = UiModule('freqscope').view(node).maxHeight_(80);
+                fx = UiModule('fx').view(node);
+                presets = UiModule('presets').view(node);
                 VLayout(presets, freq, fx)
             },
             {
-                Ui(currentcmd).view(node, args)
+                UiModule(currentcmd).view(node, args)
             }
         );
     };

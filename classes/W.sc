@@ -105,7 +105,7 @@ W : EnvironmentRedirect {
     }
 
     *view {
-        ^Ui(\wview)
+        ^UiModule(\wview)
     }
 
     *kb {

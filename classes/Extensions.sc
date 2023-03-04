@@ -44,7 +44,7 @@
 + Buffer {
 
     gui {
-        Ui('bufinfo').gui(this)
+        UiModule('bufinfo').gui(this)
     }
 }
 
@@ -63,7 +63,7 @@
 
             ^Ppar(this.collect({|val|
                 if (val.isArray) {val.p} {val}
-            }), repeats) 
+            }), repeats)
         } {
             ^Ptrn.par(*this);
         }
@@ -72,7 +72,7 @@
     ptpar {|times, repeats=1|
 
         var vals = this.collect({|v, i|
-            [times.wrapAt(i), v]    
+            [times.wrapAt(i), v]
         });
 
         ^Ptpar(vals.flatten, repeats)
@@ -112,7 +112,7 @@
 		^if(f.isKindOf(Function),
 			{ {|i| this.( f.(i) )} },
 			{ this.(f) })
-	} 
+	}
 }
 
 
@@ -210,7 +210,7 @@
     ixi {
         ^A.ixi(this)
     }
- 
+
     toGrid {
         ^this
         .stripWhiteSpace
@@ -225,10 +225,6 @@
 
     pdv {
         ^Pdv.parse(this)
-    }
-
-    pv {
-        ^Pv.parse(this)
     }
 }
 

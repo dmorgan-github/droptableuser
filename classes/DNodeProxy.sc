@@ -134,7 +134,9 @@ DNodeProxy : NodeProxy {
     }
 
     node {
-        // this is to echo the SSynth interface
+        // this is to help make this class
+        // interchangable with InstrProxy in gui modules
+        // without having to always check for IsKindOf(...)
         ^this
     }
 
@@ -163,7 +165,7 @@ DNodeProxy : NodeProxy {
             if (fx.isFunction) {
                 var obj = (name:"func_%".format(UniqueID.next), type:'func');
                 obj['ui'] = {|self|
-                    Ui('sgui').gui(this, index);
+                    UiModule('sgui').gui(this, index);
                 };
                 this.filter(index, fx);
                 this.fxchain.put(index, obj);
@@ -215,7 +217,7 @@ DNodeProxy : NodeProxy {
                     var mod = Module("fx/%".format(fx).asSymbol);
                     var obj = (name:fx, type:'func', 'ctrl':mod);
                     obj['ui'] = {|self|
-                        Ui('sgui').gui(this, index);
+                        UiModule('sgui').gui(this, index);
                     };
                     cb.(mod.envir);
                     func = mod.put('num', num).func;

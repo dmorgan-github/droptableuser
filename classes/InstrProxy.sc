@@ -120,7 +120,7 @@ VstInstrProxy : InstrProxy {
             if (args.size > 1){
                 vstpreset = args[1];
                 vstpreset = App.librarydir +/+ "preset" +/+ vstpreset;
-            }; 
+            };
             synthdef = SynthDescLib.global[\vsti].def;
 
             vstsynth = Synth(\vsti,
@@ -139,7 +139,7 @@ VstInstrProxy : InstrProxy {
                 }
             });
 
-            this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin, \spread, 1, \pan, 0) 
+            this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin, \spread, 1, \pan, 0)
 
         }.fork;
     }
@@ -157,7 +157,7 @@ VstInstrProxy : InstrProxy {
     }
 }
 
-InstrProxy : EventPatternProxy { 
+InstrProxy : EventPatternProxy {
 
     classvar <>count=0;
     classvar <>colors;
@@ -263,12 +263,12 @@ InstrProxy : EventPatternProxy {
         ^this;
     }
 
-    clear { 
+    clear {
         this.releaseDependants;
         this.clearHalo;
         this.node.clear;
         this.note.clear;
-        this.pbindproxy.clear; 
+        this.pbindproxy.clear;
         if (this.midictrl.notNil) {
             this.midictrl.disconnect;
             this.midictrl = nil;
@@ -292,7 +292,7 @@ InstrProxy : EventPatternProxy {
     view {
         // TODO: using topenvironment as a sort of cache
         // but probably can use Halo instead
-        ^Ui('sgui').envir_(topEnvironment).view(this);
+        ^UiModule('sgui').envir_(topEnvironment).view(this);
     }
 
     gui {
@@ -407,7 +407,7 @@ InstrProxy : EventPatternProxy {
                         };
                         1
                     }),
-                    */ 
+                    */
                 //),
 
                 pattern,
@@ -448,7 +448,7 @@ InstrProxy : EventPatternProxy {
 
         this.clock = W.clock;
         note = InstrProxyNotePlayer(this);
-        synthmodule = M();
+        synthmodule = SynthDefModule();
         synthmodule.addDependant({|obj, what, vals|
             var key = me.key;
             [obj, what, vals].postln;
@@ -474,7 +474,7 @@ InstrProxy : EventPatternProxy {
         node.play;
         pbindproxy = PbindProxy();
         super.source = Pbind();
-        
+
         cmdperiodfunc = {
             {
                 node.wakeUp;
@@ -583,14 +583,14 @@ InstrProxyNotePlayer {
         var target = instr.node.group.nodeID;
         var evt = stream.next(Event.default);
         var instrument = instr.instrument;
-       
+
         evt[\freq] = note.midicps;
         evt[\vel] = (vel/127).squared;
         evt[\gate] = 1;
-        
+
         args = evt.use({
             ~amp = ~amp.value;
-            SynthDescLib.global[instrument].msgFunc.valueEnvir  
+            SynthDescLib.global[instrument].msgFunc.valueEnvir
         });
 
         if (debug) {
@@ -603,7 +603,7 @@ InstrProxyNotePlayer {
             }
         } {
             Synth(instrument, args, target:target, addAction:\addToHead);
-        } 
+        }
     }
 
     off {|note|

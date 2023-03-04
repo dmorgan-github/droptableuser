@@ -1,4 +1,4 @@
-Ui : Module {
+UiModule : Module {
 
     *new {|key|
         var res;
