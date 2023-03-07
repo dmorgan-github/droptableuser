@@ -1,6 +1,6 @@
 
 (
-func: {|node, index|
+func: {|node, index, cmds|
 
     var cmdhistory = List.new;
     var currentindex = 0;

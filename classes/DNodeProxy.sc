@@ -170,6 +170,7 @@ DNodeProxy : NodeProxy {
                 this.filter(index, fx);
                 this.fxchain.put(index, obj);
             }{
+                /*
                 var num = {
                     var num;
                     if (this.fxchain[index].notNil and: { this.fxchain[index].name != fx }) {
@@ -180,6 +181,7 @@ DNodeProxy : NodeProxy {
                     };
                     num;
                 }.();
+                */
 
                 if (fx.asString.beginsWith("vst:")) {
 
@@ -219,8 +221,8 @@ DNodeProxy : NodeProxy {
                     obj['ui'] = {|self|
                         UiModule('sgui').gui(this, index);
                     };
-                    cb.(mod.envir);
-                    func = mod.put('num', num).func;
+                    cb.(mod);
+                    func = mod.func;
                     this.filter(index, func);
                     this.fxchain.put(index, obj);
                 };

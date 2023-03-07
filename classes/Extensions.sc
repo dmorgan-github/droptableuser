@@ -241,7 +241,7 @@
                 var key = obj.key;
                 // not using \mix role so that we can show
                 // helpful names in gui instead of \mix0, \mix1, etc
-                if (obj.isKindOf(SSynth)) {
+                if (obj.isKindOf(InstrProxy)) {
                     //var l = (key ++ 'L').asSymbol;
                     //var r = (key ++ 'R').asSymbol;
                     this.put(index, { obj.node.ar * Control.names([key]).kr(vol) });

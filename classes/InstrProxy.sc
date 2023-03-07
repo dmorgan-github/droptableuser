@@ -289,14 +289,14 @@ InstrProxy : EventPatternProxy {
         })
     }
 
-    view {
+    view {|cmds|
         // TODO: using topenvironment as a sort of cache
         // but probably can use Halo instead
-        ^UiModule('sgui').envir_(topEnvironment).view(this);
+        ^UiModule('sgui').envir_(topEnvironment).view(this, nil, cmds);
     }
 
-    gui {
-        this.view.front
+    gui {|cmds|
+        this.view(cmds).front
     }
 
     kill {|ids|
@@ -597,7 +597,7 @@ InstrProxyNotePlayer {
             args.postln;
         };
 
-        if (synthdef.hasGate) {
+        if (instr.synthdef.hasGate) {
             if (synths[note].isNil) {
                 synths[note] = Synth(instrument, args, target:target, addAction:\addToHead);
             }
@@ -607,7 +607,7 @@ InstrProxyNotePlayer {
     }
 
     off {|note|
-        if (synthdef.hasGate) {
+        if (instr.synthdef.hasGate) {
             synths.removeAt(note).set(\gate, 0)
         }
     }
