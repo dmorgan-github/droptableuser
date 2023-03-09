@@ -1,4 +1,4 @@
-
+// note: good reference: https://github.com/rabitt/pysox/blob/master/sox/transform.py
 Sox {
 
     var <list;
@@ -15,7 +15,7 @@ Sox {
         list.addAll(["norm", level])
     }
 
-    trim {|thresh=0.1|
+    silence {|thresh=0.1|
         list.addAll(["silence", "1", thresh, "-50d"]);
         list.add("reverse");
         list.addAll(["silence", "1", thresh, "-50d"]);
