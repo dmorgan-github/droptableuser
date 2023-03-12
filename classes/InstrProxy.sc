@@ -93,7 +93,7 @@ VstInstrProxy : InstrProxy {
     }
 
     savePresetAs {|name|
-        var path = App.librarydir +/+ "preset" +/+ name;
+        var path = Module.libraryDir +/+ "preset" +/+ name;
         vstplugin.writeProgram(path);
     }
 
@@ -119,7 +119,7 @@ VstInstrProxy : InstrProxy {
             plugin = args[0];
             if (args.size > 1){
                 vstpreset = args[1];
-                vstpreset = App.librarydir +/+ "preset" +/+ vstpreset;
+                vstpreset = Module.libraryDir +/+ "preset" +/+ vstpreset;
             };
             synthdef = SynthDescLib.global[\vsti].def;
 
@@ -167,7 +167,7 @@ InstrProxy : EventPatternProxy {
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
     var <synthdef, <pbindproxy;
-    var <synthmodule, <note;
+    var <synthdefmodule, <note;
     var midictrl, keyval;
 
     *new {
@@ -258,9 +258,12 @@ InstrProxy : EventPatternProxy {
     }
 
     synth {|index, component, module, cb|
-        cb.value(this.synthmodule);
-        this.synthmodule[index] = component -> module;
-        ^this;
+        if (component.isNil) {
+            this.synthdefmodule.removeAt(index);
+        }{
+            cb.value(this.synthdefmodule);
+            this.synthdefmodule[index] = component -> module;
+        }
     }
 
     clear {
@@ -448,10 +451,10 @@ InstrProxy : EventPatternProxy {
 
         this.clock = W.clock;
         note = InstrProxyNotePlayer(this);
-        synthmodule = SynthDefModule();
-        synthmodule.addDependant({|obj, what, vals|
+        synthdefmodule = SynthDefModule();
+        synthdefmodule.addDependant({|obj, what, vals|
             var key = me.key;
-            [obj, what, vals].postln;
+            //[obj, what, vals].postln;
             fork {
                 await {|done|
                     obj.add(key);
@@ -587,6 +590,10 @@ InstrProxyNotePlayer {
         evt[\freq] = note.midicps;
         evt[\vel] = (vel/127).squared;
         evt[\gate] = 1;
+
+        if (extra.notNil) {
+            evt = evt ++ extra;
+        };
 
         args = evt.use({
             ~amp = ~amp.value;

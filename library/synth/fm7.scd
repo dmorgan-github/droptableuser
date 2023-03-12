@@ -6,6 +6,7 @@ synth: {|freq, gate|
 
     var algo = ~algo ?? 0;
     var mods = ~mods;
+    var outs = ~outs ?? [0, 2];
     var sig;
     var fb = \fm7fb.kr(0, spec: ControlSpec(0, 1, \lin, 0, 0, "fm7"));
 
@@ -44,7 +45,8 @@ synth: {|freq, gate|
     
     if (mods.notNil) {
         var vals = mods.(fb).debug("fm7 algo");
-        sig = FM7.ar(ops, vals[0]).slice( vals[1] ).asArray.sum    
+        var o = outs.value.debug("outs");
+        sig = FM7.ar(ops, vals).slice( o ).asArray.sum    
     } {
         sig = FM7.arAlgo(algo.debug("fm7 algo"), ops, fb).asArray.sum
     };

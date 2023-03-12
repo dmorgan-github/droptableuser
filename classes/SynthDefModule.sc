@@ -1,8 +1,9 @@
+
 // ~sd.synthdef.dump
 // ~sd.synthdef.dumpUGens
 SynthDefModule : Module {
 
-    var <synthdef, <synthname;
+    var <synthdef, <synthname, <synthdesc;
     var <modules;
     var <metadata;
 
@@ -14,81 +15,75 @@ SynthDefModule : Module {
 
     at {|num|
         ^modules[num];
-    }
-
-    set {|key, val|
-        super.put(key, val);
-        this.changed(\set, [key, val]);
-    }
+    }  
 
     put {|num, val|
 
-        var key, mod;
-        mod = val;
-
-        if (val.isKindOf(Association)) {
-
-            key = val.key;
-            mod = val.value;
-
-            if (mod.isKindOf(Array)) {
-                var props, temp;
-                temp = mod[0];
-                props = mod[1..].asDict;
-                mod = temp;
-                this.envir.putAll(props);
-            };
-
-            switch(key,
-                \pit, {
-                    if (mod.isKindOf(Symbol)) {
-                        mod = "pitch/%".format(mod).asSymbol;
-                    };
-                },
-                \fil, {
-                    if (mod.isKindOf(Symbol)) {
-                        mod = "filter/%".format(mod).asSymbol;
-                    };
-                },
-                \env, {
-                    if (mod.isKindOf(Symbol)) {
-                        mod = "env/%".format(mod).asSymbol;
-                    };
-                },
-                \out, {
-                    if (mod.isKindOf(Symbol)) {
-                        mod = "out/%".format(mod).asSymbol;
-                    };
-                },
-                \sig, {
-                    if (mod.isKindOf(Symbol)) {
-                        mod = "synth/%".format(mod).asSymbol;
-                    };
-                }
-            );
-
-            if (mod.isKindOf(Module).not) {
-                var doc, key = mod;
-                mod = Module(mod);
-                doc = mod.doc;
-                if (doc.notNil) {
-                    metadata.put(key, doc);
-                }
-            };
-            if (mod.props.notNil) {
-                envir.putAll(mod.props);
-            };
-            modules.put(num, key -> mod);
-            this.changed(\put, [num, key, mod]);
+        if (val.isNil) {
+            this.removeAt(num)
         } {
-            if (val.isNil) {
-                modules.put(num, nil);
-                envir.put(num, nil);
-            } {
-                envir.put(num, val)
-            };
-            this.changed(\put, [num, val]);
-        };
+
+            var key, mod;
+            mod = val;
+
+            if (val.isKindOf(Association)) {
+
+                key = val.key;
+                mod = val.value;
+
+                if (mod.isKindOf(Array)) {
+                    var props, temp;
+                    temp = mod[0];
+                    props = mod[1..].asDict;
+                    mod = temp;
+                    this.setAll(props);
+                };
+
+                switch(key,
+                    \pit, {
+                        if (mod.isKindOf(Symbol)) {
+                            mod = "pitch/%".format(mod).asSymbol;
+                        };
+                    },
+                    \fil, {
+                        if (mod.isKindOf(Symbol)) {
+                            mod = "filter/%".format(mod).asSymbol;
+                        };
+                    },
+                    \env, {
+                        if (mod.isKindOf(Symbol)) {
+                            mod = "env/%".format(mod).asSymbol;
+                        };
+                    },
+                    \out, {
+                        if (mod.isKindOf(Symbol)) {
+                            mod = "out/%".format(mod).asSymbol;
+                        };
+                    },
+                    \sig, {
+                        if (mod.isKindOf(Symbol)) {
+                            mod = "synth/%".format(mod).asSymbol;
+                        };
+                    }
+                );
+
+                if (mod.isKindOf(Module).not) {
+                    var doc, key = mod;
+                    mod = Module(mod);
+                    doc = mod.doc;
+                    if (doc.notNil) {
+                        metadata.put(key, doc);
+                    }
+                };
+                if (mod.props.notNil) {
+                    this.setAll(mod.props);
+                };
+                modules.put(num, key -> mod);
+                this.changed(\put, [num, key, mod]);
+            }{
+                "association not specified".warn
+            } 
+        }
     }
 
     removeAt {|num|
@@ -100,7 +95,10 @@ SynthDefModule : Module {
 
     add {|name|
 
-        var sampleaccurate = envir['sampleaccurate'] ?? false;
+        var sampleaccurate; 
+        this.modules.debug("synthdefmodule");
+
+        sampleaccurate = envir['sampleaccurate'] ?? false;
         name = name ?? synthname;
         synthdef = SynthDef(name.asSymbol, {
             var sig = this.func;
@@ -112,9 +110,50 @@ SynthDefModule : Module {
             };
         }, metadata: envir).add;
 
+        {
+            synthdesc = SynthDescLib.global[name];
+        }.defer(1);
+
         "synthdef added".debug(name);
 
         ^this;
+    }
+
+    visualize {
+        SynthDefModule.visualize(synthdef);
+    }
+
+    *visualize {|synthdef|
+
+        // this has a lot of dependencies
+        if (synthdef.respondsTo(\dot)) {
+            var platform;
+            var f, fn;
+            fn = "/tmp/sc3-dot.dot";
+            
+            fork {
+
+                // refactor to: https://github.com/scztt/Deferred.quark/blob/master/Deferred.sc
+                await {|done|
+                    f = File.new(fn, "w");
+                    synthdef.dot(f);
+                    f.close;
+                    done.value(\ok);
+                };
+
+                if (thisProcess.platform.name == \osx) {
+                    await{|done|
+                        "dot -Tpdf % -o %.pdf".format(fn, fn).systemCmd;
+                        done.value(\ok);
+                    };
+                    "open %.pdf".format(fn).systemCmd;
+                } {
+                    RDot.view(fn);
+                }  
+            };
+        } {
+            "RDot quark not installed".warn
+        }
     }
 
     *synthDesc {|name|
@@ -188,9 +227,9 @@ SynthDefModule : Module {
             });
 
             currentEnvir = envir.copy ++ ('gatemode': gatemode);
-            freq = freq.putAll(currentEnvir).func;
-            env = env.putAll(currentEnvir).func;
-            out = out.putAll(currentEnvir).func;
+            freq = freq.setAll(currentEnvir).func;
+            env = env.setAll(currentEnvir).func;
+            out = out.setAll(currentEnvir).func;
 
             freq = freq.(gate);
             env = env.(gate, doneaction);
@@ -200,7 +239,7 @@ SynthDefModule : Module {
                 var snd = 0;
                 if (sigs.size > 0) {
                     sigs.do({|m|
-                        m.putAll(currentEnvir);
+                        m.setAll(currentEnvir);
                         snd = snd + m.func.(freq, gate);
                     });
                 } {
@@ -211,7 +250,7 @@ SynthDefModule : Module {
 
             filt = {|sig, gate, freq, env|
                 filts.do({|m|
-                    m.putAll(currentEnvir);
+                    m.setAll(currentEnvir);
                     sig = m.(sig, gate, freq, env);
                 });
                 sig;

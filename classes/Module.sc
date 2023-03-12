@@ -1,7 +1,9 @@
 // module
 Module {
 
-    var <>envir, <>libfunc, <fullpath, <props, <view, <doc;
+    classvar <>libraryDir;
+
+    var <>envir, <>libfunc, <fullpath, <props, <view, <doc, <presets;
 
     *new {|key|
         var res;
@@ -12,12 +14,16 @@ Module {
     doesNotUnderstand {|selector ...args|
         if (selector.isSetter) {
             var key = selector.asGetter;
-            this.envir.put(key, args[0]);
+            this.set(key, args[0]);
         }
     }
 
     *exists {|key|
-        var path = App.librarydir ++ key.asString ++ ".scd";
+        var path;
+        path = libraryDir ++ key.asString;
+        if (key.asString.endsWith(".scd").not) {
+            path = path ++ ".scd";
+        };
         ^File.exists(path.standardizePath);
     }
 
@@ -37,30 +43,30 @@ Module {
         libfunc = val
     }
 
-    // TODO: need to change so that it is aligned
-    // with set and put in M subclass
-    put {|key, val|
+    set {|key, val|
         envir.put(key, val);
+        this.changed(\set, [key, val]);
         ^this
     }
 
-    putAll {|... dictionaries|
+    setAll {|... dictionaries|
         dictionaries.do {|dict|
             dict.keysValuesDo {|key, value|
-                this.put(key, value)
+                this.set(key, value)
             }
         }
     }
 
     *ls {|path|
 
-        var fullpath = App.librarydir ++ (path ?? {"synth"});
+        var fullpath = libraryDir ++ (path ?? {"synth"});
         var pn = PathName(fullpath);
+        pn.postln;
         pn.entries.do({|obj|
             if ( obj.isFolder ) {
                 "%/".format(obj.folderName).postln
             }{
-                obj.fileName.postln;
+                obj.fileName.postln
             }
         })
     }
@@ -78,13 +84,18 @@ Module {
         envir = ();
 
         if (key.isKindOf(Function)) {
-            key.asCode.debug("module");
+            key.asCode;
             libfunc = key
         }{
             if (key.notNil) {
-                var path = App.librarydir ++ key.asString ++ ".scd";
-                var pathname = PathName(path.standardizePath);
-                fullpath = pathname.fullPath.debug("module");
+                var path, pathname;
+
+                path = libraryDir ++ key.asString;
+                if (key.asString.endsWith(".scd").not) {
+                    path = path ++ ".scd";
+                };
+                pathname = PathName(path.standardizePath);
+                fullpath = pathname.fullPath;
 
                 if (File.exists(fullpath)) {
                     var file = File.open(fullpath, "r");
@@ -93,9 +104,10 @@ Module {
                     props = obj['props'];
                     view = obj['view'];
                     doc = obj['doc'];
+                    presets = obj['presets'];
                     file.close;
                 } {
-                    Error("% node not found".format(key)).throw;
+                    Error("% module not found".format(path)).throw;
                 }
             }
         }

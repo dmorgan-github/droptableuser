@@ -4,15 +4,23 @@ var getdata = {|scale='major', interval=7, root=36|
     root = root ?? {'c1'.namemidi};
     interval = interval ?? {7};
     scale = scale ?? {'major'};
-
-    // ensure we always have 7 scale degrees
-    // there is probably a more elegant way to do this
-    degrees = (Scale.at(scale.asSymbol).degrees ++ (Scale.at(scale.asSymbol).degrees + 12))[..6];
-    size = degrees.size;
-    data = degrees.collect({|degree|
-        var val = root + degree + (interval * (0..(size-1)));
-        val.nearestInScale(degrees);
-    });
+ 
+    if (scale == \grid) {
+        data = 7.collect({|i|
+            7.collect({|k|
+                k + (i * 7)    
+            })
+        })
+    } {
+        // ensure we always have 7 scale degrees
+        // there is probably a more elegant way to do this
+        degrees = (Scale.at(scale.asSymbol).degrees ++ (Scale.at(scale.asSymbol).degrees + 12))[..6];
+        size = degrees.size;
+        data = degrees.collect({|degree|
+            var val = root + degree + (interval * (0..(size-1)));
+            val.nearestInScale(degrees);
+        });
+    };
     data;
 };
 
@@ -44,13 +52,16 @@ func: {|config|
     var panels;
     var gridrows = 8;
     var voicecols = 8;
+    var size; 
 
-    panels = 2.collect({|i|
+    size = min(config.size, 2);
+
+    panels = size.collect({|i|
 
         var voices;
         var panel = (
             active: 0
-        );
+        );   
 
         voices = config[i].collect({|voice|
             var scale = voice['scale'] ?? \major;
@@ -63,7 +74,7 @@ func: {|config|
             voice['buttons'] = (voice['rows'] * voice['cols']).collect({0});
             voice;
             voice
-        });
+        });  
 
         panel['voices'] = voices;
         panel
@@ -75,16 +86,15 @@ func: {|config|
 
         // levset can cause overload and crash monome
         // see https://llllllll.co/t/new-grid-leds-stops-working-serialosc-overload/47263/6
-
         monome.ledall(0);
 
         panels.do({|panel, i|
-
-            var numvoices = panel['voices'].size;
-            var voice = panel['voices'][0];
-            var rows = voice['rows'];
-            var cols = voice['cols'];
-            var offset = voicecols*i;
+            var numvoices, voice, rows, cols, offset; 
+            numvoices = panel['voices'].size;
+            voice = panel['voices'][0];
+            rows = voice['rows'];
+            cols = voice['cols'];
+            offset = voicecols*i;
 
             // page navigation
             numvoices.do({|col|
@@ -92,15 +102,6 @@ func: {|config|
                 var lev = if (col == 0) {btnactive}{btninactive};
                 monome.levset(x, 0, lev);
             });
-
-            /*
-            // init grid buttons
-            ((gridrows-rows)..7).do({|row|
-                ((0..(cols-1))+offset).do({|col|
-                    monome.levset(col, row, btninactive);
-                });
-            });
-            */
         });
     });
 
@@ -118,84 +119,90 @@ func: {|config|
 
         activepanel = if (x >= voicecols) {1}{0};
         offset = activepanel*voicecols;
-        panel = panels[activepanel];
-        voices = panel['voices'];
-        activevoice = panel['active'];
-        voice = panel['voices'][activevoice];
-        rows = voice['rows'];
-        cols = voice['cols'];
+        panel = panels[activepanel]; 
 
-        // page navigation
-        if (y == 0 and: {val == 1}) {
+        if (panel.isNil) {
+            "panel not configured".warn
+        } {
+            voices = panel['voices'];
+            activevoice = panel['active'];
+            voice = panel['voices'][activevoice];
+            rows = voice['rows'];
+            cols = voice['cols'];
 
-            if (x.mod(voicecols) < voices.size) {
+            // page navigation
+            if (y == 0 and: {val == 1}) {
 
-                // TODO: rewrite with levmap
-                //monome.levmap(8, 0, Array.fill(64, {3}));
-                activevoice = x.mod(voicecols);
-                panel['active'] = activevoice;
-                monome.ledmap(offset, 0, [0, 0, 0, 0, 0, 0, 0, 0]);
+                if (x.mod(voicecols) < voices.size) {
 
-                voice = voices[activevoice];
-                rows = voice['rows'];
-                cols = voice['cols'];
+                    // TODO: rewrite with levmap
+                    //monome.levmap(8, 0, Array.fill(64, {3}));
+                    activevoice = x.mod(voicecols);
+                    panel['active'] = activevoice;
+                    monome.ledmap(offset, 0, [0, 0, 0, 0, 0, 0, 0, 0]);
 
-                (1..7).do({|row|
-                    ((0..6)+offset).do({|col|
-                        var num = (col.mod(voicecols)) + ((row-1)*rows);
-                        if (voice['buttons'][num] > 0) {
-                            monome.levset(col, gridrows-row, btnactive);
-                        }
+                    voice = voices[activevoice];
+                    rows = voice['rows'];
+                    cols = voice['cols'];
+
+                    (1..7).do({|row|
+                        ((0..6)+offset).do({|col|
+                            var num = (col.mod(voicecols)) + ((row-1)*rows);
+                            if (voice['buttons'][num] > 0) {
+                                monome.levset(col, gridrows-row, btnactive);
+                            }
+                        });
                     });
-                });
 
-                // update navigation
-                voices.size.do({|val|
-                    monome.levset(val+offset, 0, btninactive);
-                });
-                monome.levset(x, 0, btnactive);
-            }
-        };
+                    // update navigation
+                    voices.size.do({|val|
+                        monome.levset(val+offset, 0, btninactive);
+                    });
+                    monome.levset(x, 0, btnactive);
+                }
+            };
 
-        mode = voice['mode'] ?? \push;
-        notes = voice['notes'];
-        on = voice['on'] ?? { {|note| note.debug(\on) } };
-        off = voice['off'] ?? { {|note| note.debug(\off) } };
-        noterow = (gridrows-1-y);
-        notecol = x.mod(voicecols);
+            mode = voice['mode'] ?? \push;
+            notes = voice['notes'];
+            on = voice['on'] ?? { {|note| note.debug(\on) } };
+            off = voice['off'] ?? { {|note| note.debug(\off) } };
+            noterow = (gridrows-1-y);
+            notecol = x.mod(voicecols);
 
-        num = (noterow * rows) + notecol;
-        note = notes.wrapAt(noterow).wrapAt(notecol);
+            num = (noterow * rows) + notecol;
+            note = notes.wrapAt(noterow).wrapAt(notecol);
 
-        if (noterow < rows and: {notecol < cols}) {
+            if (noterow < rows and: {notecol < cols}) {
 
-            if (mode == \push) {
-                if (val == 1) {
-                    //note.asInteger.midiname.postln;
-                    on.(note);
-                    voice['buttons'][num] = 1;
-                }{
-                    off.(note);
-                    voice['buttons'][num] = 0;
-                };
-                monome.levset(x, y, if (voice['buttons'][num] > 0){btnactive}{btnoff} );
-            }{
-                // toggle mode
-                if (val == 1) {
-                    voice['buttons'][num] = (1-voice['buttons'][num]);
-                    monome.levset(x, y, if (voice['buttons'][num] > 0){btnactive}{btnoff});
-
-                    if (voice['buttons'][num] > 0) {
+                if (mode == \push) {
+                    if (val == 1) {
+                        //note.asInteger.midiname.postln;
                         on.(note);
+                        voice['buttons'][num] = 1;
                     }{
-                        off.(note)
+                        off.(note);
+                        voice['buttons'][num] = 0;
                     };
-                };
+                    monome.levset(x, y, if (voice['buttons'][num] > 0){btnactive}{btnoff} );
+                }{
+                    // toggle mode
+                    if (val == 1) {
+                        voice['buttons'][num] = (1-voice['buttons'][num]);
+                        monome.levset(x, y, if (voice['buttons'][num] > 0){btnactive}{btnoff});
+
+                        if (voice['buttons'][num] > 0) {
+                            on.(note);
+                        }{
+                            off.(note)
+                        };
+                    };
+                }
             }
         }
 
     }, '/monome/grid/key')
 },
+
 doc: "
 var config = [
 

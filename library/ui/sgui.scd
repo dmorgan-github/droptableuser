@@ -36,7 +36,7 @@ func: {|node, index, cmds|
 
         // as pairs
         spec = [
-            'string', "^[a-zA-Z\/]+",
+            'string', "^[a-zA-Z0-9\/]+",
             '[', "^\\[",
             ']', "^\\]",
             '(', "^\\(",

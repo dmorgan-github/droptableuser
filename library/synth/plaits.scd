@@ -29,12 +29,9 @@ synth: {|freq, gate, aeg|
         morph_mod: morphmod,
         decay: decay,
         lpg_colour: lpg
-    );
-    //var pri = sig[0];
-    //var aux = sig[1];
-    //sig = pri;//pri.blend(aux, \auxmix.kr(0, spec:ControlSpec(0, 1, \lin, 0, 0, "plaits")));
-    //sig.sum
-    sig.slice(slice.debug("slice"));
+    ); 
+    sig = sig.slice(slice.debug("slice"));
+    sig
 },
 presets: [
     bd: [

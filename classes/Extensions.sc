@@ -296,6 +296,9 @@
 + EventPatternProxy {
 
     << {|pattern|
+        if (pattern.isArray) {
+            pattern = pattern.p;
+        };
         this.source = pattern;
     }
 
@@ -312,6 +315,7 @@
 + Function {
 
     // copied from: https://scsynth.org/t/proposal-function-await/6396
+    // consider instead: https://github.com/scztt/Deferred.quark/blob/master/Deferred.sc
     await { |timeout = nil, onTimeout = nil|
         var cond = CondVar(), done = false, res = nil;
 

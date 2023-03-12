@@ -63,15 +63,15 @@ DNodeProxy : NodeProxy {
         });
         */
 
-        /*
         res.filter(1010, {|in|
             var sig = in;
             sig = Sanitize.ar(sig);
+            sig = SoftClipper4.ar(in) * -6.dbamp;
+            sig;
             // limiter introduces a slight delay
-            Limiter.ar(LeakDC.ar(sig));
+            //Limiter.ar(LeakDC.ar(sig));
             //SafetyLimiter.ar(LeakDC.ar(sig));
         });
-        */
 
         ^res;
     }
@@ -170,19 +170,7 @@ DNodeProxy : NodeProxy {
                 this.filter(index, fx);
                 this.fxchain.put(index, obj);
             }{
-                /*
-                var num = {
-                    var num;
-                    if (this.fxchain[index].notNil and: { this.fxchain[index].name != fx }) {
-                        var size = this.fxchain.select({|obj| obj.name == fx }).size;
-                        if (size > 0) {
-                            num = size+1;
-                        };
-                    };
-                    num;
-                }.();
-                */
-
+     
                 if (fx.asString.beginsWith("vst:")) {
 
                     var vst;
@@ -212,6 +200,7 @@ DNodeProxy : NodeProxy {
 
                         ctrl.addDependant(func);
                         vstctrls.put(index, ctrl);
+                        cb.(ctrl);
                         this.fxchain.put(index, obj);
                     });
                 }{
@@ -261,18 +250,15 @@ DNodeProxy : NodeProxy {
             {
                 if (node.objects[index].isNil) {
 
-                    var path, pathname, fullpath, filename;
+                    var filename;
+                    var mod;
+
                     filename = vst.asString.toLower.split($.)[0];
-                    path = App.librarydir ++ "vst/" ++ filename ++ ".scd";
-                    pathname = PathName(path.standardizePath);
-                    fullpath = pathname.fullPath.debug("vst path");
-
-
-                    if (File.exists(fullpath)) {
-                        var obj;
-                        var name = pathname.fileNameWithoutExtension;
-                        obj = File.open(fullpath, "r").readAllString.interpret;
-                        node.filter(index, obj[\synth]);
+                    filename = "vst/" ++ filename;   
+                    if (Module.exists(filename)) {
+                        filename.debug("module exists");
+                        mod = Module(filename);
+                        node.filter(index, mod.func);
                     } {
                         node.filter(index, {|in|
                             if (id.isNil.not) {

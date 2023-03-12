@@ -22,8 +22,10 @@ synth: {|freq, gate|
         [1, -1]
     );
 
-    var phase, sig;
-    var sawrate = rate * BufSampleRate.kr(buf) / (absdif(start, end) * numframes);
+    var phase, sig, sawrate;
+
+    end = min(start + end, 1);
+    sawrate = rate * BufSampleRate.kr(buf) / (absdif(start, end) * numframes);
     phase = (LFSaw.ar(sawrate * dir, 1)).range(start, end) * numframes;
 
     sig = BufRd.ar(

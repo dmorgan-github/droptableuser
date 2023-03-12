@@ -67,8 +67,13 @@ MidiCtrl {
                     max = spec.maxval;
                     current = node.get(ctrl);
                     if (current.notNil) {
-                        ccval = current.linlin(min, max, 0, 127);
-                        //[\curent, current, \cc, ccval].debug(ctrl);
+                        // don't know how to unmap to a range that is not 0-1
+                        if (spec.warp.isKindOf(ExponentialWarp)) {
+                            ccval = current.explin(min, max, 0, 127);
+                        }{
+                            ccval = current.linlin(min, max, 0, 127);
+                        };
+                        //[node.key, \curent, current, \cc, ccval].debug(ctrl);
                         try {
                             MIDIOut(i).control(ccChan, num, ccval);
                         } {|err|

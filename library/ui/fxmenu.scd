@@ -2,7 +2,7 @@
 func: {|node|
 
     var paths;
-    var path = App.librarydir ++ "fx/";
+    var path = Module.libraryDir ++ "fx/";
     var fxmenu, browse;
     var vstlist = Halo.at(\vstlist);
 

@@ -7,7 +7,7 @@ Sox {
         ^super.new.prInit;
     }
 
-    remix {|left, right|
+    remix {|left=1, right=2|
         list.addAll(["remix", left, right])
     }
 
@@ -35,7 +35,7 @@ Sox {
         list.add("reverse")
     }
 
-    transform {|src, dest|
+    transform {|src, dest, replace=false|
 
         var str;
         var srcpn = PathName(src);
@@ -49,6 +49,9 @@ Sox {
         };
 
         str = "sox \"%\" \"%\" ".format(src.standardizePath, dest.standardizePath) ++ list.join(" ");
+        if (replace) {
+            str = str ++ "; rm %".format(src);
+        };
         str.postln.unixCmdGetStdOut;
         ^"transform done"
     }
