@@ -52,16 +52,14 @@ DNodeProxy : NodeProxy {
         */
 
         // initialize or re-initialize
-        /*
         res.filter(1000, {|in|
             Splay.ar(
-                in * \vol.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol")),
+                in /* \vol.kr(1, spec:ControlSpec(0, 2, \lin, 0, 1, "vol"))*/,
                 spread: \spread.kr(1),
                 center: \center.kr(0),
                 levelComp: false
             );
         });
-        */
 
         res.filter(1010, {|in|
             var sig = in;
@@ -155,7 +153,7 @@ DNodeProxy : NodeProxy {
     }
 
     fx {|index, fx, cb, wet=1|
-
+ 
         if (fx.isNil) {
             this.removeAt(index);
             this.fxchain.removeAt(index);
@@ -204,9 +202,10 @@ DNodeProxy : NodeProxy {
                         this.fxchain.put(index, obj);
                     });
                 }{
-                    var func;
-                    var mod = Module("fx/%".format(fx).asSymbol);
-                    var obj = (name:fx, type:'func', 'ctrl':mod);
+                    var func, mod, obj;
+                    var key = "fx/%".format(fx).asSymbol;
+                    mod = Module(key);
+                    obj = (name:fx, type:'func', 'ctrl':mod);
                     obj['ui'] = {|self|
                         UiModule('sgui').gui(this, index);
                     };
@@ -253,7 +252,7 @@ DNodeProxy : NodeProxy {
                     var filename;
                     var mod;
 
-                    filename = vst.asString.toLower.split($.)[0];
+                    filename = vst.asString.toLower.split($.);
                     filename = "vst/" ++ filename;   
                     if (Module.exists(filename)) {
                         filename.debug("module exists");

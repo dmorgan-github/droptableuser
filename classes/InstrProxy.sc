@@ -84,7 +84,7 @@ VstInstrProxy : InstrProxy {
         vstplugin.editor;
     }
 
-    on {|note, vel|
+    on {|note, vel=1|
         vstplugin.midi.noteOn(0, note, vel)
     }
 
@@ -167,7 +167,7 @@ InstrProxy : EventPatternProxy {
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
     var <synthdef, <pbindproxy;
-    var <synthdefmodule, <note;
+    var <synthdefmodule, note;
     var midictrl, keyval;
 
     *new {
@@ -242,13 +242,13 @@ InstrProxy : EventPatternProxy {
         this.prInitSynth(name);
     }
 
-    on {|note, vel=127, extra, debug=false|
-        this.note.on(note, vel, extra, debug);
+    on {|midinote=60, vel=127, extra, debug=false|
+        note.on(midinote, vel, extra, debug);
         ^this;
     }
 
-    off {|note|
-        this.note.off(note);
+    off {|midinote=60|
+        note.off(midinote);
         ^this;
     }
 
@@ -394,25 +394,7 @@ InstrProxy : EventPatternProxy {
 
         if (pattern.notNil) {
 
-            chain = Pchain(
-
-                //Pbind(
-                    /*
-                    \node_set, Pfunc({|evt|
-                        var pairs;
-                        var current = evt;
-                        current = current.select({|v, k| nodeptrnprops.includes(k) });
-                        pairs = current.getPairs;
-                        if (pairs.size > 0) {
-                          Server.default.bind({
-                            node.set(*pairs)
-                          });
-                        };
-                        1
-                    }),
-                    */
-                //),
-
+            chain = Pchain( 
                 pattern,
                 pbindproxy,
                 Plazy({
@@ -429,8 +411,10 @@ InstrProxy : EventPatternProxy {
                     // not sure how to make composite event work with pmono
                     Pmono(instrument, \trig, 1) <> chain
                 }{
-                    Pbind()
-                    <> chain
+                    // why is this here?
+                    //Pbind()
+                    //<> 
+                    chain
                 }
             })
         }

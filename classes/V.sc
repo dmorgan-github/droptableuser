@@ -2,7 +2,7 @@ V {
 
     *ls {
         var result = List.new;
-        VSTPlugin.search(verbose:false);
+        // this requires search to have been called 
         VSTPlugin.readPlugins.keysValuesDo({arg k, v; result.add(k) });
         result.sort.do({|val| val.postln;});
         ^result;

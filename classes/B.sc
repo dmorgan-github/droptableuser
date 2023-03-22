@@ -18,6 +18,18 @@ B {
         ^res;
     }
 
+    *onsets {|buf, cb|
+        var server = Server.default;
+        var indices = Buffer(server);
+        var feature = Buffer(server);
+        FluidBufOnsetSlice.processBlocking(server, buf, indices:indices, metric:9, threshold:0.2);
+        FluidBufOnsetFeature.processBlocking(server, buf, features:feature, metric:9);
+        //FluidWaveform(B.yea,~indices,~feature,bounds:Rect(0,0,1600,400), lineWidth:2);
+        indices.loadToFloatArray(action: {|array|  
+            cb.value(array, indices, feature);
+        });
+    }
+
     *read {arg key, path, channels=nil, cb;
         if (channels.isNil) {
             ^Buffer.read(Server.default, path, action:{|buf|

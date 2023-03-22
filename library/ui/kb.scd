@@ -11,7 +11,7 @@ func: {|node|
     var keyboardview, update;
     var mode = \push;
 
-    var octave = node.get(\octave) ?? 3;
+    var octave = (node.get(\octave) ?? 3).debug("octave");
     var root = ~root ?? 0;
 
 	map = [

@@ -38,7 +38,7 @@ func: {|node, index|
                 };
 
                 try({
-                    except.debug("except....");
+                    //except.debug("except....");
                     node.controlKeys(except:except);
                 }, {|err|
                     "node.controlKeys (use bufnum): %".format(err).postln;

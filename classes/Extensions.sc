@@ -51,8 +51,6 @@
 + SequenceableCollection {
 
     pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
-    pseq2 {|repeats=inf, offset=0| ^Pseq(this, repeats, offset).noskip }
-
     prand {arg repeats=inf; ^Prand(this, repeats) }
     pxrand {arg repeats=inf; ^Pxrand(this, repeats) }
     pwrand {arg weights, repeats=inf; ^Pwrand(this, weights.normalizeSum, repeats)}
@@ -87,9 +85,7 @@
         ^a
     }
 
-    p { ^Pbind(*this.pa)}
-
-    place {|repeats=inf| ^Place(this, repeats) }
+    p { ^Pbind(*this.pa)} 
 
     playTimeline {|clock=(TempoClock.default)|
         this.collect({|assoc|
@@ -207,10 +203,6 @@
 
 + String {
 
-    ixi {
-        ^A.ixi(this)
-    }
-
     toGrid {
         ^this
         .stripWhiteSpace
@@ -260,36 +252,6 @@
 
     getSettings {
         ^this.getKeysValues.flatten
-    }
-
-    note {|noteChan, note|
-        // assumes Ndef().prime(\instrument) has been called
-        var noteonkey = "%_noteon".format(this.key).asSymbol;
-        var noteoffkey = "%_noteoff".format(this.key).asSymbol;
-        var hasGate = this.objects[0].synthDesc.hasGate;
-        var instrument = this.objects[0].synthDesc.name.asSymbol;
-        MIDIdef.noteOn(noteonkey, {|vel, note, chan|
-            if (hasGate) {
-                this.put(note, instrument, extraArgs:[\freq, note.midicps, \vel, vel/127, \gate, 1])
-            } {
-                this.put(note, instrument, extraArgs:[\freq, note.midicps, \vel, vel/127])
-            }
-        }, noteNum:note, chan:noteChan)
-        .fix;
-
-        MIDIdef.noteOff(noteoffkey, {|vel, note, chan|
-            var hasGate = this.objects[0].synthDesc.hasGate;
-            if (hasGate) {
-                this.objects[note].set(\gate, 0);
-            }
-        }, noteNum:note, chan:noteChan)
-        .fix;
-    }
-
-    disconnect {
-        MIDIdef.noteOn("%_noteon".format(this.key).asSymbol).permanent_(false).free;
-        MIDIdef.noteOn("%_noteoff".format(this.key).asSymbol).permanent_(false).free;
-        MIDIdef.noteOn("%_cc".format(this.key).asSymbol).permanent_(false).free;
     }
 }
 

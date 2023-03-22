@@ -82,7 +82,7 @@ synth: {|freq|
 
     SendReply.kr(Impulse.kr(updateFreq), '/bufpos', [0, pos * samplerate], replyid);
 
-    sig = sig;// * \amp.kr;//(-6.dbamp);
+    sig = sig;
     sig;
 }
 )

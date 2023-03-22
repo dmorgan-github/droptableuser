@@ -1,7 +1,7 @@
 Lfo : Ndef {
 
-  *new {|key|
-      ^super.new(key);
+  *new {|key, source|
+      ^super.new(key, source).prInit;
   }
 
   sine {|freq=1, min=0, max=1|
@@ -26,6 +26,10 @@ Lfo : Ndef {
       this[0] = { LFSaw.kr(\freq.kr(freq).neg).range(\min.kr(min), \max.kr(max)) };
       this.set(\freq, freq, \min, min, \max, max);
       ^this
+  }
+
+  prInit {
+      ^this;
   }
 }
 

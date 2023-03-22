@@ -14,14 +14,25 @@ var getdata = {|scale='major', interval=7, root=36|
     } {
         // ensure we always have 7 scale degrees
         // there is probably a more elegant way to do this
+        var vals;
         degrees = (Scale.at(scale.asSymbol).degrees ++ (Scale.at(scale.asSymbol).degrees + 12))[..6];
         size = degrees.size;
         data = degrees.collect({|degree|
             var val = root + degree + (interval * (0..(size-1)));
             val.nearestInScale(degrees);
         });
+
+        vals = (0..3).collect({|v| 
+            degrees + (12 * v)
+        })
+        .inject([], {|a, b| a ++ b  });
+
+        data = degrees.collect({|d, i|
+            vals[i..].select({|v, i| i.mod(interval) == 0})[..6]
+        }) + root;
     };
-    data;
+
+    data
 };
 
 var connect = {|cb|
@@ -210,7 +221,7 @@ var config = [
         (
             mode: 'push',
             scale: \\aeolian,
-            interval: 7,
+            interval: 4,
             root: 36,
             on: {|note| \\on.postln; },
             off: {|note| \\off.postln;  }
@@ -218,7 +229,7 @@ var config = [
         (
             mode: 'toggle',
             scale: \\aeolian,
-            interval: 7,
+            interval: 4,
             root: 36,
             on: {|note| \\on.postln; },
             off: {|note| \\off.postln; }
@@ -229,7 +240,7 @@ var config = [
         (
             mode: 'toggle',
             scale: \\aeolian,
-            interval: 7,
+            interval: 4,
             root: 36,
             on: {|note| \\on.postln; },
             off: {|note| \\off.postln; }
@@ -237,7 +248,7 @@ var config = [
         (
             mode: 'toggle',
             scale: \\yu,
-            interval: 7,
+            interval: 2,
             root: 36,
             on: {|note| \\on.postln; },
             off: {|note| \\off.postln; }
