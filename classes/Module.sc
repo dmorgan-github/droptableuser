@@ -85,7 +85,8 @@ Module {
 
         if (key.isKindOf(Function)) {
             key.asCode;
-            libfunc = key
+            libfunc = key;
+            fullpath = 'func'
         }{
             if (key.notNil) {
                 var path, pathname;

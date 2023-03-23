@@ -29,15 +29,7 @@ SynthDefModule : Module {
             if (val.isKindOf(Association)) {
 
                 key = val.key;
-                mod = val.value;
-
-                if (mod.isKindOf(Array)) {
-                    var props, temp;
-                    temp = mod[0];
-                    props = mod[1..].asDict;
-                    mod = temp;
-                    this.setAll(props);
-                };
+                mod = val.value; 
 
                 switch(key,
                     \pit, {
@@ -96,7 +88,7 @@ SynthDefModule : Module {
     add {|name|
 
         var sampleaccurate; 
-        this.modules.debug("synthdefmodule");
+        this.modules.collect({|m| m.value.fullpath }).debug("synthdefmodule");
 
         sampleaccurate = envir['sampleaccurate'] ?? false;
         name = name ?? synthname;
@@ -167,15 +159,12 @@ SynthDefModule : Module {
         synthname = "synth_%".format(UniqueID.next).asSymbol;
 
         this.libfunc = {
-            // TODO: this might be easier
-            // sendGate
-            // Override SynthDef behavior for the gate argument.
-            // If the SynthDef as gate, setting sendGate = false prevents the release message from being sent.
+
             var currentEnvir;
             var gatemode = ~gatemode;
             var detectsilence = ~detectsilence ?? false;
             var gate = DC.kr(1), vel;
-            var sig, filt, sigs = List.new, filts = List.new;
+            var sig, sigs = List.new, filts = List.new;
             var out, freq, env, doneaction;
             var hasgate;
 
@@ -186,8 +175,7 @@ SynthDefModule : Module {
                 gate = \trig.tr(0);
             }{
                 hasgate = ~hasgate ?? true;
-                hasgate.debug("hasgate");
-                if (hasgate) {
+                if (hasgate.debug("hasgate")) {
                     // this is a trick to ensure the gate is opened
                     // before being closed if there is a race condition
                     gate = \gate.kr(1) + Impulse.kr(0);
@@ -198,6 +186,7 @@ SynthDefModule : Module {
             };
 
             vel = \vel.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1));
+            // default modules
             freq = Module('pitch/freq');
             env = Module('env/asr');
             out = Module('out/splay');
@@ -220,52 +209,34 @@ SynthDefModule : Module {
                             out = mod
                         },
                         \sig, {
-                            sigs.add( mod );
+                            sigs.add(mod);
                         }
                     )
                 }
             });
 
             currentEnvir = envir.copy ++ ('gatemode': gatemode);
-            freq = freq.setAll(currentEnvir).func;
-            env = env.setAll(currentEnvir).func;
+            freq = freq.setAll(currentEnvir).(gate);
+            env = env.setAll(currentEnvir).(gate, doneaction);
             out = out.setAll(currentEnvir).func;
-
-            freq = freq.(gate);
-            env = env.(gate, doneaction);
+            // add current values to environment
             currentEnvir = currentEnvir ++ ('freq': freq, gate: gate, vel: vel);
 
-            sig = {|freq, gate|
-                var snd = 0;
-                if (sigs.size > 0) {
-                    sigs.do({|m|
-                        m.setAll(currentEnvir);
-                        snd = snd + m.func.(freq, gate);
-                    });
-                } {
-                    snd = Module({|freq, gate| SinOsc.ar(freq) }).func.(freq, gate)
-                };
-                snd
-            };
-
-            filt = {|sig, gate, freq, env|
-                filts.do({|m|
-                    m.setAll(currentEnvir);
-                    sig = m.(sig, gate, freq, env);
-                });
-                sig;
-            };
-
-            sig = sig.(freq, gate);
-            if (envir.freeself.debug("freeself").isNil) {
-                sig = sig * env;
-            };
+            // combine the signals
+            sig = sigs.inject(Silent.ar, {|a, b| 
+                a + b.setAll(currentEnvir).(freq, gate);
+            });
             sig = LeakDC.ar(sig);
-            sig = filt.(sig, gate, freq, env);
+
+            // filters get applied in serial
+            sig = filts.inject(sig, {|a, b|
+                b.setAll(currentEnvir).(a, gate, freq, env) 
+            });
+
             sig = LeakDC.ar(sig);
-            sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-20.dbamp) * vel;
             sig = sig * env;
-
+            sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-20.dbamp) * vel;
+           
             if (detectsilence) {
                 detectsilence.debug("detect silence");
                 DetectSilence.ar(in: sig, amp: 0.00025, doneAction:Done.freeSelf);
