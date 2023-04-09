@@ -72,7 +72,7 @@ if __name__ == '__main__':
 	commit_id = get_commit_id()
 	dest = get_dest(src, commit_id)
 	process_sox(src, dest, dofade)
-	add_to_music(dest)
+	#add_to_music(dest)
 	remove_file(src)
 
 

@@ -30,9 +30,27 @@ B {
         });
     }
 
+    // split a buffer containing multiple wavetables
+    // into consequtive buffers
+    *splitwt {|buf, wtsize=2048, cb|
+        buf.loadToFloatArray(action:{|array|
+            var size = (array.size/wtsize).asInteger;
+            var bufs = Buffer.allocConsecutive(size, Server.default, wtsize * 2, 1);
+            size.do({|i|
+                var start = (i * wtsize).asInteger;
+                var end = (start+wtsize-1).asInteger;
+                var wt = array[start..end];
+                var buf = bufs[i];
+                wt = wt.as(Signal).asWavetable;
+                buf.loadCollection(wt);
+            });
+            cb.(bufs)
+        });
+    }
+
     *read {arg key, path, channels=nil, cb;
         if (channels.isNil) {
-            ^Buffer.read(Server.default, path, action:{|buf|
+            Buffer.read(Server.default, path, action:{|buf|
                 buf.normalize;
                 all.put(key, buf);
                 "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
@@ -41,7 +59,7 @@ B {
             });
         }{
             channels = channels.asArray;
-            ^Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
+            Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
                 buf.normalize;
                 all.put(key, buf);
                 "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;

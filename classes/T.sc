@@ -2,7 +2,7 @@ T {
 
     *all {
         var tags;
-        tags = File.readAllString(Module.libraryDir ++ "tag/tags.scd");
+        tags = File.readAllString(DMModule.libraryDir ++ "tag/tags.scd");
         tags = tags.interpret;
         ^tags
     }
@@ -30,7 +30,7 @@ T {
             current[key] = list.asArray;
         });
 
-        file = File.open(Module.libraryDir ++ "tag/tags.scd", "w");
+        file = File.open(DMModule.libraryDir ++ "tag/tags.scd", "w");
         file.write(current.asCompileString);
         file.close;
         ^nil

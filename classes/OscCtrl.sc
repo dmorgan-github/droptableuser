@@ -57,6 +57,7 @@ OscCtrl {
     }
 
     *trace {arg enable=true;
+        //s.dumpOSC(0)
         OSCdef.trace(enable, true);
     }
 }
