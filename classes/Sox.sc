@@ -3,6 +3,8 @@ Sox {
 
     var <list;
 
+    var <>path;
+
     *new {
         ^super.new.prInit;
     }
@@ -31,8 +33,21 @@ Sox {
         }
     }
 
+    mono {
+        list.addAll(["remix -"])
+    }
+
+    trim {|start, len|
+        // len 00:04 = 4 seconds
+        list.addAll(["trim", start, len]);
+    }
+
     reverse {
         list.add("reverse")
+    }
+
+    help {
+        "%sox --help".format(path).unixCmdGetStdOut.postln
     }
 
     transform {|src, dest, replace=false|
@@ -48,11 +63,11 @@ Sox {
             dest = "%/%".format(Document.current.dir, dest);
         };
 
-        str = "sox \"%\" \"%\" ".format(src.standardizePath, dest.standardizePath) ++ list.join(" ");
+        str = "%sox \"%\" \"%\" ".format(path, src.standardizePath, dest.standardizePath) ++ list.join(" ");
         if (replace) {
             str = str ++ "; rm %".format(src);
         };
-        str.postln.unixCmdGetStdOut;
+        str.postln.unixCmdGetStdOut.postln;
         ^"transform done"
     }
 
@@ -62,5 +77,6 @@ Sox {
 
     prInit {
         list = List();
+        path = "/usr/local/bin/";
     }
 }

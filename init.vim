@@ -25,13 +25,13 @@ call plug#end()
 set completeopt=menu,menuone,noselect
 
 lua <<EOF
-	local ls = require("luasnip")
-	require("luasnip.loaders.from_lua").load({paths = "~/.config/nvim/snippets"})
-	ls.config.set_config({
-		history = true,
-		updateevents = "TextChanged,TextChangedI",
-		enable_autosnippets = false
-	})
+  local ls = require('luasnip')
+  require('luasnip.loaders.from_lua').load({paths = '~/.config/nvim/snippets'})
+  ls.config.set_config({
+    history = true,
+    updateevents = 'TextChanged,TextChangedI',
+    enable_autosnippets = false
+  })
 EOF
 
 
@@ -98,7 +98,6 @@ cmp.setup {
 }
 EOF
 
-
 lua << EOF
 require('scnvim').setup()
 EOF
@@ -125,7 +124,7 @@ scnvim.setup {
     ['<F6>'] = map_expr('App.rec'),
     ['<F7>'] = map_expr('s.mute'),
     ['<F8>'] = map_expr('s.unmute'),
-		['<F9>'] = map_expr('thisProcess.platform.recordingsDir = "' .. vim.fn.getcwd() .. '".debug("rec dir")')
+    ['<F9>'] = map_expr('thisProcess.platform.recordingsDir = Document.current.dir.debug("rec dir")')
     -- ['<leader>st'] = map('sclang.start'),
     -- ['<leader>sk'] = map('sclang.recompile'),
     -- ['<F1>'] = map_expr('s.boot'),
@@ -140,6 +139,8 @@ scnvim.setup {
     float = {
       enabled = false,
     },
+    horizontal = true,
+    direction = 'bot'
   },
   snippet = {
     engine = {
@@ -158,8 +159,9 @@ require('scnvim.postwin').on_open:append(function()
 end)
 EOF
 
+
 " nerdtree setup
-let NERDTreeIgnore = ['\.wav$', '\.WAV$', '\.reapeaks$', '\.aif$', '\.preset$']
+let NERDTreeIgnore = ['\.wav$', '\.WAV$', '\.reapeaks$', '\.aif$', '\.preset$', '\.mp3$', '\.mp4$', '\.pdf$']
 let g:nerd_preview_enabled = 0
 let g:preview_last_buffer  = 0
 
@@ -230,6 +232,7 @@ nnoremap <leader>ff <cmd>lua require('telescope.builtin').find_files()<cr>
 nnoremap <leader>fg <cmd>lua require('telescope.builtin').live_grep()<cr>
 nnoremap <leader>fb <cmd>lua require('telescope.builtin').buffers()<cr>
 nnoremap <leader>fh <cmd>lua require('telescope.builtin').help_tags()<cr>
+
 " map ,e :e <C-R>=expand("%:p:h") . "/" <CR>
 " map ,t :tabe <C-R>=expand("%:p:h") . "/" <CR>
 " map ,s :split <C-R>=expand("%:p:h") . "/" <CR>

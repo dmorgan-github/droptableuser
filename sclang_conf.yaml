@@ -2,20 +2,18 @@ includePaths:
     -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/XML
     -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/wslib
     -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/Bjorklund
-    -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/Singleton
+    #-   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/Singleton
     -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/Feedback
     -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/JITLibExtensions
     -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/Require
-    -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/MathLib
+    #-   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/MathLib
     -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/sc3-dot
     -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/TabbedView
     -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/TabbedView2_QT
     -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/TabbedView2
-    -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/Steno
+    #-   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/Steno
     -   /Users/david/projects/Pdv
-    -   /Users/david/projects/DMModule
     -   /Users/david/projects/InstrProxy
-    -   /Users/david/projects/DMModuleLib
 excludePaths:
     []
 postInlineWarnings: false
