@@ -36,18 +36,18 @@ func: {
                     if (i == 0 and: {j == 0} ) {
 
                         a.do({|v|
-                            sp.par(v.next(Event.default).repeat(1))
+                            sp.par(v.next(Event.default).value.repeat(1))
                         });
 
                     };
                     if (j == 0) {
                         b.do({|v|
-                            sp.par(v.next(Event.default).repeat(1))
+                            sp.par(v.next(Event.default).value.repeat(1))
                         });
                     };
 
                     c.do({|v|
-                        sp.par(v.next(Event.default).repeat(1))
+                        sp.par(v.next(Event.default).value.repeat(1))
                     });
 
                     sp.wait(dur * tatum)

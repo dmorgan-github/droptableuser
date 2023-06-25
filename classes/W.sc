@@ -8,11 +8,7 @@ W : EnvironmentRedirect {
 
     classvar <>matrixenabled;
 
-    classvar <>tracks=0;
-
-    classvar <>daw;
-
-    var matrixListener;
+    classvar <>count=0;
 
     var <matrix;
 
@@ -24,40 +20,25 @@ W : EnvironmentRedirect {
 
 	at {|key|
 
-		var obj = super.at(key);
+        var obj;
+        obj = super.at(key);
+
+        /*
+        \here.postln;
 		if(obj.isNil) {
 
-            case
-            {key.asString.beginsWith("s")} {
-                obj = S(key);
-                obj.clock = W.clock;
-                obj.node.out = D.defaultout + (tracks * 2);
-                daw.asClass.trackname(tracks + 1, key);
-                tracks = tracks + 1;
-            }
-            {key.asString.beginsWith("d")} {
-                obj = D(key);
-                obj.out = D.defaultout + (tracks * 2);
-                daw.asClass.trackname(tracks + 1, key);
-                tracks = tracks + 1;
-            }
-            {key.asString.beginsWith("o")} {
-                obj = O(key);
-                obj.out = D.defaultout + (tracks * 2);
-                daw.asClass.trackname(tracks + 1, key);
-                tracks = tracks + 1;
-            }
-            {key.asString.beginsWith("g")} {
-                obj = G(key);
-                obj.out = D.defaultout + (tracks * 2);
-                daw.asClass.trackname(tracks + 1, key);
-                tracks = tracks + 1;
-            };
-
-            if (obj.notNil) {
-                this.put(key, obj);
-            }
+            obj = InstrProxy();
+            \here2.postln;
+            //obj.key = key;
+            obj.clock = W.clock;
+            //obj.node.out = D.defaultout + (tracks * 2);
+            //daw.asClass.trackname(tracks + 1, key);
+            //tracks = tracks + 1;
+            //if (obj.notNil) {
+            //    this.put(key, obj);
+            //}
 		};
+        */
 
 		^obj
 	}
@@ -94,27 +75,37 @@ W : EnvironmentRedirect {
         */
     }
 
+    /*
     *ndefmixer {
         var m = NdefMixer(Server.default, 8);
         m.switchSize(0);
         ProxyMeter.addMixer(m);
     }
+    */
 
+    /*
     mixer {
         ^matrix;
     }
+    */
 
+    /*
     *view {
         ^UiModule(\wview)
     }
+    */
 
+    /*
     *kb {
         ^Ui(\kb)
     }
+    */
 
+    /*
     *transport {|clock|
         Ui(\transport, clock);
     }
+    */
 
     *setParentEvent {|evt|
         Event.addParentType(\note, evt);
@@ -134,37 +125,9 @@ W : EnvironmentRedirect {
         ^evt;
     }
 
-    *recdir {|path|
-        var mypath = path ?? {Document.current.dir};
-        thisProcess.platform.recordingsDir_(mypath.debug(\recdir));
-    }
-
-    *currentRecDir {
-        W.recdir(PathName(Document.current.path).pathOnly)
-    }
-
-    *record {|name|
-        var filename = (name ?? { "SC_" ++ Date.getDate.stamp}) ++ ".wav";
-        var path = thisProcess.platform.recordingsDir ++ filename;
-        Server.default.record(path, bus:D.defaultout, numChannels:2);
-        //Document.current.string_("/*%*/\n".format(filename), 0, 0);
-    }
-
-    *recordAtCommit {
-        var commit = ("cd " ++ thisProcess.platform.recordingsDir ++ "; git rev-parse --short HEAD").unixCmdGetStdOut;
-        var filename = commit.stripWhiteSpace ++ ".wav";
-        var path = thisProcess.platform.recordingsDir ++ filename;
-        Server.default.record(path, bus:D.defaultout, numChannels:2);
-        //Document.current.string_("/*%*/\n".format(filename), 0, 0);
-    }
-
-    *stopRecording {
-        Server.default.stopRecording;
-    }
-
     *initClass {
         //matrixenabled = true;
         clock = TempoClock.default;
-        daw = \Bitwig;
+        //daw = \Bitwig;
     }
 }

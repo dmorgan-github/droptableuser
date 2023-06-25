@@ -255,6 +255,6 @@ var config = [
         )
     ]
 ];
-Module('device/modes').(config)
+DMModule('device/modes').(config)
 "
 )

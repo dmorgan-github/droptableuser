@@ -18,61 +18,55 @@ B {
         ^res;
     }
 
-    *onsets {|buf, cb|
-        var server = Server.default;
-        var indices = Buffer(server);
-        var feature = Buffer(server);
-        FluidBufOnsetSlice.processBlocking(server, buf, indices:indices, metric:9, threshold:0.2);
-        FluidBufOnsetFeature.processBlocking(server, buf, features:feature, metric:9);
-        //FluidWaveform(B.yea,~indices,~feature,bounds:Rect(0,0,1600,400), lineWidth:2);
-        indices.loadToFloatArray(action: {|array|  
-            cb.value(array, indices, feature);
-        });
+    *prEnsurePath {|path|
+        if (File.exists(path).not) {
+            path = Document.current.dir +/+ path;
+        };
+        ^path;
     }
 
-    *read {arg key, path, channels=nil, cb;
+    *read {|path, channels=nil, cb, normalize=true|
+
+        var buffer;
+        path = B.prEnsurePath(path);
+
         if (channels.isNil) {
-            ^Buffer.read(Server.default, path, action:{|buf|
-                buf.normalize;
-                all.put(key, buf);
-                "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
+            buffer = Buffer.read(Server.default, path, action:{|buf|
+                if (normalize) {
+                    buf = buf.normalize;
+                };
                 cb.(buf);
 
             });
         }{
             channels = channels.asArray;
-            ^Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
-                buf.normalize;
-                all.put(key, buf);
-                "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
+            buffer = Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
+                if (normalize) {
+                    buf = buf.normalize;
+                };
                 cb.(buf)
             });
         };
+        ^buffer;
     }
 
-    *toMono {|key, path, cb|
+    *toMono {|path, cb|
 
         /*
-        (
-b = Buffer.read(s, Platform.resourceDir +/+ "sounds/SinedPink.aiff");
-c = Buffer(s);
-FluidBufCompose.processBlocking(s,b,numChans:1,destination:c,gain:-6.dbamp);
-FluidBufCompose.processBlocking(s,b,startChan:1,numChans:1,destination:c,gain:-6.dbamp,destGain:1);
-)
+        b = Buffer.read(s, Platform.resourceDir +/+ "sounds/SinedPink.aiff");
+        c = Buffer(s);
+        FluidBufCompose.processBlocking(s,b,numChans:1,destination:c,gain:-6.dbamp);
+        FluidBufCompose.processBlocking(s,b,startChan:1,numChans:1,destination:c,gain:-6.dbamp,destGain:1);
 
-b.numChannels; // 2
-c.numChannels; // 1
-
-b.play;
-c.play;
-
-b.plot
-c.plot
+        b.numChannels; // 2
+        c.numChannels; // 1
         */
 
-        var file = SoundFile.openRead(path);
+        // somehow this doesn't work as expected - it seems to alter the pitch
+        var file;
+        path = B.prEnsurePath(path);
+        file = SoundFile.openRead(path).close;
         if (file.numChannels == 2) {
-            file.close;
             Buffer.read(Server.default, path, action:{|buf|
                 buf.loadToFloatArray(action:{|array|
                     /*
@@ -81,27 +75,59 @@ c.plot
                     */
                     Buffer.loadCollection(Server.default, array.unlace(2).sum * 0.5, action:{|mono|
                         mono.normalize;
-                        all.put(key, mono);
-                        "key: %; dur: %; channels: %".format(key, mono.duration, mono.numChannels).inform;
                         buf.free;
                         cb.(mono);
                     })
                 })
             });
         } {
-            B.read(key, path, cb:cb);
+            B.read(path, cb:cb);
         };
     }
 
-    *mono {|key, path, cb|
-        B.read(key, path, 0, cb:cb);
+    *mono {|key, path|
+        ^B.read(path, [0], cb: {|buf|
+            all.put(key, buf);
+            "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
+        });
     }
 
-    *stereo {|key, path, cb|
-        var file = SoundFile.openRead(path);
-        var channels = if (file.numChannels.debug('numchannels') < 2) { [0,0] }{ [0, 1] };
-        file.close;
-        B.read(key, path, channels, cb:cb);
+    // https://fredrikolofsson.com/f0blog/buffer-xfader/
+    *seamless {|inBuffer, duration= 2, curve= -2, cb|
+        var frames= duration * inBuffer.sampleRate;
+        if(frames > inBuffer.numFrames, {
+            "xfader: crossfade duration longer than half buffer - clipped.".warn;
+        });
+        frames= frames.min(inBuffer.numFrames.div(2)).asInteger;
+        Buffer.alloc(inBuffer.server, inBuffer.numFrames-frames, inBuffer.numChannels, {|outBuffer|
+            inBuffer.loadToFloatArray(action:{|arr|
+                var interleavedFrames = frames*inBuffer.numChannels;
+                var startArr = arr.copyRange(0, interleavedFrames-1);
+                var endArr = arr.copyRange(arr.size-interleavedFrames, arr.size-1);
+                var result = arr.copyRange(0, arr.size-1-interleavedFrames);
+                interleavedFrames.do{|i|
+                    var fadeIn = i.lincurve(0, interleavedFrames-1, 0, 1, curve);
+                    var fadeOut = i.lincurve(0, interleavedFrames-1, 1, 0, 0-curve);
+                    result[i] = (startArr[i]*fadeIn)+(endArr[i]*fadeOut);
+                };
+                outBuffer.loadCollection(result, 0, cb);
+            });
+        });
+    }
+
+    *stereo {|key, path|
+        var file, channels;
+        path = B.prEnsurePath(path);
+        file = SoundFile.openRead(path).close;
+        channels = if (file.numChannels.debug('numchannels') < 2) { [0,0] }{ [0, 1] };
+        ^B.read(path, channels, cb:{|buf|
+            all.put(key, buf);
+            "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
+        });
+    }
+
+    *choose {|array|
+        ^array[array.size.rand.debug("index...")]
     }
 
     *alloc {|key, numFrames, numChannels=1|
@@ -113,6 +139,135 @@ c.plot
 
     *allocSec {|key, seconds=8, numChannels=1|
         ^B.alloc(key, seconds * Server.default.sampleRate, numChannels);
+    }
+
+    // load an array of paths into mono buffers
+    *loadFiles {|key, paths|
+
+        var condition = Condition(false);
+
+        var read = {|path|
+
+            var channels = [0];
+            var buffer;
+
+            // check if it has already been loaded
+            buffer = all[key.asSymbol]
+            .select({|buf| buf.path.asString == path.asString})
+            .first;
+
+            if (buffer.isNil) {
+                buffer = B.read(path, [0], {|buf|
+                    path.debug("loaded");
+                    condition.unhang;
+                });
+            } {
+                { condition.unhang }.defer
+            };
+
+            buffer;
+        };
+
+        key = key.asSymbol;
+        {
+            if (all[key].isNil) {
+                all[key] = Order();
+            };
+            paths
+            .select({|path|
+                [\wav, \aif, \aiff].includes(PathName(path).extension.toLower.asSymbol)
+            })
+            .do({|path|
+                var buf;
+                buf = read.(path);
+                condition.hang;
+                all[key].put(buf.bufnum, buf);
+            });
+            all[key].addSpec(\bufnums, [all[key].indices.minItem, all[key].indices.maxItem, \lin, 1, all[key].indices.minItem].asSpec);
+            "buffers: %; key: %".format(all[key].size, key).postln;
+        }.fork
+    }
+
+    /*
+    Loads a directory and subdirectores of sound files into mono bufs
+    */
+    *loadLib {|key, path|
+
+        var read;
+        var condition = Condition(false);
+
+        read = {|path|
+            var buffer;
+            var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });
+
+            // can't figure out a better way to handle this error
+            // File '/Users/david/Documents/supercollider/patches/patches/recordings/Audio 1-119.wav' could not be opened: Format not recognised.
+            var sf = SoundFile.openRead(path).close;
+
+            buffer = B.read(path, channels, {|buf|
+                path.debug("loaded");
+                condition.unhang;
+            });
+
+            buffer;
+        };
+
+        key = key.asSymbol;
+        path = path.standardizePath;
+        {
+            var recurse;
+            recurse = {|dirpath, folderName|
+                var pn = PathName.new(dirpath);
+                if (pn.isFolder) {
+
+                    var files;
+                    var mykey = folderName.toLower;
+                    mykey = mykey[mykey.findAllRegexp("[a-zA-Z0-9_]")].join.asSymbol;
+
+                    files = pn.files.select({|file|
+                        file.extension.toLower == "wav" or: {file.extension.toLower.beginsWith("aif")}
+                    });
+
+                    if (files.size > 0) {
+                        all[mykey] = Order();
+                        files
+                        .sort({|a, b| a.fileName < b.fileName })
+                        .do({|file, i|
+                            var buf = read.(file.fullPath);
+                            condition.hang;
+                            if (buf.notNil) {
+                                all[mykey].put(buf.bufnum, buf);
+                            }
+                        });
+                        all[mykey].addSpec(\bufnums,
+                          [all[mykey].indices.minItem, all[mykey].indices.maxItem, \lin, 1, all[mykey].indices.minItem].asSpec);
+                    };
+
+                    pn.folders.do({|dir|
+                        var folderName = if (mykey.asString.size > 0) {
+                            "%_%". format(mykey, dir.folderName)
+                        }{
+                            dir.folderName
+                        };
+                        recurse.(dir.fullPath, folderName);
+                    });
+                }
+            };
+            recurse.(path, key.asString);
+            "buffers loaded".debug(key);
+        }.fork
+    }
+
+    *onsets {|buf, cb|
+        var server = Server.default;
+        var indices = Buffer(server);
+        var feature = Buffer(server);
+        FluidBufOnsetSlice.processBlocking(server, buf, indices:indices, metric:9, threshold:0.2);
+        FluidBufOnsetFeature.processBlocking(server, buf, features:feature, metric:9);
+        //FluidWaveform(B.yea,~indices,~feature,bounds:Rect(0,0,1600,400), lineWidth:2);
+        indices.loadToFloatArray(action: {|array|
+            cb.value(array, indices, feature);
+        });
     }
 
     // load random n seconds from sound file
@@ -143,6 +298,26 @@ c.plot
         })
     }
 
+    // split a buffer containing multiple wavetables
+    // into consequtive buffers
+    *splitwt {|key, path, wtsize=2048|
+        B.read(path, [0], cb: {|buf|
+            buf.loadToFloatArray(action:{|array|
+                var size = (array.size/wtsize).asInteger;
+                var bufs = Buffer.allocConsecutive(size, Server.default, wtsize * 2, 1);
+                size.do({|i|
+                    var start = (i * wtsize).asInteger;
+                    var end = (start+wtsize-1).asInteger;
+                    var wt = array[start..end];
+                    var buf = bufs[i];
+                    wt = wt.as(Signal).asWavetable;
+                    buf.loadCollection(wt);
+                });
+                all.put(key, bufs)
+            });
+        })
+    }
+
     *loadWavetables {|key, path|
 
         var obj = Order();
@@ -157,147 +332,6 @@ c.plot
         obj.addSpec(\bufnums, [obj.indices.minItem, obj.indices.maxItem, \lin, 1, obj.indices.minItem].asSpec);
         all[key] = obj;
         "wavetables loaded".debug(key);
-    }
-
-    *loadFiles {|key, paths, seed, normalize=true|
-
-        var condition = Condition(false);
-
-        var read = {|path, num|
-            var buffer;
-            //var file = SoundFile.openRead(path);
-            var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });
-
-            // this is not very efficient but will allow
-            // adding to an existing collection of bufs
-            // without reloading what has already been loaded
-            all[key.asSymbol].do({|buf|
-                if (buf.path.asString == path.asString) {
-                    buffer = buf;
-                }
-
-            });
-
-            if (buffer.isNil) {
-                buffer = Buffer.readChannel(Server.default, path, channels: channels, action:{|buf|
-                    path.debug("loaded");
-                    condition.unhang;
-                }, bufnum:num);
-            } {
-                { condition.unhang }.defer
-            };
-
-            buffer;
-        };
-
-        key = key.asSymbol;
-        {
-            if (all[key].isNil) {
-                all[key] = Order();
-            };
-            paths.do({|path|
-                var buf, ext;
-                ext = PathName(path).extension;
-                if ([\wav, \aif].includes(ext.toLower.asSymbol)) {
-                    buf = read.(path, seed);
-                    condition.hang;
-                    if (normalize) {
-                        all[key].put(buf.bufnum, buf.normalize);
-                    }{
-                        all[key].put(buf.bufnum, buf);
-                    };
-                    // TODO: need validation on deterministic numbering
-                    // may get into trouble with s.nextBufferNumber(1)
-                    if (seed.notNil) {
-                        seed = seed + 1;
-                    };
-                }
-            });
-            all[key].addSpec(\bufnums, [all[key].indices.minItem, all[key].indices.maxItem, \lin, 1, all[key].indices.minItem].asSpec);
-            "buffers loaded".postln
-        }.fork
-    }
-
-    /*
-    Loads a directory and subdirectores of sound files into mono bufs
-    */
-    *loadLib {|key, path, normalize=true|
-
-        var read;
-        var condition = Condition(false);
-
-        path.debug("loading");
-
-        read = {|path|
-            var buffer;
-            var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });
-
-            // can't figure out a better way to handle this error
-            // File '/Users/david/Documents/supercollider/patches/patches/recordings/Audio 1-119.wav' could not be opened: Format not recognised.
-            var sf = SoundFile.openRead(path).close;
-            if (sf.isNil) {
-                //sf.close;
-                path.debug("unable to read file");
-                { condition.unhang }.defer
-            }{
-                //sf.close;
-                buffer = Buffer.readChannel(Server.default, path, channels: channels, action:{|buf|
-                    path.debug("loaded");
-                    condition.unhang;
-                });
-            };
-
-            buffer;
-        };
-
-        key = key.asSymbol;
-        path = path.standardizePath;
-        {
-            var recurse;
-            recurse = {|dirpath, folderName|
-                var pn = PathName.new(dirpath);
-                if (pn.isFolder) {
-
-                    var files;
-                    var mykey = folderName.toLower;
-                    mykey = mykey[mykey.findAllRegexp("[a-zA-Z0-9_]")].join.asSymbol;
-
-                    files = pn.files.select({|file|
-                        file.extension.toLower == "wav" or: {file.extension.toLower.beginsWith("aif")}
-                    });
-
-                    if (files.size > 0) {
-                        all[mykey] = Order();
-                        files
-                        .sort({|a, b| a.fileName < b.fileName })
-                        .do({|file, i|
-                            var buf = read.(file.fullPath);
-                            condition.hang;
-                            if (buf.notNil) {
-                                if (normalize) {
-                                    all[mykey].put(buf.bufnum, buf.normalize);
-                                }{
-                                    all[mykey].put(buf.bufnum, buf);
-                                };
-                            }
-                        });
-                        all[mykey].addSpec(\bufnums,
-                          [all[mykey].indices.minItem, all[mykey].indices.maxItem, \lin, 1, all[mykey].indices.minItem].asSpec);
-                    };
-
-                    pn.folders.do({|dir|
-                        var folderName = if (mykey.asString.size > 0) {
-                            "%_%". format(mykey, dir.folderName)
-                        }{
-                            dir.folderName
-                        };
-                        recurse.(dir.fullPath, folderName);
-                    });
-                }
-            };
-            recurse.(path, key.asString);
-            "buffers loaded".debug(key);
-        }.fork
     }
 
     // adapted from here:

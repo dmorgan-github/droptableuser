@@ -1,8 +1,10 @@
 T {
 
+    classvar <>tagDir;
+
     *all {
         var tags;
-        tags = File.readAllString(Module.libraryDir ++ "tag/tags.scd");
+        tags = File.readAllString(tagDir ++ "/tags.scd");
         tags = tags.interpret;
         ^tags
     }
@@ -30,7 +32,7 @@ T {
             current[key] = list.asArray;
         });
 
-        file = File.open(Module.libraryDir ++ "tag/tags.scd", "w");
+        file = File.open(tagDir ++ "/tags.scd", "w");
         file.write(current.asCompileString);
         file.close;
         ^nil

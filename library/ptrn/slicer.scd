@@ -115,20 +115,28 @@ func: {
             val
         }),
         \endPos, Pfunc({|evt|
+            var bufdur = evt[\bufdur];
             var slicedur = evt[\dur];
             var loopprob = evt[\loopprob] ?? 0;
             var loopdurs = evt[\loopdurs];
+            var result;
+
             if (loopdurs.isNil) {
-                loopdurs = [1/2, 1/4, 1/8, 1/16, 1/32, 1/64];
+                loopdurs = [1/2, 1/4, 1/8];
+            } {
+                loopdurs = loopdurs.asArray;
             };
 
-            loopprob.asArray.collect({|val|
+            result = loopprob.asArray.collect({|val|
                 if (val.coin) {
-                    evt[\startPos] + (slicedur * loopdurs.choose)
+                    var val = evt[\startPos] + ((slicedur * loopdurs.choose)/bufdur);
+                    val
                 }{
-                    1
+                    1;
+                    //evt[\startPos] + (slicedur/bufdur)
                 }
             });
+            result//.debug("result");
         })
     )
 };

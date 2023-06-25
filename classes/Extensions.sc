@@ -66,7 +66,7 @@
             ^Ptrn.par(*this);
         }
     }
-
+    
     ptpar {|times, repeats=1|
 
         var vals = this.collect({|v, i|
@@ -75,6 +75,8 @@
 
         ^Ptpar(vals.flatten, repeats)
     }
+
+    pdef {|key| ^Pdef(key, this) }
 
     pa {
         var a;
@@ -85,7 +87,13 @@
         ^a
     }
 
-    p { ^Pbind(*this.pa)} 
+    p {
+        if (this.pa.size > 0) {
+            ^Pbind(*this.pa)
+        } {
+            ^Pbind()
+        }
+    } 
 
     playTimeline {|clock=(TempoClock.default)|
         this.collect({|assoc|
@@ -249,30 +257,7 @@
             }
         };
     }
-
-    getSettings {
-        ^this.getKeysValues.flatten
-    }
 }
-
-+ EventPatternProxy {
-
-    << {|pattern|
-        if (pattern.isArray) {
-            pattern = pattern.p;
-        };
-        this.source = pattern;
-    }
-
-    getSettings {
-        if (this.envir.notNil) {
-            ^this.envir.getPairs
-        } {
-            ^[]
-        }
-    }
-}
-
 
 + Function {
 

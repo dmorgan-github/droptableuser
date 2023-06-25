@@ -1,24 +1,27 @@
 (
+s.options.safetyClipThreshold = 1;
 //s.options.sampleRate = 48000.0;
 s.options.memSize_(2 ** 18);
 s.options.numAudioBusChannels = 1024 * 2;
-s.options.numWireBufs = 2 ** 7;
+s.options.numWireBufs = 2 ** 8;
+s.options.numBuffers = 2 ** 12;
 
-// for superdirt
-//s.options.numBuffers = 1024 * 16;
-
-"LADSPA_PATH".setenv("/Applications/LMMS.app/Contents/lib/lmms/ladspa");
+//"LADSPA_PATH".setenv("/Applications/LMMS.app/Contents/lib/lmms/ladspa");
 //LADSPA.listPlugins;  //should post a long list of plugins
 
 s.options.numOutputBusChannels = 16;
-s.options.numInputBusChannels = 2;
+s.options.numInputBusChannels = 8;
 s.options.inDevice_("supercollider-in");
-//s.options.inDevice = "TASCAM DR Series";
 s.options.outDevice_("supercollider-out");
+//s.options.blockSize = 128;
+//s.options.hardwareBufferSize = 32;//128;//512;
+
 s.recHeaderFormat = "WAV";
+//s.recSampleFormat = "int24";
 
 s.waitForBoot({
 
+    ~miditrace = false;
     Knob.defaultMode = \vert;
     QtGUI.palette = QPalette.dark;
     GUI.skins.put(\jit, (
@@ -35,89 +38,52 @@ s.waitForBoot({
         buttonHeight:	18,
         headHeight: 	24
     ));
-
     Font.setDefault(Font("Andale Mono", 11));
 
-    W.clock = LinkClock.new.latency_(s.latency).permanent_(true);
-    TempoClock.default = W.clock;
-    "load synthdefs...".inform;
-    (App.librarydir.standardizePath ++ "synthdefs/*.scd").loadPaths;
-    "load mixins...".inform;
-    (App.librarydir.standardizePath ++ "mixin/*.scd").loadPaths;
-    VSTPlugin.search(verbose:true);
+    EventPatternProxy.defaultQuant = 4;
+    Server.default.latency = 0.21.debug("server latency");
+    TempoClock.default = LinkClock.new.latency_(s.latency).permanent_(true);
+    //"load synthdefs...".inform;
+    //(App.librarydir.standardizePath ++ "synthdefs/*.scd").loadPaths;
+    "load vst".inform;
+    // raum.vst3 is blacklisted but the vst2 version is ok
+    //VSTPlugin.search(Server.default, dir: ["/Library/Audio/Plug-Ins/raum"], options: (exclude: ["/Library/Audio/Plug-Ins/VST", "/Users/david/Library/Audio/Plug-Ins/VST"]), verbose:false);
+
+    VSTPlugin.search(Server.default, 
+        dir: ["/Library/Audio/Plug-Ins/VST3", "/Users/david/Library/Audio/Plug-Ins/VST3", "/Library/Audio/Plug-Ins/raum"], 
+        options: (exclude: ["/Library/Audio/Plug-Ins/VST", "/Users/david/Library/Audio/Plug-Ins/VST"]), 
+        verbose:false);
 
     if (\SCNvim.asClass.notNil) {
-        Server.default.doWhenBooted {
+        //Server.default.doWhenBooted {
             \SCNvim.asClass.updateStatusLine(1, \SCNvim.asClass.port);
-        }
+        //}
     };
 
-    {
-        "start midi".inform;
-        MidiCtrl.start;
-    }.defer(2);
+    DMModule.libraryDir = "~/projects/InstrProxyLib/library/".standardizePath;
+    T.tagDir = "~/projects/droptableuser/library/tag/".standardizePath;
 
-    s.makeGui;
+    InstrProxy.colors.addAll(
+      [
+          Color(0.80594773292541, 0.4751119852066, 0.32443220615387),
+          Color(0.62813115119934, 0.50460469722748, 0.42918348312378),
+          Color(0.50277349948883, 0.55445058345795, 0.85384097099304),
+          Color(0.60549101829529, 0.63466150760651, 0.86493694782257),
+          Color(0.55233793258667, 0.65434362888336, 0.71119487285614),
+          Color(0.77472245693207, 0.82329275608063, 0.75887560844421),
+          Color(0.67403962612152, 0.74898204803467, 0.83484077453613),
+          Color(0.43814084529877, 0.35949912071228, 0.8521347284317),
+          Color(0.60353236198425, 0.85716576576233, 0.54857833385468),
+          Color(0.84560143947601, 0.71142382621765, 0.53232064247131),
+          Color(0.75822179317474, 0.58384845256805, 0.37344696521759),
+          Color(0.46127707958221, 0.63891048431396, 0.49481935501099),
+          Color(0.7760725736618, 0.79725716114044, 0.52006945610046),
+          Color(0.61446368694305, 0.50829205513, 0.49966106414795),
+          Color(0.74614992141724, 0.8588672876358, 0.77721869945526),
+          Color(0.67358100414276, 0.74493434429169, 0.40996670722961)
+      ].scramble
+    );
 
-    Spec.add(\freq, ControlSpec(20, 20000, 'exp', 0, 60.midicps, units:" Hz"));
-    Spec.add(\cutoff, ControlSpec(20, 20000, 'exp', 0, 1000, units:"filter"));
-	Spec.add(\ffreq, ControlSpec(20, 20000, 'exp', 0, 1000, units:"filter"));
-	Spec.add(\hpf, ControlSpec(20, 20000, 'exp', 0, 20, units:"filter"));
-	Spec.add(\lpf, ControlSpec(20, 20000, 'exp', 0, 20000, units:"filter"));
-	Spec.add(\res, ControlSpec(0, 1, \lin, 0, 0.5, units:"filter"));
-	Spec.add(\fvel, ControlSpec(0.001, 20, \lin, 0, 10, units:"filter"));
-	Spec.add(\fatk, ControlSpec(0, 1, \lin, 0, 0.01, units:"filter"));
-    Spec.add(\fdec, ControlSpec(0, 1, \lin, 0, 0.2, units:"filter"));
-	Spec.add(\frel, ControlSpec(0, 8, \lin, 0, 0.29, units:"filter"));
-	Spec.add(\fsuslevel, ControlSpec(0, 1, \lin, 0, 1, units:"filter"));
-	Spec.add(\fcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"filter"));
-    Spec.add(\fatkcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"filter"));
-    Spec.add(\fdeccurve, ControlSpec(-8, 8, \lin, 0, -4, units:"filter"));
-    Spec.add(\frelcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"filter"));
-    Spec.add(\fbias, ControlSpec(0, 2, \lin, 0, 0, units:"filter"));
-    Spec.add(\fpeak, ControlSpec(0, 1, \lin, 0, 1, units:"filter"));
-    Spec.add(\snappy, ControlSpec(0, 1, \lin, 0, 0.5, "filter"));
+});
 
-	Spec.add(\atk, ControlSpec(0, 4, \lin, 0, 0.01, units:"aeg"));
-	Spec.add(\dec, ControlSpec(0, 1, \lin, 0, 0.2, units:"aeg"));
-	Spec.add(\rel, ControlSpec(0, 8, \lin, 0, 1, units:"aeg"));
-	Spec.add(\suslevel, ControlSpec(0, 1, \lin, 0, 0.7, units:"aeg"));
-	Spec.add(\curve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
-	Spec.add(\atkcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
-	Spec.add(\deccurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
-	Spec.add(\relcurve, ControlSpec(-8, 8, \lin, 0, -4, units:"aeg"));
-	Spec.add(\ts, ControlSpec(0.001, 100, \lin, 0, 1, units:"aeg"));
-
-	Spec.add(\detunehz, ControlSpec(0, 10, \lin, 0, 0, units:"pitch"));
-	Spec.add(\bend, ControlSpec(-12, 12, \lin, 0, 0, units:"pitch"));
-	Spec.add(\vrate, ControlSpec(0, 440, \lin, 0, 6, units:"pitch"));
-	Spec.add(\vdepth, ControlSpec(0, 1, \lin, 0, 0, units:"pitch"));
-    Spec.add(\glis, ControlSpec(0, 1, \lin, 0, 0, units:"pitch"));
-    Spec.add(\octave, ControlSpec(1, 8, \lin, 1, 5, "pitch"));
-    Spec.add(\mtranspose, ControlSpec(-12, 12, \lin, 1, 0, "pitch"));
-    Spec.add(\root, ControlSpec(-12, 12, \lin, 1, 0, "pitch"));
-    Spec.add(\ctranspose, ControlSpec(-12, 12, \lin, 1, 0, "pitch"));
-
-    Spec.add(\legato, ControlSpec(0.001, 8, \lin, 0, 1, "dur"));
-    Spec.add(\stretch, ControlSpec(0.001, 8, \lin, 0, 1, "dur"));
-
-	Spec.add(\spread, ControlSpec(0, 1, \lin, 0, 1, units:"stereo"));
-	Spec.add(\center, ControlSpec(-1, 1, \lin, 0, 0, units:"stereo"));
-	Spec.add(\pan, ControlSpec(-1, 1, \lin, 0, 0, units:"stereo"));
-
-	Spec.add(\vel, ControlSpec(0, 1, \lin, 0, 0, units:"vol"));
-	Spec.add(\drive, ControlSpec(1, 100, \lin, 0, 1, units:"vol"));
-	Spec.add(\amp, ControlSpec(0, 2.dbamp, \lin, 0, -10.dbamp, units:"vol"));
-
-    Spec.add(\startPos, ControlSpec(0, 1, \lin, 0, 0, units:"buf"));
-    Spec.add(\endPos, ControlSpec(0, 1, \lin, 0, 1, units:"buf"));
-    Spec.add(\rate, ControlSpec(0.0625, 4, \lin, 0, 1, units:"buf"));
-    Spec.add(\dir, ControlSpec(0, 1, \lin, 0, 1, units:"buf"));
-    Spec.add(\buf, ControlSpec(0, s.options.numBuffers, \lin, 1, 0, "buf"));
-
-    Spec.add(\focus, ControlSpec(0, 1, \lin, 0, 1, "timbre"));
-    Spec.add(\skew, ControlSpec(-2, 2, \lin, 0, 0, "timbre"));
-    Spec.add(\fb, ControlSpec(0, 1.5, \lin, 0, 0, "timbre"));
-
-})
 )
