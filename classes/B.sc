@@ -300,20 +300,22 @@ B {
 
     // split a buffer containing multiple wavetables
     // into consequtive buffers
-    *splitwt {|buf, wtsize=2048, cb|
-        buf.loadToFloatArray(action:{|array|
-            var size = (array.size/wtsize).asInteger;
-            var bufs = Buffer.allocConsecutive(size, Server.default, wtsize * 2, 1);
-            size.do({|i|
-                var start = (i * wtsize).asInteger;
-                var end = (start+wtsize-1).asInteger;
-                var wt = array[start..end];
-                var buf = bufs[i];
-                wt = wt.as(Signal).asWavetable;
-                buf.loadCollection(wt);
+    *splitwt {|key, path, wtsize=2048|
+        B.read(path, [0], cb: {|buf|
+            buf.loadToFloatArray(action:{|array|
+                var size = (array.size/wtsize).asInteger;
+                var bufs = Buffer.allocConsecutive(size, Server.default, wtsize * 2, 1);
+                size.do({|i|
+                    var start = (i * wtsize).asInteger;
+                    var end = (start+wtsize-1).asInteger;
+                    var wt = array[start..end];
+                    var buf = bufs[i];
+                    wt = wt.as(Signal).asWavetable;
+                    buf.loadCollection(wt);
+                });
+                all.put(key, bufs)
             });
-            cb.(bufs)
-        });
+        })
     }
 
     *loadWavetables {|key, path|

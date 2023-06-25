@@ -46,7 +46,13 @@ s.waitForBoot({
     //"load synthdefs...".inform;
     //(App.librarydir.standardizePath ++ "synthdefs/*.scd").loadPaths;
     "load vst".inform;
-    VSTPlugin.search(Server.default, options: (exclude: ["/Library/Audio/Plug-Ins/VST", "/Users/david/Library/Audio/Plug-Ins/VST"]), verbose:false);
+    // raum.vst3 is blacklisted but the vst2 version is ok
+    //VSTPlugin.search(Server.default, dir: ["/Library/Audio/Plug-Ins/raum"], options: (exclude: ["/Library/Audio/Plug-Ins/VST", "/Users/david/Library/Audio/Plug-Ins/VST"]), verbose:false);
+
+    VSTPlugin.search(Server.default, 
+        dir: ["/Library/Audio/Plug-Ins/VST3", "/Users/david/Library/Audio/Plug-Ins/VST3", "/Library/Audio/Plug-Ins/raum"], 
+        options: (exclude: ["/Library/Audio/Plug-Ins/VST", "/Users/david/Library/Audio/Plug-Ins/VST"]), 
+        verbose:false);
 
     if (\SCNvim.asClass.notNil) {
         //Server.default.doWhenBooted {

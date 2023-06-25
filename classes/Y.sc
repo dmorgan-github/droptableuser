@@ -879,4 +879,8 @@ Y {
             }
         })
     }
+
+    *partition {|num, parts, min|
+        ^num.partition(parts, min);
+    }
 }
