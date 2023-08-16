@@ -11,6 +11,9 @@ includePaths:
     -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/TabbedView2
     -   /Users/david/projects/Pdv
     -   /Users/david/projects/InstrProxy
+    -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/ExtraWindows
+    -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/SignalBox
+    -   /Users/david/Library/Application Support/SuperCollider/downloaded-quarks/Deferred
 excludePaths:
     []
 postInlineWarnings: false

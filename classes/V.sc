@@ -8,6 +8,19 @@ V {
         ^result;
     }
 
+    /*
+    (
+    SynthDef(\insert, { arg bus;
+        ReplaceOut.ar(bus, VSTPlugin.ar(In.ar(bus, 2), 2));
+    }).add;
+    )
+
+    ~synth = Synth(\insert, [\bus, 0]);
+    ~fx = VSTPluginController(~synth);
+    ~fx.open("Filterjam.vst3", verbose: true);
+
+    V.getSynthParams("Filterjam.vst3", ~fx, {|v| v.postln })
+    */
     *getSynthParams {|vst, ctrl, cb|
 
         var params = ctrl.info.parameters;
