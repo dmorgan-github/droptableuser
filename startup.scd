@@ -4,7 +4,7 @@ s.options.safetyClipThreshold = 1;
 s.options.memSize_(2 ** 18);
 s.options.numAudioBusChannels = 1024 * 2;
 s.options.numWireBufs = 2 ** 8;
-s.options.numBuffers = 2 ** 12;
+s.options.numBuffers = 2 ** 16;
 
 //"LADSPA_PATH".setenv("/Applications/LMMS.app/Contents/lib/lmms/ladspa");
 //LADSPA.listPlugins;  //should post a long list of plugins
@@ -45,7 +45,7 @@ s.waitForBoot({
     TempoClock.default = LinkClock.new.latency_(s.latency).permanent_(true);
     //"load synthdefs...".inform;
     //(App.librarydir.standardizePath ++ "synthdefs/*.scd").loadPaths;
-    "load vst".inform;
+    //"load vst".inform;
     // raum.vst3 is blacklisted but the vst2 version is ok
     //VSTPlugin.search(Server.default, dir: ["/Library/Audio/Plug-Ins/raum"], options: (exclude: ["/Library/Audio/Plug-Ins/VST", "/Users/david/Library/Audio/Plug-Ins/VST"]), verbose:false);
 

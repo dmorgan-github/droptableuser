@@ -223,8 +223,8 @@
         ^this;
     }
 
-    pdv {
-        ^Pdv.parse(this)
+    pdv {|repeats=inf|
+        ^Pdv.parse(this, repeats)
     }
 }
 

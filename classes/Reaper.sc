@@ -68,7 +68,7 @@ Reaper {
     }
 
     *initClass {
-        server = NetAddr("127.0.0.1", 8000); // loopback
+        //server = NetAddr("127.0.0.1", 8000); // loopback
         isrecording = false;
     }
 }

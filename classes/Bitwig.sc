@@ -26,6 +26,12 @@ Bitwig {
         server.sendMsg("/track/%/name".format(num), name);
     }
 
+    /*
+    Bitwig.server.sendMsg("/track/1/pan", 127/2)
+    Bitwig.server.sendMsg("/track/1/volume", 127/2)
+    Bitwig.server.sendMsg("/track/1/selected", 1)
+    */
+
     *initClass {
         server = NetAddr("127.0.0.1", 8000).debug("bitwig server"); // loopback
     }

@@ -2,7 +2,46 @@
 /*
 Workspace
 */
-W : EnvironmentRedirect {
+
+
+W {
+
+    classvar <all;
+    classvar <current;
+    classvar <ctrls;
+    classvar <mixins;
+
+    *init {
+
+        var name = PathName(Document.current.path).folderName.asSymbol;
+
+        if (current.notNil) {
+            // if there is a current environment
+            // save it's current state
+            all[current] = currentEnvironment;
+        };
+
+        // if name exists make it current;
+        if (all[name].notNil) {
+            currentEnvironment = all[name];
+        } {
+            // if the name doesn't exist, create a new entry
+            // and make the supplied environment current;
+            currentEnvironment = Environment();
+            all[name] = currentEnvironment;
+        };
+        current = name.debug("current context");
+    }
+
+    *initClass { 
+        all = IdentityDictionary();
+        ctrls = IdentityDictionary();
+        mixins = IdentityDictionary();
+    }
+}
+
+
+W2 : EnvironmentRedirect {
 
     classvar <current, <>clock;
 
