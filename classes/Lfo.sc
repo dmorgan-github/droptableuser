@@ -58,14 +58,12 @@ Lfo : Ndef {
     }
 
     curves3 {|signal|
-        /*
-        ~sf = SoundFile.openRead("/Users/david/Documents/supercollider/resources/AKWF/AKWF_0005/AKWF_0401.wav")
-        ~data = Signal.newClear(~sf.numFrames)
-        ~sf.readData(~data)
-        ~data = ~data.resamp1(128)
-        ~data.plot
-        ~env = Env(~data, {1/127}.dup(127), 0)
-        */
+        //~sf = SoundFile.openRead("/Users/david/Documents/supercollider/resources/AKWF/AKWF_0005/AKWF_0401.wav")
+        //~data = Signal.newClear(~sf.numFrames)
+        //~sf.readData(~data)
+        //~data = ~data.resamp1(128)
+        //~data.plot
+        //~env = Env(~data, {1/127}.dup(127), 0)
     }
 
     prInit {
@@ -73,6 +71,7 @@ Lfo : Ndef {
         ^this;
     }
 }
+*/
 
 PLfo {
 

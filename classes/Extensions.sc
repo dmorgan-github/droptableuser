@@ -108,18 +108,6 @@
     }
 }
 
-+ Object {
-
-    |> { |f| ^f.(this) }
-
-    <| { |f|
-        ^if(f.isKindOf(Function),
-            { {|i| this.( f.(i) )} },
-            { this.(f) })
-    }
-}
-
-
 + Pattern {
 
     limit {arg num; ^Pfin(num, this.iter) }
@@ -211,13 +199,6 @@
 
 + String {
 
-    toGrid {
-        ^this
-        .stripWhiteSpace
-        .split($\n)
-        .collect({|str| str.parse })
-    }
-
     tag {|tags|
         T.tag(tags, this);
         ^this;
@@ -256,35 +237,6 @@
                 this.addSpec(key, [0, 1, \lin, 0, vol]);
             }
         };
-    }
-}
-
-+ Function {
-
-    // copied from: https://scsynth.org/t/proposal-function-await/6396
-    // consider instead: https://github.com/scztt/Deferred.quark/blob/master/Deferred.sc
-    await { |timeout = nil, onTimeout = nil|
-        var cond = CondVar(), done = false, res = nil;
-
-        this.value({|...results|
-            res = results; done = true;
-            cond.signalOne;
-        });
-
-        if (timeout.isNil) {
-            cond.wait { done }
-        } {
-            cond.waitFor(timeout) { done }
-        };
-
-        if (done.not) {
-            if (onTimeout.isFunction) {
-                ^onTimeout.value
-            } {
-                AsyncTimeoutError().throw
-            }
-        };
-        ^res.unbubble;
     }
 }
 

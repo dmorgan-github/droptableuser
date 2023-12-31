@@ -28,6 +28,10 @@ ConvRev {
         spectrums = List.new;
 
         // TODO: clean up buffers
+        //
+        // 	irbufferL.free; // don't need time domain data anymore, just needed spectral version
+		//	irbufferR.free;
+
         Buffer.read(Server.default, inIrPath, action:{arg buf;
             var numChannels = buf.numChannels;
             numChannels.do({arg i;

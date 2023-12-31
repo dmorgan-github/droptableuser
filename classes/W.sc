@@ -3,13 +3,13 @@
 Workspace
 */
 
-
 W {
 
     classvar <all;
     classvar <current;
     classvar <ctrls;
     classvar <mixins;
+    classvar <parentEvent;
 
     *init {
 
@@ -31,6 +31,32 @@ W {
             all[name] = currentEnvironment;
         };
         current = name.debug("current context");
+    }
+
+    *parentEvent_ {|evt|
+        parentEvent = evt.debug("parentEvent");
+        Event.addParentType(\note, parentEvent);
+        Event.addParentType(\monoNote, parentEvent);
+        Event.addParentType(\monoSet, parentEvent);
+
+        /*
+        Event.addParentType(\note, (root:0, scale:#[ 0, 2, 5, 7, 9 ], stepsPerOctave: 12));
+        g = EnvirGui.new((root:0, scale:#[ 0, 2, 5, 7, 9 ], stepsPerOctave: 9), numItems:8);
+        g.putSpec(\stepsPerOctave, [1, 128, \lin, 1, 12]);
+        g.putSpec(\root, [-12, 12, \lin, 1, 0]);
+        */
+    }
+
+    *serverGui {
+        Server.default.makeGui
+    }
+
+    *tempo_ {|tempo|
+        TempoClock.tempo = tempo.debug("tempo");
+    }
+
+    *tempo {
+        ^TempoClock.tempo
     }
 
     *initClass { 

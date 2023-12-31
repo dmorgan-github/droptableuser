@@ -547,6 +547,33 @@ Y {
         ^res;
     }
 
+    //------------------------------------------------------------------------
+    // a2int
+    // reads array of ones and zeroes and converts them to interval notation
+    //------------------------------------------------------------------------
+    /*
+    Y.a2int([1, 0, 0, 1, 0, 0, 1]);
+    */
+    *a2int {|vals|
+        var res = List.new;
+        var nbit = vals.size;
+        var k, j = 0;
+        vals = vals.collect({|v| if (v > 1) { 1} {v} });
+        while({j < nbit}, {
+            k = 1;
+            while({vals[j = j+1] != 1 and: {j < nbit}}, {
+                k = k+1;
+            });
+            res.add(k);
+        });
+        // if the array starts with 0 then we will consider that a rest
+        if (vals[0] != 1) {
+            var i = res[0];
+            res[0] = Rest(i)
+        };
+        ^res.array;
+    }
+
 
     //------------------------------------------------------------------------
     // int2b

@@ -1,7 +1,7 @@
 
 // ~sd.synthdef.dump
 // ~sd.synthdef.dumpUGens
-SynthDefModule : DMModule {
+SynthDefModule : Module {
 
     classvar <>defaultFunc;
 
@@ -15,6 +15,7 @@ SynthDefModule : DMModule {
         ^res;
     }
 
+    /*
     parse {|str|
 
         var result;
@@ -144,6 +145,7 @@ SynthDefModule : DMModule {
         });
         ^this;
     }
+    */
 
     at {|num|
         ^modules[num];
@@ -201,9 +203,9 @@ SynthDefModule : DMModule {
                     );
                 };
 
-                if (mod.isKindOf(DMModule).not) {
+                if (mod.isKindOf(Module).not) {
                     var doc, key = mod;
-                    mod = DMModule(mod);
+                    mod = Module(mod);
                     doc = mod.doc;
                     if (doc.notNil) {
                         metadata.put(key, doc);
@@ -267,19 +269,12 @@ SynthDefModule : DMModule {
             
             fork {
 
-                // refactor to: https://github.com/scztt/Deferred.quark/blob/master/Deferred.sc
-                await {|done|
-                    f = File.new(fn, "w");
-                    synthdef.dot(f);
-                    f.close;
-                    done.value(\ok);
-                };
-
+                f = File.new(fn, "w");
+                synthdef.dot(f);
+                f.close;
+    
                 if (thisProcess.platform.name == \osx) {
-                    await{|done|
-                        "dot -Tpdf % -o %.pdf".format(fn, fn).systemCmd;
-                        done.value(\ok);
-                    };
+                    "dot -Tpdf % -o %.pdf".format(fn, fn).systemCmd;
                     "open %.pdf".format(fn).systemCmd;
                 } {
                     RDot.view(fn);
@@ -335,9 +330,9 @@ SynthDefModule : DMModule {
 
             vel = \vel.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1));
             // default modules
-            freq = DMModule('pitch/freq');
-            env = DMModule('env/adsr');
-            out = DMModule('out/splay');
+            freq = Module('pitch/freq');
+            env = Module('env/adsr');
+            out = Module('out/splay');
 
             me.modules.do({|val, index|
                 if (val.isKindOf(Association)) {
@@ -383,7 +378,7 @@ SynthDefModule : DMModule {
 
             sig = sig * env;
             sig = LeakDC.ar(sig);
-            sig = sig * AmpCompA.ar(freq, 0) * \amp.kr(-13.dbamp) * vel;
+            sig = sig * AmpComp.ar(freq, 110) * \amp.kr(-13.dbamp) * vel;
            
             if (detectsilence) {
                 detectsilence.debug("detect silence");

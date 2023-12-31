@@ -1,4 +1,6 @@
-DMModule {
+M : Module {}
+
+Module {
 
     classvar <>libraryDir;
 

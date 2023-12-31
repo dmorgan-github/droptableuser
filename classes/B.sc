@@ -20,34 +20,35 @@ B {
 
     *prEnsurePath {|path|
         if (File.exists(path).not) {
+            // should this be now executing path instead of document?
             path = Document.current.dir +/+ path;
         };
         ^path;
     }
 
-    *read {|path, channels=nil, cb, normalize=true|
+    *inspect {|path|
+        var sf;
+        sf = SoundFile.openRead(path);
+        sf.inspect;
+        sf.close;
+    }
+
+    *read {|path, channels=nil, normalize=true|
 
         var buffer;
+        var result = Deferred();
         path = B.prEnsurePath(path);
-
-        if (channels.isNil) {
-            buffer = Buffer.read(Server.default, path, action:{|buf|
-                if (normalize) {
-                    buf = buf.normalize;
-                };
-                cb.(buf);
-
-            });
-        }{
+        if (channels.notNil) {
             channels = channels.asArray;
-            buffer = Buffer.readChannel(Server.default, path, channels:channels, action:{arg buf;
-                if (normalize) {
-                    buf = buf.normalize;
-                };
-                cb.(buf)
-            });
         };
-        ^buffer;
+        Buffer.readChannel(Server.default, path, channels:channels, action:{|buf|
+            if (normalize) {
+                buf = buf.normalize;
+            };
+            "num: %; dur: %; channels: %; path: %".format(buf.bufnum, buf.duration, buf.numChannels, path).inform;
+            result.value = buf;
+        });
+        ^result;
     }
 
     *toMono {|path, cb|
@@ -86,10 +87,30 @@ B {
     }
 
     *mono {|key, path|
-        ^B.read(path, [0], cb: {|buf|
+
+        fork({
+            var buf;
+            var result = B.read(path, [0]);
+            result.wait();
+            buf = result.value;
             all.put(key, buf);
-            "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
-        });
+        })
+    }
+
+    *stereo {|key, path|
+
+        var file, channels;
+        path = B.prEnsurePath(path);
+        file = SoundFile.openRead(path).close;
+        channels = if (file.numChannels.debug('numchannels') < 2) { [0,0] }{ [0, 1] };
+
+        fork({
+            var buf, result;
+            result = B.read(path, channels);
+            result.wait();
+            buf = result.value;
+            all.put(key, buf);
+        })
     }
 
     // https://fredrikolofsson.com/f0blog/buffer-xfader/
@@ -115,21 +136,6 @@ B {
         });
     }
 
-    *stereo {|key, path|
-        var file, channels;
-        path = B.prEnsurePath(path);
-        file = SoundFile.openRead(path).close;
-        channels = if (file.numChannels.debug('numchannels') < 2) { [0,0] }{ [0, 1] };
-        ^B.read(path, channels, cb:{|buf|
-            all.put(key, buf);
-            "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
-        });
-    }
-
-    *choose {|array|
-        ^array[array.size.rand.debug("index...")]
-    }
-
     *alloc {|key, numFrames, numChannels=1|
         var buf = Buffer.alloc(Server.default, numFrames, numChannels);
         all.put(key, buf);
@@ -144,48 +150,44 @@ B {
     // load an array of paths into mono buffers
     *loadFiles {|key, paths|
 
-        var condition = Condition(false);
+        var read, def = Deferred();
+        key = key.asSymbol;
 
-        var read = {|path|
+        read = {|path|
 
-            var channels = [0];
-            var buffer;
-
+            var result;
             // check if it has already been loaded
-            buffer = all[key.asSymbol]
-            .select({|buf| buf.path.asString == path.asString})
+            result = all[key]
+            .select({|buf| 
+                buf.path.asString.stripWhiteSpace.toLower.asSymbol == path.asString.stripWhiteSpace.toLower.asSymbol 
+            })
             .first;
 
-            if (buffer.isNil) {
-                buffer = B.read(path, [0], {|buf|
-                    path.debug("loaded");
-                    condition.unhang;
-                });
-            } {
-                { condition.unhang }.defer
+            if (result.isNil) {
+                result = B.read(path, [0]);
             };
-
-            buffer;
+            result
         };
 
-        key = key.asSymbol;
-        {
-            if (all[key].isNil) {
-                all[key] = Order();
-            };
-            paths
+        fork({
+            var bufs = paths
             .select({|path|
                 [\wav, \aif, \aiff].includes(PathName(path).extension.toLower.asSymbol)
             })
-            .do({|path|
-                var buf;
-                buf = read.(path);
-                condition.hang;
-                all[key].put(buf.bufnum, buf);
+            .collect({|path|
+                var buf = read.(path);
+                if (buf.isKindOf(Deferred)) {
+                    buf.wait();
+                };
+                buf.value;
             });
-            all[key].addSpec(\bufnums, [all[key].indices.minItem, all[key].indices.maxItem, \lin, 1, all[key].indices.minItem].asSpec);
-            "buffers: %; key: %".format(all[key].size, key).postln;
-        }.fork
+
+            all[key] = bufs;
+            all[key].addSpec(\index, [0, bufs.size-1, \lin, 1, 0].asSpec);
+            def.value = all[key];
+        });
+
+        ^def;
     }
 
     /*
@@ -194,47 +196,46 @@ B {
     *loadLib {|key, path|
 
         var read;
-        var condition = Condition(false);
 
         read = {|path|
-            var buffer;
-            var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });
 
+            var sf;
+            var result;
+            var channels = [0];//if(file.numChannels < 2, { [0,0] },{ [0,1] });
             // can't figure out a better way to handle this error
             // File '/Users/david/Documents/supercollider/patches/patches/recordings/Audio 1-119.wav' could not be opened: Format not recognised.
-            var sf = SoundFile.openRead(path).close;
-
-            buffer = B.read(path, channels, {|buf|
-                path.debug("loaded");
-                condition.unhang;
-            });
-
-            buffer;
+            sf = SoundFile.openRead(path).close;
+            result = B.read(path, channels);
+            result;
         };
 
         key = key.asSymbol;
         path = path.standardizePath;
+
         {
             var recurse;
             recurse = {|dirpath, folderName|
                 var pn = PathName.new(dirpath);
+
                 if (pn.isFolder) {
 
                     var files;
                     var mykey = folderName.toLower;
                     mykey = mykey[mykey.findAllRegexp("[a-zA-Z0-9_]")].join.asSymbol;
 
-                    files = pn.files.select({|file|
-                        file.extension.toLower == "wav" or: {file.extension.toLower.beginsWith("aif")}
+                    files = pn.files.select({|pn|
+                        [\wav, \aif, \aiff].includes(pn.extension.toLower.asSymbol)
                     });
 
                     if (files.size > 0) {
                         all[mykey] = Order();
+
                         files
                         .sort({|a, b| a.fileName < b.fileName })
                         .do({|file, i|
                             var buf = read.(file.fullPath);
-                            condition.hang;
+                            buf.wait();
+                            buf = buf.value;
                             if (buf.notNil) {
                                 all[mykey].put(buf.bufnum, buf);
                             }
@@ -255,7 +256,7 @@ B {
             };
             recurse.(path, key.asString);
             "buffers loaded".debug(key);
-        }.fork
+        }.fork;
     }
 
     *onsets {|buf, cb|
@@ -270,37 +271,59 @@ B {
         });
     }
 
-    // load random n seconds from sound file
-    *randN {|key, path, n=5, cb|
-
-        var file = SoundFile.openRead(path);
-        var numframes = file.numFrames;
-        var sr = file.sampleRate;
-
-        var secs = n * sr;
-        var twoseconds = 2 * sr;
-        var start = 0, end = -1;
-
-        if (numframes > secs) {
-            var max = numframes - secs;
-            var min = twoseconds;
-            start = (min..max).choose;
-            end = secs
-        };
-
-        file.close;
-
-        ^Buffer.readChannel(Server.default, path, start, end, channels:[0], action: {|buf|
-            buf.normalize;
-            all.put(key, buf);
-            "key: %; dur: %; channels: %".format(key, buf.duration, buf.numChannels).inform;
-            cb.(buf)
-        })
-    }
-
     // split a buffer containing multiple wavetables
     // into consequtive buffers
     *splitwt {|key, path, wtsize=2048|
+        
+        var buf, result = Deferred();
+
+        fork({
+            var def = B.read(path, [0]);
+            def.wait();
+            buf = def.value;
+
+            buf.loadToFloatArray(action:{|array|
+                var size = (array.size/wtsize).asInteger;
+                var bufs = Buffer.allocConsecutive(size, Server.default, wtsize * 2, 1);
+                size.do({|i|
+                    var start = (i * wtsize).asInteger;
+                    var end = (start+wtsize-1).asInteger;
+                    var wt = array[start..end];
+                    var buf = bufs[i];
+                    wt = wt.as(Signal).asWavetable;
+                    buf.loadCollection(wt);
+                });
+                if (size == 1) {
+                    bufs = bufs.first;
+                };
+                all.put(key, bufs);
+                result.value = all[key]
+            });
+        })
+
+        ^result;
+
+        /*
+        B.read(path, [0], cb: {|buf|
+            buf.loadToFloatArray(action:{|array|
+                var size = (array.size/wtsize).asInteger;
+                var bufs = Buffer.allocConsecutive(size, Server.default, wtsize * 2, 1);
+                size.do({|i|
+                    var def = Deferred();
+                    var start = (i * wtsize).asInteger;
+                    var end = (start+wtsize-1).asInteger;
+                    var wt = array[start..end];
+                    var buf = bufs[i];
+                    wt = wt.as(Signal).asWavetable;
+                    buf.loadCollection(wt, action:{ def.value = \done });
+                    def.wait;
+                });
+                all.put(key, bufs);
+                result.value = all[key]
+            });
+        });
+        */
+        /*
         B.read(path, [0], cb: {|buf|
             buf.loadToFloatArray(action:{|array|
                 var size = (array.size/wtsize).asInteger;
@@ -316,9 +339,10 @@ B {
                 all.put(key, bufs)
             });
         })
+        */
     }
 
-    *loadWavetables {|key, path|
+    *loadwt {|key, path|
 
         var obj = Order();
         var wtsize = 4096;
@@ -337,7 +361,7 @@ B {
     // adapted from here:
     //https://github.com/alikthename/Musical-Design-in-Supercollider/blob/master/5_wavetables.sc
     // run once to convert and resample wavetable files
-    *convertWavetables {|path|
+    *convertwt {|path|
         var paths, file, data, n, newData, outFile;
         paths = "%/*.wav".format(path).pathMatch;
 
@@ -382,6 +406,25 @@ B {
                 };
             }
         }).play
+    }
+
+    *conv {|path|
+
+        var fftsize = 2048;
+        var spectrums = List.new;
+        Buffer.read(Server.default, path, action:{arg buf;
+            var numChannels = buf.numChannels;
+            numChannels.do({arg i;
+                Buffer.readChannel(Server.default, path, channels:i.asArray, action:{arg irbuffer;
+                    var size = PartConv.calcBufSize(fftsize, irbuffer);
+                    var spectrum = Buffer.alloc(Server.default, size, 1);
+                    spectrum.preparePartConv(irbuffer, fftsize);
+                    spectrums.add(spectrum);
+                });
+            });
+        });
+
+        ^spectrums;
     }
 
     *initClass {

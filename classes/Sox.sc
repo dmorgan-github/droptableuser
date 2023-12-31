@@ -1,4 +1,5 @@
 // note: good reference: https://github.com/rabitt/pysox/blob/master/sox/transform.py
+// also: https://gist.github.com/ideoforms/d64143e2bad16b18de6e97b91de494fd
 Sox {
 
     var <list;
@@ -9,8 +10,20 @@ Sox {
         ^super.new.prInit;
     }
 
+    speed {|val|
+        list.addAll(["speed", val])
+    }
+
     remix {|left=1, right=2|
-        list.addAll(["remix", left, right])
+        var val = List();
+        val.add("remix");
+        if (left.notNil) {
+            val.add(left)
+        };
+        if (right.notNil) {
+            val.add(right);
+        };
+        list.addAll(val.asArray)
     }
 
     norm {|level=(-6)|

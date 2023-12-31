@@ -25,12 +25,13 @@ def get_commit_id():
 	return output.stdout.decode('ascii').replace('\n', '')
 
 
-def get_dest(src, commit_id):
+def get_dest(src):
 	dirpath, filename = os.path.split(src)
 	if (dirpath == ""):
 		dirpath = "."
 	filename, ext = os.path.splitext(filename)
-	filename = "{}-{}-{}db{}".format(filename, commit_id, norm, ext)
+	#filename = "{}-{}-{}db{}".format(filename, commit_id, norm, ext)
+	filename = "{}-{}db{}".format(filename, norm, ext)
 	dest = "{}/{}".format(dirpath, filename)
 	return dest
 
@@ -69,8 +70,8 @@ if __name__ == '__main__':
 	if (len(sys.argv) > 2):
 		dofade = False
 
-	commit_id = get_commit_id()
-	dest = get_dest(src, commit_id)
+	#commit_id = get_commit_id()
+	dest = get_dest(src)
 	process_sox(src, dest, dofade)
 	#add_to_music(dest)
 	remove_file(src)

@@ -60,4 +60,8 @@ OscCtrl {
         //s.dumpOSC(0)
         OSCdef.trace(enable, true);
     }
+
+    *freeAll {
+        OSCdef.freeAll()
+    }
 }

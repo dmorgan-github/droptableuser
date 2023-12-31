@@ -60,7 +60,7 @@ s.waitForBoot({
         //}
     };
 
-    DMModule.libraryDir = "~/projects/InstrProxyLib/library/".standardizePath;
+    Module.libraryDir = "~/projects/InstrProxyLib/library/".standardizePath;
     T.tagDir = "~/projects/droptableuser/library/tag/".standardizePath;
 
     InstrProxy.colors.addAll(

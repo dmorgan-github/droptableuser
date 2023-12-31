@@ -71,8 +71,8 @@ VstInstrProxy : InstrProxy {
     var <vstplugin;
     var <vstpreset;
 
-    *new {
-        ^super.new();
+    *new {|key|
+        ^super.new(key);
     }
 
     source_ {|pattern|
@@ -103,7 +103,7 @@ VstInstrProxy : InstrProxy {
     }
 
     savePresetAs {|name|
-        var path = DMModule.libraryDir +/+ "preset" +/+ name;
+        var path = Module.libraryDir +/+ "preset" +/+ name;
         vstplugin.writeProgram(path);
     }
 
@@ -129,7 +129,7 @@ VstInstrProxy : InstrProxy {
             plugin = args[0];
             if (args.size > 1){
                 vstpreset = args[1];
-                vstpreset = DMModule.libraryDir +/+ "preset" +/+ vstpreset;
+                vstpreset = Module.libraryDir +/+ "preset" +/+ vstpreset;
             };
             synthdef = SynthDescLib.global[\vsti].def;
 
@@ -179,11 +179,10 @@ InstrProxy : EventPatternProxy {
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
     var <synthdef;
-    //, <pbindproxy;
     var note, <msgFunc;
     var <key, <synthdefmodule;
     var specs;
-    var <ptrns;
+    var <ptrns, <groupprops;
 
     *new {|key|
         ^super.new.prInit(key);
@@ -193,10 +192,10 @@ InstrProxy : EventPatternProxy {
         if (adverb.isNil and: val.isKindOf(Array)) {
             this.set(*val);
         } {
-            if (val.isFunction) {
-                var key = "%_%_lfo".format(this.key, adverb).asSymbol.debug("lfo");
-                val = Ndef(key)[0] = val;
-            };
+            //if (val.isFunction) {
+            //    var key = "%_%_lfo".format(this.key, adverb).asSymbol.debug("lfo");
+            //    val = Ndef(key)[0] = val;
+            //};
             this.set(adverb, val)
         }
     }
@@ -216,17 +215,6 @@ InstrProxy : EventPatternProxy {
         this.ptrns.put(num, pattern);
         this.source = pattern;
     }
-
-    /*
-    synth {|index, component, module, cb|
-        if (component.isNil) {
-            synthdefmodule.removeAt(index);
-        }{
-            cb.value(this.synthdefmodule);
-            synthdefmodule[index] = component -> module;
-        }
-    }
-    */
 
     set {|...args|
 
@@ -258,27 +246,19 @@ InstrProxy : EventPatternProxy {
                     val.add(k.asSymbol).add(v);
                 } {
                     if (v.isNil) {
-                        node.group.set(k, nil)
+                        //node.group.set(k, nil)
+                        node.setGroup([k, nil])
                     }
                 }
             });
             if (val.size > 0) {
-                node.group.set(*synthprops)
+                //node.group.set(*synthprops)
+                node.setGroup(synthprops)
             }
         };
 
         args.pairsDo({|k, v|
-            //if (v.isKindOf(Pattern)) {
-            //    pbindproxy.set(k, v);
-            //} {
-                // clear value to allow changing
-                // between pattern and number
-                // TODO: rethink this
-            //    if (pbindproxy.find(k).notNil) {
-            //        pbindproxy.set(k, nil);
-            //    };
-                super.set(k, v);
-            //}
+            super.set(k, v);
         });
     }
 
@@ -311,12 +291,6 @@ InstrProxy : EventPatternProxy {
         super.clear;
     }
 
-    /*
-    fxchain {
-        ^this.node.fxchain.array
-    }
-    */
-
     controlKeys {|except|
         var keys = envir.keys(Array).sort;
         except = except ++ [];
@@ -347,21 +321,6 @@ InstrProxy : EventPatternProxy {
         this.node.monitor.out = bus
     }
 
-    /*
-    key {
-        var val = super.envirKey(topEnvironment);
-        if (val.isNil) {
-            val = keyval;
-        };
-		^val
-	}
-
-    key_ {|val|
-        keyval = val;
-        this.node.key = "%_out".format(keyval).asSymbol;
-    }
-    */
-
     view {|cmds|
         // TODO: using topenvironment as a sort of cache 
         ^UiModule('instr').envir_(topEnvironment).view(this, nil, cmds);
@@ -371,6 +330,11 @@ InstrProxy : EventPatternProxy {
         this.view(cmds)
         .front
     }
+
+    printOn {|stream|
+		super.printOn(stream);
+		stream << " key:" << this.key << " out:" << this.out
+	}
 
     print {
         var envir, keys, str = "\n";
@@ -543,20 +507,20 @@ InstrProxy : EventPatternProxy {
             color = colors.wrapAt(count);
         };
         count = count + 1;
-        node = DMNodeProxy().key_("%_out".format(key).asSymbol);
+        node = DMNodeProxy("%_out".format(key).asSymbol);
 
         specs = ();
         ptrns = Order();
         note = InstrProxyNotePlayer(this);
         synthdefmodule = SynthDefModule();
+
+        // TODO would like to simplify this
         synthdefmodule.addDependant({|obj, what, vals|
             //[obj, what, vals].postln;
+            
             fork {
-                await {|done|
-                    obj.add(key);
-                    Server.default.sync;
-                    done.value(\ok);
-                };
+                obj.add(key);
+                Server.default.sync;                
                 // re-initialize the synth
                 msgFunc = SynthDescLib.global[key].msgFunc;
                 me.instrument = key;
@@ -572,7 +536,6 @@ InstrProxy : EventPatternProxy {
         node.addDependant(nodewatcherfunc);
 
         node.play;
-        //pbindproxy = PbindProxy();
         super.source = Pbind();
 
         cmdperiodfunc = {
@@ -686,7 +649,7 @@ InstrProxyBuilder {
 
     value {|func|
         var mod;
-        mod = DMModule(func);
+        mod = Module(func);
         // TODO: this needs to work with any role
         this.prAddModule('sig', mod);
         ^this;
@@ -698,10 +661,10 @@ InstrProxyBuilder {
         //selector.debug("selector");
         if (synthdefmodule.modules.size == 0) {
             if (sig[selector].notNil) {
-                mod = DMModule(sig[selector])
+                mod = Module(sig[selector])
             } {
                 key = "synth/%".format(selector).asSymbol;
-                mod = DMModule(key);
+                mod = Module(key);
             };
             this.prAddModule('sig', mod, args);
         } {
@@ -716,10 +679,10 @@ InstrProxyBuilder {
         var args = currentargs.pop;
         var mod;
         if (sig[id].notNil) {
-            mod = DMModule(sig[id])
+            mod = Module(sig[id])
         } {
             var key = "synth/%".format(id).asSymbol;
-            mod = DMModule(key);
+            mod = Module(key);
         };
         this.prAddModule('sig', mod, args);
         ^this;
@@ -729,7 +692,7 @@ InstrProxyBuilder {
         var id = current.pop;
         var args = currentargs.pop;
         var key = "env/%".format(id).asSymbol;
-        var mod = DMModule(key);
+        var mod = Module(key);
         this.prAddModule('env', mod, args);
         ^this;
     }
@@ -739,10 +702,10 @@ InstrProxyBuilder {
         var args = currentargs.pop;
         var mod;
         if (fil[id].notNil) {
-            mod = DMModule(fil[id])
+            mod = Module(fil[id])
         } {
             var key = "filter/%".format(id).asSymbol;
-            mod = DMModule(key);
+            mod = Module(key);
         };
         this.prAddModule('fil', mod, args);
         ^this;
@@ -792,41 +755,4 @@ InstrProxyBuilder {
 // }}}
 
 
-M {
-
-    classvar <>mod;
-
-    *patch {|key, cb ...pairs|
-        var builder, result;
-        var proxy = currentEnvironment[key];
-        builder = InstrProxyBuilder(proxy, key);
-        result = cb.value(builder);
-        currentEnvironment[key] = result.proxy;
-        if (pairs.debug("pairs").notNil) {
-            result.proxy.synthdefmodule.set(*pairs);
-        };
-        ^currentEnvironment[key]
-    }
-
-    *midi {|key, device, chan|
-        var proxy = MidiInstrProxy(device, chan);
-        currentEnvironment[key] = proxy;
-        ^currentEnvironment[key];
-    }
-
-    *sig {|id, func|
-        InstrProxyBuilder.sig.put(id, func);    
-    }
-
-    *fil {|id, func|
-        InstrProxyBuilder.fil.put(id, func);
-    }
-
-    *lfo {
-        if (mod.isNil) {
-            mod = DMModule('device/lfo').();
-        };
-        ^mod;
-    }
-}
 

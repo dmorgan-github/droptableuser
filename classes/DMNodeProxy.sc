@@ -1,23 +1,27 @@
-DMNodeProxy : NodeProxy {
+//N: DMNodeProxy {}
+
+DMNodeProxy : Ndef {
 
     classvar <>defaultout;
-    classvar count=0;
+    //classvar count=0;
 
     var <vstctrls, <>color;
     var <fxchain, <metadata;
     var <cmdperiodfunc;
-    var keyval, <msgFunc;
+    //var keyval
+    var <msgFunc;
     var <patterns;
 
-    *new {|source|
+    *new {|key, source|
         var res;
-        res = super.new.prDMNodeInit();
-        if (source.notNil) {
-            res.put(0, source)
-        };
+        res = super.new(key, source).prDMNodeInit();
+        //if (source.notNil) {
+        //    res.put(0, source)
+        //};
         ^res;
     }
 
+    /*
     key {
         var val = super.envirKey(topEnvironment);
         if (val.isNil) {
@@ -29,6 +33,7 @@ DMNodeProxy : NodeProxy {
     key_ {|val|
         keyval = val;
     }
+    */
 
     @ {|val, adverb|
         this.setOrPut(adverb, val);
@@ -155,7 +160,7 @@ DMNodeProxy : NodeProxy {
                 }{
                     var func, mod, obj;
                     var key = "fx/%".format(fx).asSymbol;
-                    mod = DMModule(key);
+                    mod = Module(key);
                     obj = (name:fx, type:'func', 'ctrl':mod);
                     obj['ui'] = {|self|
                         UiModule('instr').gui(this, index);
@@ -205,9 +210,9 @@ DMNodeProxy : NodeProxy {
 
                     filename = vst.asString.toLower;//.split($.);
                     filename = "vst/" ++ filename;
-                    if (DMModule.exists(filename)) {
+                    if (Module.exists(filename)) {
                         filename.debug("module exists");
-                        mod = DMModule(filename);
+                        mod = Module(filename);
                         node.filter(index, mod.func);
                     } {
                         filename.debug("module does not exists");
@@ -299,8 +304,8 @@ DMNodeProxy : NodeProxy {
 
     prDMNodeInit {
 
-        count = count+1;
-        keyval = "d%".format(count).asSymbol;
+        //count = count+1;
+        //keyval = "d%".format(count).asSymbol;
         vstctrls = Order.new;
         fxchain = Order.new;
         patterns = List.new;
