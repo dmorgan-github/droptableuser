@@ -1,6 +1,6 @@
 // adding a sort property to help
 // organize guis
-DMControlSpec : ControlSpec {
+InstrControlSpec : ControlSpec {
 
     var <>sort=0;
 

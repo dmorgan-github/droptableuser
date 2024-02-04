@@ -262,6 +262,7 @@ SynthDefModule : Module {
     *visualize {|synthdef|
 
         // this has a lot of dependencies
+        // https://fredrikolofsson.com/f0blog/one-reason-why-i-love-sc/
         if (synthdef.respondsTo(\dot)) {
             var platform;
             var f, fn;

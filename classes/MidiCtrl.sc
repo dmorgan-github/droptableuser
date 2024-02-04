@@ -64,6 +64,9 @@ MidiCtrl {
             var mapped, ctrl, spec, filter;
             ctrl = order[num];
             spec = node.getSpec[ctrl];
+            // TODO: if the spec can't be found
+            // check if node.respondsTo(\node)
+            // and try to find spec from the node if it is an fx
             if (spec.isNil) {
                 spec = [0, 1].asSpec;
             };

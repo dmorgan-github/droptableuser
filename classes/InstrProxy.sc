@@ -33,6 +33,14 @@ MidiInstrProxy : InstrProxy {
         "Not Implemented".throw
     }
 
+    on {|note, vel=1|
+        midiout.noteOn(notechan, note, vel)
+    }
+
+    off {|note|
+        midiout.noteOff(notechan, note)
+    }
+
     prInitMidiSynth {|device notechan|
 
         //var args;// = argSynth.asString.split($:);
@@ -51,11 +59,11 @@ MidiInstrProxy : InstrProxy {
             var r = returnbus+1;
             SoundIn.ar([l, r])
         });
-        this.out = DMNodeProxy.defaultout + returnbus;
+        this.out = InstrNodeProxy.defaultout + returnbus;
         */
 
-        MidiCtrl.connect(device, {|obj|
-            midiout = obj['out'];
+        MidiCtrl.connect(device, cb:{|obj|
+            midiout = obj.out;
             this.set('type', 'midi', 'midicmd', 'noteOn', 'midiout', midiout, 'chan', notechan)
         });
     }
@@ -102,9 +110,14 @@ VstInstrProxy : InstrProxy {
         vstplugin.midi.noteOff(0, note)
     }
 
-    savePresetAs {|name|
+    savePreset {|name|
         var path = Module.libraryDir +/+ "preset" +/+ name;
         vstplugin.writeProgram(path);
+    }
+
+    loadPreset {|name|
+        var path = Module.libraryDir +/+ "preset" +/+ name;
+        vstplugin.readProgram(path) 
     }
 
     writeProgram {|path|
@@ -188,6 +201,13 @@ InstrProxy : EventPatternProxy {
         ^super.new.prInit(key);
     }
 
+    doesNotUnderstand {|selector ...args|
+        //[selector, args].debug("doesNotUnderstand");
+        var key = selector.asGetter;
+        this.set(key, args[0])
+        ^this;
+    }
+
     @ {|val, adverb|
         if (adverb.isNil and: val.isKindOf(Array)) {
             this.set(*val);
@@ -212,7 +232,7 @@ InstrProxy : EventPatternProxy {
         if (adverb.notNil) {
             num = adverb.asInteger;
         };
-        this.ptrns.put(num, pattern);
+        //this.ptrns.put(num, pattern);
         this.source = pattern;
     }
 
@@ -281,6 +301,26 @@ InstrProxy : EventPatternProxy {
         ^this;
     }
 
+    play {|argClock, protoEvent, quant, doReset=false, fadeTime=0|
+        if (fadeTime > 0) {
+            // node stop will force the output proxy to be freed and a new one created
+            // when play is invoked - not sure this is a great way to do this
+            node.stop(fadeTime:0).play(fadeTime:fadeTime);
+        };
+        super.play(argClock, protoEvent, quant, doReset)  ; 
+    }
+
+    stop {|fadeTime=0|
+        if (fadeTime > 0) {
+            node.stop(fadeTime:fadeTime);
+            {
+                super.stop
+            }.defer( fadeTime + 0.5 )
+        } {
+            super.stop
+        }
+    }
+
     clear {
         this.changed(\clear);
         node.clear;
@@ -318,7 +358,25 @@ InstrProxy : EventPatternProxy {
     }
 
     out_ {|bus|
-        this.node.monitor.out = bus
+        var val;
+        var outOffset = Server.default.options.numInputBusChannels;
+        if (bus.isKindOf(Symbol)) {
+            val = switch(bus, 
+                {\t2}, 2, 
+                {\t3}, 4,
+                {\t4}, 6,
+                {\t5}, 8,
+                {\t6}, 10,
+                {\t7}, 12,
+                {\t8}, 14,
+                0
+            );
+        } {
+            val = bus;
+        };
+
+        val = outOffset + val;
+        this.node.monitor.out = val.debug("out")
     }
 
     view {|cmds|
@@ -336,7 +394,7 @@ InstrProxy : EventPatternProxy {
 		stream << " key:" << this.key << " out:" << this.out
 	}
 
-    print {
+    stringify {
         var envir, keys, str = "\n";
         var node = this.node;
         envir = this.envir.copy.parent_(nil);
@@ -387,28 +445,44 @@ InstrProxy : EventPatternProxy {
         ^str;
     }
 
+    post {
+        this.stringify.post;
+    }
+
+    clipboard {
+        var str = this.stringify;
+        "echo \"%\" | /usr/bin/pbcopy".format(str).unixCmd;
+        "copied to clipboard".postln;
+    }
+
     source_ {|pattern|
 
         var chain;
         if (pattern.notNil) {
 
             chain = Pchain(
+                /*
                 Pbind(
                     \node_set, Pfunc({|evt|
-                        var args = evt.use({
-                            node.msgFunc.valueEnvir;
-                        });
-                        if (evt[\node_set_debug].notNil) {
-                            args.postln;
-                        };
-                        if (args.size > 0) {
-                            Server.default.bind({
-                                node.set(*args)
-                            })
+                        if (evt.isRest) {
+                            // no-op
+                        } {
+                            var args = evt.use({
+                                node.msgFunc.valueEnvir;
+                            });
+                            if (evt[\node_set_debug].notNil) {
+                                args.postln;
+                            };
+                            if (args.size > 0) {
+                                Server.default.bind({
+                                    node.set(*args)
+                                })
+                            };
                         };
                         1
                     })
                 ),
+                */
                 pattern,
                 //pbindproxy,
                 Plazy({
@@ -507,7 +581,7 @@ InstrProxy : EventPatternProxy {
             color = colors.wrapAt(count);
         };
         count = count + 1;
-        node = DMNodeProxy("%_out".format(key).asSymbol);
+        node = InstrNodeProxy("%/node".format(key).asSymbol);
 
         specs = ();
         ptrns = Order();
@@ -558,201 +632,9 @@ InstrProxy : EventPatternProxy {
 }
 // }}}
 
-// InstrProxyNotePlayer {{{
-InstrProxyNotePlayer {
 
-    var <synths;
-    var <instr;
-    var <stream;
-    var <synthdef;
 
-    *new {|instrproxy|
-        ^super.new.prInit(instrproxy);
-    }
 
-    clear {
-        synths.clear;
-    }
-
-    on {|note, vel=127, extra, debug=false|
-        var args;
-        var target = instr.node.group.nodeID;
-        var instrument, evt;
-        var velocity = (vel/127).squared;
-        var freq;
-        evt = instr.envir.copy.parent_(Event.default);
-        evt['vel'] = velocity;
-        evt['midinote'] = note;
-        evt['out'] = instr.node.bus.index;
-        // TODO: perhaps this can be an option
-        //evt = stream.next( evt );
-        instrument = instr.instrument;
-
-        evt[\gate] = 1;
-        if (extra.notNil) {
-            evt = evt ++ extra;
-        };
-
-        args = evt.use({
-            ~freq = ~freq.value;
-            ~amp = ~amp.value;
-            ~sustain = ~sustain.value;
-            ~dur = ~dur.value;
-            ~stretch = ~stretch.value;
-
-            instr.msgFunc.valueEnvir
-        });
-
-        if (debug) {
-            args.asCompileString.postln;
-        };
-
-        if (instr.synthdef.hasGate) {
-
-            if (synths[note].isNil) {
-                synths[note] = Synth(instrument, args, target:target, addAction:\addToHead);
-            }
-        } {
-            Synth(instrument, args, target:target, addAction:\addToHead);
-        }    
-    }
-
-    off {|note|
-        if (instr.synthdef.hasGate) {
-            synths.removeAt(note).set(\gate, 0)
-        }
-    }
-
-    prInit {|instrproxy|
-        instr = instrproxy;
-        stream = instr.asStream;
-        synthdef = instr.synthdef;
-        synths = Order.new;
-    }
-}
-// }}}
-
-// InstrProxyBuilder {{{
-InstrProxyBuilder {
-
-    classvar <fx;
-    classvar <sig, <fil;
-
-    var <synthdefmodule;
-    var <proxy;   
-    var current, currentargs;
-    var num = 0, fxnum = 20;
-
-    *new {|instrproxy, key|
-        ^super.new.prInit(instrproxy, key)
-    }
-
-    value {|func|
-        var mod;
-        mod = Module(func);
-        // TODO: this needs to work with any role
-        this.prAddModule('sig', mod);
-        ^this;
-    }
-
-    // TODO: relying on this is not particularly robust
-    doesNotUnderstand {|selector ...args|
-        var mod, key; 
-        //selector.debug("selector");
-        if (synthdefmodule.modules.size == 0) {
-            if (sig[selector].notNil) {
-                mod = Module(sig[selector])
-            } {
-                key = "synth/%".format(selector).asSymbol;
-                mod = Module(key);
-            };
-            this.prAddModule('sig', mod, args);
-        } {
-            current.add(selector);
-            currentargs.add(args);
-        };
-        ^this;
-    }
-
-    + {|module|
-        var id = current.pop;
-        var args = currentargs.pop;
-        var mod;
-        if (sig[id].notNil) {
-            mod = Module(sig[id])
-        } {
-            var key = "synth/%".format(id).asSymbol;
-            mod = Module(key);
-        };
-        this.prAddModule('sig', mod, args);
-        ^this;
-    }
-
-    * {|module|
-        var id = current.pop;
-        var args = currentargs.pop;
-        var key = "env/%".format(id).asSymbol;
-        var mod = Module(key);
-        this.prAddModule('env', mod, args);
-        ^this;
-    }
-
-    > {|module|
-        var id = current.pop;
-        var args = currentargs.pop;
-        var mod;
-        if (fil[id].notNil) {
-            mod = Module(fil[id])
-        } {
-            var key = "filter/%".format(id).asSymbol;
-            mod = Module(key);
-        };
-        this.prAddModule('fil', mod, args);
-        ^this;
-    }
-
-    | {|module|
-        var id, key, func, args;
-        id = current.pop;
-        args = currentargs.pop;
-        func = fx[id];
-        proxy.node.fx(fxnum, func);
-        args.debug("node args");
-        fxnum = fxnum + 1;
-        ^this;
-    }
-
-    prAddModule {|role, mod, args|
-        if (args.notNil) {
-            mod.set(*args)//debug("args")
-        };
-        synthdefmodule.put(num, role -> mod);
-        num = num + 1;
-    }
-
-    prInit {|instrproxy, key|
-        current = List();
-        currentargs = List();
-        proxy = instrproxy ?? InstrProxy(key);
-        synthdefmodule = proxy.synthdefmodule;
-        synthdefmodule.modules.clear;
-    }
-
-    *initClass {
-        fx = Dictionary();
-        fx['del'] = 'delay/fb';
-        fx['rev'] = 'reverb/miverb';
-        fx['ps'] = 'granular/pitchshift';
-        fx['compress'] = 'dynamics/hardkneecompressor';
-        fx['spiralstretch'] = 'vst:++spiralstretch.vst3';
-        fx['bubbler'] = 'vst:++bubbler.vst3';
-        fx['lofi'] = 'vst:CHOWTapeModel.vst3';
-
-        sig = Dictionary();
-        fil = Dictionary();
-    }
-}
-// }}}
 
 
 

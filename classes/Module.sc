@@ -46,9 +46,13 @@ Module {
         libfunc = val
     }
 
-    set {|key, val|
-        envir.put(key, val);
-        this.changed(\set, [key, val]);
+    set {|...pairs|
+        pairs.pairsDo({|k, v|
+            //[k].debug("module set");
+            envir.put(k, v);
+            this.changed(\set, [k, v]);    
+        })
+        
         ^this
     }
 

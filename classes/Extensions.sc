@@ -1,7 +1,27 @@
++ SimpleNumber {
+
+    t {|instr|
+        // TODO: instantiating a new instance each time
+        // doesn't make sense - just not sure what the interface should be
+        var track = T();
+        var num = this;
+        if (instr.notNil) {
+            track[num] = instr;
+        };
+        ^track[num];
+    }
+
+    // euclid
+    e {|n, o=0|
+        ^Pbjorklund2(this, n, offset:o)    
+    }
+}
+
 + Symbol {
 
     kr { | val, lag, fixedLag = false, spec |
         var name = "%%".format(this, ~num ?? {""});
+        //[this, currentEnvironment[this]].debug("kr");
         if (currentEnvironment[this].notNil ) {
             "replacing namedcontrol".debug(this);
             ^currentEnvironment[this].value
@@ -39,6 +59,53 @@
             ^NamedControl.ar(name, val, lags:lag, spec:spec)
         }
     }
+
+    // refer to https://github.com/cappelnord/BenoitLib/blob/master/patterns/Pkr.sc
+    // for possible variant to work with patterns
+    // Ndef(\cutoff).bus.getSynchronous
+    sine {|freq, min, max|
+        var val;
+        if (freq.notNil) {
+            val = Ndef(this, { SinOsc.kr(freq, 1.5pi).linlin(-1, 1, min, max) });
+        } {
+            val = Ndef(this)
+        };
+        val.asCompileString.postln;
+        ^val;
+    }
+
+    tri {|freq, min, max|
+        var val;
+        if (freq.notNil) {
+            val = Ndef(this, { LFTri.kr(freq, iphase:3).linlin(-1, 1, min, max) });
+        } {
+            val = Ndef(this)
+        };
+        val.asCompileString.postln;
+        ^val;
+    }
+
+    rampup {|freq, min, max|
+        var val;
+        if (freq.notNil) {
+            val = Ndef(this, { LFSaw.kr(freq, iphase:1).linlin(-1, 1, min, max) });
+        } {
+            val = Ndef(this)
+        };
+        val.asCompileString.postln;
+        ^val;
+    }
+
+    rampdown {|freq, min, max|
+        var val;
+        if (freq.notNil) {
+            val = Ndef(this, { LFSaw.kr(freq.neg, iphase:1).linlin(-1, 1, min, max) });
+        } {
+            val = Ndef(this)
+        };
+        val.asCompileString.postln;
+        ^val;
+    }
 }
 
 + Buffer {
@@ -49,6 +116,11 @@
 }
 
 + SequenceableCollection {
+
+    // lace
+    l {|o=0|
+        ^Place2(this, inf, offset:o)
+    }
 
     pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
     prand {arg repeats=inf; ^Prand(this, repeats) }
@@ -109,6 +181,11 @@
 }
 
 + Pattern {
+
+    // euclid
+    e {|n, o=0|
+        ^Pbjorklund2(this, n, offset:o)    
+    }
 
     limit {arg num; ^Pfin(num, this.iter) }
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
@@ -193,14 +270,10 @@
     }
 }
 
-+ Array {
-    nums { ^this.asInteger.join("").collectAs({|chr| chr.asString.asInteger }, Array) }
-}
-
 + String {
 
     tag {|tags|
-        T.tag(tags, this);
+        Tag.tag(tags, this);
         ^this;
     }
 
@@ -239,6 +312,5 @@
         };
     }
 }
-
 
 

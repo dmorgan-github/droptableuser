@@ -4,6 +4,8 @@ Buffer
 B {
     classvar <all;
 
+    classvar filetypes;
+
     classvar <wtDirs;
 
     *new {arg key;
@@ -20,10 +22,11 @@ B {
 
     *prEnsurePath {|path|
         if (File.exists(path).not) {
-            // should this be now executing path instead of document?
-            path = Document.current.dir +/+ path;
+            var pn = PathName(thisProcess.nowExecutingPath);// +/+ path)
+            path = pn.pathOnly ++ path;
+            //path = Document.current.dir +/+ path;
         };
-        ^path;
+        ^path;//.debug("prEnsurePath");
     }
 
     *inspect {|path|
@@ -34,6 +37,8 @@ B {
     }
 
     *read {|path, channels=nil, normalize=true|
+
+        // FluidBufCompose
 
         var buffer;
         var result = Deferred();
@@ -101,7 +106,7 @@ B {
 
         var file, channels;
         path = B.prEnsurePath(path);
-        file = SoundFile.openRead(path).close;
+        file = SoundFile.openRead(path.debug("path")).close;
         channels = if (file.numChannels.debug('numchannels') < 2) { [0,0] }{ [0, 1] };
 
         fork({
@@ -148,9 +153,10 @@ B {
     }
 
     // load an array of paths into mono buffers
-    *loadFiles {|key, paths|
+    *loadFiles {|key, paths, numchannels=1|
 
         var read, def = Deferred();
+        var channels = numchannels.collect({|v| v});
         key = key.asSymbol;
 
         read = {|path|
@@ -164,7 +170,11 @@ B {
             .first;
 
             if (result.isNil) {
-                result = B.read(path, [0]);
+                var file = SoundFile.openRead(path).close;
+                if ( file.numChannels < numchannels) { 
+                    channels = [0,0] 
+                };
+                result = B.read(path, channels);
             };
             result
         };
@@ -172,10 +182,11 @@ B {
         fork({
             var bufs = paths
             .select({|path|
-                [\wav, \aif, \aiff].includes(PathName(path).extension.toLower.asSymbol)
+                filetypes.includes(PathName(path).extension.toLower.asSymbol)
             })
             .collect({|path|
-                var buf = read.(path);
+                var buf;
+                buf = read.(path);
                 if (buf.isKindOf(Deferred)) {
                     buf.wait();
                 };
@@ -224,7 +235,7 @@ B {
                     mykey = mykey[mykey.findAllRegexp("[a-zA-Z0-9_]")].join.asSymbol;
 
                     files = pn.files.select({|pn|
-                        [\wav, \aif, \aiff].includes(pn.extension.toLower.asSymbol)
+                        filetypes.includes(pn.extension.toLower.asSymbol)
                     });
 
                     if (files.size > 0) {
@@ -259,16 +270,21 @@ B {
         }.fork;
     }
 
-    *onsets {|buf, cb|
+    *onsets {|buf|
+
+        var result = Deferred();
         var server = Server.default;
         var indices = Buffer(server);
         var feature = Buffer(server);
         FluidBufOnsetSlice.processBlocking(server, buf, indices:indices, metric:9, threshold:0.2);
-        FluidBufOnsetFeature.processBlocking(server, buf, features:feature, metric:9);
+        //FluidBufOnsetFeature.processBlocking(server, buf, features:feature, metric:9);
         //FluidWaveform(B.yea,~indices,~feature,bounds:Rect(0,0,1600,400), lineWidth:2);
         indices.loadToFloatArray(action: {|array|
-            cb.value(array, indices, feature);
+            //cb.value(array, indices, feature);
+            result.value = array
         });
+
+        ^result
     }
 
     // split a buffer containing multiple wavetables
@@ -430,5 +446,6 @@ B {
     *initClass {
         all = IdentityDictionary();
         wtDirs = IdentityDictionary();
+        filetypes = [\wav, \aif, \aiff];
     }
 }

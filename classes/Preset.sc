@@ -1,14 +1,16 @@
-P : DMPreset {}
+P : Preset {}
 /*
 Presets
 */
-DMPreset {
+Preset {
 
     ///////////////////////////////
     // properties
     *addCurrent {|node, num|
-        var vals = DMPreset.getCurrentVals(node);
-        var presets = DMPreset.getPresets(node);
+        var vals = Preset.getCurrentVals(node);
+        var presets = Preset.getPresets(node);
+        vals['bufposreplyid'] = nil;
+        vals['amp'] = nil;
         presets.put(num, vals);
     }
 
@@ -30,7 +32,7 @@ DMPreset {
 
     *getPreset {|node, num|
         var key = node.key;
-        var presets = DMPreset.getPresets(node);
+        var presets = Preset.getPresets(node);
         ^presets[num];
     }
 
@@ -56,17 +58,17 @@ DMPreset {
     }
 
     *remove {|node, num|
-        var presets = DMPreset.getPresets(node);
+        var presets = Preset.getPresets(node);
         presets.removeAt(num);
     }
 
     *morph {|node, num, beats=20, wait=0.01|
         var key = node.key;
-        var presets = DMPreset.getPresets(node);
+        var presets = Preset.getPresets(node);
         Tdef(key).stop.play;
         Tdef(key, {|ev|
             var presets = ev[\presets];
-            var curr = DMPreset.getCurrentVals(node);
+            var curr = Preset.getCurrentVals(node);
             var target = presets[ev[\preset]];
             var numsteps;
             ev[\dt] ? ev[\dt] ? 0.01;
@@ -84,7 +86,7 @@ DMPreset {
     }
 
     *apply{|node, to|
-        var preset = DMPreset.getPreset(node, to);
+        var preset = Preset.getPreset(node, to);
         if (preset.notNil) {
             node.set(*preset.getPairs);
         } { 
@@ -94,8 +96,8 @@ DMPreset {
     }
 
     *blend{|node, from, to, blend=0|
-        var frompreset = DMPreset.getPreset(node, from);
-        var topreset = DMPreset.getPreset(node, to);
+        var frompreset = Preset.getPreset(node, from);
+        var topreset = Preset.getPreset(node, to);
         if (frompreset.notNil and: {topreset.notNil}) {
             var result = frompreset.blend(topreset, blend);
             node.set(*result.getPairs);

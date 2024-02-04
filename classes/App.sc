@@ -2,7 +2,6 @@ App {
 
     classvar <>workspacedir, <>mediadir, <>librarydir;
     classvar <>touchoscserver, <>touchoscport;
-    classvar <>isrecording;
 
     *initClass {
         workspacedir = "~/Documents/supercollider/workspaces/".standardizePath;

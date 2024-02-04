@@ -1,3 +1,54 @@
+PLfo {
+
+    *sine {|dur=1, min=0, max=1, phase=0|
+        //^Pseg(Pseq([min, max], inf), Pseq([dur], inf), \sine)
+        var num = 64;
+        ^Pseg(Signal.sineFill(num, [1], [phase * pi]).asArray.pseq, [1/num].pseq * dur).linlin(-1, 1, min, max);
+    }
+
+    *tri {|dur=1, min=0, max=1|
+        ^Pseg(Pseq([min, max], inf), Pseq([dur], inf), \lin)
+    }
+
+    *rampup {|dur=1, min=0, max=1|
+        ^Pseg(Pseq([min, max], inf), Pseq([dur, 0], inf), \lin)
+    }
+
+    *rampdown {|dur=1, min=0, max=1|
+        ^Pseg(Pseq([max, min], inf), Pseq([dur, 0], inf), \lin)
+    }
+}
+
+Place2 : Pseq {
+    embedInStream {  arg inval;
+        var item;
+        var offsetValue = offset.value(inval);
+
+        if (inval.eventAt('reverse') == true, {
+            repeats.value(inval).do({ arg j;
+                list.size.reverseDo({ arg i;
+                    item = list.wrapAt(i + offsetValue);
+                    if (item.isSequenceableCollection, {
+                        item = item.wrapAt(j);
+                    });
+                    inval = item.value.embedInStream(inval);
+                });
+            });
+        },{
+            repeats.value(inval).do({ arg j;
+                list.size.do({ arg i;
+                    item = list.wrapAt(i + offsetValue);
+                    if (item.isSequenceableCollection, {
+                        item = item.wrapAt(j);
+                    });
+                    inval = item.value.embedInStream(inval);
+                });
+            });
+        });
+        ^inval;
+    }
+}
+
 Ptrn {
 
     *wrapAt {|vals, index|

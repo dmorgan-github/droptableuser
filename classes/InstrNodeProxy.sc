@@ -1,6 +1,7 @@
-//N: DMNodeProxy {}
+N : InstrNodeProxy {
+}
 
-DMNodeProxy : Ndef {
+InstrNodeProxy : Ndef {
 
     classvar <>defaultout;
     //classvar count=0;
@@ -8,32 +9,20 @@ DMNodeProxy : Ndef {
     var <vstctrls, <>color;
     var <fxchain, <metadata;
     var <cmdperiodfunc;
-    //var keyval
     var <msgFunc;
     var <patterns;
 
     *new {|key, source|
         var res;
-        res = super.new(key, source).prDMNodeInit();
-        //if (source.notNil) {
-        //    res.put(0, source)
-        //};
+        res = Ndef.dictFor(Server.default).envir[key];
+        if (res.isNil) {
+            res = super.new(key, source).prNodeInit();
+        };
+        if (source.notNil) {
+            res.put(0, source)
+        };
         ^res;
     }
-
-    /*
-    key {
-        var val = super.envirKey(topEnvironment);
-        if (val.isNil) {
-            val = keyval;
-        };
-		^val
-	}
-
-    key_ {|val|
-        keyval = val;
-    }
-    */
 
     @ {|val, adverb|
         this.setOrPut(adverb, val);
@@ -43,7 +32,7 @@ DMNodeProxy : Ndef {
 
         if (prop.isNil and: val.isKindOf(Array)) {
             this.set(*val);
-        } { 
+        } {
             this.set(prop, val)
         }
     }
@@ -302,7 +291,7 @@ DMNodeProxy : Ndef {
         //")\n)".postln;
     }
 
-    prDMNodeInit {
+    prNodeInit {
 
         //count = count+1;
         //keyval = "d%".format(count).asSymbol;
@@ -377,32 +366,22 @@ DMNodeProxy : Ndef {
         this.monitor.out = defaultout;
 
         // initialize or re-initialize
-        /*
         this.filter(1000, {|in|
-            Splay.ar(
-                in ,
-                spread: \spread.kr(1),
-                center: \center.kr(0),
-                levelComp: false
-            );
-        });
-        */
-
-        this.filter(1010, {|in|
             var sig = in;
-            sig = LPF.ar(sig, \lpf.kr(20000, spec:ControlSpec(220, 20000, \lin, 0, 20000)).lag(0.1));
-            sig = HPF.ar(sig, \hpf.kr(20, spec: ControlSpec(20, 18000, \lin, 0, 20)).lag(0.1));
             sig = Sanitize.ar(sig);
+            sig = Splay.ar(
+                sig,
+                spread: \out_width.kr(1),
+                center: \out_pan.kr(0),
+                levelComp: false
+            ) * \vol.kr(1);
             sig = SoftClipper4.ar(sig);// * -6.dbamp;
             sig;
-            // limiter introduces a slight delay
-            //Limiter.ar(LeakDC.ar(sig));
-            //SafetyLimiter.ar(LeakDC.ar(sig));
         });
 
         CmdPeriod.add(cmdperiodfunc);
 
-        ^this; 
+        ^this;
     }
 
     *initClass {
