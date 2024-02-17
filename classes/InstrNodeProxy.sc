@@ -45,12 +45,12 @@ InstrNodeProxy : Ndef {
         this.play(fadeTime:fadeTime)
     }
 
-    view {|index|
-        ^UiModule('instr').(this);
+    view {|cmds|
+        ^UiModule('instr').(this, nil, cmds);
     }
 
-    gui {
-        this.view.front
+    gui {|cmds|
+        this.view(cmds).front
     }
 
     clear {
@@ -81,7 +81,27 @@ InstrNodeProxy : Ndef {
     }
 
     out_ {|bus=0|
-        this.monitor.out = bus;
+        //TODO: is this the best way to do this?
+        var val;
+        var outOffset = Server.default.options.numInputBusChannels;
+        if (bus.isKindOf(Symbol)) {
+            val = switch(bus, 
+                {\t2}, 2, 
+                {\t3}, 4,
+                {\t4}, 6,
+                {\t5}, 8,
+                {\t6}, 10,
+                {\t7}, 12,
+                {\t8}, 14,
+                {\t9}, 16,
+                {\t10}, 18,
+                0
+            );
+        } {
+            val = bus;
+        };
+        val = outOffset + val;
+        this.monitor.out = val.debug("out")        
     }
 
     getSpec {
@@ -375,7 +395,9 @@ InstrNodeProxy : Ndef {
                 center: \out_pan.kr(0),
                 levelComp: false
             ) * \vol.kr(1);
-            sig = SoftClipper4.ar(sig);// * -6.dbamp;
+            //sig = Clipper8.ar(sig, -1, 1);// * -6.dbamp;
+            // https://scsynth.org/t/install-safety-limiter-plugin-error/6630/2
+            //sig = SafetyLimiter.ar(sig);
             sig;
         });
 
@@ -388,4 +410,3 @@ InstrNodeProxy : Ndef {
         defaultout = 0;//Server.default.options.numInputBusChannels;
     }
 }
-

@@ -1,3 +1,10 @@
+/*
+recordingDir
+s.record
+thisProcess.platform.recordingsDir = "/Users/david/Documents/supercollider/projects/tapes/"
+s.record(bus: 4, numChannels:24)
+s.stopRecording
+*/
 
 T : InstrTrack {}
 
@@ -6,6 +13,7 @@ InstrTrack {
     classvar <>mod;
     classvar <tracks;
     classvar <parentEvent;
+    classvar <>daw;
 
     var smplrModule;
 
@@ -17,7 +25,6 @@ InstrTrack {
 
         var proxy;
         var key = "t%".format(index).asSymbol;
-
         if (val.isKindOf(String) or: { val.isKindOf(Symbol) }  ) {
             var myval = val.asString;
             case (
@@ -36,28 +43,17 @@ InstrTrack {
                     proxy = MidiInstrProxy(device, chan);//.key_(key);
                     proxy.out = key;
                 },
+                { myval.beginsWith("input") }, {
+                    proxy = InstrNodeProxy(key);
+                    proxy[0] = { SoundIn.ar([0, 1]) };
+                    proxy.out = key;
+                },
                 {
                     var path = "device/%".format(val).asSymbol;
                     var m = M(path);
                     proxy = m.(index, *args);
                 }
-            );
-            /*
-            if (myval.beginsWith("vst:")) {
-                myval = myval[4..].asSymbol;
-                proxy = VstInstrProxy(key).instrument_(myval);
-                proxy.out = key;
-            } {
-                var parts, device, chan;
-                val = val[5..];
-                parts = val.split($/);
-                device = parts[0];
-                chan = parts[1].asInteger;
-                [key, device, chan].debug("midi");
-                proxy = MidiInstrProxy(device, chan);//.key_(key);
-                proxy.out = key;
-            }
-            */
+            )
         }{
             // if val is a function
             var builder, result;
@@ -66,7 +62,7 @@ InstrTrack {
             result = val.value(builder);
             result.proxy.out = key;
             proxy = result.proxy;
-            if (args.debug("pairs").notNil) {
+            if (args.notNil) {
                 proxy.synthdefmodule.set(*args);
             };
         };
@@ -154,6 +150,7 @@ InstrTrack {
 
     *initClass {
         tracks = Order();
+        daw = \Reaper.asClass;
     }
 }
 

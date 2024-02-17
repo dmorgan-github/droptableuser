@@ -22,7 +22,11 @@ InstrProxyNotePlayer {
         var freq;
         evt = instr.envir.copy.parent_(Event.default);
         evt['vel'] = velocity;
-        evt['midinote'] = note;
+        if (note > 11) {
+            evt['midinote'] = note;
+        } {
+            evt['degree'] = note;
+        };
         evt['out'] = instr.node.bus.index;
         // TODO: perhaps this can be an option
         //evt = stream.next( evt );

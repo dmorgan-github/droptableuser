@@ -1,12 +1,13 @@
 + SimpleNumber {
 
-    t {|instr|
+    t {|instr ...args|
         // TODO: instantiating a new instance each time
         // doesn't make sense - just not sure what the interface should be
         var track = T();
         var num = this;
         if (instr.notNil) {
-            track[num] = instr;
+            track.put(num, instr, *args);
+            //track[num].synthdefmodule.set(*args)
         };
         ^track[num];
     }

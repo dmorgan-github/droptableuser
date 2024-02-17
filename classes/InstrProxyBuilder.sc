@@ -83,14 +83,12 @@ InstrProxyBuilder {
         args = currentargs.pop;
         func = fx[id];
         proxy.node.fx(fxnum, func);
-        args.debug("node args");
         fxnum = fxnum + 1;
         ^this;
     }
 
     prAddModule {|role, mod, args|
         if (args.notNil) {
-            args.debug("*************args");//
             args.pairsDo({|k, v|
                 mod.set(k.asSymbol, v)
             })

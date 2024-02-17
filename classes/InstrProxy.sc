@@ -306,6 +306,10 @@ InstrProxy : EventPatternProxy {
             // node stop will force the output proxy to be freed and a new one created
             // when play is invoked - not sure this is a great way to do this
             node.stop(fadeTime:0).play(fadeTime:fadeTime);
+        } {
+            if (node.isMonitoring.not ) {
+                node.play;
+            };
         };
         super.play(argClock, protoEvent, quant, doReset)  ; 
     }
@@ -357,26 +361,8 @@ InstrProxy : EventPatternProxy {
         ^this.node.monitor.out
     }
 
-    out_ {|bus|
-        var val;
-        var outOffset = Server.default.options.numInputBusChannels;
-        if (bus.isKindOf(Symbol)) {
-            val = switch(bus, 
-                {\t2}, 2, 
-                {\t3}, 4,
-                {\t4}, 6,
-                {\t5}, 8,
-                {\t6}, 10,
-                {\t7}, 12,
-                {\t8}, 14,
-                0
-            );
-        } {
-            val = bus;
-        };
-
-        val = outOffset + val;
-        this.node.monitor.out = val.debug("out")
+    out_ {|bus=0|
+        this.node.out = bus;
     }
 
     view {|cmds|
@@ -385,8 +371,7 @@ InstrProxy : EventPatternProxy {
     }
 
     gui {|cmds|
-        this.view(cmds)
-        .front
+        this.view(cmds).front
     }
 
     printOn {|stream|
