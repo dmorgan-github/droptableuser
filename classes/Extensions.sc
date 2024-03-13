@@ -1,3 +1,4 @@
+
 + SimpleNumber {
 
     t {|instr ...args|
@@ -11,10 +12,67 @@
         };
         ^track[num];
     }
+}
+
++ Object {
+
+    // non embedding sequencer
+    q {|...vals|
+        ^Routine({
+            var myvals;
+            myvals = this.asArray;
+            myvals = myvals ++ vals;
+            
+            inf.do({
+                myvals.do({|v|
+                    v.value.yield;
+                })
+            })
+        });
+    }
+
+    // choose
+    c {|...vals|
+        ^Routine({
+            inf.do({
+                var myvals = [this] ++ vals;
+                myvals.choose.value.yield
+            })
+        })  
+    }
 
     // euclid
     e {|n, o=0|
-        ^Pbjorklund2(this, n, offset:o)    
+        ^Routine({
+            inf.do({
+                var vals = Bjorklund2(this.value, n.value);
+                vals.size.do({|i|
+                    vals.wrapAt(i + o).yield;
+                })
+            })
+        })
+    }
+
+    // exprand
+    x {|hi|
+        ^Routine({
+            inf.do({
+                var lo = this;
+                exprand(lo, hi).yield   
+            })
+        })    
+    }
+
+    k {|key|
+        var tracknum = this;
+        var node = InstrTrack()[tracknum];
+        key = key.asSymbol;
+        // this is less than perfect
+        // can only use this for scalar values 
+        // calling value will advance any routine
+        inf.do({
+            node.get(key).yield
+        })    
     }
 }
 
@@ -61,6 +119,7 @@
         }
     }
 
+    // https://monome.org/docs/norns/reference/lib/lfo
     // refer to https://github.com/cappelnord/BenoitLib/blob/master/patterns/Pkr.sc
     // for possible variant to work with patterns
     // Ndef(\cutoff).bus.getSynchronous
@@ -86,21 +145,10 @@
         ^val;
     }
 
-    rampup {|freq, min, max|
+    saw {|freq, min, max|
         var val;
         if (freq.notNil) {
             val = Ndef(this, { LFSaw.kr(freq, iphase:1).linlin(-1, 1, min, max) });
-        } {
-            val = Ndef(this)
-        };
-        val.asCompileString.postln;
-        ^val;
-    }
-
-    rampdown {|freq, min, max|
-        var val;
-        if (freq.notNil) {
-            val = Ndef(this, { LFSaw.kr(freq.neg, iphase:1).linlin(-1, 1, min, max) });
         } {
             val = Ndef(this)
         };
@@ -122,6 +170,30 @@
     l {|o=0|
         ^Place2(this, inf, offset:o)
     }
+
+    // non embedding sequencer
+    /*
+    q {|...vals|
+        ^Routine({
+            inf.do({
+                var myvals = this ++ vals;
+                myvals.do({|v|
+                    v.value.yield;
+                })
+            })
+        })   
+    }
+    */
+
+    /*
+    c {
+        ^Routine({
+            inf.do({
+                this.choose.value.yield
+            })
+        })    
+    }
+    */
 
     pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
     prand {arg repeats=inf; ^Prand(this, repeats) }
@@ -183,10 +255,12 @@
 
 + Pattern {
 
+    /*
     // euclid
     e {|n, o=0|
         ^Pbjorklund2(this, n, offset:o)    
     }
+    */
 
     limit {arg num; ^Pfin(num, this.iter) }
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}

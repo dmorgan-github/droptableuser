@@ -1,3 +1,9 @@
+PIter {
+
+
+
+}
+
 PLfo {
 
     *sine {|dur=1, min=0, max=1, phase=0|
@@ -50,6 +56,14 @@ Place2 : Pseq {
 }
 
 Ptrn {
+
+    *iter {|key|
+        ^Pfunc({|evt|
+            var phase = evt['phase'] ?? 0;
+            var v = evt[key];
+            v.value(evt).asArray.wrapAt(phase); 
+        })
+    }
 
     *wrapAt {|vals, index|
         index = index.asStream;

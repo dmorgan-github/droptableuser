@@ -40,6 +40,7 @@ InstrProxyBuilder {
         ^this;
     }
 
+    // osc
     + {|module|
         var id = current.pop;
         var args = currentargs.pop;
@@ -54,6 +55,7 @@ InstrProxyBuilder {
         ^this;
     }
 
+    // amp
     * {|module|
         var id = current.pop;
         var args = currentargs.pop;
@@ -63,6 +65,7 @@ InstrProxyBuilder {
         ^this;
     }
 
+    // filter
     > {|module|
         var id = current.pop;
         var args = currentargs.pop;
@@ -77,6 +80,22 @@ InstrProxyBuilder {
         ^this;
     }
 
+    // pitch
+    ^ {|module|
+        var id = current.pop;
+        var args = currentargs.pop;
+        var mod;
+        if (fil[id].notNil) {
+            mod = Module(fil[id])
+        } {
+            var key = "pitch/%".format(id).asSymbol;
+            mod = Module(key);
+        };
+        this.prAddModule('pit', mod, args);
+        ^this;
+    }
+
+    // fx insert
     | {|module|
         var id, key, func, args;
         id = current.pop;

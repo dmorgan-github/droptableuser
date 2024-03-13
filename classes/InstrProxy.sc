@@ -1,14 +1,14 @@
 
 /*
-sequencable/modulatable from midi/osc
-sequencable/modulatable from patterns
-composable with patterns
-modulatable from bus
-viewable/modulatable with gui
+x sequencable/modulatable from midi/osc
+x sequencable/modulatable from patterns
+x composable with patterns
+x modulatable from bus
+x viewable/modulatable with gui
 savable
-playable with synthdef, vst, midi instruments
-filterable with sc fx
-filterable with vst fx
+x playable with synthdef, vst, midi instruments
+x filterable with sc fx
+x filterable with vst fx
 */
 
 // MidiInstrProxy {{{
@@ -301,6 +301,16 @@ InstrProxy : EventPatternProxy {
         ^this;
     }
 
+    // overriding methods defined in Pattern.sc
+    // these conflict when using the single arg syntax and doesNotUnderstand lookup
+    mtranspose {|v| super.set(\mtranspose, v) }
+	ctranspose {|v| super.set(\ctranspose, v) }
+	gtranspose {|v| super.set(\gtranspose, v) }
+	stretch {|v| super.set(\stretch, v) }
+	lag {|v| super.set(\lag, v) }
+	legato {|v| super.set(\legato, v) }
+	db {|v| super.set(\db, v) }
+
     play {|argClock, protoEvent, quant, doReset=false, fadeTime=0|
         if (fadeTime > 0) {
             // node stop will force the output proxy to be freed and a new one created
@@ -367,6 +377,7 @@ InstrProxy : EventPatternProxy {
 
     view {|cmds|
         // TODO: using topenvironment as a sort of cache 
+        //cmds = cmds ?? { "[(freq fx) props]" };
         ^UiModule('instr').envir_(topEnvironment).view(this, nil, cmds);
     }
 
@@ -474,6 +485,18 @@ InstrProxy : EventPatternProxy {
                     Pbind(
                         \out, Pfunc({node.bus.index}),
                         \group, Pfunc({node.group.nodeID}),
+                        \phase, Prout({|inval|
+                            inf.do({|i|
+                                var len = inval['phaselen'] ?? {inf};
+                                var offset = inval['phaseoffset'] ?? {0};
+                                var phase = i.mod(len) + offset;
+                                inval = phase.embedInStream(inval);
+                            })
+                        }),
+                        \dur, Pfunc({|evt|
+                            var val = evt['dur'] ?? 1;
+                            val.value
+                        })
                     )
                 })
             );
@@ -532,7 +555,7 @@ InstrProxy : EventPatternProxy {
                 })
             };
 
-            if (metadata['gatemode'] == \retrig) {
+            if (metadata['voices'] == \mono) {
                 this.isMono = true;
             };
 

@@ -15,138 +15,6 @@ SynthDefModule : Module {
         ^res;
     }
 
-    /*
-    parse {|str|
-
-        var result;
-        var parsestr = {|str|
-
-            var exec, match;
-            var getNextToken;
-            var hasMoreTokens;
-            var spec;
-            var cursor = 0;
-
-            // as pairs
-            // "# unison numvoices=8 + squine + pluck > moogff > distort * perc : splay"
-            // sig pluck sig squine env perc fil moog pit unison numvoices=8 exciter={Impulse.ar(0)*0.5} fil dfm1
-            spec = [
-                'sig', "^sig",
-                'sig', "^\\+",
-                'env', "^env",
-                'env', "^\\*",
-                'fil', "^fil",
-                'fil', "^>",
-                'out', "^out",
-                'out', "^:",
-                'pit', "^pit",
-                'pit', "^#",
-                'string', "^[a-zA-Z0-9!-\/:-@[-`{-~]+",
-                nil, "^\\s+",
-                nil, "^\,",
-            ];
-
-            hasMoreTokens = {
-                cursor < str.size;
-            };
-
-            match = {|regex, str|
-                var val = nil;
-                var m = str.findRegexp(regex);
-                if (m.size > 0) {
-                    val = m[0][1];
-                    cursor = cursor + val.size;
-                };
-                val;
-            };
-
-            getNextToken = {
-                var getNext;
-                var result = nil;
-                getNext = {
-                    if (hasMoreTokens.()) {
-                        spec.pairsDo({|k, v|
-                            if (result.isNil) {
-                                var val = match.(v, str[cursor..]);
-                                //[k, v, val].debug("match");
-                                if (val.notNil) {
-                                    if (k.isNil) {
-                                        getNext.()
-                                    }{
-                                        result = (
-                                            type: k,
-                                            val: val
-                                        );
-                                    }
-                                }
-                            }
-                        });
-                    };
-                };
-
-                getNext.();
-
-                if (result.isNil) {
-                    "unexpected token %".format(str[cursor]).throw
-                };
-                result;
-            };
-
-            exec = {|list|
-
-                var exit = false;
-                var context;
-                while ({ hasMoreTokens.() and: { exit.not } }, {
-                    var token = getNextToken.();
-                    //token.debug("token");
-                    switch(token['type'],
-                        // entities
-                        'sig', {
-                            context = list[\sig]
-                        },
-                        'env', {
-                            context = list[\env]
-                        },
-                        'fil', {
-                            context = list[\fil]
-                        },
-                        'out', {
-                            context = list[\out]
-                        },
-                        'pit', {
-                            context = list['pit']
-                        },
-                        'string', {
-                            context.add(token['val'].asSymbol)
-                        }
-                    );
-                });
-
-                list;
-            };
-            exec.(
-                (
-                    sig: List.new,
-                    env: List.new,
-                    fil: List.new,
-                    out: List.new,
-                    pit: List.new
-                )
-            );
-        };
-
-        result = parsestr.(str);
-        result.keysValuesDo({|k, v, i|
-            var list = v;
-            list.do({|val, j|
-                var num = i * 10 + j;
-                this.put(num, k -> val)
-            });
-        });
-        ^this;
-    }
-    */
-
     at {|num|
         ^modules[num];
     }  
@@ -304,14 +172,15 @@ SynthDefModule : Module {
         defaultFunc = {
             var me = ~module;
             var currentEnvir;
-            var gatemode = ~gatemode;
+            var voices = ~voices;
             var detectsilence = ~detectsilence ?? false;
             var gate = DC.kr(1), vel;
             var sig, sigs = List.new, filts = List.new;
             var out, freq, env, doneaction;
             var hasgate;
 
-            if (gatemode.debug("gate mode") == \retrig) {
+            //if (gatemode.debug("gate mode") == \retrig) {
+            if (voices.debug("voices") == \mono) {
                 // for monosynths
                 var killgate = \gate.kr(1);
                 Env.asr(0.0, 1, \rel.kr(1)).kr(doneAction:Done.freeSelf, gate:killgate);
@@ -359,7 +228,7 @@ SynthDefModule : Module {
                 }
             });
 
-            currentEnvir = me.envir.copy ++ ('gatemode': gatemode);
+            currentEnvir = me.envir.copy ++ ('voices': voices);
             freq = freq.setAll(currentEnvir).(gate);
             env = env.setAll(currentEnvir).(gate, doneaction);
             out = out.setAll(currentEnvir).func;

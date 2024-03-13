@@ -45,7 +45,7 @@ InstrTrack {
                 },
                 { myval.beginsWith("input") }, {
                     proxy = InstrNodeProxy(key);
-                    proxy[0] = { SoundIn.ar([0, 1]) };
+                    proxy[0] = { SoundIn.ar([0, 1]) * \amp.kr(1) };
                     proxy.out = key;
                 },
                 {
@@ -124,10 +124,6 @@ InstrTrack {
         Server.default.makeGui
     }
 
-    *tempo_ {|tempo|
-        TempoClock.default.tempo = tempo.debug("tempo");
-    }
-
     // TODO: not entirely sure about this
     *parentEvent_ {|evt|
         parentEvent = evt.debug("parentEvent");
@@ -144,8 +140,19 @@ InstrTrack {
         */
     }
 
+    *tempo_ {|tempo|
+        TempoClock.default.tempo = tempo.debug("tempo");
+    }
+
     *tempo {
         ^TempoClock.default.tempo
+    }
+
+    *record {
+        var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
+        Platform.recordingsDir = dir;
+        //s.record
+        //s.recordBus(bus, duration, path, numChannels, node)
     }
 
     *initClass {
