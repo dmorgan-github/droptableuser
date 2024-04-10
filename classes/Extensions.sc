@@ -6,11 +6,13 @@
         // doesn't make sense - just not sure what the interface should be
         var track = T();
         var num = this;
-        if (instr.notNil) {
-            track.put(num, instr, *args);
-            //track[num].synthdefmodule.set(*args)
-        };
+        track.put(num, instr, *args);
+        //track[num].synthdefmodule.set(*args)
         ^track[num];
+    }
+
+    @@ {|val, adverb|
+        [this, val, adverb].postln;    
     }
 }
 

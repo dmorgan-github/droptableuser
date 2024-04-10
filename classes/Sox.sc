@@ -4,10 +4,23 @@ Sox {
 
     var <list;
 
-    var <>path;
+    classvar <>path;
 
     *new {
         ^super.new.prInit;
+    }
+
+    *stats {|src|
+        var str;
+        var srcpn = PathName(src);
+        if (srcpn.parentPath == "") {
+            var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
+            src = "%/%".format(dir, src);
+        };
+
+        str = "%sox \"%\" -n stats 2>&1".format(path, src.standardizePath);
+        str.postln.unixCmdGetStdOut.postln;
+        ^nil;
     }
 
     speed {|val|
@@ -70,13 +83,16 @@ Sox {
         var destpn = PathName(dest);
 
         if (srcpn.parentPath == "") {
-            src = "%/%".format(Document.current.dir, src);
+            var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
+            src = "%/%".format(dir, src);
         };
         if (destpn.parentPath == "") {
-            dest = "%/%".format(Document.current.dir, dest);
+            var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
+            dest = "%/%".format(dir, dest);
         };
 
         str = "%sox \"%\" \"%\" ".format(path, src.standardizePath, dest.standardizePath) ++ list.join(" ");
+        str = str ++ " 2>&1";
         if (replace) {
             str = str ++ "; rm %".format(src);
         };
@@ -90,6 +106,9 @@ Sox {
 
     prInit {
         list = List();
+    }
+
+    *initClass {
         path = "/usr/local/bin/";
     }
 }

@@ -1,3 +1,6 @@
+
+
+
 /*
 recordingDir
 s.record
@@ -55,17 +58,34 @@ InstrTrack {
                 }
             )
         }{
-            // if val is a function
-            var builder, result;
             proxy = tracks[index];
-            builder = InstrProxyBuilder(proxy, key);
-            result = val.value(builder);
-            result.proxy.out = key;
-            proxy = result.proxy;
-            if (args.notNil) {
-                proxy.synthdefmodule.set(*args);
-            };
+            if (proxy.isNil) {
+                // if val is a function
+
+                proxy = InstrProxy(key);
+                proxy.out = key;
+                /*
+                if (val.isKindOf(Function)) {
+                    var builder, result;
+                    builder = InstrProxyBuilder(proxy, key);
+                    result = val.value(builder);
+                    result.proxy.out = key;
+                    proxy = result.proxy;
+                    if (args.notNil) {
+                        proxy.synthdefmodule.set(*args);
+                    };
+                } {
+                    proxy = InstrNodeProxy(key);
+                }
+                */
+            }
         };
+
+        proxy.addDependant({|obj, what|
+            if (what == \clear) {
+                tracks.removeAt(index)
+            }
+        });
 
         tracks.put(index, proxy);
         ^proxy

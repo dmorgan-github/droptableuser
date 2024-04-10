@@ -56,6 +56,8 @@ B {
         ^result;
     }
 
+
+
     *toMono {|path, cb|
 
         /*
@@ -63,32 +65,45 @@ B {
         c = Buffer(s);
         FluidBufCompose.processBlocking(s,b,numChans:1,destination:c,gain:-6.dbamp);
         FluidBufCompose.processBlocking(s,b,startChan:1,numChans:1,destination:c,gain:-6.dbamp,destGain:1);
-
         b.numChannels; // 2
         c.numChannels; // 1
         */
-
         // somehow this doesn't work as expected - it seems to alter the pitch
+
         var file;
-        path = B.prEnsurePath(path);
-        file = SoundFile.openRead(path).close;
-        if (file.numChannels == 2) {
-            Buffer.read(Server.default, path, action:{|buf|
-                buf.loadToFloatArray(action:{|array|
-                    /*
-                    https://scsynth.org/t/load-stereo-file-to-mono-buffer/5043/2
-                    Replace the 0.5 constant with -3.dbamp (≈ 1/sqrt(2) ≈ 0.707) for uncorrelated signals.
-                    */
-                    Buffer.loadCollection(Server.default, array.unlace(2).sum * 0.5, action:{|mono|
-                        mono.normalize;
-                        buf.free;
-                        cb.(mono);
-                    })
+
+        path.postln;
+
+        if (path.isKindOf(Buffer)) {
+            var buf = path;
+            buf.loadToFloatArray(action:{|array|
+                Buffer.loadCollection(Server.default, array.unlace(2).sum * 0.5, action:{|mono|
+                    mono.normalize;
+                    buf.free;
+                    cb.(mono);
                 })
-            });
-        } {
-            B.read(path, cb:cb);
-        };
+            })
+        }{
+            path = B.prEnsurePath(path);
+            file = SoundFile.openRead(path).close;
+            if (file.numChannels == 2) {
+                Buffer.read(Server.default, path, action:{|buf|
+                    buf.loadToFloatArray(action:{|array|
+                        /*
+                        https://scsynth.org/t/load-stereo-file-to-mono-buffer/5043/2
+                        Replace the 0.5 constant with -3.dbamp (≈ 1/sqrt(2) ≈ 0.707) for uncorrelated signals.
+                        */
+                        Buffer.loadCollection(Server.default, array.unlace(2).sum * 0.5, action:{|mono|
+                            mono.normalize;
+                            buf.free;
+                            cb.(mono);
+                        })
+                    })
+                });
+            } {
+                B.read(path, cb:cb);
+            };
+        }
     }
 
     *mono {|key, path|
@@ -270,13 +285,13 @@ B {
         }.fork;
     }
 
-    *onsets {|buf|
+    *onsets {|buf, metric=9, threshold=(0.1)|
 
         var result = Deferred();
         var server = Server.default;
         var indices = Buffer(server);
         var feature = Buffer(server);
-        FluidBufOnsetSlice.processBlocking(server, buf, indices:indices, metric:9, threshold:0.2);
+        FluidBufOnsetSlice.processBlocking(server, buf, indices:indices, metric:metric, threshold:threshold);
         //FluidBufOnsetFeature.processBlocking(server, buf, features:feature, metric:9);
         //FluidWaveform(B.yea,~indices,~feature,bounds:Rect(0,0,1600,400), lineWidth:2);
         indices.loadToFloatArray(action: {|array|

@@ -236,8 +236,9 @@ SynthDefModule : Module {
             currentEnvir = currentEnvir ++ ('freq': freq, gate: gate, vel: vel);
 
             // combine the signals
-            sig = sigs.inject(Silent.ar, {|a, b| 
-                a + b.setAll(currentEnvir).(freq, gate, env);
+            sig = sigs.inject(Silent.ar, {|a, b|
+                var mul = 1;//b.mul ?? 1;
+                a + ( b.setAll(currentEnvir).(freq, gate, env) * mul.debug("mul") ) 
             });
             //sig = LeakDC.ar(sig);
 

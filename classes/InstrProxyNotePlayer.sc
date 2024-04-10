@@ -5,6 +5,8 @@ InstrProxyNotePlayer {
     var <instr;
     var <stream;
     var <synthdef;
+    var <>func;
+    var <>debug;
 
     *new {|instrproxy|
         ^super.new.prInit(instrproxy);
@@ -14,7 +16,7 @@ InstrProxyNotePlayer {
         synths.clear;
     }
 
-    on {|note, vel=127, extra, debug=false|
+    on {|note, vel=127, extra|
         var args;
         var target = instr.node.group.nodeID;
         var instrument, evt;
@@ -52,18 +54,23 @@ InstrProxyNotePlayer {
         };
 
         if (instr.synthdef.hasGate) {
-
             if (synths[note].isNil) {
-                synths[note] = Synth(instrument, args, target:target, addAction:\addToHead);
+                if ( func.(\on, note, args) != false) {
+                    synths[note] = Synth(instrument, args, target:target, addAction:\addToHead);
+                }
             }
         } {
-            Synth(instrument, args, target:target, addAction:\addToHead);
+            if ( func.(\on, note, args) != false) {
+                Synth(instrument, args, target:target, addAction:\addToHead);
+            }
         }    
     }
 
     off {|note|
-        if (instr.synthdef.hasGate) {
-            synths.removeAt(note).set(\gate, 0)
+        if ( func.(\off, note) != false) {
+            if (instr.synthdef.hasGate) {
+                synths.removeAt(note).set(\gate, 0)
+            }
         }
     }
 
@@ -72,6 +79,7 @@ InstrProxyNotePlayer {
         stream = instr.asStream;
         synthdef = instr.synthdef;
         synths = Order.new;
+        debug = false;
     }
 }
 // }}}

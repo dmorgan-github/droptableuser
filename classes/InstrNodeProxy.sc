@@ -11,6 +11,7 @@ InstrNodeProxy : Ndef {
     var <cmdperiodfunc;
     var <msgFunc;
     var <patterns;
+    var <recnodeproxy, <recpath;
 
     *new {|key, source|
         var res;
@@ -37,6 +38,70 @@ InstrNodeProxy : Ndef {
         }
     }
 
+    record {|filename, quant|
+        var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
+        recpath = dir +/+ filename;
+		//if(server.serverRunning.not) { "server not running".inform; ^nil };
+		recnodeproxy = RecNodeProxy.newFrom(this, 2);
+		recnodeproxy.open(recpath, "WAV", "int24");
+		recnodeproxy.record(paused:false, quant: quant)
+		^recnodeproxy
+	}
+
+    stopRecording {|numbeats=4, normalize=true|
+
+        var clock;
+        var sr;
+        var numframes;
+
+        recnodeproxy.close;
+        
+        clock = TempoClock.default;
+        sr = Server.default.sampleRate;
+        numframes = (clock.beatDur * numbeats) * sr;
+
+        Routine({
+            var buf, onsets;
+            var start = 0;
+            var result;
+            var dest, pn;
+            var def = B.read(recpath, channels: [0, 1], normalize:false);
+            
+            def.wait;
+            buf = def.value;
+
+            def = B.onsets(buf.value);
+            def.wait;
+            onsets = def.value;
+            start = onsets[0];
+
+            buf.write(recpath, headerFormat: "wav", sampleFormat: "int24", numFrames: numframes, startFrame: start);
+            pn = PathName(recpath);
+            dest = "%%-3db.wav".format(pn.pathOnly, pn.fileNameWithoutExtension) ;
+
+            Sox().norm(-3).transform(recpath, dest, replace:true);
+            Sox.stats(dest);
+
+        }).play;
+        //B.b1.write("/Users/david/Documents/supercollider/projects/tapes/rings_110bpm_2.wav", headerFormat: "wav", sampleFormat: "int24", numFrames: ~numsamples, startFrame: 1536)
+        ^nil;
+    }
+
+    // alternate way 
+    rec {|seconds=8, numchannels=2, cb|
+        var server = Server.default;
+        var node = this.node;
+        var synth = "instrproxyrecorder%".format(numchannels).asSymbol.debug("synth");
+        Buffer.alloc(server, server.sampleRate * seconds, numchannels, completionMessage: {|buf|
+            Synth.tail(node.group.nodeID, synth, [\buf, buf, \bus, node.bus.index])
+            .onFree({
+                "recoding done".debug(this.class.asString);
+                cb.value(buf.normalize);
+            })
+        }); 
+        ^nil
+    }
+
     mute {|fadeTime=1|
         this.stop(fadeTime:fadeTime)
     }
@@ -55,12 +120,20 @@ InstrNodeProxy : Ndef {
 
     clear {
         this.changed(\clear);
+        "remove cmdperiodfunc".debug("InstrNodeProxy");
         CmdPeriod.remove(cmdperiodfunc);
+        "vstctrls.clear".debug("InstrNodeProxy");
         vstctrls.clear;
+        "fxchain.clear".debug("InstrNodeProxy");
         fxchain.clear;
+        "metadata.clear".debug("InstrNodeProxy");
         metadata.clear;
+        "releaseDependants".debug("InstrNodeProxy");
         this.releaseDependants;
-        super.clear;
+        "ndef remove".debug("InstrNodeProxy");
+        Ndef.dictFor(Server.default).envir.removeAt(key);
+        "super.clear".debug("InstrNodeProxy");
+        ^super.clear;
     }
 
     node {
@@ -408,5 +481,26 @@ InstrNodeProxy : Ndef {
 
     *initClass {
         defaultout = 0;//Server.default.options.numInputBusChannels;
+
+        StartUp.add({
+            SynthDef(\instrproxyrecorder1, {
+                var buf = \buf.kr(0);
+                var bus = \bus.kr(0);
+                var sig = In.ar(bus, 2).asArray.sum;
+                sig = sig * Env.asr(0.01, 1, 1).ar(gate: 1);
+                RecordBuf.ar(sig, buf, loop:0, doneAction:Done.freeSelf);
+                Out.ar(0, Silent.ar(2));
+            }).add;
+
+            SynthDef(\instrproxyrecorder2, {
+                var buf = \buf.kr(0);
+                var bus = \bus.kr(0);
+                var sig = In.ar(bus, 2);
+                sig = sig * Env.asr(0.01, 1, 1).ar(gate: 1);
+                RecordBuf.ar(sig, buf, loop:0, doneAction:Done.freeSelf);
+                Out.ar(0, Silent.ar(2));
+            }).add;
+        })
+
     }
 }

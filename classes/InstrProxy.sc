@@ -102,12 +102,24 @@ VstInstrProxy : InstrProxy {
         vstplugin.editor;
     }
 
-    on {|note, vel=1|
+    on {|note, vel=127|
         vstplugin.midi.noteOn(0, note, vel)
     }
 
     off {|note|
         vstplugin.midi.noteOff(0, note)
+    }
+
+    find {|str|
+        var params = this.vstplugin.info.parameters;
+        var vals = params.select({|p| p.name.asString.contains(str) });
+        var result = List();
+        vals.do({|v|
+            var index = params.detectIndex({|p, i| p.name.asString.contains(v.name.asString) });
+            var parm = params[index];
+            result.add([index, parm]);
+        });
+        ^result.asArray
     }
 
     savePreset {|name|
@@ -117,18 +129,24 @@ VstInstrProxy : InstrProxy {
 
     loadPreset {|name|
         var path = Module.libraryDir +/+ "preset" +/+ name;
-        vstplugin.readProgram(path) 
+        vstplugin.readProgram(path)
     }
 
-    writeProgram {|path|
-        var dir = Document.current.dir;
-        path = dir +/+ path;
+    writeProgram {|filename|
+        //var dir = Document.current.dir;
+        //path = dir +/+ path;
+        //vstplugin.writeProgram(path)
+        var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
+        var path = dir +/+ filename;
         vstplugin.writeProgram(path)
     }
 
-    readProgram {|path|
-        var dir = Document.current.dir;
-        path = dir +/+ path;
+    readProgram {|filename|
+        //var dir = Document.current.dir;
+        //path = dir +/+ path;
+        //vstplugin.readProgram(path)
+        var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
+        var path = dir +/+ filename;
         vstplugin.readProgram(path)
     }
 
@@ -162,6 +180,8 @@ VstInstrProxy : InstrProxy {
                 }
             });
 
+            // need to specify which params will be modulated
+            // \params, [\Mix, \Depth, 1]
             this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin)
 
         }.fork;
@@ -192,10 +212,11 @@ InstrProxy : EventPatternProxy {
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
     var <synthdef;
-    var note, <msgFunc;
+    var <note, <msgFunc;
     var <key, <synthdefmodule;
     var specs;
     var <ptrns, <groupprops;
+    var observer;
 
     *new {|key|
         ^super.new.prInit(key);
@@ -204,7 +225,9 @@ InstrProxy : EventPatternProxy {
     doesNotUnderstand {|selector ...args|
         //[selector, args].debug("doesNotUnderstand");
         var key = selector.asGetter;
-        this.set(key, args[0])
+        if (observer.evaluate(key, args).not) {
+            this.set(key, args[0])
+        };
         ^this;
     }
 
@@ -321,7 +344,7 @@ InstrProxy : EventPatternProxy {
                 node.play;
             };
         };
-        super.play(argClock, protoEvent, quant, doReset)  ; 
+        super.play(argClock, protoEvent, quant, doReset)  ;
     }
 
     stop {|fadeTime=0|
@@ -337,12 +360,23 @@ InstrProxy : EventPatternProxy {
 
     clear {
         this.changed(\clear);
+        "node.clear".debug("InstrProxy");
         node.clear;
+        "note.clear".debug("InstrProxy");
         note.clear;
-        //pbindproxy.clear;
+        "specs.clear".debug("InstrProxy");
+        specs.clear;
+        "envir.clear".debug("InstrProxy");
+        envir.clear;
+        "metadata.clear".debug("InstrProxy");
+        metadata.clear;
+        "remove cmdperiodfunc".debug("InstrProxy");
         ServerTree.remove(cmdperiodfunc);
+        "releaseDependants".debug("InstrProxy");
         this.releaseDependants;
+        "super.clear".debug("InstrProxy");
         super.clear;
+        ^nil
     }
 
     controlKeys {|except|
@@ -376,7 +410,7 @@ InstrProxy : EventPatternProxy {
     }
 
     view {|cmds|
-        // TODO: using topenvironment as a sort of cache 
+        // TODO: using topenvironment as a sort of cache
         //cmds = cmds ?? { "[(freq fx) props]" };
         ^UiModule('instr').envir_(topEnvironment).view(this, nil, cmds);
     }
@@ -454,63 +488,61 @@ InstrProxy : EventPatternProxy {
     source_ {|pattern|
 
         var chain;
-        if (pattern.notNil) {
-
-            chain = Pchain(
-                /*
-                Pbind(
-                    \node_set, Pfunc({|evt|
-                        if (evt.isRest) {
-                            // no-op
-                        } {
-                            var args = evt.use({
-                                node.msgFunc.valueEnvir;
-                            });
-                            if (evt[\node_set_debug].notNil) {
-                                args.postln;
-                            };
-                            if (args.size > 0) {
-                                Server.default.bind({
-                                    node.set(*args)
-                                })
-                            };
+        pattern = pattern ?? {Pbind()};
+        chain = Pchain(
+            /*
+            Pbind(
+                \node_set, Pfunc({|evt|
+                    if (evt.isRest) {
+                        // no-op
+                    } {
+                        var args = evt.use({
+                            node.msgFunc.valueEnvir;
+                        });
+                        if (evt[\node_set_debug].notNil) {
+                            args.postln;
                         };
-                        1
-                    })
-                ),
-                */
-                pattern,
-                //pbindproxy,
-                Plazy({
-                    Pbind(
-                        \out, Pfunc({node.bus.index}),
-                        \group, Pfunc({node.group.nodeID}),
-                        \phase, Prout({|inval|
-                            inf.do({|i|
-                                var len = inval['phaselen'] ?? {inf};
-                                var offset = inval['phaseoffset'] ?? {0};
-                                var phase = i.mod(len) + offset;
-                                inval = phase.embedInStream(inval);
+                        if (args.size > 0) {
+                            Server.default.bind({
+                                node.set(*args)
                             })
-                        }),
-                        \dur, Pfunc({|evt|
-                            var val = evt['dur'] ?? 1;
-                            val.value
-                        })
-                    )
+                        };
+                    };
+                    1
                 })
-            );
-
-            super.source = Plazy({
-                instrument = instrument ?? {\default};
-                if (isMono) {
-                    // not sure how to make composite event work with pmono
-                    Pmono(instrument, \trig, 1) <> chain
-                }{
-                    chain
-                }
+            ),
+            */
+            pattern,
+            //pbindproxy,
+            Plazy({
+                Pbind(
+                    \out, Pfunc({node.bus.index}),
+                    \group, Pfunc({node.group.nodeID}),
+                    \phase, Prout({|inval|
+                        inf.do({|i|
+                            var len = inval['phaselen'] ?? {inf};
+                            var offset = inval['phaseoffset'] ?? {0};
+                            var phase = i.mod(len) + offset;
+                            inval = phase.embedInStream(inval);
+                        })
+                    }),
+                    \dur, Pfunc({|evt|
+                        var val = evt['dur'] ?? 1;
+                        val.value
+                    })
+                )
             })
-        }
+        );
+
+        super.source = Plazy({
+            instrument = instrument ?? {\default};
+            if (isMono) {
+                // not sure how to make composite event work with pmono
+                Pmono(instrument, \trig, 1) <> chain
+            }{
+                chain
+            }
+        })
     }
 
     getSpec {
@@ -595,14 +627,15 @@ InstrProxy : EventPatternProxy {
         ptrns = Order();
         note = InstrProxyNotePlayer(this);
         synthdefmodule = SynthDefModule();
+        observer = InstrProxyObserver(this);
 
         // TODO would like to simplify this
         synthdefmodule.addDependant({|obj, what, vals|
             //[obj, what, vals].postln;
-            
+
             fork {
                 obj.add(key);
-                Server.default.sync;                
+                Server.default.sync;
                 // re-initialize the synth
                 msgFunc = SynthDescLib.global[key].msgFunc;
                 me.instrument = key;
@@ -628,7 +661,7 @@ InstrProxy : EventPatternProxy {
                 };
             }.defer(0.5)
         };
- 
+
         node.color = color;
         ServerTree.add(cmdperiodfunc);
         ^this

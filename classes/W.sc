@@ -53,11 +53,15 @@ W {
     }
 
     *tempo_ {|tempo|
-        TempoClock.tempo = tempo.debug("tempo");
+        TempoClock.default.tempo = tempo.debug("tempo");
     }
 
     *tempo {
-        ^TempoClock.tempo
+        ^TempoClock.default.tempo
+    }
+
+    *clock {
+        ^TempoClock.default
     }
 
     *initClass { 

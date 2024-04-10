@@ -1,10 +1,55 @@
-M : Module {}
+M : Module {
+
+    // shortcuts
+
+    *def {|func|
+        ^Module(func)    
+    }
+
+    // synths
+    *squine { ^Module('synth/squine') }
+    *sampler { ^Module('synth/sampler') }
+    *grainr { ^Module('synth/grainr') }
+    *rings { ^Module('synth/rings') }
+    *analog { ^Module('synth/pulsesaw') }
+
+    // filters
+    *moogff { ^Module('filter/moogff') }
+    *lpf12db { ^Module('filter/lpf12db') }
+    *lpf24db { ^Module('filter/lpf24db') }
+    *lpg { ^Module('filter/lpg') }
+
+    // fx
+    *rev { ^Module('fx/reverb/miverb') }
+    *del { ^Module('fx/delay/fb') }
+    *longdel { ^Module('fx/delay/fb_long') }
+    *crush { ^Module('fx/distortion/crush') }
+    *softclip { ^Module('fx/distortion/softclip') }
+    *eq { ^Module('fx/eq/eq') }
+    *compress { ^Module('fx/dynamics/softkneecompressor') }
+    *pitchshift { ^Module('fx/granular/pitchshift') }
+    *vst {|id| ^"vst:%".format(id).asSymbol }
+
+    // aeg
+    *adsr { ^Module('env/adsr') }
+    *asr { ^Module('env/asr') }
+    *perc { ^Module('env/perc') }
+    *linen { ^Module('env/linen') }
+    *none { ^Module('env/none') }
+
+    // pitch
+    *unison { ^Module('pitch/unison') }
+}
 
 Module {
 
     classvar <>libraryDir;
 
     var <>envir, <>libfunc, <fullpath, <props, <view, <doc, <presets;
+    var <key;
+    // TODO: need to have more structured subsclasses of modules
+    // so appropriate properties can be added
+    //var <>mul=1;
 
     *new {|key|
         var res;
@@ -68,6 +113,13 @@ Module {
         }
     }
 
+    printOn {|stream|
+        var str;
+		super.printOn(stream);
+        str = if (this.doc.notNil) { this.doc }{ this.func.asCompileString };
+		stream << " doc: " << str
+	}
+
     *ls {|path|
 
         var fullpath = libraryDir ++ (path ?? {"synth"});
@@ -90,22 +142,23 @@ Module {
         }
     }
 
-    prModuleInit {|key|
+    prModuleInit {|id|
 
         envir = (
             module: this
         );
 
-        if (key.isKindOf(Function)) {
-            key.asCode;
-            libfunc = key;
+        if (id.isKindOf(Function)) {
+            id.asCode;
+            libfunc = id;
             fullpath = 'func'
         }{
-            if (key.notNil) {
+            if (id.notNil) {
                 var path, pathname;
 
-                path = libraryDir ++ key.asString;
-                if (key.asString.endsWith(".scd").not) {
+                key = id.asSymbol;
+                path = libraryDir ++ id.asString;
+                if (id.asString.endsWith(".scd").not) {
                     path = path ++ ".scd";
                 };
                 pathname = PathName(path.standardizePath);

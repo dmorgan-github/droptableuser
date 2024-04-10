@@ -1,3 +1,115 @@
+InstrProxyObserver {
+
+    var <synthdefmodule;
+    var <proxy;
+
+    *new {|proxy|
+        ^super.new.prInit(proxy);    
+    }
+
+    evaluate {|role, args|
+
+        var myrole = role.asString;
+        if ( "^(sig)([0-9]*)$|^(fil)$|^(aeg)$|^(fx)([0-9]*)$|^(voices)$".matchRegexp(myrole) ) {
+
+            var module = args[0];
+            var result, index = 0;
+
+            result = myrole.findRegexp("^(sig)([0-9]*)$");
+            if (result.size > 0) {
+                index = if (result[2].size > 1) { result[2][1].asInteger };
+                if (module.isNil) {
+                    "removing sig".debug("InstrProxyObserver");
+                    synthdefmodule.removeAt(index)
+                }{
+                    if (module.isKindOf(Function)) {
+                        module = Module(module)
+                    };
+                    synthdefmodule.put(index, \sig -> module);  
+                }
+                
+            };
+
+            result = myrole.findRegexp("^aeg$");
+            if (result.size > 0) {
+                if (module.isNil) {
+                    "removing aeg".debug("InstrProxyObserver");
+                    synthdefmodule.removeAt(10)
+                }{
+                    if (module.isKindOf(Function)) {
+                        module = Module(module)
+                    };
+                    synthdefmodule.put(10, \env -> module);  
+                }
+            };
+
+            result = myrole.findRegexp("^fil$");
+            if (result.size > 0) {
+                if (module.isNil) {
+                    "removing filter".debug("InstrProxyObserver");
+                    synthdefmodule.removeAt(20)
+                }{
+                    if (module.isKindOf(Function)) {
+                        module = Module(module)
+                    };
+                    synthdefmodule.put(20, \fil -> module);  
+                }
+            };
+
+            result = myrole.findRegexp("^pit$");
+            if (result.size > 0) {
+                if (module.isNil) {
+                    "removing pitch model".debug("InstrProxyObserver");
+                    synthdefmodule.removeAt(30)
+                }{
+                    if (module.isKindOf(Function)) {
+                        module = Module(module)
+                    };
+                    synthdefmodule.put(30, \pit -> module);  
+                }
+            };
+
+            result = myrole.findRegexp("^voices$");
+            if (result.size > 0) {
+                if (module.isKindOf(Function)) {
+                    module = Module(module)
+                };
+                synthdefmodule.set(\voices, module)
+            };
+
+            result = myrole.findRegexp("^(fx)([0-9]*)$");
+            if (result.size > 0) {
+                index = if (result[2].size > 1) { result[2][1].asInteger };
+                index = 20 + index;
+                if (module.isKindOf(Module)) {
+                    module = module.func;
+                }{
+                    if (module.isKindOf(Function)) {
+                        //module = Module(module)
+                        // pass function
+                    } {
+                        module = module.asSymbol;
+                    }
+                };
+                proxy.node.fx(index, module);
+            };
+
+            ^true;
+        } {
+            ^false;
+        }
+    }
+
+    prInit {|instrproxy|
+        proxy =  instrproxy;
+        synthdefmodule = proxy.synthdefmodule;  
+    }
+
+}
+
+
+
+
 // InstrProxyBuilder {{{
 InstrProxyBuilder {
 
@@ -81,7 +193,7 @@ InstrProxyBuilder {
     }
 
     // pitch
-    ^ {|module|
+    @ {|module|
         var id = current.pop;
         var args = currentargs.pop;
         var mod;
