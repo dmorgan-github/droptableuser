@@ -4,13 +4,12 @@ N : InstrNodeProxy {
 InstrNodeProxy : Ndef {
 
     classvar <>defaultout;
-    //classvar count=0;
 
     var <vstctrls, <>color;
     var <fxchain, <metadata;
     var <cmdperiodfunc;
     var <msgFunc;
-    var <patterns;
+    //var <patterns;
     var <recnodeproxy, <recpath;
 
     *new {|key, source|
@@ -25,8 +24,17 @@ InstrNodeProxy : Ndef {
         ^res;
     }
 
+    /*
     @ {|val, adverb|
         this.setOrPut(adverb, val);
+    }
+    */
+
+    doesNotUnderstand {|selector ...args|
+        //[selector, args].debug("doesNotUnderstand");
+        var key = selector.asGetter;
+        this.setOrPut(key, args[0])
+        ^this;
     }
 
     setOrPut {|prop, val|
@@ -228,10 +236,16 @@ InstrNodeProxy : Ndef {
                             ctrl.editor;
                         };
                         obj['writeProgram'] = {|self, path|
-                            ctrl.writeProgram(Document.current.dir +/+ path);
+                            var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
+                            dir = dir +/+ path;
+                            dir.debug("InstrNodeProxy.ctrl.writeProgram");
+                            ctrl.writeProgram(dir);
                         };
                         obj['readProgram'] = {|self, path|
-                            ctrl.readProgram(Document.current.dir +/+ path);
+                            var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
+                            dir = dir +/+ path;
+                            dir.debug("InstrNodeProxy.ctrl.readProgram");
+                            ctrl.readProgram(dir +/+ path);
                         };
 
                         ctrl.addDependant(func);
@@ -242,8 +256,16 @@ InstrNodeProxy : Ndef {
                 }{
                     var func, mod, obj;
                     var key = "fx/%".format(fx).asSymbol;
-                    mod = Module(key);
-                    obj = (name:fx, type:'func', 'ctrl':mod);
+
+                    if (fx.isKindOf(Module)) {
+                        mod = fx;
+                        key = mod.key;
+                    } {
+                        key = "fx/%".format(fx).asSymbol;
+                        mod = Module(key);
+                    };
+                    
+                    obj = (name:key, type:'func', 'ctrl':mod);
                     obj['ui'] = {|self|
                         UiModule('instr').gui(this, index);
                     };
@@ -265,8 +287,8 @@ InstrNodeProxy : Ndef {
                 this.addSpec(*specs);
             };
 
-            this.addSpec("wet%".format(index).asSymbol, [0, 1, \lin, 0, 1].asSpec);
-            this.set("wet%".format(index).asSymbol, wet);
+            //this.addSpec("wet%".format(index).asSymbol, [0, 1, \lin, 0, 1].asSpec);
+            //this.set("wet%".format(index).asSymbol, wet);
         }
     }
 
@@ -284,25 +306,44 @@ InstrNodeProxy : Ndef {
             var server = Server.default;
             var nodeId, ctrl;
 
-            {
+            fork({
+                var vstpreset;
                 if (node.objects[index].isNil) {
 
-                    var filename;
-                    var mod;
+                    var path;
+                    var split = vst.asString.split($/);
+                    vst = split[0].asSymbol;
+                    if (split.size > 1) {
 
-                    filename = vst.asString.toLower;//.split($.);
-                    filename = "vst/" ++ filename;
-                    if (Module.exists(filename)) {
-                        filename.debug("module exists");
-                        mod = Module(filename);
+                        var dir;
+                        var temp = split[1].toLower;
+                        dir = PathName(thisProcess.nowExecutingPath).pathOnly;
+
+                        path = dir ++ temp;
+                        if (File.exists(path).not) {
+                            path = Module.libraryDir +/+ "preset" +/+ temp;
+                        };
+
+                        if (File.exists(path)) {
+                            vstpreset = path;
+                        } {
+                            "preset does not exist: %".format(vstpreset).warn
+                        }
+                    };
+
+                    path = "vst/" ++ split[0].toLower;
+                    if (Module.exists(path)) {
+                        var mod;
+                        path.debug("module exists");
+                        mod = Module(path);
                         node.filter(index, mod.func);
                     } {
-                        filename.debug("module does not exists");
+                        path.debug("module does not exists");
                         node.filter(index, {|in|
                             if (id.isNil.not) {
-                                VSTPlugin.ar(in, 2, id:id, info:vst.asSymbol);
+                                VSTPlugin.ar(in, 2, id:id, info:vst);
                             }{
-                                VSTPlugin.ar(in, 2, info:vst.asSymbol);
+                                VSTPlugin.ar(in, 2, info:vst);
                             }
                         });
                     };
@@ -330,17 +371,21 @@ InstrNodeProxy : Ndef {
                     }
                 };
 
-                ctrl.open(vst, editor:true, verbose: true, action:{
+                ctrl.open(vst, editor:true, verbose: true, action:{|ctrl|
                     "loaded %".format(key).postln;
+                    if (vstpreset.notNil) {
+                        vstpreset.debug("preset");
+                        ctrl.readProgram(vstpreset)
+                    };
                     if (cb.isNil.not) {
                         cb.value(ctrl);
                     }
                 });
-
-            }.fork
+            });
         }
     }
 
+    /*
     print {
 
         //this.fxchain.asCode.postln;
@@ -383,6 +428,7 @@ InstrNodeProxy : Ndef {
         });
         //")\n)".postln;
     }
+    */
 
     prNodeInit {
 
@@ -390,7 +436,7 @@ InstrNodeProxy : Ndef {
         //keyval = "d%".format(count).asSymbol;
         vstctrls = Order.new;
         fxchain = Order.new;
-        patterns = List.new;
+        //patterns = List.new;
         color = Color.rand;
         metadata = ();
 

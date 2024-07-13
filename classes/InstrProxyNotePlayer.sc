@@ -36,7 +36,11 @@ InstrProxyNotePlayer {
 
         evt[\gate] = 1;
         if (extra.notNil) {
-            evt = evt ++ extra;
+            if (extra.isKindOf(Function)) {
+                evt.use({ extra.valueEnvir })
+            }{
+                evt = evt ++ extra;
+            }
         };
 
         args = evt.use({

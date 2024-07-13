@@ -1,6 +1,3 @@
-
-
-
 /*
 recordingDir
 s.record
@@ -51,6 +48,10 @@ InstrTrack {
                     proxy[0] = { SoundIn.ar([0, 1]) * \amp.kr(1) };
                     proxy.out = key;
                 },
+                { myval.beginsWith("node") }, {
+                    proxy = InstrNodeProxy(key);
+                    proxy.out = key;
+                },
                 {
                     var path = "device/%".format(val).asSymbol;
                     var m = M(path);
@@ -81,63 +82,17 @@ InstrTrack {
             }
         };
 
+        /*
+        this will keep getting added as a new func
         proxy.addDependant({|obj, what|
             if (what == \clear) {
                 tracks.removeAt(index)
             }
         });
+        */
 
         tracks.put(index, proxy);
         ^proxy
-    }
-
-    // TODO: deprecate
-    *instr {|key, cb ...pairs|
-        var builder, result;
-        var proxy = currentEnvironment[key];
-        builder = InstrProxyBuilder(proxy, key);
-        result = cb.value(builder);
-        result.proxy.out = key;
-        currentEnvironment[key] = result.proxy;
-        if (pairs.debug("pairs").notNil) {
-            result.proxy.synthdefmodule.set(*pairs);
-        };
-        ^currentEnvironment[key]
-    }
-
-    // TODO: deprecate
-    *vst {|key, name|
-        var proxy = VstInstrProxy(key).instrument_(name);
-        proxy.out = key;
-        currentEnvironment[key] = proxy;
-        ^currentEnvironment[key];
-    }
-
-    // TODO: deprecate
-    *midi {|key, device, chan|
-        var proxy = MidiInstrProxy(device, chan);
-        currentEnvironment[key] = proxy;
-        ^currentEnvironment[key];
-    }
-
-    *sig {|id, func|
-        InstrProxyBuilder.sig.put(id, func);    
-    }
-
-    *fil {|id, func|
-        InstrProxyBuilder.fil.put(id, func);
-    }
-
-    *lfo {
-        if (mod.isNil) {
-            mod = Module('device/lfo').();
-        };
-        ^mod;
-    }
-
-    // TODO: deprecate
-    *smplr {
-        ^M('device/smplr')
     }
 
     *serverGui {

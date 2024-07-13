@@ -10,7 +10,7 @@ InstrProxyObserver {
     evaluate {|role, args|
 
         var myrole = role.asString;
-        if ( "^(sig)([0-9]*)$|^(fil)$|^(aeg)$|^(fx)([0-9]*)$|^(voices)$".matchRegexp(myrole) ) {
+        if ( "^(sig)([0-9]*)$|^(fil)([0-9]*)$|^(aeg)$|^(pit)$|^(voices)$".matchRegexp(myrole) ) {
 
             var module = args[0];
             var result, index = 0;
@@ -43,16 +43,18 @@ InstrProxyObserver {
                 }
             };
 
-            result = myrole.findRegexp("^fil$");
+            result = myrole.findRegexp("^(fil)([0-9]*)$");
             if (result.size > 0) {
+                index = if (result[2].size > 1) { result[2][1].asInteger };
+                index = 20 + index;
                 if (module.isNil) {
                     "removing filter".debug("InstrProxyObserver");
-                    synthdefmodule.removeAt(20)
+                    synthdefmodule.removeAt(index)
                 }{
                     if (module.isKindOf(Function)) {
                         module = Module(module)
                     };
-                    synthdefmodule.put(20, \fil -> module);  
+                    synthdefmodule.put(index, \fil -> module);  
                 }
             };
 
@@ -77,12 +79,14 @@ InstrProxyObserver {
                 synthdefmodule.set(\voices, module)
             };
 
+            /*
             result = myrole.findRegexp("^(fx)([0-9]*)$");
             if (result.size > 0) {
                 index = if (result[2].size > 1) { result[2][1].asInteger };
                 index = 20 + index;
+
                 if (module.isKindOf(Module)) {
-                    module = module.func;
+                    //module = module.func;
                 }{
                     if (module.isKindOf(Function)) {
                         //module = Module(module)
@@ -93,6 +97,7 @@ InstrProxyObserver {
                 };
                 proxy.node.fx(index, module);
             };
+            */
 
             ^true;
         } {
@@ -111,6 +116,7 @@ InstrProxyObserver {
 
 
 // InstrProxyBuilder {{{
+/*
 InstrProxyBuilder {
 
     classvar <fx;
@@ -255,3 +261,4 @@ InstrProxyBuilder {
     }
 }
 // }}}
+*/

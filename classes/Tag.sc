@@ -13,7 +13,7 @@ Tag {
 
         var list;
         var file;
-        var current = T.all();
+        var current = Tag.all;
 
         if (tags.isString) {
             tags = tags.asSymbol;

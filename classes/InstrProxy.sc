@@ -152,15 +152,29 @@ VstInstrProxy : InstrProxy {
 
     prInitSynth {|argSynth|
 
-        {
+        fork({
+
             var plugin;
             var args;
 
             args = argSynth.asString.split($/);
             plugin = args[0];
             if (args.size > 1){
+                var path, dir;
+                dir = PathName(thisProcess.nowExecutingPath).pathOnly;
                 vstpreset = args[1];
-                vstpreset = Module.libraryDir +/+ "preset" +/+ vstpreset;
+
+                path = dir ++ vstpreset;
+                if (File.exists(path).not) {
+                    path = Module.libraryDir +/+ "preset" +/+ vstpreset;
+                };
+
+                if (File.exists(path)) {
+                    vstpreset = path;
+                } {
+                    "preset does not exist: %".format(vstpreset).warn
+                }
+                
             };
             synthdef = SynthDescLib.global[\vsti].def;
 
@@ -184,7 +198,7 @@ VstInstrProxy : InstrProxy {
             // \params, [\Mix, \Depth, 1]
             this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin)
 
-        }.fork;
+        });
     }
 
     clear {
@@ -215,32 +229,114 @@ InstrProxy : EventPatternProxy {
     var <note, <msgFunc;
     var <key, <synthdefmodule;
     var specs;
-    var <ptrns, <groupprops;
-    var observer;
 
     *new {|key|
         ^super.new.prInit(key);
     }
 
     doesNotUnderstand {|selector ...args|
-        //[selector, args].debug("doesNotUnderstand");
-        var key = selector.asGetter;
-        if (observer.evaluate(key, args).not) {
-            this.set(key, args[0])
+
+        var key = selector.asGetter.asString;
+        var module = args[0];
+        var result, index = 0;
+
+        result = key.findRegexp("^(fx)([0-9]*)$");
+        if (result.size > 0) {
+            index = if (result[2].size > 1) { result[2][1].asInteger };
+            index = 20 + index;
+
+            if (module.isKindOf(Module)) {
+                //module = module.func;
+            }{
+                if (module.isKindOf(Function)) {
+                    //module = Module(module)
+                    // pass function
+                } {
+                    module = module.asSymbol;
+                }
+            };
+            this.fx(index, module);
         };
+
+        /*
+        if (observer.evaluate(key, args).not) {
+            //var updateSource = false;
+            // TODO: deprecate this probably
+            if (args[0].isKindOf(Pattern) or: {args[0].isKindOf(Routine)} ) {
+                this.set(key, nil);
+                patterns.put(key, args[0]);
+                updateSource = true;
+            } {
+                var val = args[0];
+                if (patterns[key].notNil) {
+                    patterns[key] = nil;
+                    updateSource = true;
+                };
+                this.set(key, val);
+            };
+            if (updateSource) {
+                this.source = Pbind(*patterns.asKeyValuePairs);
+            }
+        };
+        */
         ^this;
     }
 
-    @ {|val, adverb|
-        if (adverb.isNil and: val.isKindOf(Array)) {
-            this.set(*val);
+    // synth
+    s {|...args|
+        var observer = InstrProxyObserver(this);
+        args.flatten.keysValuesDo({|k, v|
+            observer.evaluate(k, [v])
+        })
+    }
+
+    // pattern
+    p {|...args|
+
+        if (args[0].isKindOf(Pattern)) {
+            this.source = args[0];
         } {
-            //if (val.isFunction) {
-            //    var key = "%_%_lfo".format(this.key, adverb).asSymbol.debug("lfo");
-            //    val = Ndef(key)[0] = val;
-            //};
-            this.set(adverb, val)
+            var a;
+            var vals = args;
+            if (vals[0].isArray) {
+                vals = vals[0]
+            };
+            vals.pairsDo({|k, v|
+                a = a.add(k).add(v);     
+            });
+            this.source = Pbind(*a);
         }
+
+        /*
+        if (args[0].isArray) {
+            var a;
+            var pattern = args[0];
+            pattern.pairsDo {|k,v|
+                a = a.add(k).add(v);
+            };
+            pattern = Pbind(*a);
+        } {
+            if args[0].isKindOf(Pattern) {
+                this.source = pattern;
+            } {
+                var a;
+                args.pairsDo {|k, v|
+                    a = a.add(k).add(v);    
+                }    
+            }
+        }
+            */
+        //if (adverb.notNil) {
+        //    num = adverb.asInteger;
+        //};
+        //this.ptrns.put(num, pattern);
+        //patterns.clear;
+        
+    }
+
+    // data
+    d {|...args|
+        this.set(*args)    
     }
 
     << {|pattern, adverb|
@@ -256,13 +352,16 @@ InstrProxy : EventPatternProxy {
             num = adverb.asInteger;
         };
         //this.ptrns.put(num, pattern);
+        //patterns.clear;
         this.source = pattern;
     }
 
     set {|...args|
 
         var evt, nodeprops=[], synthprops=[];
+        args = args.flatten;
         evt = args.asEvent;
+
         nodeprops = evt.use({ node.msgFunc.valueEnvir });
         synthprops = evt.use({ this.msgFunc.valueEnvir });
 
@@ -323,16 +422,6 @@ InstrProxy : EventPatternProxy {
         this.node.fx(index, fx, cb);
         ^this;
     }
-
-    // overriding methods defined in Pattern.sc
-    // these conflict when using the single arg syntax and doesNotUnderstand lookup
-    mtranspose {|v| super.set(\mtranspose, v) }
-	ctranspose {|v| super.set(\ctranspose, v) }
-	gtranspose {|v| super.set(\gtranspose, v) }
-	stretch {|v| super.set(\stretch, v) }
-	lag {|v| super.set(\lag, v) }
-	legato {|v| super.set(\legato, v) }
-	db {|v| super.set(\db, v) }
 
     play {|argClock, protoEvent, quant, doReset=false, fadeTime=0|
         if (fadeTime > 0) {
@@ -430,12 +519,13 @@ InstrProxy : EventPatternProxy {
         envir = this.envir.copy.parent_(nil);
         keys = envir.keys.asArray.sort;
 
-        node.fxchain.array.do({|obj, i|
+        node.fxchain.do({|obj, index|
             var prefix = "", fxname;
+            var i = index - 20;
             if (obj.type == \vst) { prefix = "vst:" };
             fxname = obj.name.asString.split($.)[0];
             fxname = fxname.select({|val| val.isAlphaNum}).toLower;
-            str = str ++ "~%.fx(%, '".format(this.key, 20 + i) ++ prefix ++ obj.name ++ "')";
+            str = str ++ "fx%: '".format(i) ++ prefix ++ obj.name ++ "'";
             if (obj.params.notNil) {
                 var names = obj.ctrl.info.parameters;
                 //str = str ++ "~%.fxchain[%].ctrl.set(*[".format(this.key, i);
@@ -445,17 +535,19 @@ InstrProxy : EventPatternProxy {
                 });
                 str = str ++ "]);\n";
             };
-            str = str + "\n\n";
+            str = str + "\n";
         });
 
-        str = str + "\n";
-        str = str ++ "(\n~%".format(this.key) + "\n";
+        //str = str + "\n";
+        //str = str ++ "(\n~%".format(this.key) + "\n";
         keys.do({|k|
             var v = envir[k];
-            var spec = this.getSpec(k);
+            var spec = this.getSpec[k];
             var default = if (spec.notNil) {spec.default}{nil};
+            //[default, v, k, spec.default].debug("equal");
             if (v != default and: {  [\instrument, \bufposreplyid, \buf].includes(k).not }) {
-                str = str ++ ("@." ++ k);
+                //str = str ++ ("@." ++ k);
+                str = str ++ k ++ ":";
                 str = str + v.asCode + "\n";
             }
         });
@@ -467,16 +559,13 @@ InstrProxy : EventPatternProxy {
             var spec = node.getSpec(k);
             var default = if (spec.notNil) {spec.default}{nil};
             if (v != default and: { [\i_out, \out, \fadeTime].includes(k).not } ) {
-                str = str ++ ("@." ++ k);
+                //str = str ++ ("@." ++ k);
+                str = str ++ k ++ ":";
                 str = str + v.asCode + "\n";
             }
         });
-        str = str ++ ")";
+        //str = str ++ ")";
         ^str;
-    }
-
-    post {
-        this.stringify.post;
     }
 
     clipboard {
@@ -514,10 +603,11 @@ InstrProxy : EventPatternProxy {
             */
             pattern,
             //pbindproxy,
-            Plazy({
+            //Plazy({
                 Pbind(
                     \out, Pfunc({node.bus.index}),
                     \group, Pfunc({node.group.nodeID}),
+                    /*
                     \phase, Prout({|inval|
                         inf.do({|i|
                             var len = inval['phaselen'] ?? {inf};
@@ -530,19 +620,20 @@ InstrProxy : EventPatternProxy {
                         var val = evt['dur'] ?? 1;
                         val.value
                     })
+                    */
                 )
-            })
+            //})
         );
 
-        super.source = Plazy({
-            instrument = instrument ?? {\default};
+        super.source = //Plazy({
             if (isMono) {
                 // not sure how to make composite event work with pmono
-                Pmono(instrument, \trig, 1) <> chain
+                Pmono(instrument) <> chain <> Pbind(\trig, 1)
+                //Pmonophonic() <> chain <> Pbind(\trig, 1)
             }{
                 chain
             }
-        })
+        //})
     }
 
     getSpec {
@@ -560,7 +651,7 @@ InstrProxy : EventPatternProxy {
 
     prInitSynth {|synthname|
 
-        instrument = synthname;
+        instrument = synthname ?? { \default };
         synthdef = SynthDescLib.global.at(instrument);
 
         if (synthdef.isNil) {
@@ -624,10 +715,10 @@ InstrProxy : EventPatternProxy {
         node = InstrNodeProxy("%/node".format(key).asSymbol);
 
         specs = ();
-        ptrns = Order();
+        //ptrns = Order();
+        //patterns = ();
         note = InstrProxyNotePlayer(this);
         synthdefmodule = SynthDefModule();
-        observer = InstrProxyObserver(this);
 
         // TODO would like to simplify this
         synthdefmodule.addDependant({|obj, what, vals|

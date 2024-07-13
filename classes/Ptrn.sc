@@ -1,7 +1,33 @@
-PIter {
+Pkey2 : Pattern {
+	var	<>key, <>default, <>repeats;
 
+	*new { |key, default, repeats|
+		^super.newCopyArgs(key, default, repeats)
+	}
 
+	storeArgs { ^[key, default, repeats] }
 
+	asStream {
+		var	keystream = key.asStream;
+		// avoid creating a routine
+		var stream = FuncStream({ |inevent|
+            inevent !? { 
+                var val = inevent[keystream.next(inevent)];
+                val ?? { default.value }
+            } 
+        });
+		^if(repeats.isNil) { stream } { stream.fin(repeats) }
+	}
+
+	embedInStream { |inval|
+		var outval, keystream = key.asStream;
+		(repeats.value(inval) ?? { inf }).do {
+			outval = inval[keystream.next(inval)];
+			if(outval.isNil) { ^inval };
+			inval = outval.yield;
+		};
+		^inval
+	}
 }
 
 PLfo {

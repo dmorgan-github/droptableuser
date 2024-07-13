@@ -6,8 +6,6 @@ B {
 
     classvar filetypes;
 
-    classvar <wtDirs;
-
     *new {arg key;
         ^all[key]
     }
@@ -56,8 +54,6 @@ B {
         ^result;
     }
 
-
-
     *toMono {|path, cb|
 
         /*
@@ -79,7 +75,6 @@ B {
             buf.loadToFloatArray(action:{|array|
                 Buffer.loadCollection(Server.default, array.unlace(2).sum * 0.5, action:{|mono|
                     mono.normalize;
-                    buf.free;
                     cb.(mono);
                 })
             })
@@ -179,15 +174,15 @@ B {
             var result;
             // check if it has already been loaded
             result = all[key]
-            .select({|buf| 
-                buf.path.asString.stripWhiteSpace.toLower.asSymbol == path.asString.stripWhiteSpace.toLower.asSymbol 
+            .select({|buf|
+                buf.path.asString.stripWhiteSpace.toLower.asSymbol == path.asString.stripWhiteSpace.toLower.asSymbol
             })
             .first;
 
             if (result.isNil) {
                 var file = SoundFile.openRead(path).close;
-                if ( file.numChannels < numchannels) { 
-                    channels = [0,0] 
+                if ( file.numChannels < numchannels) {
+                    channels = [0,0]
                 };
                 result = B.read(path, channels);
             };
@@ -195,6 +190,9 @@ B {
         };
 
         fork({
+
+            // TODO: load consecutive
+            var temp;
             var bufs = paths
             .select({|path|
                 filetypes.includes(PathName(path).extension.toLower.asSymbol)
@@ -209,7 +207,9 @@ B {
             });
 
             all[key] = bufs;
-            all[key].addSpec(\index, [0, bufs.size-1, \lin, 1, 0].asSpec);
+            temp = bufs.collect({|b| b.bufnum });
+            //all[key].addSpec(\index, [0, bufs.size-1, \lin, 1, 0].asSpec);
+            all[key].addSpec(\index, [temp.minItem, temp.maxItem, \lin, 1, temp.minItem].asSpec);
             def.value = all[key];
         });
 
@@ -238,7 +238,7 @@ B {
         key = key.asSymbol;
         path = path.standardizePath;
 
-        {
+        fork({
             var recurse;
             recurse = {|dirpath, folderName|
                 var pn = PathName.new(dirpath);
@@ -282,7 +282,7 @@ B {
             };
             recurse.(path, key.asString);
             "buffers loaded".debug(key);
-        }.fork;
+        });
     }
 
     *onsets {|buf, metric=9, threshold=(0.1)|
@@ -305,7 +305,7 @@ B {
     // split a buffer containing multiple wavetables
     // into consequtive buffers
     *splitwt {|key, path, wtsize=2048|
-        
+
         var buf, result = Deferred();
 
         fork({
@@ -333,46 +333,44 @@ B {
         })
 
         ^result;
-
-        /*
-        B.read(path, [0], cb: {|buf|
-            buf.loadToFloatArray(action:{|array|
-                var size = (array.size/wtsize).asInteger;
-                var bufs = Buffer.allocConsecutive(size, Server.default, wtsize * 2, 1);
-                size.do({|i|
-                    var def = Deferred();
-                    var start = (i * wtsize).asInteger;
-                    var end = (start+wtsize-1).asInteger;
-                    var wt = array[start..end];
-                    var buf = bufs[i];
-                    wt = wt.as(Signal).asWavetable;
-                    buf.loadCollection(wt, action:{ def.value = \done });
-                    def.wait;
-                });
-                all.put(key, bufs);
-                result.value = all[key]
-            });
-        });
-        */
-        /*
-        B.read(path, [0], cb: {|buf|
-            buf.loadToFloatArray(action:{|array|
-                var size = (array.size/wtsize).asInteger;
-                var bufs = Buffer.allocConsecutive(size, Server.default, wtsize * 2, 1);
-                size.do({|i|
-                    var start = (i * wtsize).asInteger;
-                    var end = (start+wtsize-1).asInteger;
-                    var wt = array[start..end];
-                    var buf = bufs[i];
-                    wt = wt.as(Signal).asWavetable;
-                    buf.loadCollection(wt);
-                });
-                all.put(key, bufs)
-            });
-        })
-        */
     }
 
+    *combineWtDir {|path, dest, samplesize=2048|
+
+        var paths, file, data, outFile;
+        var signal = Signal.newClear(0);
+        paths = "%/*.wav".format(path).pathMatch;//.debug("path");
+    
+        Routine({
+            paths.do {|path, i|
+                path.debug("combineDir");
+                file = SoundFile.openRead(path);
+                data = Signal.newClear(file.numFrames);
+                file.readData(data);
+                0.1.wait;
+                signal = signal.addAll(data.resamp1(samplesize).as(Signal));
+            };
+    
+            outFile = SoundFile(dest)
+            .headerFormat_("WAV")
+            .sampleFormat_("float")
+            .numChannels_(1)
+            .sampleRate_(48000);
+    
+            if(outFile.openWrite.notNil) {
+                outFile.writeData(signal);
+                0.1.wait;
+            } {
+                "Couldn't write output file".warn;
+            };
+
+            \done.debug(dest);
+    
+        }).play
+    }
+
+    
+    // prefer combining separate wt into one buf and use the oversampled oscillators wt ugen
     *loadwt {|key, path|
 
         var obj = Order();
@@ -439,9 +437,8 @@ B {
         }).play
     }
 
-    *conv {|path|
-
-        var fftsize = 2048;
+    *conv {|key, path, fftsize=2048|
+        
         var spectrums = List.new;
         Buffer.read(Server.default, path, action:{arg buf;
             var numChannels = buf.numChannels;
@@ -455,12 +452,11 @@ B {
             });
         });
 
-        ^spectrums;
+        all[key] = spectrums;
     }
 
     *initClass {
         all = IdentityDictionary();
-        wtDirs = IdentityDictionary();
         filetypes = [\wav, \aif, \aiff];
     }
 }

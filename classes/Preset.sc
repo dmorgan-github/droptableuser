@@ -9,6 +9,7 @@ Preset {
     *addCurrent {|node, num|
         var vals = Preset.getCurrentVals(node);
         var presets = Preset.getPresets(node);
+        num.debug("Preset.addCurrent");
         vals['bufposreplyid'] = nil;
         vals['amp'] = nil;
         presets.put(num, vals);
@@ -77,7 +78,17 @@ Preset {
             numsteps.do({|i|
                 var blend = 1+i/numsteps;
                 var result = curr.blend(target, blend);
-                node.set(*result.getPairs);
+                var pairs = List();
+                result.getPairs.keysValuesDo({|k,v|
+                    var val;
+                    var spec = node.getSpec[k];
+                    if (spec.isNil) {
+                        spec = [0, 1, \lin, 0, 0].asSpec;
+                    };
+                    val = v.round(spec.step);
+                    pairs.add(k).add(val)
+                });
+                node.set(*pairs.as(Array));
                 ev[\dt].wait;
             });
         })

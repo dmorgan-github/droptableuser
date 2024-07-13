@@ -1,3 +1,54 @@
++ Fdef {
+    update {|obj, what ... args| this.value(obj, what, *args) }
+}
+
++ M {
+
+    // shortcuts
+    *def {|func|
+        ^Module(func)    
+    }
+
+    // synths
+    *squine { ^Module('synth/squine') }
+    *sampler { ^Module('synth/sampler') }
+    *grainr { ^Module('synth/grainr') }
+    *rings { ^Module('synth/rings') }
+    *elements { ^Module('synth/elements') }
+    *analog { ^Module('synth/pulsesaw') }
+    *kick { ^Module('synth/kick2') }
+    *wt { ^Module('synth/oscos') }
+
+    // filters
+    *moogff { ^Module('filter/moogff') }
+    *lpf12db { ^Module('filter/lpf12db') }
+    *lpf24db { ^Module('filter/lpf24db') }
+    *lpg { ^Module('filter/lpg') }
+
+    // fx
+    *rev { ^Module('fx/reverb/miverb') }
+    *del { ^Module('fx/delay/fb') }
+    *longdel { ^Module('fx/delay/fb_long') }
+    *crush { ^Module('fx/distortion/crush') }
+    *softclip { ^Module('fx/distortion/softclip') }
+    *distortion { ^M('fx/distortion/analogtape')}
+    *eq { ^Module('fx/eq/beq') }
+    //*eq { ^M.vst('MEqualizer.vst3') }
+    *compress { ^M('fx/dynamics/compress') }
+
+    *pitchshift { ^Module('fx/granular/pitchshift') }
+    *vst {|id| ^"vst:%".format(id).asSymbol }
+
+    // aeg
+    *adsr { ^Module('env/adsr') }
+    *asr { ^Module('env/asr') }
+    *perc { ^Module('env/perc') }
+    *linen { ^Module('env/linen') }
+    *none { ^Module('env/none') }
+
+    // pitch
+    *unison { ^Module('pitch/unison') }
+}
 
 + SimpleNumber {
 
@@ -9,10 +60,6 @@
         track.put(num, instr, *args);
         //track[num].synthdefmodule.set(*args)
         ^track[num];
-    }
-
-    @@ {|val, adverb|
-        [this, val, adverb].postln;    
     }
 }
 
@@ -75,6 +122,22 @@
         inf.do({
             node.get(key).yield
         })    
+    }
+
+    idx {|list, index|
+        ^Prout({|inval|
+            var listStream = list.asStream;
+            var indexStream = index.asStream;
+            inf.do({|i|
+                var myindex = indexStream.next(inval);
+                var mylist = listStream.next(inval);
+                var val = \;
+                if (myindex.isRest.not) {
+                    val = mylist.wrapAt(myindex)
+                };
+                inval = val.embedInStream(inval);            
+            })
+        })
     }
 }
 
@@ -164,6 +227,18 @@
     gui {
         UiModule('bufinfo').gui(this)
     }
+
+    play {|loop = false, mul = 1|
+        //if(bufnum.isNil) { Error("Cannot play a % that has been freed".format(this.class.name)).throw };
+        //var numChannels = buf.numChannels.debug("numChannels");
+        var outbus = 4; Server.default.options.numInputBusChannels.debug("wtf");
+        ^{|player|
+            player = PlayBuf.ar(numChannels, bufnum, BufRateScale.kr(bufnum),
+                loop: loop.binaryValue);
+            if(loop.not, FreeSelfWhenDone.kr(player));
+            player * mul;
+        }.play(Server.default, outbus: outbus)
+    }
 }
 
 + SequenceableCollection {
@@ -172,30 +247,6 @@
     l {|o=0|
         ^Place2(this, inf, offset:o)
     }
-
-    // non embedding sequencer
-    /*
-    q {|...vals|
-        ^Routine({
-            inf.do({
-                var myvals = this ++ vals;
-                myvals.do({|v|
-                    v.value.yield;
-                })
-            })
-        })   
-    }
-    */
-
-    /*
-    c {
-        ^Routine({
-            inf.do({
-                this.choose.value.yield
-            })
-        })    
-    }
-    */
 
     pseq {arg repeats=inf, offset=0; ^Pseq(this, repeats, offset) }
     prand {arg repeats=inf; ^Prand(this, repeats) }
@@ -222,8 +273,6 @@
 
         ^Ptpar(vals.flatten, repeats)
     }
-
-    pdef {|key| ^Pdef(key, this) }
 
     pa {
         var a;
@@ -256,13 +305,6 @@
 }
 
 + Pattern {
-
-    /*
-    // euclid
-    e {|n, o=0|
-        ^Pbjorklund2(this, n, offset:o)    
-    }
-    */
 
     limit {arg num; ^Pfin(num, this.iter) }
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
@@ -356,6 +398,18 @@
 
     pdv {|repeats=inf|
         ^Pdv.parse(this, repeats)
+    }
+
+    dig {
+        ^this
+        .replace(Char.space, "")
+        .collectAs({|l| 
+            if (l == $.) { 
+                \
+            } {
+                l.digit;
+            } 
+        }, Array);
     }
 }
 

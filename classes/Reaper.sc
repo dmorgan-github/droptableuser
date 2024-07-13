@@ -58,6 +58,14 @@ Reaper {
         Reaper.action(40078);
     }
 
+    *goToEnd {
+        Reaper.action(40043);
+    }
+
+    *goToStart {
+        Reaper.action(40042);
+    }
+
     *media {
         Reaper.action(50124);
     }
