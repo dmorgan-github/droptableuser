@@ -20,7 +20,7 @@
     *wt { ^Module('synth/oscos') }
 
     // filters
-    *moogff { ^Module('filter/moogff') }
+    *moog { ^Module('filter/moogff') }
     *lpf12db { ^Module('filter/lpf12db') }
     *lpf24db { ^Module('filter/lpf24db') }
     *lpg { ^Module('filter/lpg') }

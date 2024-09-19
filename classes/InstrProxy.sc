@@ -15,9 +15,44 @@ x filterable with vst fx
 MidiInstrProxy : InstrProxy {
 
     var <notechan=0, <returnbus=0, <midiout;
+    var <>ctlNumMapping;
 
     *new {|device, chan|
         ^super.new().prInitMidiSynth(device, chan);
+    }
+
+    @ {|val, adverb|
+        this.set(adverb, val)
+    }
+
+    set {|...args|
+        var ctlNum;
+
+        if (args[0].isArray) {
+            args = args.flatten;
+        };
+
+        args.pairsDo({|k, v|
+            //super.set(k, v);
+            this.envir.put(k, v);
+            if (this.ctlNumMapping.notNil ) {
+                ctlNum = this.ctlNumMapping[k];
+                if (ctlNum.notNil ) {
+                    this.midiout.control(0, ctlNum: ctlNum, val: v)
+                }; 
+            }
+        }); 
+
+        this.changed(\set, args);
+    }
+
+    returnbus_ {|val|
+        val = val.asArray;
+        this.node.put(0, {
+            var l = val.wrapAt(0);
+            var r = val.wrapAt(1);
+            SoundIn.ar([l, r])
+        });
     }
 
     source_ {|pattern|
@@ -29,8 +64,23 @@ MidiInstrProxy : InstrProxy {
        super.source = pattern;
     }
 
-    instrument_ {
-        "Not Implemented".throw
+    instrument_ {|val|
+        var path = "synth/%".format(val.toLower);
+        if (M.exists(path)) {
+
+            var module = M(path);
+            if (module.notNil) {
+                var mapping = module.value;
+                ctlNumMapping = mapping;
+                ctlNumMapping.keysValuesDo({|k, v|
+                    var spec = ControlSpec(0, 127, \lin, 1, 0);
+                    this.addSpec(k, spec);
+                    this.envir.put(k, 0);
+                });
+            }
+        } {
+            "module does not exist: %".format(path).inform
+        }
     }
 
     on {|note, vel=1|
@@ -42,26 +92,8 @@ MidiInstrProxy : InstrProxy {
     }
 
     prInitMidiSynth {|device notechan|
-
-        //var args;// = argSynth.asString.split($:);
-
-        // TODO: refactor
-        //midiout = MIDIOut.newByName("IAC Driver", "Bus 1");
-        //midiout.connect;
-
-        //args = argSynth.asString.split($,);
-        //notechan = args[0].asInteger;
-        //returnbus = args[1].asInteger;
-
-        /*
-        this.node.put(0, {
-            var l = returnbus;
-            var r = returnbus+1;
-            SoundIn.ar([l, r])
-        });
-        this.out = InstrNodeProxy.defaultout + returnbus;
-        */
-
+        this.envir = ();
+        //this.ctlNumMapping = ();
         MidiCtrl.connect(device, cb:{|obj|
             midiout = obj.out;
             this.set('type', 'midi', 'midicmd', 'noteOn', 'midiout', midiout, 'chan', notechan)
@@ -102,7 +134,7 @@ VstInstrProxy : InstrProxy {
         vstplugin.editor;
     }
 
-    on {|note, vel=127|
+    on {|note, vel=127, extra|
         vstplugin.midi.noteOn(0, note, vel)
     }
 
@@ -229,116 +261,81 @@ InstrProxy : EventPatternProxy {
     var <note, <msgFunc;
     var <key, <synthdefmodule;
     var specs;
+    var <lfos;
+    var defaultProtoEvent;
 
     *new {|key|
         ^super.new.prInit(key);
     }
 
-    doesNotUnderstand {|selector ...args|
+    // synth
+    <+ {|val|
 
-        var key = selector.asGetter.asString;
-        var module = args[0];
-        var result, index = 0;
+        //var observer = InstrProxyObserver(this);        
+        //val.keysValuesDo({|k, v|
+        //    observer.evaluate(k, [v])
+        //});
 
-        result = key.findRegexp("^(fx)([0-9]*)$");
-        if (result.size > 0) {
-            index = if (result[2].size > 1) { result[2][1].asInteger };
-            index = 20 + index;
+        synthdefmodule.evaluate(val);
 
-            if (module.isKindOf(Module)) {
-                //module = module.func;
-            }{
-                if (module.isKindOf(Function)) {
-                    //module = Module(module)
-                    // pass function
-                } {
-                    module = module.asSymbol;
-                }
-            };
-            this.fx(index, module);
+        fork {
+            synthdefmodule.add(key);
+            Server.default.sync;
+            // re-initialize the synth
+            msgFunc = SynthDescLib.global[key].msgFunc;
+            this.instrument = key;
+            this.metadata.putAll(synthdefmodule.metadata);
         };
-
-        /*
-        if (observer.evaluate(key, args).not) {
-            //var updateSource = false;
-            // TODO: deprecate this probably
-            if (args[0].isKindOf(Pattern) or: {args[0].isKindOf(Routine)} ) {
-                this.set(key, nil);
-                patterns.put(key, args[0]);
-                updateSource = true;
-            } {
-                var val = args[0];
-                if (patterns[key].notNil) {
-                    patterns[key] = nil;
-                    updateSource = true;
-                };
-                this.set(key, val);
-            };
-            if (updateSource) {
-                this.source = Pbind(*patterns.asKeyValuePairs);
-            }
-        };
-        */
-        ^this;
     }
 
-    // synth
-    s {|...args|
-        var observer = InstrProxyObserver(this);
-        args.flatten.keysValuesDo({|k, v|
-            observer.evaluate(k, [v])
-        })
+    // fx inserts
+    +> {|val, adverb|
+
+        var offset = 20;
+        if (adverb.notNil) {
+            var index = offset + adverb.asInteger;
+            this.fx(index, val); 
+        }{
+            if (val.isArray) {
+                val.do({|v, i|
+                    var index = offset + i;
+                    this.fx(index, v);    
+                })    
+            }{
+                this.fx(offset, val); 
+            }
+        }
+    }
+
+    // props
+    @ {|val, adverb|
+        if (adverb.isNil and: val.isKindOf(Array)) {
+            this.set(*val);
+        } {
+            this.set(adverb, val)
+        }
+    }
+
+    // set fx props
+    // TODO: not sure about this
+    % {|val, adverb|
+
+        if (val.isKindOf(Lfo)) {
+            var mykey = "%_%_lfo".format(this.key, adverb).asSymbol;
+            var nodes = val.value(mykey).first;
+            lfos.put(mykey, nodes);
+            this.node.set(adverb, nodes);
+            {
+                nodes.do({|n|
+                    n.parentGroup = this.node.group    
+                });
+            }.defer(5)
+        } {
+            this.node.set(adverb, val);    
+        }
     }
 
     // pattern
-    p {|...args|
-
-        if (args[0].isKindOf(Pattern)) {
-            this.source = args[0];
-        } {
-            var a;
-            var vals = args;
-            if (vals[0].isArray) {
-                vals = vals[0]
-            };
-            vals.pairsDo({|k, v|
-                a = a.add(k).add(v);     
-            });
-            this.source = Pbind(*a);
-        }
-
-        /*
-        if (args[0].isArray) {
-            var a;
-            var pattern = args[0];
-            pattern.pairsDo {|k,v|
-                a = a.add(k).add(v);
-            };
-            pattern = Pbind(*a);
-        } {
-            if args[0].isKindOf(Pattern) {
-                this.source = pattern;
-            } {
-                var a;
-                args.pairsDo {|k, v|
-                    a = a.add(k).add(v);    
-                }    
-            }
-        }
-            */
-        //if (adverb.notNil) {
-        //    num = adverb.asInteger;
-        //};
-        //this.ptrns.put(num, pattern);
-        //patterns.clear;
-        
-    }
-
-    // data
-    d {|...args|
-        this.set(*args)    
-    }
-
     << {|pattern, adverb|
         var num = 0;
         if (pattern.isArray) {
@@ -348,20 +345,38 @@ InstrProxy : EventPatternProxy {
             };
             pattern = Pbind(*a);
         };
-        if (adverb.notNil) {
-            num = adverb.asInteger;
-        };
+        //if (adverb.notNil) {
+        //    num = adverb.asInteger;
+        //};
         //this.ptrns.put(num, pattern);
         //patterns.clear;
         this.source = pattern;
     }
 
+    proto {
+        ^defaultProtoEvent;
+    }
+
+    proto_ {|val|
+        defaultProtoEvent = val.debug("InstrProxy:proto");
+        super.set(\proto, val);
+    }
+
     set {|...args|
 
         var evt, nodeprops=[], synthprops=[];
-        args = args.flatten;
-        evt = args.asEvent;
 
+        // does this impact performance?
+        if (args[0].isArray) {
+            args = args.flatten;
+        };
+
+        if (args[0].isKindOf(Environment)) {
+            evt = args[0];
+        }{
+            evt = args.asEvent;
+        };
+        
         nodeprops = evt.use({ node.msgFunc.valueEnvir });
         synthprops = evt.use({ this.msgFunc.valueEnvir });
 
@@ -385,7 +400,7 @@ InstrProxy : EventPatternProxy {
             var val = Array.new(synthprops.size);
             synthprops.keysValuesDo({|k, v|
                 if (v.isNumber.or(v.isArray).or(v.isKindOf(NodeProxy))) {
-                    val.add(k.asSymbol).add(v);
+                    val = val.add(k.asSymbol).add(v);
                 } {
                     if (v.isNil) {
                         //node.group.set(k, nil)
@@ -400,7 +415,21 @@ InstrProxy : EventPatternProxy {
         };
 
         args.pairsDo({|k, v|
-            super.set(k, v);
+            // TODO: find a better way to do this
+            if (v.isKindOf(Lfo)) {
+                var mykey = "%_%_lfo".format(this.key, k).asSymbol;
+                var nodes = v.value(mykey);
+                lfos.put(mykey, nodes);
+
+                super.set(k, nodes);
+                {
+                    nodes.do({|n|
+                        n.parentGroup = this.node.group    
+                    });
+                }.defer(5)
+            }{
+                super.set(k, v);
+            }
         });
     }
 
@@ -408,13 +437,15 @@ InstrProxy : EventPatternProxy {
         this.prInitSynth(name);
     }
 
-    on {|midinote=60, vel=127, extra, debug=false|
-        note.on(midinote, vel, extra, debug);
+    on {|midinote=60, vel=127, extra|
+        note.on(midinote, vel, extra);
+        this.changed(\noteOn, [midinote, vel, extra]);
         ^this;
     }
 
     off {|midinote=60|
         note.off(midinote);
+        this.changed(\noteOff, [midinote]);
         ^this;
     }
 
@@ -433,7 +464,8 @@ InstrProxy : EventPatternProxy {
                 node.play;
             };
         };
-        super.play(argClock, protoEvent, quant, doReset)  ;
+        if (protoEvent.isNil) { protoEvent = defaultProtoEvent};
+        super.play(argClock, protoEvent:protoEvent, quant:quant, doReset:doReset)  ;
     }
 
     stop {|fadeTime=0|
@@ -491,7 +523,7 @@ InstrProxy : EventPatternProxy {
     }
 
     out {
-        ^this.node.monitor.out
+        ^this.node.out
     }
 
     out_ {|bus=0|
@@ -501,7 +533,7 @@ InstrProxy : EventPatternProxy {
     view {|cmds|
         // TODO: using topenvironment as a sort of cache
         //cmds = cmds ?? { "[(freq fx) props]" };
-        ^UiModule('instr').envir_(topEnvironment).view(this, nil, cmds);
+        ^UiModule('instr2').envir_(topEnvironment).view(this, nil, cmds);
     }
 
     gui {|cmds|
@@ -575,65 +607,16 @@ InstrProxy : EventPatternProxy {
     }
 
     source_ {|pattern|
-
         var chain;
-        pattern = pattern ?? {Pbind()};
+        pattern = pattern ?? { Pbind() };
         chain = Pchain(
-            /*
-            Pbind(
-                \node_set, Pfunc({|evt|
-                    if (evt.isRest) {
-                        // no-op
-                    } {
-                        var args = evt.use({
-                            node.msgFunc.valueEnvir;
-                        });
-                        if (evt[\node_set_debug].notNil) {
-                            args.postln;
-                        };
-                        if (args.size > 0) {
-                            Server.default.bind({
-                                node.set(*args)
-                            })
-                        };
-                    };
-                    1
-                })
-            ),
-            */
             pattern,
-            //pbindproxy,
-            //Plazy({
-                Pbind(
-                    \out, Pfunc({node.bus.index}),
-                    \group, Pfunc({node.group.nodeID}),
-                    /*
-                    \phase, Prout({|inval|
-                        inf.do({|i|
-                            var len = inval['phaselen'] ?? {inf};
-                            var offset = inval['phaseoffset'] ?? {0};
-                            var phase = i.mod(len) + offset;
-                            inval = phase.embedInStream(inval);
-                        })
-                    }),
-                    \dur, Pfunc({|evt|
-                        var val = evt['dur'] ?? 1;
-                        val.value
-                    })
-                    */
-                )
-            //})
+            Pbind(
+                \out, Pfunc({node.bus.index}),
+                \group, Pfunc({node.group.nodeID}),
+            )
         );
-
-        super.source = //Plazy({
-            if (isMono) {
-                // not sure how to make composite event work with pmono
-                Pmono(instrument) <> chain <> Pbind(\trig, 1)
-                //Pmonophonic() <> chain <> Pbind(\trig, 1)
-            }{
-                chain
-            }
-        //})
+        super.source = if (isMono) { Pmono(instrument) <> chain <> Pbind(\trig, 1) }{ chain }
     }
 
     getSpec {
@@ -661,7 +644,7 @@ InstrProxy : EventPatternProxy {
             synthdef
             .controls.reject({|cn|
                 [\freq, \pitch, \trigger, \trig,
-                    \in, \buf, \gate, \glis,
+                    \in, \buf, \gate, \glide,
                     \bend, \out, \vel].includes(cn.name.asSymbol)
             }).do({|cn|
                 var key = cn.name.asSymbol;
@@ -678,6 +661,7 @@ InstrProxy : EventPatternProxy {
                 })
             };
 
+            this.isMono = false;
             if (metadata['voices'] == \mono) {
                 this.isMono = true;
             };
@@ -699,8 +683,7 @@ InstrProxy : EventPatternProxy {
 
     prInit {|argKey|
 
-        var synthfunc, me = this;
-        //keyval = "instr%".format(count).asSymbol;
+        var synthfunc;
         key = argKey;
         if (key.isNil) {
             key = "instr%".format(count).asSymbol;
@@ -715,24 +698,11 @@ InstrProxy : EventPatternProxy {
         node = InstrNodeProxy("%/node".format(key).asSymbol);
 
         specs = ();
+        lfos = Dictionary();
         //ptrns = Order();
         //patterns = ();
         note = InstrProxyNotePlayer(this);
         synthdefmodule = SynthDefModule();
-
-        // TODO would like to simplify this
-        synthdefmodule.addDependant({|obj, what, vals|
-            //[obj, what, vals].postln;
-
-            fork {
-                obj.add(key);
-                Server.default.sync;
-                // re-initialize the synth
-                msgFunc = SynthDescLib.global[key].msgFunc;
-                me.instrument = key;
-                me.metadata.putAll(obj.metadata);
-            };
-        });
 
         nodewatcherfunc = {|obj, what|
             if ((what == \play) or: (what == \stop)) {

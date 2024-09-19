@@ -8,6 +8,7 @@ MidiCtrl {
         ^super.new.prInit();
     }
 
+    /*
     bend {|key, chan=0, func, bendmid=8191, bendmin=(-12), bendmax=12|
         var bendkey = "%_bend".format(key).asSymbol.debug("bend");
         var srcId = this.src.uid.debug("src uid");
@@ -17,7 +18,9 @@ MidiCtrl {
         }, chan:chan, srcID: srcId)
         .fix
     }
+    */
 
+    /*
     // node needs to be an obj with on/off methods
     note {|key, chan=0, node, note|
 
@@ -40,7 +43,9 @@ MidiCtrl {
         }, noteNum:note, chan:chan, srcID: srcId)
         .fix;
     }
+    */
 
+    /*
     // node needs to be an obj with get/set methods
     // obj should have getSpec
     // assoc =  'prop' -> <ccnum>
@@ -104,7 +109,9 @@ MidiCtrl {
             }
         });
     }
+    */
 
+    /*
     free {|key|
         var noteonkey = "%_noteon".format(key).asSymbol;
         var noteoffkey = "%_noteoff".format(key).asSymbol;
@@ -112,11 +119,13 @@ MidiCtrl {
         var cckey = "%_cc".format(key).asSymbol;
         [noteonkey, noteoffkey, bendkey, cckey].do({|mykey| MIDIdef(mykey).permanent_(false).free });
     }
+    */
 
     freeAll {
         MIDIdef.freeAll;
     }
 
+    /*
     *connect {|device, name, cb|
 
         var def = Deferred();
@@ -189,6 +198,16 @@ MidiCtrl {
         });
 
         ^ctrl;
+    }
+    */
+
+    *ls {
+        fork({
+            MIDIClient.list;
+            0.5.wait;
+            MIDIClient.sources.debug("sources");
+            MIDIClient.destinations.debug("destinations");
+        })
     }
 
     *trace {arg enable=true;

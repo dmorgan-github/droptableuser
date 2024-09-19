@@ -14,8 +14,7 @@ InstrTrack {
     classvar <tracks;
     classvar <parentEvent;
     classvar <>daw;
-
-    var smplrModule;
+    classvar <>proto;
 
     at {|index|
         ^tracks[index]    
@@ -34,71 +33,46 @@ InstrTrack {
                     proxy.out = key;
                 },
                 { myval.beginsWith("midi:") }, {
-                    var parts, device, chan;
+                    var parts, device, chan = 0;
                     myval = myval[5..];
                     parts = myval.split($/);
                     device = parts[0];
-                    chan = parts[1].asInteger;
+                    if (parts.size > 1) {
+                        chan = parts[1].asInteger;
+                    };
                     [key, device, chan].debug("midi");
                     proxy = MidiInstrProxy(device, chan);//.key_(key);
+                    proxy.instrument = device;
                     proxy.out = key;
-                },
-                { myval.beginsWith("input") }, {
-                    proxy = InstrNodeProxy(key);
-                    proxy[0] = { SoundIn.ar([0, 1]) * \amp.kr(1) };
-                    proxy.out = key;
-                },
-                { myval.beginsWith("node") }, {
-                    proxy = InstrNodeProxy(key);
-                    proxy.out = key;
-                },
-                {
-                    var path = "device/%".format(val).asSymbol;
-                    var m = M(path);
-                    proxy = m.(index, *args);
                 }
             )
         }{
             proxy = tracks[index];
             if (proxy.isNil) {
-                // if val is a function
-
                 proxy = InstrProxy(key);
                 proxy.out = key;
-                /*
-                if (val.isKindOf(Function)) {
-                    var builder, result;
-                    builder = InstrProxyBuilder(proxy, key);
-                    result = val.value(builder);
-                    result.proxy.out = key;
-                    proxy = result.proxy;
-                    if (args.notNil) {
-                        proxy.synthdefmodule.set(*args);
-                    };
-                } {
-                    proxy = InstrNodeProxy(key);
-                }
-                */
             }
         };
 
-        /*
-        this will keep getting added as a new func
-        proxy.addDependant({|obj, what|
-            if (what == \clear) {
-                tracks.removeAt(index)
-            }
-        });
-        */
-
-        tracks.put(index, proxy);
+        if (tracks[index].isNil) {
+            proxy.proto = proto;
+            tracks.put(index, proxy);
+            T.changed(\trackadded, [index, proxy]);
+        }
         ^proxy
     }
 
+    *gui {
+        UiModule("workspace").gui
+    }
+
+    /*
     *serverGui {
         Server.default.makeGui
     }
+    */
 
+    /*
     // TODO: not entirely sure about this
     *parentEvent_ {|evt|
         parentEvent = evt.debug("parentEvent");
@@ -107,13 +81,14 @@ InstrTrack {
         Event.addParentType(\monoSet, parentEvent);
         //Event.addParentType(\vst_midi, parentEvent);
 
-        /*
+        / *
         Event.addParentType(\note, (root:0, scale:#[ 0, 2, 5, 7, 9 ], stepsPerOctave: 12));
         g = EnvirGui.new((root:0, scale:#[ 0, 2, 5, 7, 9 ], stepsPerOctave: 9), numItems:8);
         g.putSpec(\stepsPerOctave, [1, 128, \lin, 1, 12]);
         g.putSpec(\root, [-12, 12, \lin, 1, 0]);
-        */
+        * /
     }
+    */
 
     *tempo_ {|tempo|
         TempoClock.default.tempo = tempo.debug("tempo");
@@ -133,6 +108,10 @@ InstrTrack {
     *initClass {
         tracks = Order();
         daw = \Reaper.asClass;
+
+        StartUp.add({
+            proto = Event.default;
+        });
     }
 }
 

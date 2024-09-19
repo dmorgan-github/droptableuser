@@ -1,4 +1,50 @@
+
 Lfo {
+
+    var <funcs;
+
+    *new {
+        ^super.new.init
+    }
+
+    sine  {|val=0.5, depth=0, rate=1|
+        var settings = [val, depth, rate].flop;
+        funcs = settings.collect({|val, i|
+            var v = val[0];
+            var d = val[1];
+            var r = val[2];
+            {
+                var sig;
+                var prefix = ~key ?? 'lfo';
+                var valctlr = NamedControl("%_val".format(prefix).asSymbol, v, 0.1 );
+                var depthctrl = NamedControl( "%_depth".format(prefix).asSymbol, d, 0.1 );
+                var ratectrl = NamedControl( "%_rate".format(prefix).asSymbol, r, 0.1 );
+                sig = valctlr * ( depthctrl.linlin(0, 1, 1, 2) ** SinOsc.kr(ratectrl));
+                sig//.poll
+            }
+        });
+    }
+
+    value {|key|
+        ^funcs.collect({|func, i|
+            var mykey = "%%".format(key, i).asSymbol;
+            func = func.inEnvir( (key: mykey) );
+            Ndef(mykey, func)
+        })    
+    }
+
+    *sine  {|val=0.5, depth=0, rate=1, poll=0|
+        ^Lfo().sine(val, depth, rate)
+    }
+
+    init {
+        ^this
+    }
+
+}
+
+/*
+LfoDef {
 
     classvar <order;
 
@@ -6,13 +52,17 @@ Lfo {
         ^super.new.init
     }
 
+    *sine  {|key, val=0.5, depth=0, rate=1, poll=0|
+        LfoDef().sine(val=0.5, depth=0, rate=1)
+    }
+
     put {|index, val|
         var node = order[index];
         if (node.isNil) {
             node = NodeProxy();
             order.put(index, node);
-            node.source = val;
         };
+        node[0] = val;
     }
 
     at {|index|
@@ -28,3 +78,4 @@ Lfo {
     }
 
 }
+*/

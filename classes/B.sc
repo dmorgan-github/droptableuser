@@ -18,6 +18,7 @@ B {
         ^res;
     }
 
+    // TODO: doesn't really ensure path exists
     *prEnsurePath {|path|
         if (File.exists(path).not) {
             var pn = PathName(thisProcess.nowExecutingPath);// +/+ path)
@@ -25,6 +26,37 @@ B {
             //path = Document.current.dir +/+ path;
         };
         ^path;//.debug("prEnsurePath");
+    }
+
+    *pv {|key, path|
+
+        var file, channels;
+        var fftsize = 8192, hop = 0.25, win = 0;
+        path = B.prEnsurePath(path);
+        file = SoundFile.openRead(path.debug("path")).close;
+        channels = if (file.numChannels.debug('numchannels') < 2) { [0,0] }{ [0, 1] };
+
+        fork({
+            var buf, result, f;
+            result = B.read(path, channels);
+            result.wait();
+            buf = result.value;
+            f = { Buffer.alloc(Server.default(), buf.duration.calcPVRecSize(fftsize, hop)) } ! 2;
+
+            "buf % recording fft...".format(key).inform;
+            { 
+                var sig, chain, localbuf; 
+                sig = PlayBuf.ar(2, buf, BufRateScale.kr(buf), doneAction: 2); 
+                localbuf = { LocalBuf.new(fftsize) } ! 2; 
+                chain = FFT(localbuf, sig, hop, win); 
+                chain = PV_RecordBuf(chain, f, run: 1, hop: hop, wintype: win); 
+                0; 
+            }.play.onFree({ 
+                "buf % ready".format(key).inform;
+                buf.free;
+                all.put(key, f);
+            })
+        })
     }
 
     *inspect {|path|
@@ -80,24 +112,29 @@ B {
             })
         }{
             path = B.prEnsurePath(path);
-            file = SoundFile.openRead(path).close;
-            if (file.numChannels == 2) {
-                Buffer.read(Server.default, path, action:{|buf|
-                    buf.loadToFloatArray(action:{|array|
-                        /*
-                        https://scsynth.org/t/load-stereo-file-to-mono-buffer/5043/2
-                        Replace the 0.5 constant with -3.dbamp (≈ 1/sqrt(2) ≈ 0.707) for uncorrelated signals.
-                        */
-                        Buffer.loadCollection(Server.default, array.unlace(2).sum * 0.5, action:{|mono|
-                            mono.normalize;
-                            buf.free;
-                            cb.(mono);
+            file = SoundFile.openRead(path);
+            if (file.notNil) {
+                file.close;
+                if (file.numChannels == 2) {
+                    Buffer.read(Server.default, path, action:{|buf|
+                        buf.loadToFloatArray(action:{|array|
+                            /*
+                            https://scsynth.org/t/load-stereo-file-to-mono-buffer/5043/2
+                            Replace the 0.5 constant with -3.dbamp (≈ 1/sqrt(2) ≈ 0.707) for uncorrelated signals.
+                            */
+                            Buffer.loadCollection(Server.default, array.unlace(2).sum * 0.5, action:{|mono|
+                                mono.normalize;
+                                buf.free;
+                                cb.(mono);
+                            })
                         })
-                    })
-                });
+                    });
+                } {
+                    B.read(path, cb:cb);
+                };
             } {
-                B.read(path, cb:cb);
-            };
+                "unable to read file: %".format(path).warn
+            }
         }
     }
 
@@ -180,11 +217,15 @@ B {
             .first;
 
             if (result.isNil) {
-                var file = SoundFile.openRead(path).close;
-                if ( file.numChannels < numchannels) {
-                    channels = [0,0]
-                };
-                result = B.read(path, channels);
+                var file = SoundFile.openRead(path);
+                if (file.notNil) {
+                    if ( file.numChannels < numchannels) {
+                        channels = [0,0]
+                    };
+                    result = B.read(path, channels);
+                } {
+                    "can't read file %".format(path).warn
+                }
             };
             result
         };
@@ -206,6 +247,8 @@ B {
                 buf.value;
             });
 
+            // TODO: ugh
+            bufs = bufs.select({|b| b.notNil });
             all[key] = bufs;
             temp = bufs.collect({|b| b.bufnum });
             //all[key].addSpec(\index, [0, bufs.size-1, \lin, 1, 0].asSpec);
@@ -219,7 +262,7 @@ B {
     /*
     Loads a directory and subdirectores of sound files into mono bufs
     */
-    *loadLib {|key, path|
+    *loadLib {|key, path, recursive=false|
 
         var read;
 
@@ -270,14 +313,16 @@ B {
                           [all[mykey].indices.minItem, all[mykey].indices.maxItem, \lin, 1, all[mykey].indices.minItem].asSpec);
                     };
 
-                    pn.folders.do({|dir|
-                        var folderName = if (mykey.asString.size > 0) {
-                            "%_%". format(mykey, dir.folderName)
-                        }{
-                            dir.folderName
-                        };
-                        recurse.(dir.fullPath, folderName);
-                    });
+                    if (recursive) {
+                        pn.folders.do({|dir|
+                            var folderName = if (mykey.asString.size > 0) {
+                                "%_%". format(mykey, dir.folderName)
+                            }{
+                                dir.folderName
+                            };
+                            recurse.(dir.fullPath, folderName);
+                        });
+                    }
                 }
             };
             recurse.(path, key.asString);

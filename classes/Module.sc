@@ -44,7 +44,11 @@ Module {
         // unless you wrap it in another function or create a synthdef first
         // there must be some kind of conflict with environments
         // it works ok with filters but just not with sources
-        ^libfunc.inEnvir(envir)
+        if (libfunc.notNil) {
+            ^libfunc.inEnvir(envir)
+        } {
+            ^libfunc
+        }
     }
 
     func_ {|val|
@@ -115,12 +119,12 @@ Module {
         }{
             if (id.notNil) {
                 var path, pathname;
-
                 key = id.asSymbol;
                 path = libraryDir ++ id.asString;
                 if (id.asString.endsWith(".scd").not) {
                     path = path ++ ".scd";
                 };
+
                 pathname = PathName(path.standardizePath);
                 fullpath = pathname.fullPath;
 
@@ -134,7 +138,8 @@ Module {
                     presets = obj['presets'];
                     file.close;
                 } {
-                    Error("% module not found".format(path)).throw;
+                    //"% module not found".format(path).warn;
+                    Error("% module not found".format(path)).throw
                 }
             }
         }

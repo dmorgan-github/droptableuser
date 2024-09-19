@@ -9,7 +9,6 @@ InstrNodeProxy : Ndef {
     var <fxchain, <metadata;
     var <cmdperiodfunc;
     var <msgFunc;
-    //var <patterns;
     var <recnodeproxy, <recpath;
 
     *new {|key, source|
@@ -24,17 +23,28 @@ InstrNodeProxy : Ndef {
         ^res;
     }
 
-    /*
+    // fx inserts
+    +> {|val, adverb|
+
+        var offset = 20;
+        if (adverb.notNil) {
+            var index = offset + adverb.asInteger;
+            this.fx(index, val); 
+        }{
+            if (val.isArray) {
+                val.do({|v, i|
+                    var index = offset + i;
+                    this.fx(index, v);    
+                })    
+            }{
+                this.fx(offset, val); 
+            }
+        }
+    }
+
+    // props
     @ {|val, adverb|
         this.setOrPut(adverb, val);
-    }
-    */
-
-    doesNotUnderstand {|selector ...args|
-        //[selector, args].debug("doesNotUnderstand");
-        var key = selector.asGetter;
-        this.setOrPut(key, args[0])
-        ^this;
     }
 
     setOrPut {|prop, val|
@@ -119,7 +129,7 @@ InstrNodeProxy : Ndef {
     }
 
     view {|cmds|
-        ^UiModule('instr').(this, nil, cmds);
+        ^UiModule('instr2').(this, nil, cmds);
     }
 
     gui {|cmds|
@@ -166,23 +176,17 @@ InstrNodeProxy : Ndef {
         var val;
         var outOffset = Server.default.options.numInputBusChannels;
         if (bus.isKindOf(Symbol)) {
-            val = switch(bus, 
-                {\t2}, 2, 
-                {\t3}, 4,
-                {\t4}, 6,
-                {\t5}, 8,
-                {\t6}, 10,
-                {\t7}, 12,
-                {\t8}, 14,
-                {\t9}, 16,
-                {\t10}, 18,
-                0
-            );
+            val = bus.asString[1..].asInteger;
+            val = 2 * (val-1);
         } {
             val = bus;
         };
         val = outOffset + val;
         this.monitor.out = val.debug("out")        
+    }
+
+    out {
+        ^this.monitor.out
     }
 
     getSpec {
@@ -205,7 +209,6 @@ InstrNodeProxy : Ndef {
             this.fxchain.removeAt(index);
         }{
             var specs;
-
             if (fx.isFunction) {
                 var obj = (name:"func_%".format(UniqueID.next), type:'func');
                 obj['ui'] = {|self|
@@ -214,7 +217,6 @@ InstrNodeProxy : Ndef {
                 this.filter(index, fx);
                 this.fxchain.put(index, obj);
             }{
-
                 if (fx.asString.beginsWith("vst:")) {
 
                     var vst;
@@ -255,24 +257,28 @@ InstrNodeProxy : Ndef {
                     });
                 }{
                     var func, mod, obj;
-                    var key = "fx/%".format(fx).asSymbol;
+                    var key;// = "fx/%".format(fx).asSymbol;
 
-                    if (fx.isKindOf(Module)) {
-                        mod = fx;
-                        key = mod.key;
-                    } {
-                        key = "fx/%".format(fx).asSymbol;
-                        mod = Module(key);
-                    };
-                    
-                    obj = (name:key, type:'func', 'ctrl':mod);
-                    obj['ui'] = {|self|
-                        UiModule('instr').gui(this, index);
-                    };
-                    cb.(mod);
-                    func = mod.func;
-                    this.filter(index, func);
-                    this.fxchain.put(index, obj);
+                    try {
+                        if (fx.isKindOf(Module)) {
+                            mod = fx;
+                            key = mod.key;
+                        } {
+                            key = "fx/%".format(fx).asSymbol;
+                            mod = Module(key);
+                        };
+                        
+                        obj = (name:key, type:'func', 'ctrl':mod);
+                        obj['ui'] = {|self|
+                            UiModule('instr').gui(this, index);
+                        };
+                        cb.(mod);
+                        func = mod.func;
+                        this.filter(index, func);
+                        this.fxchain.put(index, obj);
+                    } {|error|
+                        error.debug("InstrNodeProxy.fx")    
+                    }
                 };
             };
 
@@ -295,6 +301,7 @@ InstrNodeProxy : Ndef {
     vst {|index, vst, id, cb|
 
         var node = this;
+        index.debug("InstrNodeProxy::vst::index");
 
         if (vst.isNil) {
             node.removeAt(index);
@@ -305,6 +312,9 @@ InstrNodeProxy : Ndef {
             var key = "%_%".format(nodekey, vstkey).toLower.asSymbol;
             var server = Server.default;
             var nodeId, ctrl;
+
+            var func, oscFunc;
+            var now = SystemClock.seconds;
 
             fork({
                 var vstpreset;
@@ -350,37 +360,46 @@ InstrNodeProxy : Ndef {
 
                     // there is latency for the synth to get initialized
                     // i can't figure out a better way than to wait
-                    0.5.wait;
+                    //1.wait;
                 };
 
-                nodeId = node.objects[index].nodeID;
-                ctrl = if (node.objects[index].class == SynthDefControl) {
-                    var synthdef = node.objects[index].synthDef;
-                    var synth = Synth.basicNew(synthdef.name, server, nodeId);
-                    if (id.isNil.not) {
-                        VSTPluginController(synth, id:id, synthDef:synthdef);
+                func = {
+                    nodeId = node.objects[index].nodeID;
+                    ctrl = if (node.objects[index].class == SynthDefControl) {
+                        var synthdef = node.objects[index].synthDef;
+                        var synth = Synth.basicNew(synthdef.name, server, nodeId);
+                        if (id.isNil.not) {
+                            VSTPluginController(synth, id:id, synthDef:synthdef);
+                        }{
+                            VSTPluginController(synth, synthDef:synthdef);
+                        }
                     }{
-                        VSTPluginController(synth, synthDef:synthdef);
-                    }
-                }{
-                    var synth = Synth.basicNew(vst, server, nodeId);
-                    if (id.isNil.not) {
-                        VSTPluginController(synth, id:id);
-                    }{
-                        VSTPluginController(synth);
-                    }
-                };
-
-                ctrl.open(vst, editor:true, verbose: true, action:{|ctrl|
-                    "loaded %".format(key).postln;
-                    if (vstpreset.notNil) {
-                        vstpreset.debug("preset");
-                        ctrl.readProgram(vstpreset)
+                        var synth = Synth.basicNew(vst, server, nodeId);
+                        if (id.isNil.not) {
+                            VSTPluginController(synth, id:id);
+                        }{
+                            VSTPluginController(synth);
+                        }
                     };
-                    if (cb.isNil.not) {
-                        cb.value(ctrl);
-                    }
-                });
+
+                    ctrl.open(vst, editor:true, verbose: true, action:{|ctrl|
+                        "loaded %".format(key).postln;
+                        if (vstpreset.notNil) {
+                            vstpreset.debug("preset");
+                            ctrl.readProgram(vstpreset)
+                        };
+                        if (cb.isNil.not) {
+                            cb.value(ctrl);
+                        }
+                    });
+                };
+
+                // adapted from: https://scsynth.org/t/jitlib-how-to-know-if-a-nodeproxy-is-fully-ready/9941?u=droptableuser
+                oscFunc = OSCFunc({
+                    (SystemClock.seconds - now).debug("seconds to open synth");
+                    func.();
+                    //oscFunc.free;
+                }, '/n_go', Server.default.addr, argTemplate: [node.objects[index].nodeID] ).oneShot;
             });
         }
     }

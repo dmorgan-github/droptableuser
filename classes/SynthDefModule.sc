@@ -15,6 +15,88 @@ SynthDefModule : Module {
         ^res;
     }
 
+    evaluate {|val|
+
+        var func;
+
+        func = {|role, module|
+
+            var myrole = role.asString;
+
+            if ( "^(sig)([0-9]*)$|^(fil)([0-9]*)$|^(aeg)$|^(pit)$|^(voices)$".matchRegexp(myrole) ) {
+
+                var result, index = 0;
+                result = myrole.findRegexp("^(sig)([0-9]*)$");
+                if (result.size > 0) {
+                    index = if (result[2].size > 1) { result[2][1].asInteger };
+                    if (module.isNil) {
+                        "removing sig".debug("InstrProxyObserver");
+                        this.removeAt(index)
+                    }{
+                        if (module.isKindOf(Function)) {
+                            module = Module(module)
+                        };
+                        this.put(index, \sig -> module);  
+                    }
+                    
+                };
+
+                result = myrole.findRegexp("^aeg$");
+                if (result.size > 0) {
+                    if (module.isNil) {
+                        "removing aeg".debug("InstrProxyObserver");
+                        this.removeAt(10)
+                    }{
+                        if (module.isKindOf(Function)) {
+                            module = Module(module)
+                        };
+                        this.put(10, \env -> module);  
+                    }
+                };
+
+                result = myrole.findRegexp("^(fil)([0-9]*)$");
+                if (result.size > 0) {
+                    index = if (result[2].size > 1) { result[2][1].asInteger };
+                    index = 20 + index;
+                    if (module.isNil) {
+                        "removing filter".debug("InstrProxyObserver");
+                        this.removeAt(index)
+                    }{
+                        if (module.isKindOf(Function)) {
+                            module = Module(module)
+                        };
+                        this.put(index, \fil -> module);  
+                    }
+                };
+
+                result = myrole.findRegexp("^pit$");
+                if (result.size > 0) {
+                    if (module.isNil) {
+                        "removing pitch model".debug("InstrProxyObserver");
+                        this.removeAt(30)
+                    }{
+                        if (module.isKindOf(Function)) {
+                            module = Module(module)
+                        };
+                        this.put(30, \pit -> module);  
+                    }
+                };
+
+                result = myrole.findRegexp("^voices$");
+                if (result.size > 0) {
+                    if (module.isKindOf(Function)) {
+                        module = Module(module)
+                    };
+                    this.set(\voices, module)
+                };
+            }
+        };
+
+        val.keysValuesDo({|k, v|
+            func.(k, v)
+        });
+    }
+
     at {|num|
         ^modules[num];
     }  
