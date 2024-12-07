@@ -20,6 +20,8 @@ B {
 
     // TODO: doesn't really ensure path exists
     *prEnsurePath {|path|
+
+        // "e10.scd".resolveRelative
         if (File.exists(path).not) {
             var pn = PathName(thisProcess.nowExecutingPath);// +/+ path)
             path = pn.pathOnly ++ path;
@@ -199,7 +201,7 @@ B {
         ^B.alloc(key, seconds * Server.default.sampleRate, numChannels);
     }
 
-    // load an array of paths into mono buffers
+    // load a directory or array of paths
     *loadFiles {|key, paths, numchannels=1|
 
         var read, def = Deferred();
@@ -234,7 +236,12 @@ B {
 
             // TODO: load consecutive
             var temp;
-            var bufs = paths
+            var bufs;
+            if (paths.isKindOf(String)) {
+                paths = PathName(paths).entries.collect({|pn| pn.fullPath });
+            };
+            
+            bufs = paths
             .select({|path|
                 filetypes.includes(PathName(path).extension.toLower.asSymbol)
             })

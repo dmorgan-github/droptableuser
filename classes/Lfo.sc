@@ -1,4 +1,9 @@
 
+/*
+unipolar: sig + (mod * moddepth)
+bipolar: sig * (2 ** (mod * moddepth))
+*/
+
 Lfo {
 
     var <funcs;
@@ -14,13 +19,17 @@ Lfo {
             var d = val[1];
             var r = val[2];
             {
-                var sig;
+                var lfo;
                 var prefix = ~key ?? 'lfo';
-                var valctlr = NamedControl("%_val".format(prefix).asSymbol, v, 0.1 );
+                var valctl = NamedControl("%_val".format(prefix).asSymbol, v, 0.1 );
                 var depthctrl = NamedControl( "%_depth".format(prefix).asSymbol, d, 0.1 );
                 var ratectrl = NamedControl( "%_rate".format(prefix).asSymbol, r, 0.1 );
-                sig = valctlr * ( depthctrl.linlin(0, 1, 1, 2) ** SinOsc.kr(ratectrl));
-                sig//.poll
+                // sig = valctl * ( depthctrl.linlin(0, 1, 1, 2) ** SinOsc.kr(ratectrl));
+
+                lfo = SinOsc.kr(ratectrl) * depthctrl;
+                lfo = 2 ** lfo;
+                lfo = valctl * lfo;
+                lfo
             }
         });
     }

@@ -188,6 +188,7 @@ VstInstrProxy : InstrProxy {
 
             var plugin;
             var args;
+            var synthname = 'vsti';
 
             args = argSynth.asString.split($/);
             plugin = args[0];
@@ -208,12 +209,19 @@ VstInstrProxy : InstrProxy {
                 }
                 
             };
-            synthdef = SynthDescLib.global[\vsti].def;
 
-            vstsynth = Synth(\vsti,
+            if (SynthDescLib.global[plugin.asSymbol].notNil) {
+                synthname = plugin.asSymbol.debug("synthdef");
+            };
+            synthdef = SynthDescLib.global[synthname].def;
+
+            vstsynth = Synth(synthname,
                 args: [\out, this.node.bus.index],
                 target: this.node.group.nodeID
             );
+
+            // 
+            msgFunc = SynthDescLib.global[synthname].msgFunc;
 
             // i can't find a better way, sync doesn't help in this scenario
             //1.wait;
@@ -226,8 +234,6 @@ VstInstrProxy : InstrProxy {
                 }
             });
 
-            // need to specify which params will be modulated
-            // \params, [\Mix, \Depth, 1]
             this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin)
 
         });
@@ -241,7 +247,9 @@ VstInstrProxy : InstrProxy {
 
     *initClass {
         StartUp.add({
-            SynthDef(\vsti, { |out| Out.ar(out, VSTPlugin.ar(Silent.ar(2), 2)) }).add;
+            SynthDef(\vsti, {|out| 
+                Out.ar(out, VSTPlugin.ar(Silent.ar(2), 2) * \amp.kr(-20.dbamp)) 
+            }).add;
         });
     }
 }
@@ -258,11 +266,12 @@ InstrProxy : EventPatternProxy {
     var <isMonitoring, <nodewatcherfunc;
     var <metadata, <controlNames;
     var <synthdef;
-    var <note, <msgFunc;
+    var <>notePlayer, <msgFunc;
     var <key, <synthdefmodule;
     var specs;
     var <lfos;
     var defaultProtoEvent;
+    var <>layers;
 
     *new {|key|
         ^super.new.prInit(key);
@@ -270,11 +279,6 @@ InstrProxy : EventPatternProxy {
 
     // synth
     <+ {|val|
-
-        //var observer = InstrProxyObserver(this);        
-        //val.keysValuesDo({|k, v|
-        //    observer.evaluate(k, [v])
-        //});
 
         synthdefmodule.evaluate(val);
 
@@ -309,6 +313,7 @@ InstrProxy : EventPatternProxy {
 
     // props
     @ {|val, adverb|
+
         if (adverb.isNil and: val.isKindOf(Array)) {
             this.set(*val);
         } {
@@ -345,12 +350,12 @@ InstrProxy : EventPatternProxy {
             };
             pattern = Pbind(*a);
         };
-        //if (adverb.notNil) {
-        //    num = adverb.asInteger;
-        //};
-        //this.ptrns.put(num, pattern);
-        //patterns.clear;
-        this.source = pattern;
+        if (adverb.notNil) {
+            num = adverb.asInteger;
+            this.layers.set(num, pattern);
+        } {
+            this.source = pattern;
+        };
     }
 
     proto {
@@ -438,13 +443,13 @@ InstrProxy : EventPatternProxy {
     }
 
     on {|midinote=60, vel=127, extra|
-        note.on(midinote, vel, extra);
+        notePlayer.on(midinote, vel, extra);
         this.changed(\noteOn, [midinote, vel, extra]);
         ^this;
     }
 
     off {|midinote=60|
-        note.off(midinote);
+        notePlayer.off(midinote);
         this.changed(\noteOff, [midinote]);
         ^this;
     }
@@ -484,7 +489,7 @@ InstrProxy : EventPatternProxy {
         "node.clear".debug("InstrProxy");
         node.clear;
         "note.clear".debug("InstrProxy");
-        note.clear;
+        notePlayer.clear;
         "specs.clear".debug("InstrProxy");
         specs.clear;
         "envir.clear".debug("InstrProxy");
@@ -699,9 +704,11 @@ InstrProxy : EventPatternProxy {
 
         specs = ();
         lfos = Dictionary();
-        //ptrns = Order();
-        //patterns = ();
-        note = InstrProxyNotePlayer(this);
+
+        // TODO: probably make this a class
+        layers = M('device/layers').(this);
+        
+        notePlayer = InstrProxyNotePlayer(this);
         synthdefmodule = SynthDefModule();
 
         nodewatcherfunc = {|obj, what|

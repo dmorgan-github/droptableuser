@@ -58,7 +58,6 @@
         var track = T();
         var num = this;
         track.put(num, instr, *args);
-        //track[num].synthdefmodule.set(*args)
         ^track[num];
     }
 }
@@ -291,6 +290,7 @@
         }
     } 
 
+    /*
     playTimeline {|clock=(TempoClock.default)|
         this.collect({|assoc|
             var beat = assoc.key;
@@ -298,9 +298,18 @@
             clock.sched(beat, { beat.debug(\beat); func.value; nil } );
         });
     }
+    */
 
     cycle {|dur=8, len, repeats=inf|
         ^this.p.cycle(dur, len, repeats);
+    }
+}
+
++ EventPatternProxy {
+
+    @ {|val, adverb|
+        this.set(adverb, val);
+        ^this;
     }
 }
 

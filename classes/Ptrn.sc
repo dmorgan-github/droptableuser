@@ -33,13 +33,14 @@ Pkey2 : Pattern {
 PLfo {
 
     *sine {|dur=1, min=0, max=1, phase=0|
-        //^Pseg(Pseq([min, max], inf), Pseq([dur], inf), \sine)
+        //not sure how to change phase this way
+        //^Pseg([min, max].pseq, 1/2 * dur, \sin)
         var num = 64;
         ^Pseg(Signal.sineFill(num, [1], [phase * pi]).asArray.pseq, [1/num].pseq * dur).linlin(-1, 1, min, max);
     }
 
     *tri {|dur=1, min=0, max=1|
-        ^Pseg(Pseq([min, max], inf), Pseq([dur], inf), \lin)
+        ^Pseg(Pseq([min, max], inf), 1/2 * dur, \lin)
     }
 
     *rampup {|dur=1, min=0, max=1|
@@ -105,24 +106,6 @@ Ptrn {
         })
     }
 
-    *env {|key, dur=16|
-        ^Prout({|inval|
-            inf.do({
-                var env, vals, size;
-                var startTime;
-                startTime = thisThread.endBeat ? thisThread.beats;
-                thisThread.endBeat = dur + startTime;
-                while ({ thisThread.beats < thisThread.endBeat }, {
-                    vals = inval[key];
-                    size = vals.size;
-                    env = Env(vals, dur/size, 0);
-                    inval = env.at(thisThread.beats - startTime).embedInStream(inval)
-                });
-            });
-            inval
-        })
-    }
-
     *par {|...args|
 
         var keys = List.new;
@@ -136,119 +119,6 @@ Ptrn {
                 keys.collect({|k, i| [k, v[i]] }).flatten.p
             })
         )
-    }
-}
-
-
-Ppub : EventPatternProxy {
-
-    var <spawner;
-
-    *new {|topic, pattern|
-        var res;
-        res = Pdef.all[topic];
-        if (res.isNil) {
-            res = super.new(nil);
-            Pdef.all.put(topic, res);
-        };
-        if (pattern.isNil.not) {
-            res.prInit(topic, pattern)
-        };
-        ^res;
-    }
-
-    prInit {|argTopic, argPattern|
-
-        this.source = Pspawner({|sp|
-            var stream = argPattern.asStream;
-            var ptrn = stream.next(Event.default);
-            var count = 0;
-            spawner = sp;
-            while ({ptrn.isNil.not},{
-                var dur = ptrn[\dur] ?? 1;
-                var topics = (ptrn[\topic] ?? \a).asArray;
-                topics.do({|topic|
-                    Evt.trigger(topic, (sp:sp, evt:ptrn, dur:dur, count:count));
-                });
-                //Evt.trigger(argTopic, (sp:sp, evt:ptrn, dur:dur, count:count));
-                sp.wait(dur);
-                count = count + 1;
-                ptrn = stream.next(Event.default);
-            });
-        });
-        ^this;
-    }
-}
-
-Psub : EventPatternProxy {
-
-    var <isPlaying=false;
-
-    *new {|key, topic, pattern, condition|
-        var res;
-        res = Pdef.all[key];
-        if (res.isNil) {
-            res = super.new(nil);
-            Pdef.all.put(key, res);
-        };
-        if (pattern.isNil.not) {
-            res.prInit(key, topic, pattern, condition)
-        };
-        ^res;
-    }
-
-    prInit {|key, topic, pattern, condition|
-
-        this.source = Event.silent;
-
-        if (condition.isKindOf(Pattern)) {
-            condition = condition.asStream;
-        };
-
-        if (pattern.isNil) {
-            Evt.off(topic, key);
-        }{
-            Evt.on(topic, key, {|dict|
-                var evt = dict[\evt];
-                var count = dict[\count];
-                var dur = dict[\dur];
-                evt[\count_] = count;
-                evt[\dur] = dur;
-
-                if (this.isPlaying) {
-                    if (condition.isNil) {
-                        var sp = dict[\sp];
-                        sp.par(pattern.value <> evt);
-                    }{
-                        if (evt.use(condition.next)) {
-                            var sp = dict[\sp];
-                            sp.par(pattern.value <> evt);
-                        }
-                    }
-                }
-            });
-        }
-    }
-
-    play {
-        isPlaying = true;
-    }
-
-    stop {
-        isPlaying = false;
-    }
-
-    *initClass {
-        //isPlaying = false;
-    }
-}
-
-Pphrase {
-    *new {|key, outer, inner|
-        var instrument = (key ++ '_inner').asSymbol;
-        var func = if (inner.isKindOf(Function)) { inner }{ {inner} };
-        Pdef(instrument, func);
-        ^Pdef(key.asSymbol, Pbind(\type, \phrase, \instrument, instrument) <> outer);
     }
 }
 

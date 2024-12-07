@@ -30,7 +30,7 @@ SynthDefModule : Module {
                 if (result.size > 0) {
                     index = if (result[2].size > 1) { result[2][1].asInteger };
                     if (module.isNil) {
-                        "removing sig".debug("InstrProxyObserver");
+                        "removing sig".debug("SynthDefModule");
                         this.removeAt(index)
                     }{
                         if (module.isKindOf(Function)) {
@@ -44,7 +44,7 @@ SynthDefModule : Module {
                 result = myrole.findRegexp("^aeg$");
                 if (result.size > 0) {
                     if (module.isNil) {
-                        "removing aeg".debug("InstrProxyObserver");
+                        "removing aeg".debug("SynthDefModule");
                         this.removeAt(10)
                     }{
                         if (module.isKindOf(Function)) {
@@ -59,7 +59,7 @@ SynthDefModule : Module {
                     index = if (result[2].size > 1) { result[2][1].asInteger };
                     index = 20 + index;
                     if (module.isNil) {
-                        "removing filter".debug("InstrProxyObserver");
+                        "removing filter".debug("SynthDefModule");
                         this.removeAt(index)
                     }{
                         if (module.isKindOf(Function)) {
@@ -72,7 +72,7 @@ SynthDefModule : Module {
                 result = myrole.findRegexp("^pit$");
                 if (result.size > 0) {
                     if (module.isNil) {
-                        "removing pitch model".debug("InstrProxyObserver");
+                        "removing pitch model".debug("SynthDefModule");
                         this.removeAt(30)
                     }{
                         if (module.isKindOf(Function)) {

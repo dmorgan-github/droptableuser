@@ -1,3 +1,4 @@
+/*
 InstrProxyObserver {
 
     var <synthdefmodule;
@@ -79,26 +80,6 @@ InstrProxyObserver {
                 synthdefmodule.set(\voices, module)
             };
 
-            /*
-            result = myrole.findRegexp("^(fx)([0-9]*)$");
-            if (result.size > 0) {
-                index = if (result[2].size > 1) { result[2][1].asInteger };
-                index = 20 + index;
-
-                if (module.isKindOf(Module)) {
-                    //module = module.func;
-                }{
-                    if (module.isKindOf(Function)) {
-                        //module = Module(module)
-                        // pass function
-                    } {
-                        module = module.asSymbol;
-                    }
-                };
-                proxy.node.fx(index, module);
-            };
-            */
-
             ^true;
         } {
             ^false;
@@ -111,9 +92,7 @@ InstrProxyObserver {
     }
 
 }
-
-
-
+*/
 
 // InstrProxyBuilder {{{
 /*

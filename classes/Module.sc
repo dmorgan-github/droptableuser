@@ -118,17 +118,13 @@ Module {
             fullpath = 'func'
         }{
             if (id.notNil) {
-                var path, pathname;
-                key = id.asSymbol;
-                path = libraryDir ++ id.asString;
-                if (id.asString.endsWith(".scd").not) {
-                    path = path ++ ".scd";
-                };
 
-                pathname = PathName(path.standardizePath);
-                fullpath = pathname.fullPath;
+                var path;
+                var loadModule;
 
-                if (File.exists(fullpath)) {
+                loadModule = {|path|
+                    var pathname = PathName(path.standardizePath);
+                    var fullpath = pathname.fullPath;
                     var file = File.open(fullpath, "r");
                     var obj = file.readAllString.interpret;
                     libfunc = obj[\synth] ?? {obj[\func]};
@@ -137,10 +133,27 @@ Module {
                     doc = obj['doc'];
                     presets = obj['presets'];
                     file.close;
+                };
+
+                key = id.asSymbol;
+                if (id.asString.endsWith(".scd").not) {
+                    id = id ++ ".scd";
+                };
+
+                if (thisProcess.nowExecutingPath.notNil) {
+                    path = PathName(thisProcess.nowExecutingPath).pathOnly ++ id.asString;
+                };
+
+                if (path.notNil and: { File.exists(path) }) {
+                    loadModule.(path.debug("module"))
                 } {
-                    //"% module not found".format(path).warn;
-                    Error("% module not found".format(path)).throw
-                }
+                    path = libraryDir ++ id.asString;
+                    if (File.exists(path)) {
+                        loadModule.(path.debug("module"))
+                    } {
+                        Error("% module not found".format(path)).throw    
+                    }
+                };
             }
         }
 

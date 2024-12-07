@@ -66,30 +66,6 @@ InstrTrack {
         UiModule("workspace").gui
     }
 
-    /*
-    *serverGui {
-        Server.default.makeGui
-    }
-    */
-
-    /*
-    // TODO: not entirely sure about this
-    *parentEvent_ {|evt|
-        parentEvent = evt.debug("parentEvent");
-        Event.addParentType(\note, parentEvent);
-        Event.addParentType(\monoNote, parentEvent);
-        Event.addParentType(\monoSet, parentEvent);
-        //Event.addParentType(\vst_midi, parentEvent);
-
-        / *
-        Event.addParentType(\note, (root:0, scale:#[ 0, 2, 5, 7, 9 ], stepsPerOctave: 12));
-        g = EnvirGui.new((root:0, scale:#[ 0, 2, 5, 7, 9 ], stepsPerOctave: 9), numItems:8);
-        g.putSpec(\stepsPerOctave, [1, 128, \lin, 1, 12]);
-        g.putSpec(\root, [-12, 12, \lin, 1, 0]);
-        * /
-    }
-    */
-
     *tempo_ {|tempo|
         TempoClock.default.tempo = tempo.debug("tempo");
     }
