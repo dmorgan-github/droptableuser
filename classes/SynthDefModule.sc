@@ -23,73 +23,70 @@ SynthDefModule : Module {
 
             var myrole = role.asString;
 
-            if ( "^(sig)([0-9]*)$|^(fil)([0-9]*)$|^(aeg)$|^(pit)$|^(voices)$".matchRegexp(myrole) ) {
-
-                var result, index = 0;
-                result = myrole.findRegexp("^(sig)([0-9]*)$");
-                if (result.size > 0) {
-                    index = if (result[2].size > 1) { result[2][1].asInteger };
-                    if (module.isNil) {
-                        "removing sig".debug("SynthDefModule");
-                        this.removeAt(index)
-                    }{
-                        if (module.isKindOf(Function)) {
-                            module = Module(module)
-                        };
-                        this.put(index, \sig -> module);  
-                    }
-                    
-                };
-
-                result = myrole.findRegexp("^aeg$");
-                if (result.size > 0) {
-                    if (module.isNil) {
-                        "removing aeg".debug("SynthDefModule");
-                        this.removeAt(10)
-                    }{
-                        if (module.isKindOf(Function)) {
-                            module = Module(module)
-                        };
-                        this.put(10, \env -> module);  
-                    }
-                };
-
-                result = myrole.findRegexp("^(fil)([0-9]*)$");
-                if (result.size > 0) {
-                    index = if (result[2].size > 1) { result[2][1].asInteger };
-                    index = 20 + index;
-                    if (module.isNil) {
-                        "removing filter".debug("SynthDefModule");
-                        this.removeAt(index)
-                    }{
-                        if (module.isKindOf(Function)) {
-                            module = Module(module)
-                        };
-                        this.put(index, \fil -> module);  
-                    }
-                };
-
-                result = myrole.findRegexp("^pit$");
-                if (result.size > 0) {
-                    if (module.isNil) {
-                        "removing pitch model".debug("SynthDefModule");
-                        this.removeAt(30)
-                    }{
-                        if (module.isKindOf(Function)) {
-                            module = Module(module)
-                        };
-                        this.put(30, \pit -> module);  
-                    }
-                };
-
-                result = myrole.findRegexp("^voices$");
-                if (result.size > 0) {
+            var result, index = 0;
+            result = myrole.findRegexp("^(sig)([0-9]*)$");
+            if (result.size > 0) {
+                index = if (result[2].size > 1) { result[2][1].asInteger };
+                if (module.isNil) {
+                    "removing sig".debug("SynthDefModule");
+                    this.removeAt(index)
+                }{
                     if (module.isKindOf(Function)) {
                         module = Module(module)
                     };
-                    this.set(\voices, module)
+                    this.put(index, \sig -> module);  
+                }
+                
+            };
+
+            result = myrole.findRegexp("^aeg$");
+            if (result.size > 0) {
+                if (module.isNil) {
+                    "removing aeg".debug("SynthDefModule");
+                    this.removeAt(10)
+                }{
+                    if (module.isKindOf(Function)) {
+                        module = Module(module)
+                    };
+                    this.put(10, \env -> module);  
+                }
+            };
+
+            result = myrole.findRegexp("^(fil)([0-9]*)$");
+            if (result.size > 0) {
+                index = if (result[2].size > 1) { result[2][1].asInteger };
+                index = 20 + index;
+                if (module.isNil) {
+                    "removing filter".debug("SynthDefModule");
+                    this.removeAt(index)
+                }{
+                    if (module.isKindOf(Function)) {
+                        module = Module(module)
+                    };
+                    this.put(index, \fil -> module);  
+                }
+            };
+
+            result = myrole.findRegexp("^pit$");
+            if (result.size > 0) {
+                if (module.isNil) {
+                    "removing pitch model".debug("SynthDefModule");
+                    this.removeAt(30)
+                }{
+                    if (module.isKindOf(Function)) {
+                        module = Module(module)
+                    };
+                    this.put(30, \pit -> module);  
+                }
+            };
+
+            result = myrole.findRegexp("^voices$");
+            if (result.size > 0) {
+                if (module.isKindOf(Function)) {
+                    module = Module(module)
                 };
-            }
+                this.set(\voices, module)
+            };
         };
 
         val.keysValuesDo({|k, v|
@@ -256,30 +253,11 @@ SynthDefModule : Module {
             var currentEnvir;
             var voices = ~voices;
             var detectsilence = ~detectsilence ?? false;
-            var gate = DC.kr(1), vel;
+            var gate, vel;
             var sig, sigs = List.new, filts = List.new;
             var out, freq, env, doneaction;
-            var hasgate;
 
-            //if (gatemode.debug("gate mode") == \retrig) {
-            if (voices.debug("voices") == \mono) {
-                // for monosynths
-                var killgate = \gate.kr(1);
-                Env.asr(0.0, 1, \rel.kr(1)).kr(doneAction:Done.freeSelf, gate:killgate);
-                doneaction = Done.none;
-                gate = \trig.tr(0);
-            }{
-                hasgate = ~hasgate ?? true;
-                if (hasgate.debug("hasgate")) {
-                    // this is a trick to ensure the gate is opened
-                    // before being closed if there is a race condition
-                    gate = \gate.kr(1) + Impulse.kr(0);
-                } {
-                    gate = DC.kr(1);
-                };
-                doneaction = Done.freeSelf;
-            };
-
+            gate = \gate.kr(1) + Impulse.kr(0);
             vel = \vel.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1));
             // default modules
             freq = Module('pitch/freq');
@@ -322,9 +300,8 @@ SynthDefModule : Module {
                 var mul = 1;//b.mul ?? 1;
                 a + ( b.setAll(currentEnvir).(freq, gate, env) * mul.debug("mul") ) 
             });
-            //sig = LeakDC.ar(sig);
 
-            // filters get applied in serial
+            // filters get applied in series
             sig = filts.inject(sig, {|a, b|
                 b.setAll(currentEnvir).(a, gate, freq, env) 
             });

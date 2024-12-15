@@ -2,53 +2,6 @@
     update {|obj, what ... args| this.value(obj, what, *args) }
 }
 
-+ M {
-
-    // shortcuts
-    *def {|func|
-        ^Module(func)    
-    }
-
-    // synths
-    *squine { ^Module('synth/squine') }
-    *sampler { ^Module('synth/sampler') }
-    *grainr { ^Module('synth/grainr') }
-    *rings { ^Module('synth/rings') }
-    *elements { ^Module('synth/elements') }
-    *analog { ^Module('synth/pulsesaw') }
-    *kick { ^Module('synth/kick2') }
-    *wt { ^Module('synth/oscos') }
-
-    // filters
-    *moog { ^Module('filter/moogff') }
-    *lpf12db { ^Module('filter/lpf12db') }
-    *lpf24db { ^Module('filter/lpf24db') }
-    *lpg { ^Module('filter/lpg') }
-
-    // fx
-    *rev { ^Module('fx/reverb/miverb') }
-    *del { ^Module('fx/delay/fb') }
-    *longdel { ^Module('fx/delay/fb_long') }
-    *crush { ^Module('fx/distortion/crush') }
-    *softclip { ^Module('fx/distortion/softclip') }
-    *distortion { ^M('fx/distortion/analogtape')}
-    *eq { ^Module('fx/eq/beq') }
-    //*eq { ^M.vst('MEqualizer.vst3') }
-    *compress { ^M('fx/dynamics/compress') }
-
-    *pitchshift { ^Module('fx/granular/pitchshift') }
-    *vst {|id| ^"vst:%".format(id).asSymbol }
-
-    // aeg
-    *adsr { ^Module('env/adsr') }
-    *asr { ^Module('env/asr') }
-    *perc { ^Module('env/perc') }
-    *linen { ^Module('env/linen') }
-    *none { ^Module('env/none') }
-
-    // pitch
-    *unison { ^Module('pitch/unison') }
-}
 
 + SimpleNumber {
 

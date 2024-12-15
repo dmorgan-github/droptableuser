@@ -272,6 +272,7 @@ InstrProxy : EventPatternProxy {
     var <lfos;
     var defaultProtoEvent;
     var <>layers;
+    var insertOffset=20;
 
     *new {|key|
         ^super.new.prInit(key);
@@ -295,11 +296,17 @@ InstrProxy : EventPatternProxy {
     // fx inserts
     +> {|val, adverb|
 
-        var offset = 20;
-        if (adverb.notNil) {
-            var index = offset + adverb.asInteger;
-            this.fx(index, val); 
+        var offset = insertOffset;
+        adverb.debug("InstrProxy adverb");
+        
+        if (adverb.isNil) {
+            "please specify a slot".throw;
         }{
+            offset = offset + adverb.asInteger;    
+        };
+            //this.fx(index, val); 
+        this.node.fx(offset, val);
+        /*}{
             if (val.isArray) {
                 val.do({|v, i|
                     var index = offset + i;
@@ -308,7 +315,11 @@ InstrProxy : EventPatternProxy {
             }{
                 this.fx(offset, val); 
             }
-        }
+        }*/
+    }
+
+    inserts {|index| 
+        ^this.node.inserts.at(insertOffset + index) 
     }
 
     // props
@@ -342,20 +353,28 @@ InstrProxy : EventPatternProxy {
 
     // pattern
     << {|pattern, adverb|
-        var num = 0;
-        if (pattern.isArray) {
-            var a;
-            pattern.pairsDo {|k,v|
-                a = a.add(k).add(v);
+
+        adverb.postln;
+
+        if (adverb == 'p_') {
+            this.layers.play(pattern)
+        }{
+            if (pattern.isArray) {
+                var a;
+                pattern.pairsDo {|k,v|
+                    a = a.add(k).add(v);
+                };
+                pattern = Pbind(*a);
             };
-            pattern = Pbind(*a);
-        };
-        if (adverb.notNil) {
-            num = adverb.asInteger;
-            this.layers.set(num, pattern);
-        } {
-            this.source = pattern;
-        };
+
+            if (adverb.notNil) {
+                var num = 0;
+                num = adverb.asInteger;
+                this.layers.set(num, pattern);    
+            } {
+                this.source = pattern;
+            }
+        }
     }
 
     proto {
@@ -454,10 +473,12 @@ InstrProxy : EventPatternProxy {
         ^this;
     }
 
+    /*
     fx {|index, fx, cb|
         this.node.fx(index, fx, cb);
         ^this;
     }
+    */
 
     play {|argClock, protoEvent, quant, doReset=false, fadeTime=0|
         if (fadeTime > 0) {

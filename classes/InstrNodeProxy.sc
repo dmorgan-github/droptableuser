@@ -4,12 +4,13 @@ N : InstrNodeProxy {
 InstrNodeProxy : Ndef {
 
     classvar <>defaultout;
-
-    var <vstctrls, <>color;
-    var <fxchain, <metadata;
+    //var <vstctrls, 
+    var <>color;
+    var <inserts, <metadata;
     var <cmdperiodfunc;
     var <msgFunc;
     var <recnodeproxy, <recpath;
+    var skipJack;
 
     *new {|key, source|
         var res;
@@ -138,12 +139,14 @@ InstrNodeProxy : Ndef {
 
     clear {
         this.changed(\clear);
+        "stop skipjack".debug("InstrNodeProxy");
+        skipJack.stop;
         "remove cmdperiodfunc".debug("InstrNodeProxy");
         CmdPeriod.remove(cmdperiodfunc);
-        "vstctrls.clear".debug("InstrNodeProxy");
-        vstctrls.clear;
-        "fxchain.clear".debug("InstrNodeProxy");
-        fxchain.clear;
+        //"vstctrls.clear".debug("InstrNodeProxy");
+        //vstctrls.clear;
+        "inserts.clear".debug("InstrNodeProxy");
+        inserts.clear;
         "metadata.clear".debug("InstrNodeProxy");
         metadata.clear;
         "releaseDependants".debug("InstrNodeProxy");
@@ -202,11 +205,78 @@ InstrNodeProxy : Ndef {
 		};
     }
 
+    vst {|index, vst|
+
+        var node = this;
+        index.debug("InstrNodeProxy::vst::index");
+        if (vst.isNil) {
+            node.removeAt(index);
+            node.inserts.removeAt(index);
+        }{
+            var mykey = node.key ?? "n%".format(node.identityHash.abs);
+            var vstkey = vst.asString.select({|val| val.isAlphaNum});
+            var nodekey = mykey.asString.replace("/", "_");
+            var key = "%_%".format(nodekey, vstkey).toLower.asSymbol;
+            var nodeId, ctrl;
+            var oscfunc, onload;
+
+            var server = Server.default;
+            var path, split;
+            var now = SystemClock.seconds;
+            var filterfunc = {|in| VSTPlugin.ar(in, 2, info:vst);};
+
+            split = vst.asString.split($/);
+            vst = split[0].asSymbol;
+            path = split[1];//.asString.debug("path1");
+            if (path.isNil ) {
+                path = key.asString;
+            } {
+                path = path.asString;   
+            };
+            path = path.resolveRelative.debug("path");
+            
+            // add the vst insert
+            node.filter(index, filterfunc);
+    
+            onload = {|ctrl|
+                var obj = (name:vst, type:'vst', 'ctrl':ctrl, 'params': Order(), path:path, view:{ ctrl.editor });
+                if (File.exists(path)) {
+                    ctrl.readProgram(path);
+                };
+                node.inserts.put(index, obj);
+            };
+    
+            // wire up with plugin controller
+            oscfunc = {
+                nodeId = node.objects[index].nodeID;
+                ctrl = if (node.objects[index].class == SynthDefControl) {
+                    var synthdef = node.objects[index].synthDef;
+                    var synth = Synth.basicNew(synthdef.name, server, nodeId);    
+                    VSTPluginController(synth, synthDef:synthdef);
+                }{
+                    var synth = Synth.basicNew(vst, server, nodeId);
+                    VSTPluginController(synth);
+                };
+    
+                ctrl.open(vst, editor:true, verbose: true, action:{|ctrl|
+                    "loaded %".format(key).postln;
+                    onload.(ctrl);
+                });
+            };
+    
+            // adapted from: https://scsynth.org/t/jitlib-how-to-know-if-a-nodeproxy-is-fully-ready/9941?u=droptableuser
+            OSCFunc({
+                (SystemClock.seconds - now).debug("seconds to open synth");
+                oscfunc.();
+            }, '/n_go', server.addr, argTemplate: [node.objects[index].nodeID] ).oneShot;
+        }
+    }
+
     fx {|index, fx, cb, wet=1|
 
         if (fx.isNil) {
             this.removeAt(index);
-            this.fxchain.removeAt(index);
+            this.inserts.removeAt(index);
         }{
             var specs;
             if (fx.isFunction) {
@@ -215,46 +285,14 @@ InstrNodeProxy : Ndef {
                     UiModule('instr').gui(this, index);
                 };
                 this.filter(index, fx);
-                this.fxchain.put(index, obj);
+                this.inserts.put(index, obj);
             }{
                 if (fx.asString.beginsWith("vst:")) {
 
                     var vst;
                     vst = fx.asString.split($:)[1..].join("/").asSymbol;
+                    this.vst(index, vst);
 
-                    this.vst(index, vst, cb:{|ctrl|
-
-                        var func;
-                        var obj = (name:vst, type:'vst', 'ctrl':ctrl, 'params': Order());
-
-                        func = {|ctrl, what, num, val|
-                            if (what == \param) {
-                                {
-                                    obj['params'].put(num.asInteger, val);
-                                }.defer
-                            }
-                        };
-                        obj['ui'] = {|self|
-                            ctrl.editor;
-                        };
-                        obj['writeProgram'] = {|self, path|
-                            var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
-                            dir = dir +/+ path;
-                            dir.debug("InstrNodeProxy.ctrl.writeProgram");
-                            ctrl.writeProgram(dir);
-                        };
-                        obj['readProgram'] = {|self, path|
-                            var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
-                            dir = dir +/+ path;
-                            dir.debug("InstrNodeProxy.ctrl.readProgram");
-                            ctrl.readProgram(dir +/+ path);
-                        };
-
-                        ctrl.addDependant(func);
-                        vstctrls.put(index, ctrl);
-                        cb.(ctrl);
-                        this.fxchain.put(index, obj);
-                    });
                 }{
                     var func, mod, obj;
                     var key;// = "fx/%".format(fx).asSymbol;
@@ -275,7 +313,8 @@ InstrNodeProxy : Ndef {
                         cb.(mod);
                         func = mod.func;
                         this.filter(index, func);
-                        this.fxchain.put(index, obj);
+                        this.inserts.put(index, obj);
+
                     } {|error|
                         error.debug("InstrNodeProxy.fx")    
                     }
@@ -295,112 +334,6 @@ InstrNodeProxy : Ndef {
 
             //this.addSpec("wet%".format(index).asSymbol, [0, 1, \lin, 0, 1].asSpec);
             //this.set("wet%".format(index).asSymbol, wet);
-        }
-    }
-
-    vst {|index, vst, id, cb|
-
-        var node = this;
-        index.debug("InstrNodeProxy::vst::index");
-
-        if (vst.isNil) {
-            node.removeAt(index);
-        }{
-            var mykey = node.key ?? "n%".format(node.identityHash.abs);
-            var vstkey = vst.asString.select({|val| val.isAlphaNum});
-            var nodekey = mykey.asString.replace("/", "_");
-            var key = "%_%".format(nodekey, vstkey).toLower.asSymbol;
-            var server = Server.default;
-            var nodeId, ctrl;
-
-            var func, oscFunc;
-            var now = SystemClock.seconds;
-
-            fork({
-                var vstpreset;
-                if (node.objects[index].isNil) {
-
-                    var path;
-                    var split = vst.asString.split($/);
-                    vst = split[0].asSymbol;
-                    if (split.size > 1) {
-
-                        var dir;
-                        var temp = split[1].toLower;
-                        dir = PathName(thisProcess.nowExecutingPath).pathOnly;
-
-                        path = dir ++ temp;
-                        if (File.exists(path).not) {
-                            path = Module.libraryDir +/+ "preset" +/+ temp;
-                        };
-
-                        if (File.exists(path)) {
-                            vstpreset = path;
-                        } {
-                            "preset does not exist: %".format(vstpreset).warn
-                        }
-                    };
-
-                    path = "vst/" ++ split[0].toLower;
-                    if (Module.exists(path)) {
-                        var mod;
-                        path.debug("module exists");
-                        mod = Module(path);
-                        node.filter(index, mod.func);
-                    } {
-                        path.debug("module does not exists");
-                        node.filter(index, {|in|
-                            if (id.isNil.not) {
-                                VSTPlugin.ar(in, 2, id:id, info:vst);
-                            }{
-                                VSTPlugin.ar(in, 2, info:vst);
-                            }
-                        });
-                    };
-
-                    // there is latency for the synth to get initialized
-                    // i can't figure out a better way than to wait
-                    //1.wait;
-                };
-
-                func = {
-                    nodeId = node.objects[index].nodeID;
-                    ctrl = if (node.objects[index].class == SynthDefControl) {
-                        var synthdef = node.objects[index].synthDef;
-                        var synth = Synth.basicNew(synthdef.name, server, nodeId);
-                        if (id.isNil.not) {
-                            VSTPluginController(synth, id:id, synthDef:synthdef);
-                        }{
-                            VSTPluginController(synth, synthDef:synthdef);
-                        }
-                    }{
-                        var synth = Synth.basicNew(vst, server, nodeId);
-                        if (id.isNil.not) {
-                            VSTPluginController(synth, id:id);
-                        }{
-                            VSTPluginController(synth);
-                        }
-                    };
-
-                    ctrl.open(vst, editor:true, verbose: true, action:{|ctrl|
-                        "loaded %".format(key).postln;
-                        if (vstpreset.notNil) {
-                            vstpreset.debug("preset");
-                            ctrl.readProgram(vstpreset)
-                        };
-                        if (cb.isNil.not) {
-                            cb.value(ctrl);
-                        }
-                    });
-                };
-
-                // adapted from: https://scsynth.org/t/jitlib-how-to-know-if-a-nodeproxy-is-fully-ready/9941?u=droptableuser
-                oscFunc = OSCFunc({
-                    (SystemClock.seconds - now).debug("seconds to open synth");
-                    func.();
-                    //oscFunc.free;
-                }, '/n_go', Server.default.addr, argTemplate: [node.objects[index].nodeID] ).oneShot;
-            });
         }
     }
 
@@ -451,14 +384,11 @@ InstrNodeProxy : Ndef {
 
     prNodeInit {
 
-        //count = count+1;
-        //keyval = "d%".format(count).asSymbol;
-        vstctrls = Order.new;
-        fxchain = Order.new;
-        //patterns = List.new;
+        inserts = Order.new;
         color = Color.rand;
         metadata = ();
 
+        /*
         cmdperiodfunc = {
             {
                 this.send;
@@ -471,12 +401,13 @@ InstrNodeProxy : Ndef {
                             var synth = Synth.basicNew(synthdef.name, Server.default, nodeId);
                             var ctrl = VSTPluginController(synth, synthDef:synthdef);
                             ctrl.open(ctrl.info.key, verbose: true, editor:true);
-                            fxchain[index]['ctrl'] = ctrl;
+                            inserts[index]['ctrl'] = ctrl;
                         }
                     })
                 }.defer(2)
             }.defer(1)
         };
+        */
 
         // if we're using a synthdef as a source
         // copy the specs if they are defined
@@ -515,7 +446,6 @@ InstrNodeProxy : Ndef {
                 str = str + "}";
                 msgFunc = str.interpret;
             }
-
         });
 
         this.mold(2, \audio);
@@ -539,7 +469,23 @@ InstrNodeProxy : Ndef {
             sig;
         });
 
-        CmdPeriod.add(cmdperiodfunc);
+        // don't know what this is doing anymore
+        //CmdPeriod.add(cmdperiodfunc);
+
+        // monitor vsts
+        skipJack = SkipJack({
+            inserts.do({|obj, i|
+                if (obj.type == 'vst') {                
+                    if (obj.path.notNil) {
+                        var ctrl = obj.ctrl;
+                        // consider only writing if changes detected?
+                        // ctrl.getProgramData({|data| data })
+                        //"saving vst state %".format(obj.name).debug(key);
+                        ctrl.writeProgram(obj.path);
+                    }
+                }    
+            })
+        }, 30);//.start;
 
         ^this;
     }
