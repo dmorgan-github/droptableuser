@@ -5,10 +5,61 @@
 
 + SimpleNumber {
 
+    // this is maybe not a great idea ??
+    doesNotUnderstand {|selector ...args|
+        if (selector.notNil ) {
+            var key = selector.asSymbol;
+            var track = T(key);
+            var num = this;
+            var instr = nil;
+            var val;
+            if (args.size > 0) {
+                instr = args[0];
+                args = args[1..];
+            };
+
+            val = track[num];
+            val.debug("ext1");
+            if (val.isNil) {
+                val = track.put(num, instr, *args);
+            };
+            val.debug("ext2");
+            ^val
+        }
+    }
+
+    /*
+    a {|instr ...args|
+        var track = T('a');
+        var num = this;
+        track.put(num, instr, *args);
+        ^track[num];    
+    }
+
+    b {|instr ...args|
+        var track = T('b');
+        var num = this;
+        track.put(num, instr, *args);
+        ^track[num];    
+    }
+
+    c {|instr ...args|
+        var track = T('c');
+        var num = this;
+        track.put(num, instr, *args);
+        ^track[num];    
+    }
+
+    d {|instr ...args|
+        var track = T('d');
+        var num = this;
+        track.put(num, instr, *args);
+        ^track[num];    
+    }
+    */
+
     t {|instr ...args|
-        // TODO: instantiating a new instance each time
-        // doesn't make sense - just not sure what the interface should be
-        var track = T();
+        var track = T('t');
         var num = this;
         track.put(num, instr, *args);
         ^track[num];
@@ -33,14 +84,14 @@
     }
 
     // choose
-    c {|...vals|
-        ^Routine({
-            inf.do({
-                var myvals = [this] ++ vals;
-                myvals.choose.value.yield
-            })
-        })  
-    }
+    // c {|...vals|
+    //     ^Routine({
+    //         inf.do({
+    //             var myvals = [this] ++ vals;
+    //             myvals.choose.value.yield
+    //         })
+    //     })  
+    // }
 
     // euclid
     e {|n, o=0|
@@ -183,7 +234,7 @@
     play {|loop = false, mul = 1|
         //if(bufnum.isNil) { Error("Cannot play a % that has been freed".format(this.class.name)).throw };
         //var numChannels = buf.numChannels.debug("numChannels");
-        var outbus = 4; Server.default.options.numInputBusChannels.debug("wtf");
+        var outbus = 4; Server.default.options.numInputBusChannels;//.debug("wtf");
         ^{|player|
             player = PlayBuf.ar(numChannels, bufnum, BufRateScale.kr(bufnum),
                 loop: loop.binaryValue);
@@ -359,7 +410,7 @@
     }
 
     pdv {|repeats=inf|
-        ^Pdv.parse(this, repeats)
+        ^Pdv2.parse(this, repeats)
     }
 
     dig {

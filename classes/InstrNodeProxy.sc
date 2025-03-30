@@ -10,7 +10,9 @@ InstrNodeProxy : Ndef {
     var <cmdperiodfunc;
     var <msgFunc;
     var <recnodeproxy, <recpath;
+    var <simpleController;
     var skipJack;
+    var insertOffset=0;
 
     *new {|key, source|
         var res;
@@ -27,20 +29,15 @@ InstrNodeProxy : Ndef {
     // fx inserts
     +> {|val, adverb|
 
-        var offset = 20;
-        if (adverb.notNil) {
-            var index = offset + adverb.asInteger;
-            this.fx(index, val); 
+        var offset = insertOffset;
+        adverb.debug("InstrNodeProxy adverb");
+        
+        if (adverb.isNil) {
+            "please specify a slot".throw;
         }{
-            if (val.isArray) {
-                val.do({|v, i|
-                    var index = offset + i;
-                    this.fx(index, v);    
-                })    
-            }{
-                this.fx(offset, val); 
-            }
-        }
+            offset = offset + adverb.asInteger;    
+        }; 
+        this.fx(offset, val);
     }
 
     // props
@@ -57,6 +54,7 @@ InstrNodeProxy : Ndef {
         }
     }
 
+    /*
     record {|filename, quant|
         var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
         recpath = dir +/+ filename;
@@ -105,6 +103,7 @@ InstrNodeProxy : Ndef {
         //B.b1.write("/Users/david/Documents/supercollider/projects/tapes/rings_110bpm_2.wav", headerFormat: "wav", sampleFormat: "int24", numFrames: ~numsamples, startFrame: 1536)
         ^nil;
     }
+    */
 
     // alternate way 
     rec {|seconds=8, numchannels=2, cb|
@@ -130,7 +129,7 @@ InstrNodeProxy : Ndef {
     }
 
     view {|cmds|
-        ^UiModule('instr2').(this, nil, cmds);
+        ^UiModule('instr').(this, nil, cmds);
     }
 
     gui {|cmds|
@@ -139,21 +138,13 @@ InstrNodeProxy : Ndef {
 
     clear {
         this.changed(\clear);
-        "stop skipjack".debug("InstrNodeProxy");
         skipJack.stop;
-        "remove cmdperiodfunc".debug("InstrNodeProxy");
         CmdPeriod.remove(cmdperiodfunc);
-        //"vstctrls.clear".debug("InstrNodeProxy");
-        //vstctrls.clear;
-        "inserts.clear".debug("InstrNodeProxy");
         inserts.clear;
-        "metadata.clear".debug("InstrNodeProxy");
         metadata.clear;
-        "releaseDependants".debug("InstrNodeProxy");
+        simpleController.remove;
         this.releaseDependants;
-        "ndef remove".debug("InstrNodeProxy");
         Ndef.dictFor(Server.default).envir.removeAt(key);
-        "super.clear".debug("InstrNodeProxy");
         ^super.clear;
     }
 
@@ -233,6 +224,10 @@ InstrNodeProxy : Ndef {
             } {
                 path = path.asString;   
             };
+            if ( path.endsWith(".vstpreset").not) {
+                // add extension so it is easier to filter
+                path = path ++ ".vstpreset";
+            };
             path = path.resolveRelative.debug("path");
             
             // add the vst insert
@@ -275,8 +270,12 @@ InstrNodeProxy : Ndef {
     fx {|index, fx, cb, wet=1|
 
         if (fx.isNil) {
+            var insert = this.inserts[index];
             this.removeAt(index);
             this.inserts.removeAt(index);
+            if (insert['path'].notNil) {
+                File.delete(insert['path']);
+            };
         }{
             var specs;
             if (fx.isFunction) {
@@ -388,64 +387,37 @@ InstrNodeProxy : Ndef {
         color = Color.rand;
         metadata = ();
 
-        /*
-        cmdperiodfunc = {
-            {
-                this.send;
-                {
-                    this.objects.doRange({|obj, index, i|
-                        var hasvst = obj.synthDef.children.select({|ctrl| ctrl.isKindOf(VSTPlugin) }).size > 0;
-                        if (hasvst) {
-                            var synthdef = obj.synthDef;
-                            var nodeId = obj.nodeID;
-                            var synth = Synth.basicNew(synthdef.name, Server.default, nodeId);
-                            var ctrl = VSTPluginController(synth, synthDef:synthdef);
-                            ctrl.open(ctrl.info.key, verbose: true, editor:true);
-                            inserts[index]['ctrl'] = ctrl;
-                        }
-                    })
-                }.defer(2)
-            }.defer(1)
-        };
-        */
-
-        // if we're using a synthdef as a source
-        // copy the specs if they are defined
-        this.addDependant({|node, what, args|
-
-            //[node, what, args].postln;
-
-            if (what == \source) {
-                var obj = args[0];
-                var cns, argnames, str;
-                //"source detected".debug(key);
-                if (obj.isKindOf(Symbol)) {
-                    var def = SynthDescLib.global.at(obj);
-                    if (def.notNil) {
-                        if (def.metadata.notNil and: {def.metadata[\specs].notNil}) {
-                            //"adding specs from % synthdef".format(obj).debug(key);
-                            def.metadata[\specs].keysValuesDo({|k, v|
-                                node.addSpec(k, v.asSpec);
-                            });
-                        }
+        simpleController = SimpleController(this);
+        simpleController.put(\source, {|node, what, args|
+            var obj = args[0];
+            var cns, argnames, str;
+            //"source detected".debug(key);
+            if (obj.isKindOf(Symbol)) {
+                var def = SynthDescLib.global.at(obj);
+                if (def.notNil) {
+                    if (def.metadata.notNil and: {def.metadata[\specs].notNil}) {
+                        //"adding specs from % synthdef".format(obj).debug(key);
+                        def.metadata[\specs].keysValuesDo({|k, v|
+                            node.addSpec(k, v.asSpec);
+                        });
                     }
-                };
+                }
+            };
 
-                // create the function that can be used for look up
-                // of parameters which can be set, e.g. in a pattern
-                // this is modeled after SynthDesc.msgFunc which is used
-                // in Event
-                cns = node.controlNames;
-                argnames = cns.collect({|cn| cn.name }).join(",");
-                str = "{|" ++ argnames ++ "|\n";
-                str = str ++ "var result = Array.new(%);\n".format(cns.size);
-                cns.collect({|cn|
-                    str = str ++ "% !? { result.add(\"%\").add(%) };\n".format(cn.name, cn.name, cn.name);
-                });
-                str = str ++ "result\n";
-                str = str + "}";
-                msgFunc = str.interpret;
-            }
+            // create the function that can be used for look up
+            // of parameters which can be set, e.g. in a pattern
+            // this is modeled after SynthDesc.msgFunc which is used
+            // in Event
+            cns = node.controlNames;
+            argnames = cns.collect({|cn| cn.name }).join(",");
+            str = "{|" ++ argnames ++ "|\n";
+            str = str ++ "var result = Array.new(%);\n".format(cns.size);
+            cns.collect({|cn|
+                str = str ++ "% !? { result.add(\"%\").add(%) };\n".format(cn.name, cn.name, cn.name);
+            });
+            str = str ++ "result\n";
+            str = str + "}";
+            msgFunc = str.interpret;
         });
 
         this.mold(2, \audio);

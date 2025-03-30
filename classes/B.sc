@@ -23,7 +23,8 @@ B {
 
         // "e10.scd".resolveRelative
         if (File.exists(path).not) {
-            var pn = PathName(thisProcess.nowExecutingPath);// +/+ path)
+            //var pn = PathName(thisProcess.nowExecutingPath);// +/+ path)
+            var pn = PathName(path.resolveRelative);
             path = pn.pathOnly ++ path;
             //path = Document.current.dir +/+ path;
         };
@@ -140,22 +141,23 @@ B {
         }
     }
 
-    *mono {|key, path|
+    *mono {|key, path, chan=([0]), action|
 
         fork({
             var buf;
-            var result = B.read(path, [0]);
+            var result = B.read(path, chan);
             result.wait();
             buf = result.value;
             all.put(key, buf);
+            action.value(buf);
         })
     }
 
-    *stereo {|key, path|
+    *stereo {|key, path, action|
 
         var file, channels;
         path = B.prEnsurePath(path);
-        file = SoundFile.openRead(path.debug("path")).close;
+        file = SoundFile.openRead(path.debug("B path")).close;
         channels = if (file.numChannels.debug('numchannels') < 2) { [0,0] }{ [0, 1] };
 
         fork({
@@ -164,7 +166,8 @@ B {
             result.wait();
             buf = result.value;
             all.put(key, buf);
-        })
+            action.value(buf)
+        });
     }
 
     // https://fredrikolofsson.com/f0blog/buffer-xfader/
@@ -337,21 +340,39 @@ B {
         });
     }
 
-    *onsets {|buf, metric=9, threshold=(0.1)|
+    *onsets {|buf, threshold=(0.1), metric=9|
 
-        var result = Deferred();
+        //var result = Deferred();
         var server = Server.default;
         var indices = Buffer(server);
-        var feature = Buffer(server);
-        FluidBufOnsetSlice.processBlocking(server, buf, indices:indices, metric:metric, threshold:threshold);
-        //FluidBufOnsetFeature.processBlocking(server, buf, features:feature, metric:9);
-        //FluidWaveform(B.yea,~indices,~feature,bounds:Rect(0,0,1600,400), lineWidth:2);
-        indices.loadToFloatArray(action: {|array|
-            //cb.value(array, indices, feature);
-            result.value = array
-        });
+        FluidBufOnsetSlice.processBlocking(server, buf, indices:indices, metric:metric, threshold:threshold, action:{
+            indices.loadToFloatArray(action: {|array|
+                buf.addUniqueMethod(\onsets, { array.as(Array) / buf.numFrames });
+                {
+                    FluidWaveform(buf, indices);
+                    //buf.addUniqueMethod(\onsetview, { view });
+                    //indices.free;
+                }.defer;
+                "done".debug("B.onsets");
+            });
+        });        
+        ^nil
+    }
 
-        ^result
+    *transients {|buf|
+
+        var server = Server.default;
+        var indices = Buffer(server);
+        FluidBufTransientSlice.processBlocking(server, buf, indices:indices, action:{
+            indices.loadToFloatArray(action: {|array|
+                buf.addUniqueMethod('transients', { array.as(Array) / buf.numFrames });
+                {
+                    FluidWaveform(buf, indices);
+                }.defer;
+                "done".debug("B.transients");
+            });
+        });
+        ^nil
     }
 
     // split a buffer containing multiple wavetables

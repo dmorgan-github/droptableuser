@@ -7,7 +7,7 @@ SynthDefModule : Module {
 
     var <synthdef, <synthname, <synthdesc;
     var <modules;
-    var <metadata;
+    //var <metadata;
 
     *new {
         var res;
@@ -36,7 +36,6 @@ SynthDefModule : Module {
                     };
                     this.put(index, \sig -> module);  
                 }
-                
             };
 
             result = myrole.findRegexp("^aeg$");
@@ -80,6 +79,19 @@ SynthDefModule : Module {
                 }
             };
 
+            result = myrole.findRegexp("^out$");
+            if (result.size > 0) {
+                if (module.isNil) {
+                    "removing out model".debug("SynthDefModule");
+                    this.removeAt(40)
+                }{
+                    if (module.isKindOf(Function)) {
+                        module = Module(module)
+                    };
+                    this.put(40, \out -> module);  
+                }
+            };
+
             result = myrole.findRegexp("^voices$");
             if (result.size > 0) {
                 if (module.isKindOf(Function)) {
@@ -108,55 +120,22 @@ SynthDefModule : Module {
             mod = val;
 
             if (val.isKindOf(Association)) {
-
                 key = val.key;
                 mod = val.value; 
 
-                // is this safe?
-                if (currentEnvironment[mod.asSymbol].notNil) {
-                    // TODO: addFunc
-                    if (currentEnvironment[mod.asSymbol].isKindOf(Function)) {
-                         mod = topEnvironment[mod.asSymbol];
-                    }{
-                        "% is not a function".format(key).throw
-                    }
-                } {
+                if (mod.isKindOf(Symbol)) {
                     switch(key,
-                        \pit, {
-                            if (mod.isKindOf(Symbol)) {
-                                mod = "pitch/%".format(mod).asSymbol;
-                            };
-                        },
-                        \fil, {
-                            if (mod.isKindOf(Symbol)) {
-                                mod = "filter/%".format(mod).asSymbol;
-                            };
-                        },
-                        \env, {
-                            if (mod.isKindOf(Symbol)) {
-                                mod = "env/%".format(mod).asSymbol;
-                            };
-                        },
-                        \out, {
-                            if (mod.isKindOf(Symbol)) {
-                                mod = "out/%".format(mod).asSymbol;
-                            };
-                        },
-                        \sig, {
-                            if (mod.isKindOf(Symbol)) {
-                                mod = "synth/%".format(mod).asSymbol;
-                            };
-                        }
+                        \pit, { mod = "pitch/%".format(mod).asSymbol },
+                        \fil, { mod = "filter/%".format(mod).asSymbol },
+                        \env, { mod = "env/%".format(mod).asSymbol },
+                        \out, { mod = "out/%".format(mod).asSymbol },
+                        \sig, { mod = "synth/%".format(mod).asSymbol}
                     );
                 };
 
                 if (mod.isKindOf(Module).not) {
                     var doc, key = mod;
                     mod = Module(mod);
-                    doc = mod.doc;
-                    if (doc.notNil) {
-                        metadata.put(key, doc);
-                    }
                 };
                 if (mod.props.notNil) {
                     this.setAll(mod.props);
@@ -179,7 +158,7 @@ SynthDefModule : Module {
     add {|name|
 
         var sampleaccurate; 
-        this.modules.do({|m| m.value.fullpath.debug("synthdefmodule") });
+        var result = Deferred();
 
         sampleaccurate = envir['sampleaccurate'] ?? false;
         name = name ?? synthname;
@@ -191,12 +170,13 @@ SynthDefModule : Module {
             }{
                 Out.ar(\out.kr(0), sig);
             };
-        }, metadata: envir).add;
+        }, metadata: envir)
+        .add(completionMsg: {
+            result.value = true;   
+        });
 
-        {
-            synthdesc = SynthDescLib.global[name];
-        }.defer(1);
-
+        result.wait();
+        synthdesc = SynthDescLib.global[name];
         "synthdef added".debug(name);
 
         ^this;
@@ -240,7 +220,6 @@ SynthDefModule : Module {
     prSynthModuleInit {
 
         modules = Order();
-        metadata = Dictionary.new;
         synthname = "synth_%".format(UniqueID.next).asSymbol;
         this.libfunc = defaultFunc;
         ^this;
@@ -255,50 +234,67 @@ SynthDefModule : Module {
             var detectsilence = ~detectsilence ?? false;
             var gate, vel;
             var sig, sigs = List.new, filts = List.new;
-            var out, freq, env, doneaction;
+            var out, freq, env;
 
-            gate = \gate.kr(1) + Impulse.kr(0);
+            //gate = \gate.kr(1) + Impulse.kr(0);
+            //if (voices == 'mono') {
+            //    gate = (1 - \trig.tr(0)) * gate
+            //};
+            
             vel = \vel.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1));
-            // default modules
-            freq = Module('pitch/freq');
-            env = Module('env/adsr');
-            out = Module('out/splay');
 
             me.modules.do({|val, index|
                 if (val.isKindOf(Association)) {
                     var key = val.key;
                     var mod = val.value;
                     switch(key,
-                        \pit, {
-                            freq = mod;
-                        },
-                        \fil, {
-                            filts.add(mod);
-                        },
-                        \env, {
-                            env = mod
-                        },
-                        \out, {
-                            out = mod
-                        },
-                        \sig, {
-                            sigs.add(mod);
-                        }
+                        \pit, { freq = mod },
+                        \fil, { filts.add(mod) },
+                        \env, { env = mod },
+                        \out, { out = mod },
+                        \sig, { sigs.add(mod) }
                     )
                 }
             });
 
+            if (freq.isNil) {
+                freq = Module('pitch/freq');
+            };
+
+            if (env.isNil) {
+                env = Module('env/adsr');
+            };
+
+            if (out.isNil) {
+                out = Module('out/pan2');
+            };
+
             currentEnvir = me.envir.copy ++ ('voices': voices);
+            env =  env.setAll(currentEnvir).();
+
+            if (voices == 'mono') {
+                gate = \gate.kr(1) + Impulse.kr(0);
+                gate = (1 - \trig.tr(0)) * gate
+            }{
+                if (env.releaseNode.isNil) {
+                    gate = 1;
+                }{
+                    gate = \gate.kr(1) + Impulse.kr(0);   
+                }
+            };
+
+            if (env.isKindOf(Env)) { 
+                env = EnvGen.ar(env, gate, doneAction:Done.freeSelf);
+            };
             freq = freq.setAll(currentEnvir).(gate);
-            env = env.setAll(currentEnvir).(gate, doneaction);
             out = out.setAll(currentEnvir).func;
             // add current values to environment
-            currentEnvir = currentEnvir ++ ('freq': freq, gate: gate, vel: vel);
+            //currentEnvir = currentEnvir ++ ('freq': freq, gate: gate, vel: vel);
 
             // combine the signals
             sig = sigs.inject(Silent.ar, {|a, b|
                 var mul = 1;//b.mul ?? 1;
-                a + ( b.setAll(currentEnvir).(freq, gate, env) * mul.debug("mul") ) 
+                a + ( b.setAll(currentEnvir).(freq, gate, env) * mul ) 
             });
 
             // filters get applied in series
@@ -308,7 +304,7 @@ SynthDefModule : Module {
 
             sig = sig * env;
             sig = LeakDC.ar(sig);
-            sig = sig * AmpComp.ar(freq, 110) * \amp.kr(-13.dbamp) * vel;
+            sig = sig * AmpCompA.ar(freq) * \amp.kr(-13.dbamp) * vel;
            
             if (detectsilence) {
                 detectsilence.debug("detect silence");

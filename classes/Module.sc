@@ -5,7 +5,8 @@ Module {
 
     classvar <>libraryDir;
 
-    var <>envir, <>libfunc, <fullpath, <props, <view, <doc, <presets;
+    var <>envir, <>libfunc, <fullpath, <view, <doc, <presets;
+    //var <props;
     var <key;
     // TODO: need to have more structured subsclasses of modules
     // so appropriate properties can be added
@@ -109,6 +110,7 @@ Module {
     prModuleInit {|id|
 
         envir = (
+            know: true,
             module: this
         );
 
@@ -128,7 +130,7 @@ Module {
                     var file = File.open(fullpath, "r");
                     var obj = file.readAllString.interpret;
                     libfunc = obj[\synth] ?? {obj[\func]};
-                    props = obj['props'];
+                    //props = obj['props'];
                     view = obj['view'];
                     doc = obj['doc'];
                     presets = obj['presets'];
