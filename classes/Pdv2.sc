@@ -3,7 +3,7 @@ Pdv2 {
     *new {
     }
 
-    *rout {|list|
+    *rout {|list, repeats=inf|
 
         var gate = nil;
 
@@ -17,7 +17,7 @@ Pdv2 {
                 var legato, vel, kv;
                 val = obj['val'].value;
                 stretch = (obj['stretch'] ?? stretch).value.asFloat;
-                chance = (obj['chance'] ?? chance).value.asInteger;
+                chance = (obj['chance'] ?? chance).value.asFloat;
                 rep = (obj['rep'] ?? rep).value.asInteger;
                 choose = obj['choose'];
                 weights = obj['weights'];
@@ -69,10 +69,6 @@ Pdv2 {
                         };
 
                         if (ischord) {
-                            //embed = false;
-                            //if (val.notNil) {
-                            //    list.add(val);
-                            //};
                             // we are within a chord - either we are resolving
                             // the items within the chord or we are done
                             // and can output the result
@@ -97,6 +93,11 @@ Pdv2 {
                                 if (vel.notNil) {
                                     inval['vel'] = vel;
                                 };
+                                if (kv.notNil) {
+                                    kv.keysValuesDo({|k, v|
+                                        inval[k] = v
+                                    })
+                                };
                                 inval = val.embedInStream(inval);
                                 gate = nil
                             })
@@ -107,7 +108,7 @@ Pdv2 {
                 };
             };
 
-            inf.do({
+            repeats.do({
                 gate = true;
                 list.asArray.do({|val|
                     parse.(val);
@@ -190,15 +191,16 @@ Pdv2 {
         // as pairs
         spec = [
             'number', "^[+-]?([0-9]*[.])?[0-9]+",
+            'hit', "^\\.",
             'stretch', "^\\^",
             'legato', "^_[0-9a-fA-F]{1,2}",
             'velocity', "^\\*[0-9a-fA-F]{1,2}",
-            'kv', "^;[a-zA-Z]+=[0-9a-fA-f]{1,2}",
+            'kv', "^;[a-zA-Z]+=[0-9a-fA-F]{1,2}",
             'rep', "^\![0-9]+",
             'rest', "^\~",
             'shuf', "^\\$",
             'choose', "^\#",
-            'chance', "^^\\?[0-9a-fA-f]{0,2}",
+            'chance', "^\\?[0-9a-fA-F]{0,2}",
             'weights', "^\\([0-9]+\\)",
             '[', "^\\[",
             ']', "^\\]",
@@ -281,6 +283,9 @@ Pdv2 {
                         // entities
                         'number', {
                             list.add( (val:token['val'].asFloat, type:\value) )
+                        },
+                        'hit', {
+                            list.add( (val:1, type:\value) )
                         },
                         'rest', {
                             list.add( (val:\rest, type:\value) )
@@ -391,14 +396,14 @@ Pdv2 {
         ^exec.(List.new);
     }
 
-    *parse {|str|
+    *parse {|str, repeats=inf|
         var list, seq;
         if (str.isNil) {
             "pdv input is nil".throw;
         }{
             list = Pdv2.tokenize(str.stripWhiteSpace);
             seq = Pdv2.sequence(list);
-            ^Pdv2.rout(seq)
+            ^Pdv2.rout(seq, repeats)
         }
     }
 }

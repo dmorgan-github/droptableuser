@@ -37,4 +37,21 @@ Tag {
         file.close;
         ^nil
     }
+
+    *remove {|val|
+        var file;
+        var current = Tag.all;
+        var keys = current.keys;
+        keys.do({|key|
+            var list = current[key];
+            var index = list.indexOfEqual(val);
+            if (index.notNil) {
+                list.removeAt(index);
+            };
+        });
+
+        file = File.open(tagDir ++ "/tags.scd", "w");
+        file.write(current.asCompileString);
+        file.close;  
+    }
 }

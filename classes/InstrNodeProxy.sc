@@ -4,12 +4,10 @@ N : InstrNodeProxy {
 InstrNodeProxy : Ndef {
 
     classvar <>defaultout;
-    //var <vstctrls, 
     var <>color;
-    var <inserts, <metadata;
+    var <inserts;
     var <cmdperiodfunc;
     var <msgFunc;
-    var <recnodeproxy, <recpath;
     var <simpleController;
     var skipJack;
     var insertOffset=0;
@@ -36,8 +34,8 @@ InstrNodeProxy : Ndef {
             "please specify a slot".throw;
         }{
             offset = offset + adverb.asInteger;    
+            this.fx(offset, val);
         }; 
-        this.fx(offset, val);
     }
 
     // props
@@ -52,72 +50,6 @@ InstrNodeProxy : Ndef {
         } {
             this.set(prop, val)
         }
-    }
-
-    /*
-    record {|filename, quant|
-        var dir = PathName(thisProcess.nowExecutingPath).pathOnly;
-        recpath = dir +/+ filename;
-		//if(server.serverRunning.not) { "server not running".inform; ^nil };
-		recnodeproxy = RecNodeProxy.newFrom(this, 2);
-		recnodeproxy.open(recpath, "WAV", "int24");
-		recnodeproxy.record(paused:false, quant: quant)
-		^recnodeproxy
-	}
-
-    stopRecording {|numbeats=4, normalize=true|
-
-        var clock;
-        var sr;
-        var numframes;
-
-        recnodeproxy.close;
-        
-        clock = TempoClock.default;
-        sr = Server.default.sampleRate;
-        numframes = (clock.beatDur * numbeats) * sr;
-
-        Routine({
-            var buf, onsets;
-            var start = 0;
-            var result;
-            var dest, pn;
-            var def = B.read(recpath, channels: [0, 1], normalize:false);
-            
-            def.wait;
-            buf = def.value;
-
-            def = B.onsets(buf.value);
-            def.wait;
-            onsets = def.value;
-            start = onsets[0];
-
-            buf.write(recpath, headerFormat: "wav", sampleFormat: "int24", numFrames: numframes, startFrame: start);
-            pn = PathName(recpath);
-            dest = "%%-3db.wav".format(pn.pathOnly, pn.fileNameWithoutExtension) ;
-
-            Sox().norm(-3).transform(recpath, dest, replace:true);
-            Sox.stats(dest);
-
-        }).play;
-        //B.b1.write("/Users/david/Documents/supercollider/projects/tapes/rings_110bpm_2.wav", headerFormat: "wav", sampleFormat: "int24", numFrames: ~numsamples, startFrame: 1536)
-        ^nil;
-    }
-    */
-
-    // alternate way 
-    rec {|seconds=8, numchannels=2, cb|
-        var server = Server.default;
-        var node = this.node;
-        var synth = "instrproxyrecorder%".format(numchannels).asSymbol.debug("synth");
-        Buffer.alloc(server, server.sampleRate * seconds, numchannels, completionMessage: {|buf|
-            Synth.tail(node.group.nodeID, synth, [\buf, buf, \bus, node.bus.index])
-            .onFree({
-                "recoding done".debug(this.class.asString);
-                cb.value(buf.normalize);
-            })
-        }); 
-        ^nil
     }
 
     mute {|fadeTime=1|
@@ -138,13 +70,13 @@ InstrNodeProxy : Ndef {
 
     clear {
         this.changed(\clear);
-        skipJack.stop;
+        //skipJack.stop;
         CmdPeriod.remove(cmdperiodfunc);
         inserts.clear;
-        metadata.clear;
         simpleController.remove;
         this.releaseDependants;
         Ndef.dictFor(Server.default).envir.removeAt(key);
+        this.clearHalo;
         ^super.clear;
     }
 
@@ -161,7 +93,7 @@ InstrNodeProxy : Ndef {
             this.specs
             .keysValuesDo({|key, value|
                 this.addSpec(key, value)
-            })
+            });
         }.defer(0.5)
     }
 
@@ -171,7 +103,8 @@ InstrNodeProxy : Ndef {
         var outOffset = Server.default.options.numInputBusChannels;
         if (bus.isKindOf(Symbol)) {
             val = bus.asString[1..].asInteger;
-            val = 2 * (val-1);
+            val = (val-1).mod(8);
+            val = 2 * val;
         } {
             val = bus;
         };
@@ -199,7 +132,6 @@ InstrNodeProxy : Ndef {
     vst {|index, vst|
 
         var node = this;
-        index.debug("InstrNodeProxy::vst::index");
         if (vst.isNil) {
             node.removeAt(index);
             node.inserts.removeAt(index);
@@ -228,13 +160,16 @@ InstrNodeProxy : Ndef {
                 // add extension so it is easier to filter
                 path = path ++ ".vstpreset";
             };
+
             path = path.resolveRelative.debug("path");
             
             // add the vst insert
-            node.filter(index, filterfunc);
-    
+            node.filter(index, filterfunc);    
             onload = {|ctrl|
-                var obj = (name:vst, type:'vst', 'ctrl':ctrl, 'params': Order(), path:path, view:{ ctrl.editor });
+                var obj;
+                var tempo = 60/TempoClock.default.beatDur;
+                ctrl.setTempo(tempo.debug("set tempo"));
+                obj = (name:vst, type:'vst', 'ctrl':ctrl, path:path, view:{ ctrl.editor });
                 if (File.exists(path)) {
                     ctrl.readProgram(path);
                 };
@@ -283,20 +218,19 @@ InstrNodeProxy : Ndef {
                 obj['ui'] = {|self|
                     UiModule('instr').gui(this, index);
                 };
-                this.filter(index, fx);
+                this.filter(index, fx );
                 this.inserts.put(index, obj);
             }{
                 if (fx.asString.beginsWith("vst:")) {
-
                     var vst;
                     vst = fx.asString.split($:)[1..].join("/").asSymbol;
                     this.vst(index, vst);
-
                 }{
                     var func, mod, obj;
                     var key;// = "fx/%".format(fx).asSymbol;
 
                     try {
+
                         if (fx.isKindOf(Module)) {
                             mod = fx;
                             key = mod.key;
@@ -309,7 +243,9 @@ InstrNodeProxy : Ndef {
                         obj['ui'] = {|self|
                             UiModule('instr').gui(this, index);
                         };
-                        cb.(mod);
+                        //cb.(mod);
+
+                        mod.set(\node, this);
                         func = mod.func;
                         this.filter(index, func);
                         this.inserts.put(index, obj);
@@ -320,72 +256,26 @@ InstrNodeProxy : Ndef {
                 };
             };
 
+            // TODO: is this still necessary
+            /*
             if (specs.isNil or: {specs.isEmpty}) {
                 {
                     specs = this.objects[index].specs;
                     if (specs.isNil.not) {
                         this.addSpec(*specs.getPairs);
                     };
-                }.defer(1)
+                }.defer(2)
             } {
                 this.addSpec(*specs);
             };
-
-            //this.addSpec("wet%".format(index).asSymbol, [0, 1, \lin, 0, 1].asSpec);
-            //this.set("wet%".format(index).asSymbol, wet);
+            */
         }
     }
-
-    /*
-    print {
-
-        //this.fxchain.asCode.postln;
-        this.fxchain.do({|v, i|
-            var name = v.name;
-            if (v.type == 'vst') {
-                name = "vst/%".format(name);
-            };
-            "D('%').fx(%, '%')".format(this.key, i, name).postln;
-        });
-
-        "(\nD('%').set(".format(this.key).postln;
-        this.nodeMap.getPairs.pairsDo({|k, v|
-            if (this.internalKeys.includes(k).not) {
-                "\t".post;
-                k.asCode.post;
-                ", ".post;
-                v.asCode.post;
-                ",".postln;
-            }
-        });
-        ")\n)".postln;
-
-        //"(\nD('%').set(".format(this.key).postln;
-        this.fxchain.do({|fx|
-            if (fx.type == \vst) {
-                V.getPatternParams(fx.name, fx.ctrl, {|vals|
-                    "(\nD('%').set(".format(this.key).postln;
-                    vals.do({|val|
-                        "\t".post;
-                        val.key.asCode.post;
-                        ", ".post;
-                        val.value.asCode.post;
-                        ",".postln;
-                    });
-                    ")\n)".postln;
-                });
-                //"".postln;
-            }
-        });
-        //")\n)".postln;
-    }
-    */
 
     prNodeInit {
 
         inserts = Order.new;
         color = Color.rand;
-        metadata = ();
 
         simpleController = SimpleController(this);
         simpleController.put(\source, {|node, what, args|
@@ -441,24 +331,6 @@ InstrNodeProxy : Ndef {
             sig;
         });
 
-        // don't know what this is doing anymore
-        //CmdPeriod.add(cmdperiodfunc);
-
-        // monitor vsts
-        skipJack = SkipJack({
-            inserts.do({|obj, i|
-                if (obj.type == 'vst') {                
-                    if (obj.path.notNil) {
-                        var ctrl = obj.ctrl;
-                        // consider only writing if changes detected?
-                        // ctrl.getProgramData({|data| data })
-                        //"saving vst state %".format(obj.name).debug(key);
-                        ctrl.writeProgram(obj.path);
-                    }
-                }    
-            })
-        }, 30);//.start;
-
         ^this;
     }
 
@@ -466,6 +338,8 @@ InstrNodeProxy : Ndef {
         defaultout = 0;//Server.default.options.numInputBusChannels;
 
         StartUp.add({
+
+            /*
             SynthDef(\instrproxyrecorder1, {
                 var buf = \buf.kr(0);
                 var bus = \bus.kr(0);
@@ -483,6 +357,39 @@ InstrNodeProxy : Ndef {
                 RecordBuf.ar(sig, buf, loop:0, doneAction:Done.freeSelf);
                 Out.ar(0, Silent.ar(2));
             }).add;
+            */
+
+            /*
+            (
+            AbstractPlayControl.buildMethods['filter'] = #{ | func, proxy, channelOffset = 0, index |
+                var ok, ugen, proxySynthDef;
+                if(proxy.isNeutral) {
+                    ugen = func.value(Silent.ar);
+                    ok = proxy.initBus(ugen.rate, ugen.numChannels + channelOffset);
+                    if(ok.not) { Error("NodeProxy input: wrong rate/numChannels").throw }
+                };
+
+                proxySynthDef = { | out |
+                    var env, ctl = NamedControl.kr("wet" ++ (index ? 0), 1.0);
+                    if(proxy.rate === 'audio') {
+                        env = ctl * EnvGate(i_level: 0, doneAction:2, curve:\sin);
+                        // pass the index as an argument in the wrap function
+                        XOut.ar(out, env, SynthDef.wrap(func, nil, [In.ar(out, proxy.numChannels), Ref(index) ]))
+                    } {
+                        env = ctl * EnvGate(i_level: 0, doneAction:2, curve:\lin);
+                        // pass the index as an argument in the wrap function
+                        XOut.kr(out, env, SynthDef.wrap(func, nil, [In.kr(out, proxy.numChannels), Ref(index) ]))
+                    };
+                }.buildForProxy( proxy, channelOffset, index );
+                proxySynthDef.allControlNames
+                .reject({|cn| [\out, \i_out, \gate, \fadeTime].includes(cn.name) })
+                .reject({|cn| cn.name.asString.beginsWith("wet")  })
+                .debug("cn")
+                .do ({ |it| it.name = "%%".format(it.name, index).asSymbol});
+                proxySynthDef
+            }
+            )
+            */
         })
 
     }

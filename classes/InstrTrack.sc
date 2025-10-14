@@ -120,7 +120,7 @@ InstrTrack {
             var sig = [sigl.sum, sigr.sum];
             sig
         };
-        recnode.open(path, headerFormat: "wav", sampleFormat:"int32");
+        recnode.open(path, headerFormat: "wav", sampleFormat:"float");
         recnode.record(false)
     }
 
@@ -134,8 +134,9 @@ InstrTrack {
         recnode.close;
         recnode.free;
 
+        path.debug("InstrTrack.stopRecording");
         pn = PathName(path);
-        normalized = "%%-3db.%".format(pn.pathOnly, pn.fileNameWithoutExtension, pn.extension).debug("InstrTrack.stopRecording");
+        normalized = "%%-3db.%".format(pn.pathOnly, pn.fileNameWithoutExtension, pn.extension);
 
         {
             SoundFile.normalize(
@@ -152,8 +153,9 @@ InstrTrack {
             */
 
             {
-                "delete %".format(path).debug("InstrTrack.stopRecording");
+                //"delete %".format(path).debug("InstrTrack.stopRecording");
                 File.delete(path);
+                normalized.debug("InstrTrack.stopRecording");
             }.defer(2);
 
         }.defer(2)

@@ -5,8 +5,9 @@ InstrProxyNotePlayer {
     var <instr;
     var <stream;
     var <synthdef;
-    var <>func;
+    var <>filter;
     var <>debug;
+    var <monoNotes;
 
     *new {|instrproxy|
         ^super.new.prInit(instrproxy);
@@ -17,11 +18,13 @@ InstrProxyNotePlayer {
     }
 
     on {|note, vel=127, extra|
+
         var args;
         var target = instr.node.group.nodeID;
         var instrument, evt;
         var velocity = (vel/127).squared;
-        var freq;
+        var index;
+
         evt = instr.envir.copy.parent_(Event.default);
         evt['vel'] = velocity;
         if (note > 11) {
@@ -29,27 +32,21 @@ InstrProxyNotePlayer {
         } {
             evt['degree'] = note;
         };
+
         evt['out'] = instr.node.bus.index;
-        // TODO: perhaps this can be an option
-        //evt = stream.next( evt );
         instrument = instr.instrument;
 
         evt[\gate] = 1;
-        if (extra.notNil) {
-            if (extra.isKindOf(Function)) {
-                evt.use({ extra.valueEnvir })
-            }{
-                evt = evt ++ extra;
-            }
+        if (filter.notNil) {
+            evt.use(filter)
         };
 
         args = evt.use({
             ~freq = ~freq.value;
             ~amp = ~amp.value;
             ~sustain = ~sustain.value;
-            ~dur = ~dur.value;
-            ~stretch = ~stretch.value;
-
+            //~dur = ~dur.value;
+            //~stretch = ~stretch.value;
             instr.msgFunc.valueEnvir
         });
 
@@ -57,23 +54,35 @@ InstrProxyNotePlayer {
             args.asCompileString.postln;
         };
 
+        index = note;
+        if (instr.isMono) {
+            index = 0;
+            monoNotes.add(note);
+        };
+
         if (instr.synthdef.hasGate) {
-            if (synths[note].isNil) {
-                if ( func.(\on, note, args) != false) {
-                    synths[note] = Synth(instrument, args, target:target, addAction:\addToHead);
-                }
+            if (synths[index].isNil) {
+                synths[index] = Synth(instrument, args, target:target, addAction:\addToHead);
+            } {
+                synths[index].set(\freq, note.midicps);
             }
         } {
-            if ( func.(\on, note, args) != false) {
-                Synth(instrument, args, target:target, addAction:\addToHead);
-            }
+            Synth(instrument, args, target:target, addAction:\addToHead);
         }    
     }
 
     off {|note|
-        if ( func.(\off, note) != false) {
-            if (instr.synthdef.hasGate) {
-                synths.removeAt(note).set(\gate, 0)
+        var index = note;
+        if (instr.isMono) {
+            index = 0;
+            monoNotes.remove(note);
+        };
+        if (instr.synthdef.hasGate) {
+            if (instr.isMono and: { monoNotes.size >= 1 }) {
+                var mynote = monoNotes.last;
+                synths[index].set(\freq, mynote.midicps)
+            } {
+                synths.removeAt(index).set(\gate, 0)
             }
         }
     }
@@ -83,6 +92,7 @@ InstrProxyNotePlayer {
         stream = instr.asStream;
         synthdef = instr.synthdef;
         synths = Order.new;
+        monoNotes = List();
         debug = false;
     }
 }

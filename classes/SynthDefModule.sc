@@ -236,13 +236,7 @@ SynthDefModule : Module {
             var sig, sigs = List.new, filts = List.new;
             var out, freq, env;
 
-            //gate = \gate.kr(1) + Impulse.kr(0);
-            //if (voices == 'mono') {
-            //    gate = (1 - \trig.tr(0)) * gate
-            //};
-            
-            vel = \vel.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1));
-
+            //vel = \vel.kr(1, spec:ControlSpec(0, 1, \lin, 0, 1));
             me.modules.do({|val, index|
                 if (val.isKindOf(Association)) {
                     var key = val.key;
@@ -266,7 +260,7 @@ SynthDefModule : Module {
             };
 
             if (out.isNil) {
-                out = Module('out/pan2');
+                out = Module('out/bal');
             };
 
             currentEnvir = me.envir.copy ++ ('voices': voices);
@@ -276,7 +270,7 @@ SynthDefModule : Module {
                 gate = \gate.kr(1) + Impulse.kr(0);
                 gate = (1 - \trig.tr(0)) * gate
             }{
-                if (env.releaseNode.isNil) {
+                if ( env.respondsTo(\releaseNode).not or: { env.releaseNode.isNil } ) {
                     gate = 1;
                 }{
                     gate = \gate.kr(1) + Impulse.kr(0);   
@@ -288,13 +282,15 @@ SynthDefModule : Module {
             };
             freq = freq.setAll(currentEnvir).(gate);
             out = out.setAll(currentEnvir).func;
-            // add current values to environment
-            //currentEnvir = currentEnvir ++ ('freq': freq, gate: gate, vel: vel);
 
             // combine the signals
-            sig = sigs.inject(Silent.ar, {|a, b|
+            sig = sigs.inject(Silent.ar, {|a, b, i|
                 var mul = 1;//b.mul ?? 1;
-                a + ( b.setAll(currentEnvir).(freq, gate, env) * mul ) 
+                b.setAll(currentEnvir);
+                if (i > 0) {
+                    b.set(\num, i+1)
+                };
+                a + ( b.(freq, gate, env) * mul ) 
             });
 
             // filters get applied in series
@@ -304,11 +300,11 @@ SynthDefModule : Module {
 
             sig = sig * env;
             sig = LeakDC.ar(sig);
-            sig = sig * AmpCompA.ar(freq) * \amp.kr(-13.dbamp) * vel;
+            sig = sig * AmpCompA.ar(freq) * \amp.kr(-13.dbamp);// * vel;
            
             if (detectsilence) {
                 detectsilence.debug("detect silence");
-                DetectSilence.ar(in: sig, amp: 0.00025, doneAction:Done.freeSelf);
+                DetectSilence.ar(in: sig, amp: -70.dbamp, doneAction:Done.freeSelf);
             };
 
             sig = out.(sig);

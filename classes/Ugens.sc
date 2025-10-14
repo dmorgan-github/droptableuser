@@ -1,3 +1,23 @@
+Wt {
+    *ar {|freq, buf, samplesize, pos|
+
+        var sig, phase;
+        var numframes = BufFrames.kr(buf);
+        var divs = numframes/samplesize;
+    
+        phase = LFSaw.ar(freq, 1).linlin(-1, 1, 0, 1);
+        sig = OscOS.ar(
+            bufnum: buf,
+            phase: phase,
+            buf_divs: divs,
+            buf_loc: pos,
+            oversample: 4
+        );
+
+        ^sig;
+    }
+}
+
 LoopBufCF {
 
     *ar {|numChannels=1, bufnum=0, rate=1.0, trigger=0.0, startPos=0.0, endPos=1.0, resetPos=0.0, ft=0.05|

@@ -1,8 +1,28 @@
 
 /*
 unipolar: sig + (mod * moddepth)
+unipolar with env: ffreq * (1 + (modFactor * eg))
 bipolar: sig * (2 ** (mod * moddepth))
 */
+
+
+ResetLfo : UGen {
+
+    *kr {|freq, modratio=1, modindex=0, reset|
+        ^ResetLfo.prAudio('kr', freq, modratio, modindex, reset)
+    }
+
+    *ar {|freq, modratio=1, modindex=0, reset|
+        ^ResetLfo.prAudio('ar', freq, modratio, modindex, reset)
+    }
+
+    *prAudio {|rate, freq, modratio=1, modindex=0, reset=1|
+        var phase = Phasor.ar(reset, freq * [1, modratio] * SampleDur.ir);
+        var mod = SinOsc.perform(rate, DC.perform(rate, 0), phase[1]) / 2pi * modindex;
+        var sig = SinOsc.perform(rate, DC.perform(rate, 0), phase[0] + mod * 2pi);
+        ^sig;
+    }
+}
 
 Lfo {
 

@@ -1,3 +1,13 @@
+Pphaseval : Pattern {
+    *new {|key, default=1|
+        ^Pfunc({|evt|
+            var phase = evt['phase'];
+            var vals = evt[key] ?? default;
+            vals.asArray.wrapAt(phase);
+        })
+    }
+}
+
 Pkey2 : Pattern {
 	var	<>key, <>default, <>repeats;
 

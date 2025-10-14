@@ -31,6 +31,14 @@ B {
         ^path;//.debug("prEnsurePath");
     }
 
+    *extract {|buf|
+        buf.loadToFloatArray(action: {|array|
+            var result = array.as(Array);
+            "done".debug("B.extract -> <buf>.floatArray");
+            buf.addUniqueMethod(\floatArray, { result })
+        })
+    }
+
     *pv {|key, path|
 
         var file, channels;
@@ -340,7 +348,7 @@ B {
         });
     }
 
-    *onsets {|buf, threshold=(0.1), metric=9|
+    *onsets {|buf, threshold=(0.5), metric=9|
 
         //var result = Deferred();
         var server = Server.default;
@@ -407,6 +415,19 @@ B {
 
         ^result;
     }
+    /*
+    (
+    var pathname = PathName("/Users/david/Documents/supercollider/resources/AKWF");
+    var folders = pathname.folders;
+    folders.do({|pn|
+        var filename = "%.%".format(pn.folderName, "wav");
+        var dest = "%/%".format("/Users/david/Documents/supercollider/media/wavetables_2048/AKWF", filename);
+        var src = pn.pathOnly;
+        B.combineWtDir(src, dest)
+    });
+    "".postln;
+    )
+    */
 
     *combineWtDir {|path, dest, samplesize=2048|
 
@@ -414,7 +435,7 @@ B {
         var signal = Signal.newClear(0);
         paths = "%/*.wav".format(path).pathMatch;//.debug("path");
     
-        Routine({
+        fork({
             paths.do {|path, i|
                 path.debug("combineDir");
                 file = SoundFile.openRead(path);
@@ -426,12 +447,18 @@ B {
     
             outFile = SoundFile(dest)
             .headerFormat_("WAV")
+            //.sampleFormat_("int16")
+            //.sampleFormat_("int32")
             .sampleFormat_("float")
             .numChannels_(1)
-            .sampleRate_(48000);
+            //.sampleRate_(48000)
+            .sampleRate_(44100)
+            ;
     
+            outFile.debug("B.combineWtDir");
             if(outFile.openWrite.notNil) {
                 outFile.writeData(signal);
+                outFile.close;
                 0.1.wait;
             } {
                 "Couldn't write output file".warn;
@@ -439,7 +466,7 @@ B {
 
             \done.debug(dest);
     
-        }).play
+        });
     }
 
     

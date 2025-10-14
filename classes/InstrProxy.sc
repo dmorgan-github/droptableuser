@@ -14,7 +14,7 @@ x filterable with vst fx
 // MidiInstrProxy {{{
 MidiInstrProxy : InstrProxy {
 
-    var <notechan=0, <returnbus=0, <midiout;
+    var <>notechan=0, <returnbus=0, <midiout;
     var <>ctlNumMapping;
 
     *new {|device, chan|
@@ -84,19 +84,24 @@ MidiInstrProxy : InstrProxy {
     }
 
     on {|note, vel=1|
-
-        [notechan, note, vel].debug("on");
+        //[notechan, note, vel].debug("on");
         midiout.noteOn(notechan, note, vel)
     }
 
     off {|note|
-        [notechan, note].debug("off");
+        //[notechan, note].debug("off");
         midiout.noteOff(notechan, note)
     }
 
-    prInitMidiSynth {|device notechan|
+    bend {|val=8192|
+        //val.debug("VstInstrProxy");
+        midiout.bend(notechan, val: val)    
+    }
+
+    prInitMidiSynth {|device chan|
         this.envir = ();
         //this.ctlNumMapping = ();
+        notechan = chan;
         MidiCtrl.connect(device, cb:{|obj|
             midiout = obj.out;
             midiout.latency = 0;
@@ -148,6 +153,12 @@ VstInstrProxy : InstrProxy {
         this.changed(\noteOff, [note]);
     }
 
+    // -12 to 12
+    bend {|val=8192|
+        //val.debug("VstInstrProxy");
+        vstplugin.midi.bend(0, val: val)
+    }
+
     find {|str|
         var params = this.vstplugin.info.parameters;
         var vals = params.select({|p| p.name.asString.contains(str) });
@@ -158,35 +169,6 @@ VstInstrProxy : InstrProxy {
             result.add([index, parm]);
         });
         ^result.asArray
-    }
-
-    discover {
-        
-        var ctrl = this.vstplugin;
-        var params = ctrl.info.parameters;
-        var vals = Dictionary();
-        var rout;
-        
-        rout = Routine({
-        
-            4.do({
-                params.do({|v|
-                    var name = v['name'];
-                    ctrl.get(name, action:{|f|
-                        var val = vals[name];
-                        if (val.isNil) {
-                            vals.put(name, f);  
-                        } {
-                            if (val != f) {
-                                name.postln;
-                            }
-                        }
-                    })   
-                });
-                4.wait;
-            })
-        });
-        rout.play;
     }
 
     map {|key, val|
@@ -250,19 +232,19 @@ VstInstrProxy : InstrProxy {
             });
 
             this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin)
-            //this.set('type', 'vst_midi', 'vst', vstplugin)
-
         });
+    }
+
+    save {
+        super.save;
+        "save".debug("VstInstrProxy");
+        vstplugin.writeProgram(preset_path);
     }
 
     clear {
         this.vstplugin.close;
         this.vstsynth.free;
         super.clear;
-    }
-
-    save {
-        vstplugin.writeProgram(preset_path);      
     }
 
     *initClass {
@@ -292,7 +274,8 @@ InstrProxy : EventPatternProxy {
     var <lfos;
     var <>data_path;
     var <skipJack;
-    var <>autosave=true;
+    var <>autosave=false;
+    var <>uiModule;
 
     var specs;
     var protoEvent;
@@ -305,10 +288,6 @@ InstrProxy : EventPatternProxy {
     // synth
     <+ {|val|
 
-        //if (synthdefmodule.notNil) {
-        //    synthdefmodule.envir.clear;
-        // SynthDefModule();
-        //};
         synthdefmodule = SynthDefModule();
         synthdefmodule.evaluate(val);
 
@@ -350,27 +329,9 @@ InstrProxy : EventPatternProxy {
         }
     }
 
+    // map lfos
     @@ {|val, adverb|
         this.map(adverb, val)    
-    }
-
-    // set fx props
-    // TODO: not sure about this
-    % {|val, adverb|
-
-        if (val.isKindOf(Lfo)) {
-            var mykey = "%_%_lfo".format(this.key, adverb).asSymbol;
-            var nodes = val.value(mykey).first;
-            lfos.put(mykey, nodes);
-            this.node.set(adverb, nodes);
-            {
-                nodes.do({|n|
-                    n.parentGroup = this.node.group    
-                });
-            }.defer(5)
-        } {
-            this.node.set(adverb, val);    
-        }
     }
 
     // pattern
@@ -397,10 +358,12 @@ InstrProxy : EventPatternProxy {
     }
 
     map {|key, val|
-    
+
         if (val.isKindOf(Function)) {
-            val = Ndef("%_%_lfo".format(this.key, key))[0] = val;
+            var mykey = "%_%_lfo".format(this.key, key).asSymbol;
+            val = Ndef(mykey, val).quant_(1)
         };
+        "map % %".format(key, val).debug("InstrProxy");
         this.set(key, val);
     }
 
@@ -417,12 +380,7 @@ InstrProxy : EventPatternProxy {
             args = args.flatten;
         };
 
-        //if (args[0].isKindOf(Environment)) {
-        //    evt = args[0];
-        //}{
-            evt = args.asEvent;
-        //};
-        
+        evt = args.asEvent;        
         nodeprops = evt.use({ node.msgFunc.valueEnvir });
         synthprops = evt.use({ this.msgFunc.valueEnvir });
 
@@ -480,6 +438,14 @@ InstrProxy : EventPatternProxy {
         ^this;
     }
 
+    bend {|val=8192|
+        var bendmid = 8192;
+        var bendmin = -12;
+        var bendmax = 12;
+        val = val.linlin(0, bendmid * 2, bendmin, bendmax);
+        this.set(\bend, val)    
+    }
+
     play {|doReset=false, fadeTime=0, quant|
         if (fadeTime > 0) {
             // node stop will force the output proxy to be freed and a new one created
@@ -516,6 +482,7 @@ InstrProxy : EventPatternProxy {
         metadata.clear;
         ServerTree.remove(cmdperiodfunc);
         this.releaseDependants;
+        this.clearHalo;
         super.clear;
         ^nil
     }
@@ -551,9 +518,7 @@ InstrProxy : EventPatternProxy {
     }
 
     view {|cmds|
-        // TODO: using topenvironment as a sort of cache
-        //cmds = cmds ?? { "[(freq fx) props]" };
-        ^UiModule('instr').envir_(topEnvironment).view(this, nil, cmds);
+        ^uiModule.(this, nil, cmds);
     }
 
     gui {|cmds|
@@ -569,7 +534,7 @@ InstrProxy : EventPatternProxy {
         
         var kv, str;
         kv = this.envir.copy.parent_(nil).proto_(nil)
-        .reject({|v, k| ['vst', 'type', 'types', 'instrument', 'bufposreplyid', 'buf' ].includes(k) })
+        .reject({|v, k| ['vst', 'type', 'types', 'instrument', 'bufposreplyid', 'buf', 'kb_toggle' ].includes(k) })
         .reject({|v, k| v.isKindOf(NodeProxy) })
         .reject({|v, k|
             var spec = this.getSpec[k];
@@ -577,7 +542,7 @@ InstrProxy : EventPatternProxy {
             v == default
         });
 
-        str = kv.asCompileString;
+        str = kv.asPairs.asCompileString;
 
         ^str;
     }
@@ -591,7 +556,7 @@ InstrProxy : EventPatternProxy {
             Plazy({
                 Pbind(
                     \out, node.bus.index,
-                    \group, node.group.nodeID,
+                    \group, Pfunc( { node.group.nodeID }),
                     \sendGate, this.hasgate
                 )
             })
@@ -623,16 +588,16 @@ InstrProxy : EventPatternProxy {
 
     save {
         // to be overridden
-        //"save".debug("InstrProxy");
-    }
+        var str;
 
-    prSave {
-        var str = this.stringify;
+        "save".debug("InstrProxy");
+        str = this.stringify;
         if (str.size > 0) {
             File.use(this.data_path, "w", { |f|
-                f.write(str)
+                f.write(str);
+                this.changed(\save)
             })
-        }
+        };
     }
 
     prInitSynth {|synthname|
@@ -670,9 +635,6 @@ InstrProxy : EventPatternProxy {
             };
 
             this.hasgate = synthdef.hasGate;
-            //if (metadata['hasgate'] == false) {
-            //    this.hasgate = false;
-            //};
 
             //"set defaults from spec...".debug("ssynth");
             if (this.getSpec.notNil) {
@@ -725,14 +687,15 @@ InstrProxy : EventPatternProxy {
         ServerTree.add(cmdperiodfunc);
         count = count + 1;
 
+        uiModule = UiModule('instr');
+
+        /*
         skipJack = SkipJack({
             if (this.autosave) {
-                this.prSave;
                 this.save;
             }
         }, 30);
-
-        
+        */
 
         ^this
     }

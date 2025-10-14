@@ -1,12 +1,111 @@
-+ Fdef {
-    update {|obj, what ... args| this.value(obj, what, *args) }
++ ExecuteCommandProvider {
+    *commands {
+        ^(
+            'supercollider.internal.bootServer': {
+                Server.default.boot;
+            },
+            'supercollider.internal.rebootServer': {
+                Server.default.reboot;
+            },
+            'supercollider.internal.killAllServers': {
+                Server.killAll();
+            },
+            'supercollider.internal.showServerWindow': {
+                Server.default.makeWindow()
+            },
+            'supercollider.internal.showServerMeter': {
+                Server.default.meter()
+            },
+            'supercollider.internal.showScope': {
+                Server.default.scope()
+            },
+            'supercollider.internal.showFreqscope': {
+                Server.default.freqscope()
+            },
+            'supercollider.internal.dumpNodeTree': {
+                Server.default.queryAllNodes()
+            },
+            'supercollider.internal.dumpNodeTreeWithControls': {
+                Server.default.queryAllNodes(true)
+            },
+            'supercollider.internal.plotTree': {
+                Server.default.plotTree()
+            },
+            'supercollider.internal.startRecording': {
+                //Server.default.record()
+                T.daw.goToEnd.record
+            },
+            'supercollider.internal.pauseRecording': {
+                Server.default.pauseRecording()
+            },
+            'supercollider.internal.stopRecording': {
+                //Server.default.stopRecording()
+                T.daw.stopRecording
+            },
+            'supercollider.internal.cmdPeriod': {
+                CmdPeriod.run();
+            },
+            'supercollider.internal.media': {
+                M('device/media').().ui
+            },
+            'supercollider.internal.mixer': {
+                T.daw.mixer
+            }
+        )
+    }    
 }
 
++ VSTPluginController {
+
+    discover {
+
+        // // c.getn(0, c.numParameters, { |data| data.postln });
+        var ctrl = this;
+        var params = ctrl.info.parameters;
+        var vals = Dictionary();
+        var rout;
+
+        rout = Routine({
+
+            4.do({|i|
+                params.do({|v|
+                    var name = v['name'];
+                    ctrl.get(name, action:{|f|
+                        var val = vals[name];
+                        if (val.isNil) {
+                            vals.put(name, f);
+                        } {
+                            if (val != f) {
+                                [name, f].postln;
+                            }
+                        }
+                    })
+                });
+                4.wait;
+            })
+        });
+
+        rout.play;
+    }
+}
+
++ Fdef {
+    update {|obj, what ... args| this.value(obj, what, *args) }
+    doOnStartUp { this.value }
+	doOnCmdPeriod { this.value }
+	doOnShutDown { this.value }
+	doOnError { this.value }
+	doOnServerBoot { arg server; this.value(server) }
+	doOnServerQuit { arg server; this.value(server) }
+	doOnServerTree { arg server; this.value(server) }
+}
 
 + SimpleNumber {
 
     // this is maybe not a great idea ??
+    /*
     doesNotUnderstand {|selector ...args|
+        [selector, args].debug("SimpleNumberdoesNotUnderstand.");
         if (selector.notNil ) {
             var key = selector.asSymbol;
             var track = T(key);
@@ -19,42 +118,41 @@
             };
 
             val = track[num];
-            val.debug("ext1");
             if (val.isNil) {
                 val = track.put(num, instr, *args);
             };
-            val.debug("ext2");
             ^val
         }
     }
+    */
 
     /*
     a {|instr ...args|
         var track = T('a');
         var num = this;
         track.put(num, instr, *args);
-        ^track[num];    
+        ^track[num];
     }
 
     b {|instr ...args|
         var track = T('b');
         var num = this;
         track.put(num, instr, *args);
-        ^track[num];    
+        ^track[num];
     }
 
     c {|instr ...args|
         var track = T('c');
         var num = this;
         track.put(num, instr, *args);
-        ^track[num];    
+        ^track[num];
     }
 
     d {|instr ...args|
         var track = T('d');
         var num = this;
         track.put(num, instr, *args);
-        ^track[num];    
+        ^track[num];
     }
     */
 
@@ -74,7 +172,7 @@
             var myvals;
             myvals = this.asArray;
             myvals = myvals ++ vals;
-            
+
             inf.do({
                 myvals.do({|v|
                     v.value.yield;
@@ -90,7 +188,7 @@
     //             var myvals = [this] ++ vals;
     //             myvals.choose.value.yield
     //         })
-    //     })  
+    //     })
     // }
 
     // euclid
@@ -110,9 +208,9 @@
         ^Routine({
             inf.do({
                 var lo = this;
-                exprand(lo, hi).yield   
+                exprand(lo, hi).yield
             })
-        })    
+        })
     }
 
     k {|key|
@@ -120,11 +218,11 @@
         var node = InstrTrack()[tracknum];
         key = key.asSymbol;
         // this is less than perfect
-        // can only use this for scalar values 
+        // can only use this for scalar values
         // calling value will advance any routine
         inf.do({
             node.get(key).yield
-        })    
+        })
     }
 
     idx {|list, index|
@@ -138,7 +236,7 @@
                 if (myindex.isRest.not) {
                     val = mylist.wrapAt(myindex)
                 };
-                inval = val.embedInStream(inval);            
+                inval = val.embedInStream(inval);
             })
         })
     }
@@ -186,43 +284,6 @@
             ^NamedControl.ar(name, val, lags:lag, spec:spec)
         }
     }
-
-    // https://monome.org/docs/norns/reference/lib/lfo
-    // refer to https://github.com/cappelnord/BenoitLib/blob/master/patterns/Pkr.sc
-    // for possible variant to work with patterns
-    // Ndef(\cutoff).bus.getSynchronous
-    sine {|freq, min, max|
-        var val;
-        if (freq.notNil) {
-            val = Ndef(this, { SinOsc.kr(freq, 1.5pi).linlin(-1, 1, min, max) });
-        } {
-            val = Ndef(this)
-        };
-        val.asCompileString.postln;
-        ^val;
-    }
-
-    tri {|freq, min, max|
-        var val;
-        if (freq.notNil) {
-            val = Ndef(this, { LFTri.kr(freq, iphase:3).linlin(-1, 1, min, max) });
-        } {
-            val = Ndef(this)
-        };
-        val.asCompileString.postln;
-        ^val;
-    }
-
-    saw {|freq, min, max|
-        var val;
-        if (freq.notNil) {
-            val = Ndef(this, { LFSaw.kr(freq, iphase:1).linlin(-1, 1, min, max) });
-        } {
-            val = Ndef(this)
-        };
-        val.asCompileString.postln;
-        ^val;
-    }
 }
 
 + Buffer {
@@ -267,7 +328,7 @@
             ^Ptrn.par(*this);
         }
     }
-    
+
     ptpar {|times, repeats=1|
 
         var vals = this.collect({|v, i|
@@ -292,7 +353,7 @@
         } {
             ^Pbind()
         }
-    } 
+    }
 
     /*
     playTimeline {|clock=(TempoClock.default)|
@@ -309,6 +370,7 @@
     }
 }
 
+/*
 + EventPatternProxy {
 
     @ {|val, adverb|
@@ -316,6 +378,7 @@
         ^this;
     }
 }
+*/
 
 + Pattern {
 
@@ -323,11 +386,16 @@
     latchprob {arg prob=0.5; ^Pclutch(this, Pfunc({ if (prob.coin){0}{1} }))}
     pstep {|durs, repeats=inf| ^Pstep(this, durs, repeats)}
 
-    pchain {|...args|
-        if (args[0].isKindOf(Symbol)) {
-            args = Pbind(*args)
-        };
-        ^Pchain(this, *args)
+    /*
+    pchain {|pattern|
+        // pattern flows right to left <-
+        ^Pchain(this, pattern)
+    }
+    */
+
+    // i want the interface to be left to right
+    pmutate {|pattern|
+        ^Pchain(pattern, this)
     }
 
     timeClutch {|delta=0.0|
@@ -416,12 +484,12 @@
     dig {
         ^this
         .replace(Char.space, "")
-        .collectAs({|l| 
-            if (l == $.) { 
+        .collectAs({|l|
+            if (l == $.) {
                 \
             } {
                 l.digit;
-            } 
+            }
         }, Array);
     }
 }

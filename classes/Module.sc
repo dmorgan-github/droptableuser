@@ -7,7 +7,7 @@ Module {
 
     var <>envir, <>libfunc, <fullpath, <view, <doc, <presets;
     //var <props;
-    var <key;
+    var <>key;
     // TODO: need to have more structured subsclasses of modules
     // so appropriate properties can be added
     //var <>mul=1;
