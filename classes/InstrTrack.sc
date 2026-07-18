@@ -60,14 +60,23 @@ InstrTrack {
                     }
                 );
             } {
-                proxy = InstrProxy(key);
+                if (val.isKindOf(Function)) {
+                    proxy = TaskInstrProxy(key, val)
+                }{
+                    proxy = InstrProxy(key);
+                    proxy.out = key;
+                    proxy.proto = proto;
+                }
             };
-
-            proxy.out = key;
-            proxy.proto = proto;
-            tracks[index] = proxy;
+        } {
+            if (val.notNil) {
+                if (proxy.isKindOf(TaskInstrProxy)) {
+                    proxy.source = val;    
+                };
+            }
         };
 
+        tracks[index] = proxy;
         ^proxy
     }
 
@@ -83,6 +92,10 @@ InstrTrack {
 
     *tempo {
         ^TempoClock.default.tempo
+    }
+
+    *beatDur {
+        ^TempoClock.default.beatDur
     }
 
     *record {
@@ -101,7 +114,7 @@ InstrTrack {
         root = root.toLower;
         bpm = bpm.asString.split($.)[0];
 
-        path = "%instr_bpm-%_key-%_scale-%_%.wav".format(
+        path = "%recordings/%bpm_%%-%.wav".format(
             PathName(thisProcess.nowExecutingPath).pathOnly,
             bpm, root, scale,
             Date.new.asSortableString
@@ -175,6 +188,7 @@ InstrTrack {
 
         StartUp.add({
             proto = Event.default;
+            proto['scale'] = Scale.major
         });
     }
 }

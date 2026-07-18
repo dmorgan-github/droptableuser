@@ -1,21 +1,22 @@
 
 // ~sd.synthdef.dump
 // ~sd.synthdef.dumpUGens
-SynthDefModule : Module {
+InstrProxySynthBuilder : Module {
 
     classvar <>defaultFunc;
 
+    var <instrProxy;
     var <synthdef, <synthname, <synthdesc;
     var <modules;
     //var <metadata;
 
-    *new {
+    *new {|instrProxy|
         var res;
-        res = super.new().prSynthModuleInit();
+        res = super.new().prSynthModuleInit(instrProxy);
         ^res;
     }
 
-    evaluate {|val|
+    build {|val|
 
         var func;
 
@@ -28,7 +29,7 @@ SynthDefModule : Module {
             if (result.size > 0) {
                 index = if (result[2].size > 1) { result[2][1].asInteger };
                 if (module.isNil) {
-                    "removing sig".debug("SynthDefModule");
+                    "removing sig".debug("InstrProxySynthBuilder");
                     this.removeAt(index)
                 }{
                     if (module.isKindOf(Function)) {
@@ -41,7 +42,7 @@ SynthDefModule : Module {
             result = myrole.findRegexp("^aeg$");
             if (result.size > 0) {
                 if (module.isNil) {
-                    "removing aeg".debug("SynthDefModule");
+                    "removing aeg".debug("InstrProxySynthBuilder");
                     this.removeAt(10)
                 }{
                     if (module.isKindOf(Function)) {
@@ -56,7 +57,7 @@ SynthDefModule : Module {
                 index = if (result[2].size > 1) { result[2][1].asInteger };
                 index = 20 + index;
                 if (module.isNil) {
-                    "removing filter".debug("SynthDefModule");
+                    "removing filter".debug("InstrProxySynthBuilder");
                     this.removeAt(index)
                 }{
                     if (module.isKindOf(Function)) {
@@ -69,7 +70,7 @@ SynthDefModule : Module {
             result = myrole.findRegexp("^pit$");
             if (result.size > 0) {
                 if (module.isNil) {
-                    "removing pitch model".debug("SynthDefModule");
+                    "removing pitch model".debug("InstrProxySynthBuilder");
                     this.removeAt(30)
                 }{
                     if (module.isKindOf(Function)) {
@@ -82,7 +83,7 @@ SynthDefModule : Module {
             result = myrole.findRegexp("^out$");
             if (result.size > 0) {
                 if (module.isNil) {
-                    "removing out model".debug("SynthDefModule");
+                    "removing out model".debug("InstrProxySynthBuilder");
                     this.removeAt(40)
                 }{
                     if (module.isKindOf(Function)) {
@@ -104,6 +105,14 @@ SynthDefModule : Module {
         val.keysValuesDo({|k, v|
             func.(k, v)
         });
+
+        fork {
+            var key = instrProxy.key;
+            this.add(key);
+            Server.default.sync;
+            // re-initialize the synth
+            instrProxy.instrument = key;
+        };
     }
 
     at {|num|
@@ -183,7 +192,7 @@ SynthDefModule : Module {
     }
 
     visualize {
-        SynthDefModule.visualize(synthdef);
+        InstrProxySynthBuilder.visualize(synthdef);
     }
 
     *visualize {|synthdef|
@@ -217,8 +226,9 @@ SynthDefModule : Module {
         ^SynthDescLib.global[name];
     }
 
-    prSynthModuleInit {
+    prSynthModuleInit {|argInstrProxy|
 
+        instrProxy = argInstrProxy;
         modules = Order();
         synthname = "synth_%".format(UniqueID.next).asSymbol;
         this.libfunc = defaultFunc;

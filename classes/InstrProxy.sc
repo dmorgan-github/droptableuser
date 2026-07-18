@@ -1,16 +1,4 @@
 
-/*
-x sequencable/modulatable from midi/osc
-x sequencable/modulatable from patterns
-x composable with patterns
-x modulatable from bus
-x viewable/modulatable with gui
-savable
-x playable with synthdef, vst, midi instruments
-x filterable with sc fx
-x filterable with vst fx
-*/
-
 // MidiInstrProxy {{{
 MidiInstrProxy : InstrProxy {
 
@@ -185,6 +173,8 @@ VstInstrProxy : InstrProxy {
 
     prInitSynth {|argSynth|
 
+        instrument = argSynth;
+
         fork({
 
             var plugin;
@@ -193,17 +183,17 @@ VstInstrProxy : InstrProxy {
 
             args = argSynth.asString.split($/);
             plugin = args[0];
-            if (args.size > 1){
-                preset_path = args[1].asString;
-            } {
-                preset_path = key.asString.select({|val| val.isAlphaNum});
-            };
+            // if (args.size > 1){
+            //     preset_path = args[1].asString;
+            // } {
+            //     preset_path = key.asString.select({|val| val.isAlphaNum});
+            // };
 
-            if ( preset_path.endsWith(".vstpreset").not) {
-                // add extension so it is easier to filter
-                preset_path = preset_path ++ ".vstpreset";
-            };
-            preset_path = preset_path.resolveRelative.debug("preset_path");
+            // if ( preset_path.endsWith(".vstpreset").not) {
+            //     // add extension so it is easier to filter
+            //     preset_path = preset_path ++ ".vstpreset";
+            // };
+            // preset_path = preset_path.resolveRelative;//.debug("preset_path");
 
             if (SynthDescLib.global[plugin.asSymbol].notNil) {
                 synthname = plugin.asSymbol.debug("synthdef");
@@ -223,7 +213,7 @@ VstInstrProxy : InstrProxy {
             Server.default.latency.wait;
             vstplugin = VSTPluginController(vstsynth, synthDef:synthdef);
             vstplugin.open(plugin, editor: true, verbose:true, action:{|ctrl|
-                if (preset_path.notNil) {
+                if (false /*preset_path.notNil*/) {
                     if (File.exists(preset_path)) {
                         preset_path.debug("VstInstrProxy");
                         ctrl.readProgram(preset_path)
@@ -233,12 +223,6 @@ VstInstrProxy : InstrProxy {
 
             this.set('type', 'composite', 'types', [\vst_midi, \vst_set], 'vst', vstplugin)
         });
-    }
-
-    save {
-        super.save;
-        "save".debug("VstInstrProxy");
-        vstplugin.writeProgram(preset_path);
     }
 
     clear {
@@ -257,6 +241,72 @@ VstInstrProxy : InstrProxy {
 }
 // }}}
 
+TaskInstrProxy : Tdef {
+
+    *new { |key, item|
+        item.debug("item");
+		^super.new(key, item).prInit;
+	}
+
+    prInit {
+        
+    }
+}
+
+InstrProxyLfo {
+
+    var <instrProxy;
+    var <all;
+
+    *new {|proxy|
+		^super.new.prInit(proxy)
+	}
+
+    put {|prop ...pairs|
+        var mod = all.at(prop);
+        if (mod.isNil) {
+            var key = "%/%".format(instrProxy.key, prop).asSymbol;
+            mod = M('device/wtlfo').(key);
+            all.put(prop, mod);
+        };
+        instrProxy.set(prop, mod);
+        if (pairs.notNil and: { pairs.size > 0} ) {
+            mod.set(*pairs);
+        };
+        ^mod
+    }
+
+    at {|prop|
+        ^all.at(prop);        
+    }
+
+    clear {
+        "clear".debug("InstrProxyLfo");
+        all.do({|v| v.free });
+        all.clear;
+    }
+
+    prInit {|proxy|
+        instrProxy = proxy;
+        all = IdentityDictionary();
+        instrProxy.addUniqueMethod(\modulate, {|self, prop ...pairs|
+            var mod = all.at(prop);
+            if (mod.isNil) {
+                var key = "%/%".format(instrProxy.key, prop).asSymbol;
+                mod = M('device/wtlfo').(key);
+                all.put(prop, mod);
+            };
+            instrProxy.set(prop, mod);
+            if (pairs.notNil and: { pairs.size > 0} ) {
+                mod.set(*pairs);
+            };
+            mod
+        });
+
+        ^this;  
+    }
+}
+
 // InstrProxy {{{
 InstrProxy : EventPatternProxy {
 
@@ -266,73 +316,77 @@ InstrProxy : EventPatternProxy {
     var <node, <cmdperiodfunc, <>color;
     var <>isMono=false, <>hasgate=true, <instrument;
     var <isMonitoring;
-    var <metadata, <controlNames;
+    var <controlNames;
     var <synthdef;
     var <>notePlayer, <msgFunc;
-    var <key, <synthdefmodule;
+    var <key;
     var <simpleController;
+    var <synthbuilder;
+    var <data;
+    //var <stuff;
     var <lfos;
-    var <>data_path;
-    var <skipJack;
-    var <>autosave=false;
-    var <>uiModule;
+    var playFunc, stopFunc;
+    var viewFunc;
 
-    var specs;
+    //var specs;
     var protoEvent;
-    var insertOffset=0;
 
     *new {|key|
         ^super.new.prInit(key);
     }
 
+    printOn {|stream|
+        super.printOn(stream);
+        stream << " key:" << this.key << " out:" << this.out
+    }
+
     // synth
     <+ {|val|
-
-        synthdefmodule = SynthDefModule();
-        synthdefmodule.evaluate(val);
-
-        fork {
-            synthdefmodule.add(key);
-            Server.default.sync;
-            // re-initialize the synth
-            this.instrument = key;
-        };
+        synthbuilder.build(val);
     }
 
-    // fx inserts
     +> {|val, adverb|
-
-        var offset = insertOffset;
-        if (adverb.isNil) {
-            "please specify a slot".throw;
-        }{
-            offset = offset + adverb.asInteger;    
-        }; 
-        this.node.fx(offset, val);
-    }
-
-    inserts {
-        ^this.node.inserts;//.at(insertOffset + index) 
-    }
-
-    removeInsert {|index|
-        this.node.fx(insertOffset + index, nil)    
+        var index = adverb.asInteger;
+        this.fx[index] = val;
     }
 
     // props
     @ {|val, adverb|
 
-        if (adverb.isNil and: val.isKindOf(Array)) {
-            this.set(*val);
-        } {
-            this.set(adverb, val)
-        }
+        if (val.isKindOf(Function)) {
+            var key = "%_%".format(this.key, adverb).asSymbol.debug("lfo");
+            var ndef = lfos.at(key);
+            if (ndef.isNil) {
+                ndef = Ndef(key, val).quant_(1.0);
+            };
+            ndef[0] = val;
+            lfos.put(adverb, ndef);
+            val = ndef;
+        };
+        this.set(adverb, val)
     }
 
-    // map lfos
-    @@ {|val, adverb|
-        this.map(adverb, val)    
-    }
+    // lfos
+    // @> {|val, adverb|
+
+        
+    //     if (ndef.isNil) {
+    //         if (val.isKindOf(Function)) {
+    //             ndef = Ndef(key, val)
+    //         }
+    //     };
+    //     if (val.isKindOf(Function)) {
+    //         ndef[0] = val
+    //     };
+    //     lfos.put(adverb, ndef);
+    //     this.set(adverb, ndef);
+
+    //     // if (val == 'view') {
+    //     //     ^lfo.at(adverb).view.front
+    //     // } {
+    //     //     lfo.put(adverb, *val);
+    //     // }
+    // }
 
     // pattern
     << {|pattern, adverb|
@@ -348,6 +402,10 @@ InstrProxy : EventPatternProxy {
         this.source = pattern;           
     }
 
+    fx {
+        ^this.node;
+    }
+
     proto {
         ^protoEvent;
     }
@@ -357,6 +415,7 @@ InstrProxy : EventPatternProxy {
         super.set(\proto, protoEvent);
     }
 
+    /*
     map {|key, val|
 
         if (val.isKindOf(Function)) {
@@ -366,10 +425,13 @@ InstrProxy : EventPatternProxy {
         "map % %".format(key, val).debug("InstrProxy");
         this.set(key, val);
     }
+    */
 
+    /*
     unmap {|key|
         // no-op - overridenn in child class    
     }
+    */
 
     set {|...args|
 
@@ -446,43 +508,66 @@ InstrProxy : EventPatternProxy {
         this.set(\bend, val)    
     }
 
+    play_ {|val|
+        playFunc = val    
+    }
+
     play {|doReset=false, fadeTime=0, quant|
-        if (fadeTime > 0) {
-            // node stop will force the output proxy to be freed and a new one created
-            // when play is invoked - not sure this is a great way to do this
-            node.stop(fadeTime:0).play(fadeTime:fadeTime);
-        } {
-            if (node.isMonitoring.not ) {
-                node.play;
+
+        if (playFunc.isNil) {
+            if (fadeTime > 0) {
+                // node stop will force the output proxy to be freed and a new one created
+                // when play is invoked - not sure this is a great way to do this
+                node.stop(fadeTime:0).play(fadeTime:fadeTime);
+            } {
+                if (node.isMonitoring.not ) {
+                    node.play;
+                };
             };
-        };
-        super.play(protoEvent:protoEvent, doReset:doReset)  ;
+            super.play(protoEvent:protoEvent, doReset:doReset);
+
+        }{
+            playFunc.(doReset, fadeTime, quant)
+        }
+    }
+
+    stop_ {|val|
+        stopFunc = val;    
     }
 
     stop {|fadeTime=0|
-        if (fadeTime > 0) {
-            node.stop(fadeTime:fadeTime);
-            {
+        if (stopFunc.isNil) {
+
+            if (fadeTime > 0) {
+                node.stop(fadeTime:fadeTime);
+                {
+                    super.stop
+                }.defer( fadeTime + 0.5 )
+            } {
                 super.stop
-            }.defer( fadeTime + 0.5 )
-        } {
-            super.stop
+            }
+
+        }{
+            stopFunc.(fadeTime)
         }
     }
 
     clear {
         this.changed(\clear);
-        skipJack.stop;
         "node.clear".debug("InstrProxy");
         simpleController.remove;
         node.clear;
         notePlayer.clear;
-        specs.clear;
+        //specs.clear;
         envir.clear;
-        metadata.clear;
         ServerTree.remove(cmdperiodfunc);
         this.releaseDependants;
-        this.clearHalo;
+        //stuff.clear;
+        lfos.keys.do({|k| 
+            lfos.at(k).free
+        });
+        lfos.clear;
+
         super.clear;
         ^nil
     }
@@ -517,17 +602,17 @@ InstrProxy : EventPatternProxy {
         this.node.out = bus;
     }
 
+    view_{|val|
+        viewFunc = val;    
+    }
+
     view {|cmds|
-        ^uiModule.(this, nil, cmds);
+        //^UiModule('instr').(this, nil, cmds);
+        ^viewFunc.(this, nil, cmds)
     }
 
     gui {|cmds|
         this.view(cmds).front
-    }
-
-    printOn {|stream|
-        super.printOn(stream);
-        stream << " key:" << this.key << " out:" << this.out
     }
 
     stringify {
@@ -535,7 +620,11 @@ InstrProxy : EventPatternProxy {
         var kv, str;
         kv = this.envir.copy.parent_(nil).proto_(nil)
         .reject({|v, k| ['vst', 'type', 'types', 'instrument', 'bufposreplyid', 'buf', 'kb_toggle' ].includes(k) })
-        .reject({|v, k| v.isKindOf(NodeProxy) })
+        //.reject({|v, k| v.isKindOf(NodeProxy) })
+        .reject({|v|
+            var test = v.isNumber or: { v.isString } or: { v.isCollection } or: { v.isKindOf(Symbol) };
+            test.not
+        })
         .reject({|v, k|
             var spec = this.getSpec[k];
             var default = if (spec.notNil) {spec.default}{nil};
@@ -550,33 +639,40 @@ InstrProxy : EventPatternProxy {
     source_ {|pattern|
 
         var chain, ptrn;
-        pattern = pattern ?? { Pbind() };
-        chain = Pchain(
-            pattern,
-            Plazy({
-                Pbind(
-                    \out, node.bus.index,
-                    \group, Pfunc( { node.group.nodeID }),
-                    \sendGate, this.hasgate
-                )
-            })
-        );
+        if (pattern.isKindOf(Function)) {
+            ptrn = pattern
+        } {
+            pattern = pattern ?? { Pbind() };
+            chain = Pchain(
+                pattern,
+                Plazy({
+                    Pbind(
+                        \out, node.bus.index,
+                        \group, Pfunc( { node.group.nodeID }),
+                        \sendGate, this.hasgate
+                    )
+                })
+            );
 
-        ptrn = Plazy({
-            if (isMono) { 
-                Pmono(instrument) <> chain <> Pbind(\trig, 1) 
-            }{ 
-                chain 
-            }    
-        });
-
+            ptrn = Plazy({
+                if (isMono) { 
+                    Pmono(instrument) <> chain <> Pbind(\trig, 1) 
+                }{ 
+                    chain 
+                }    
+            });
+        };
+        
         super.source = ptrn
     }
 
+    /*
     getSpec {
         ^specs;
     }
+    */
 
+    /*
     addSpec {|...pairs|
         if (pairs.notNil) {
             pairs.pairsDo { |name, spec|
@@ -585,20 +681,8 @@ InstrProxy : EventPatternProxy {
             }
         };
     }
+    */
 
-    save {
-        // to be overridden
-        var str;
-
-        "save".debug("InstrProxy");
-        str = this.stringify;
-        if (str.size > 0) {
-            File.use(this.data_path, "w", { |f|
-                f.write(str);
-                this.changed(\save)
-            })
-        };
-    }
 
     prInitSynth {|synthname|
 
@@ -608,6 +692,8 @@ InstrProxy : EventPatternProxy {
         if (synthdef.isNil) {
             //"synth does not exist".debug(synth)
         } {
+
+            var metadata;
 
             synthdef
             .controls.reject({|cn|
@@ -654,19 +740,20 @@ InstrProxy : EventPatternProxy {
 
     prInit {|argKey|
 
-        var synthfunc;
-
         key = argKey;
         if (key.isNil) { key = "instr%".format(count).asSymbol };
         color = colors.wrapAt(count);
-        specs = ();
-        lfos = Dictionary();
+        //specs = ();
         node = InstrNodeProxy("%/node".format(key).asSymbol);
         node.color = color;
-        data_path = "%%_data.scd".format( PathName(thisProcess.nowExecutingPath).pathOnly, key.asString.select({|val| val.isAlphaNum})).debug("data_path");
 
         notePlayer = InstrProxyNotePlayer(this);
-        //synthdefmodule = SynthDefModule();
+        synthbuilder = InstrProxySynthBuilder(this);
+        data = InstrProxyPersistance(this);
+        //stuff = IdentityDictionary(know:true);
+        //lfo = InstrProxyLfo(this);
+        lfos = IdentityDictionary(know:true);
+        viewFunc = UiModule('instr');
 
         simpleController = SimpleController(node);
         simpleController.put(\play, {|model, what, data| isMonitoring = model.isMonitoring });
@@ -686,16 +773,6 @@ InstrProxy : EventPatternProxy {
 
         ServerTree.add(cmdperiodfunc);
         count = count + 1;
-
-        uiModule = UiModule('instr');
-
-        /*
-        skipJack = SkipJack({
-            if (this.autosave) {
-                this.save;
-            }
-        }, 30);
-        */
 
         ^this
     }

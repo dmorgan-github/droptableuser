@@ -1,110 +1,31 @@
+// 6-shape selectable LFO with modulatable phase and trigger-based reset.
+// All inputs are normalised 0..1 (except `reset`, a trigger).
+//   shape: 0=sine 0.2=tri 0.4=sqr 0.6=ramp↑ 0.8=ramp↓ 1=random
+//   phase: 0..1 fraction of one cycle (modulatable; values outside 0..1 wrap)
+//   reset: trigger — on positive transition the phasor jumps to `phase` and
+//          a fresh random target is sampled.
+// Output is bipolar (-1..1).
 
-/*
-unipolar: sig + (mod * moddepth)
-unipolar with env: ffreq * (1 + (modFactor * eg))
-bipolar: sig * (2 ** (mod * moddepth))
-*/
+LFO {
+    *kr { |freq = 1, shape = 0, phase = 0, reset = 0|
+        var basePhase, ph, rampTrig, randTarget, rampTarget, shapes, shapeIdx;
 
+        basePhase = Phasor.kr(reset, freq / ControlRate.ir, 0, 1, phase);
+        ph        = (basePhase + phase).wrap(0, 1);
 
-ResetLfo : UGen {
+        rampTrig   = Impulse.kr(freq) + reset;
+        randTarget = TRand.kr(-1.0, 1.0, rampTrig);
+        rampTarget = Lag.kr(randTarget, freq.reciprocal);
 
-    *kr {|freq, modratio=1, modindex=0, reset|
-        ^ResetLfo.prAudio('kr', freq, modratio, modindex, reset)
-    }
-
-    *ar {|freq, modratio=1, modindex=0, reset|
-        ^ResetLfo.prAudio('ar', freq, modratio, modindex, reset)
-    }
-
-    *prAudio {|rate, freq, modratio=1, modindex=0, reset=1|
-        var phase = Phasor.ar(reset, freq * [1, modratio] * SampleDur.ir);
-        var mod = SinOsc.perform(rate, DC.perform(rate, 0), phase[1]) / 2pi * modindex;
-        var sig = SinOsc.perform(rate, DC.perform(rate, 0), phase[0] + mod * 2pi);
-        ^sig;
+        shapes = [
+            sin(ph * 2pi),                       // sine
+            1 - ((ph - 0.5).abs * 4),            // triangle
+            (ph < 0.5) * 2 - 1,                  // square
+            ph * 2 - 1,                          // ramp up
+            1 - (ph * 2),                        // ramp down
+            rampTarget                           // random
+        ];
+        shapeIdx = (shape * 5).round(1).asInteger.clip(0, 5);
+        ^Select.kr(shapeIdx, shapes);
     }
 }
-
-Lfo {
-
-    var <funcs;
-
-    *new {
-        ^super.new.init
-    }
-
-    sine  {|val=0.5, depth=0, rate=1|
-        var settings = [val, depth, rate].flop;
-        funcs = settings.collect({|val, i|
-            var v = val[0];
-            var d = val[1];
-            var r = val[2];
-            {
-                var lfo;
-                var prefix = ~key ?? 'lfo';
-                var valctl = NamedControl("%_val".format(prefix).asSymbol, v, 0.1 );
-                var depthctrl = NamedControl( "%_depth".format(prefix).asSymbol, d, 0.1 );
-                var ratectrl = NamedControl( "%_rate".format(prefix).asSymbol, r, 0.1 );
-                // sig = valctl * ( depthctrl.linlin(0, 1, 1, 2) ** SinOsc.kr(ratectrl));
-
-                lfo = SinOsc.kr(ratectrl) * depthctrl;
-                lfo = 2 ** lfo;
-                lfo = valctl * lfo;
-                lfo
-            }
-        });
-    }
-
-    value {|key|
-        ^funcs.collect({|func, i|
-            var mykey = "%%".format(key, i).asSymbol;
-            func = func.inEnvir( (key: mykey) );
-            Ndef(mykey, func)
-        })    
-    }
-
-    *sine  {|val=0.5, depth=0, rate=1, poll=0|
-        ^Lfo().sine(val, depth, rate)
-    }
-
-    init {
-        ^this
-    }
-
-}
-
-/*
-LfoDef {
-
-    classvar <order;
-
-    *new {
-        ^super.new.init
-    }
-
-    *sine  {|key, val=0.5, depth=0, rate=1, poll=0|
-        LfoDef().sine(val=0.5, depth=0, rate=1)
-    }
-
-    put {|index, val|
-        var node = order[index];
-        if (node.isNil) {
-            node = NodeProxy();
-            order.put(index, node);
-        };
-        node[0] = val;
-    }
-
-    at {|index|
-        ^order[index]    
-    }
-
-    init {
-        ^this
-    }
-
-    *initClass {
-        order = Order()
-    }
-
-}
-*/
